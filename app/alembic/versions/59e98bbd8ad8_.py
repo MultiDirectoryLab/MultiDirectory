@@ -12,9 +12,9 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "59e98bbd8ad8"
-down_revision = None
-branch_labels = None
-depends_on = None
+down_revision: None | str = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 def upgrade() -> None:
@@ -103,7 +103,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("name"),
         sa.UniqueConstraint(
             "priority",
-            deferrable="True",
+            deferrable=True,
             initially="DEFERRED",
             name="priority_uc",
         ),

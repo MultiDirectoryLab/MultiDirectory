@@ -11,13 +11,13 @@ from alembic import op
 from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_entity_type_name
-from models import Attribute, Directory
+from models import Attribute, Directory, queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "bv546ccd35fa"
 down_revision = "8c2bd40dd809"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
@@ -28,8 +28,8 @@ def upgrade() -> None:
 
     krb_admin_user = session.scalar(
         sa.select(Directory)
-        .join(Directory.user)
-        .filter(Directory.name == "krbadmin"),
+        .filter_by(name="krbadmin")
+        .join(qa(Directory.user)),
     )
 
     if krb_admin_user:
@@ -41,9 +41,9 @@ def upgrade() -> None:
         }.items():
             session.execute(
                 sa.delete(Attribute)
-                .where(
-                    Attribute.name == attr,
-                    Attribute.directory_id == krb_admin_user.id,
+                .filter_by(
+                    name=attr,
+                    directory_id=krb_admin_user.id,
                 ),
             )  # fmt: skip
             session.add(
@@ -54,17 +54,17 @@ def upgrade() -> None:
                 ),
             )
 
-        krb_admin_group = session.scalar(
+        krb_admin_group = session.scalars(
             sa.select(Directory)
-            .join(Directory.group)
-            .filter(Directory.name == "krbadmin"),
-        )
+            .filter_by(name="krbadmin")
+            .join(qa(Directory.group)),
+        ).one()
 
         session.execute(
             sa.delete(Attribute)
-            .where(
-                Attribute.name == "gidNumber",
-                Attribute.directory_id == krb_admin_group.id,
+            .filter_by(
+                name="gidNumber",
+                directory_id=krb_admin_group.id,
             ),
         )  # fmt: skip
         session.add(

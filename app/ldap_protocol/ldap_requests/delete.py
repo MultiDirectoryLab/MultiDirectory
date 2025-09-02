@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import defaultload, selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
@@ -25,7 +25,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory, Group
+from models import Directory, Group, queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
@@ -67,10 +67,14 @@ class DeleteRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                defaultload(Directory.user),
-                selectinload(Directory.groups).selectinload(Group.directory),
-                selectinload(Directory.group).selectinload(Group.members),
-                selectinload(Directory.attributes),
+                joinedload(qa(Directory.user)),
+                selectinload(qa(Directory.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                joinedload(qa(Directory.group)).selectinload(
+                    qa(Group.members),
+                ),
+                selectinload(qa(Directory.attributes)),
             )
             .filter(get_filter_from_path(self.entry))
         )

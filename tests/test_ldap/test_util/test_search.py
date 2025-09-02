@@ -24,7 +24,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
-from models import User
+from models import User, queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -187,7 +187,7 @@ async def test_bind_policy_missing_group(
     user_query = (
         select(User)
         .filter_by(display_name="user0")
-        .options(selectinload(User.groups))
+        .options(selectinload(qa(User.groups)))
     )
     user = (await session.scalars(user_query)).one()
 
