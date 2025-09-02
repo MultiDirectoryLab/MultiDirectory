@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from abstract_dao import AbstractDAO
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
+    PasswordPolicyNotFoundError,
 )
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.helpers import ft_now
@@ -53,9 +54,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         policy = await self._session.scalar(select(PasswordPolicy))
 
         if not policy:
-            policy_dto = self.get_default_policy()
-            await self.create(policy_dto)
-            policy = await self._session.scalar(select(PasswordPolicy))
+            raise PasswordPolicyNotFoundError("Policy not found")
 
         return _convert_model_to_dto(policy)  # type: ignore
 
