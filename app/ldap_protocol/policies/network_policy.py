@@ -12,14 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, true
 
-from models import (
-    Group,
-    NetworkPolicy,
-    User,
-    groups_table,
-    policies_table,
-    queryable_attr as qa,
-)
+from entities import Group, NetworkPolicy, User
+from repo.pg.tables import queryable_attr as qa
 
 
 def build_policy_query(
@@ -47,7 +41,7 @@ def build_policy_query(
             text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip),
             protocol_field == true(),
         )
-        .order_by(policies_table.c.priority.asc())
+        .order_by(qa(NetworkPolicy.priority).asc())
         .limit(1)
     )
 
@@ -56,7 +50,7 @@ def build_policy_query(
             or_(
                 qa(NetworkPolicy.groups) == None,  # noqa
                 qa(NetworkPolicy.groups).any(
-                    groups_table.c.id.in_(user_group_ids),
+                    qa(Group.id).in_(user_group_ids),
                 ),
             ),
         )

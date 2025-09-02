@@ -11,6 +11,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from entities import EntityType, ObjectClass
 from enums import KindType
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
@@ -23,12 +24,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import (
-    ObjectClass,
-    entity_types_table,
-    object_classes_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import queryable_attr as qa
 
 
 class ObjectClassSchema(BaseModel):
@@ -85,9 +81,9 @@ class ObjectClassDAO:
         """
         query = build_paginated_search_query(
             model=ObjectClass,
-            order_by_field=object_classes_table.c.id,
+            order_by_field=qa(ObjectClass.id),
             params=params,
-            search_field=object_classes_table.c.name,
+            search_field=qa(ObjectClass.name),
             load_params=(
                 selectinload(qa(ObjectClass).attribute_types_may),
                 selectinload(qa(ObjectClass).attribute_types_must),
@@ -237,7 +233,7 @@ class ObjectClassDAO:
         """
         query = await self.__session.scalars(
             select(ObjectClass)
-            .where(object_classes_table.c.name.in_(object_class_names))
+            .where(qa(ObjectClass.name).in_(object_class_names))
             .options(
                 selectinload(qa(ObjectClass.attribute_types_must)),
                 selectinload(qa(ObjectClass.attribute_types_may)),
@@ -292,15 +288,15 @@ class ObjectClassDAO:
         :return None.
         """
         subq = (
-            select(func.unnest(entity_types_table.c.object_class_names))
-            .where(entity_types_table.c.object_class_names.isnot(None))
+            select(func.unnest(qa(EntityType.object_class_names)))
+            .where(qa(EntityType.object_class_names).isnot(None))
         )  # fmt: skip
 
         await self.__session.execute(
             delete(ObjectClass)
             .where(
-                object_classes_table.c.name.in_(object_classes_names),
-                object_classes_table.c.is_system.is_(False),
-                ~object_classes_table.c.name.in_(subq),
+                qa(ObjectClass.name).in_(object_classes_names),
+                qa(ObjectClass.is_system).is_(False),
+                ~qa(ObjectClass.name).in_(subq),
             ),
         )  # fmt: skip

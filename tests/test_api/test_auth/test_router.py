@@ -17,6 +17,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin
@@ -24,15 +25,8 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import (
-    CatalogueSetting,
-    Directory,
-    Group,
-    NetworkPolicy,
-    Role,
-    queryable_attr as qa,
-)
 from password_manager.password_validator import PasswordValidator
+from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -279,8 +273,6 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
 
     assert data["resultCode"] == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user_dn
-
-    print(data["search_result"])
 
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "userAccountControl":

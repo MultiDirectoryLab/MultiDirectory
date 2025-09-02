@@ -9,9 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.sql.expression import select
 from sqlalchemy.sql.selectable import CTE
 
-from models import (
-    Directory,
-    Group,
+from entities import Directory, Group
+from repo.pg.tables import (
     directory_memberships_table,
     directory_table,
     groups_table,

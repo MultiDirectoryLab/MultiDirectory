@@ -16,9 +16,10 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
+from entities import Group, User
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
-from models import Group, User, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 
 _CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,

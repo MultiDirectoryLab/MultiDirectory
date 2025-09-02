@@ -11,6 +11,7 @@ from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from entities import Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos import KRBAPIError
@@ -38,7 +39,6 @@ from ldap_protocol.utils.queries import (
     get_search_path,
     validate_entry,
 )
-from models import Attribute, Directory, Group, User
 
 from .base import BaseRequest
 from .contexts import LDAPAddRequestContext

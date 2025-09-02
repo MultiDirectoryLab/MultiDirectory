@@ -15,6 +15,7 @@ from starlette.datastructures import URL
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
+from entities import User
 from ldap_protocol.identity.exceptions.auth import (
     LoginFailedError,
     PasswordPolicyError,
@@ -38,7 +39,6 @@ from ldap_protocol.policies.audit.events.factory import (
     RawAuditEventBuilderRedis,
 )
 from ldap_protocol.session_storage import SessionStorage
-from models import User
 
 _T = TypeVar("_T", bound=Callable)
 

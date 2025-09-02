@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import AttributeType
 from ldap_protocol.exceptions import (
     InstanceCantModifyError,
     InstanceNotFoundError,
@@ -18,7 +19,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import AttributeType, attribute_types_table
+from repo.pg.tables import queryable_attr as qa
 
 
 class AttributeTypeSchema(BaseModel):
@@ -68,9 +69,9 @@ class AttributeTypeDAO:
         """
         query = build_paginated_search_query(
             model=AttributeType,
-            order_by_field=attribute_types_table.c.id,
+            order_by_field=qa(AttributeType.id),
             params=params,
-            search_field=attribute_types_table.c.name,
+            search_field=qa(AttributeType.name),
         )
 
         return await PaginationResult[AttributeType].get(
@@ -144,7 +145,7 @@ class AttributeTypeDAO:
 
         query = await self.__session.scalars(
             select(AttributeType)
-            .where(attribute_types_table.c.name.in_(attribute_type_names)),
+            .where(qa(AttributeType.name).in_(attribute_type_names)),
         )  # fmt: skip
         return list(query.all())
 
@@ -188,7 +189,7 @@ class AttributeTypeDAO:
         await self.__session.execute(
             delete(AttributeType)
             .where(
-                attribute_types_table.c.name.in_(attribute_type_names),
-                attribute_types_table.c.is_system.is_(False),
+                qa(AttributeType.name).in_(attribute_type_names),
+                qa(AttributeType.is_system).is_(False),
             ),
         )  # fmt: skip
