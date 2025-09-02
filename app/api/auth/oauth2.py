@@ -20,8 +20,6 @@ from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
 from models import Group, User
 
-ALGORITHM = "HS256"
-
 _CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Could not validate credentials",

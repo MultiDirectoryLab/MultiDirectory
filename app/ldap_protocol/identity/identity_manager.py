@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_dao import AbstractService
-from api.auth.schema import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.exceptions.auth import (
     AlreadyConfiguredError,
     ForbiddenError,
@@ -26,6 +25,11 @@ from constants import ENTITY_TYPE_DATAS
 from enums import MFAFlags
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.mfa_manager import MFAManager
+from ldap_protocol.identity.schemas import (
+    MFAChallengeResponse,
+    OAuth2Form,
+    SetupRequest,
+)
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO

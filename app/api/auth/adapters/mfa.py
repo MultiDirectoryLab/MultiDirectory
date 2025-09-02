@@ -10,7 +10,6 @@ from fastapi import status
 from fastapi.responses import RedirectResponse
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
-from api.auth.schema import MFACreateRequest, MFAGetResponse
 from api.base_adapter import BaseAdapter
 from api.exceptions.mfa import (
     ForbiddenError,
@@ -22,6 +21,7 @@ from api.exceptions.mfa import (
     NotFoundError,
 )
 from ldap_protocol.identity import MFAManager
+from ldap_protocol.identity.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 

@@ -13,7 +13,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
-from api.auth.schema import OAuth2Form
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.exceptions.auth import (
     LoginFailedError,
@@ -30,6 +29,7 @@ from api.exceptions.mfa import (
     NetworkPolicyError,
 )
 from config import Settings
+from ldap_protocol.identity.schemas import OAuth2Form
 from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.objects import OperationEvent

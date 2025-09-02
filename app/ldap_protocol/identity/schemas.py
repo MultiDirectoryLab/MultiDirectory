@@ -1,6 +1,6 @@
 """Schemas for auth module.
 
-Copyright (c) 2024 MultiFactor
+Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
@@ -27,13 +27,6 @@ _domain_re = re.compile(
 )
 
 
-class Login(BaseModel):
-    """Login form."""
-
-    username: str
-    password: str
-
-
 class OAuth2Form(OAuth2PasswordRequestForm):
     """OAuth2 custom form."""
 
@@ -45,14 +38,6 @@ class OAuth2Form(OAuth2PasswordRequestForm):
         """Initialize form."""
         self.username = username
         self.password = password
-
-
-class Token(BaseModel):
-    """Token model."""
-
-    access_token: str
-    refresh_token: str
-    type: str
 
 
 class SetupRequest(BaseModel):

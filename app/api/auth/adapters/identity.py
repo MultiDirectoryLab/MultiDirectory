@@ -9,7 +9,6 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import Request, Response, status
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
-from api.auth.schema import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.base_adapter import BaseAdapter
 from api.exceptions.auth import (
     AlreadyConfiguredError,
@@ -24,6 +23,11 @@ from api.exceptions.mfa import (
     MissingMFACredentialsError,
 )
 from ldap_protocol.identity import IdentityManager
+from ldap_protocol.identity.schemas import (
+    MFAChallengeResponse,
+    OAuth2Form,
+    SetupRequest,
+)
 from ldap_protocol.kerberos import KRBAPIError
 
 

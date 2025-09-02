@@ -17,12 +17,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_dao import AbstractService
-from api.auth.oauth2 import ALGORITHM
-from api.auth.schema import (
-    MFAChallengeResponse,
-    MFACreateRequest,
-    MFAGetResponse,
-)
 from api.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -34,6 +28,11 @@ from api.exceptions.mfa import (
 )
 from config import Settings
 from enums import MFAChallengeStatuses, MFAFlags
+from ldap_protocol.identity.schemas import (
+    MFAChallengeResponse,
+    MFACreateRequest,
+    MFAGetResponse,
+)
 from ldap_protocol.identity.utils import get_user
 from ldap_protocol.multifactor import (
     Creds,
@@ -51,6 +50,8 @@ from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from models import CatalogueSetting, NetworkPolicy, User
 from password_manager import PasswordValidator
+
+ALGORITHM = "HS256"
 
 
 class MFAManager(AbstractService):
