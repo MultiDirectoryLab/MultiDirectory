@@ -12,7 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_dao import AbstractService
-from api.exceptions.auth import (
+from config import Settings
+from constants import ENTITY_TYPE_DATAS
+from enums import MFAFlags
+from extra.setup_dev import setup_enviroment
+from ldap_protocol.identity.exceptions.auth import (
     AlreadyConfiguredError,
     ForbiddenError,
     LoginFailedError,
@@ -20,10 +24,6 @@ from api.exceptions.auth import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from config import Settings
-from constants import ENTITY_TYPE_DATAS
-from enums import MFAFlags
-from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.mfa_manager import MFAManager
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,

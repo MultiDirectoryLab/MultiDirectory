@@ -14,13 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from api.exceptions.auth import (
+from config import Settings
+from ldap_protocol.identity.exceptions.auth import (
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
     UserNotFoundError,
 )
-from api.exceptions.mfa import (
+from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
@@ -28,7 +29,6 @@ from api.exceptions.mfa import (
     MFATokenError,
     NetworkPolicyError,
 )
-from config import Settings
 from ldap_protocol.identity.schemas import OAuth2Form
 from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.multifactor import MFA_HTTP_Creds

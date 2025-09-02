@@ -10,13 +10,13 @@ from typing import ParamSpec, TypeVar
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from api.exceptions.auth import PasswordPolicyError
-from api.exceptions.mfa import (
+from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.exceptions.auth import PasswordPolicyError
+from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
     NetworkPolicyError,
 )
-from ldap_protocol.identity import IdentityManager, MFAManager
 
 P = ParamSpec("P")
 R = TypeVar("R")

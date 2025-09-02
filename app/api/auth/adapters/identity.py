@@ -10,19 +10,19 @@ from fastapi import Request, Response, status
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.base_adapter import BaseAdapter
-from api.exceptions.auth import (
+from ldap_protocol.identity import IdentityManager
+from ldap_protocol.identity.exceptions.auth import (
     AlreadyConfiguredError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
     UserNotFoundError,
 )
-from api.exceptions.mfa import (
+from ldap_protocol.identity.exceptions.mfa import (
     MFAError,
     MFARequiredError,
     MissingMFACredentialsError,
 )
-from ldap_protocol.identity import IdentityManager
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,
     OAuth2Form,

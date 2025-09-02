@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_dao import AbstractService
-from api.exceptions.mfa import (
+from config import Settings
+from enums import MFAChallengeStatuses, MFAFlags
+from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
@@ -26,8 +28,6 @@ from api.exceptions.mfa import (
     MissingMFACredentialsError,
     NetworkPolicyError,
 )
-from config import Settings
-from enums import MFAChallengeStatuses, MFAFlags
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,
     MFACreateRequest,
