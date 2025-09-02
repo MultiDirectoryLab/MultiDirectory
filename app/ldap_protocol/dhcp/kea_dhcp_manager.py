@@ -15,7 +15,12 @@ from .dataclasses import (
     DHCPSharedNetwork,
     DHCPSubnet,
 )
-from .exceptions import DHCPAPIError, DHCPEntryAddError, DHCPEntryUpdateError
+from .exceptions import (
+    DHCPAPIError,
+    DHCPEntryAddError,
+    DHCPEntryDeleteError,
+    DHCPEntryUpdateError,
+)
 
 
 class KeaDHCPManager(AbstractDHCPManager):
@@ -65,7 +70,10 @@ class KeaDHCPManager(AbstractDHCPManager):
 
     async def delete_subnet(self, subnet_id: int) -> None:
         """Delete a subnet."""
-        await self._api_repository.delete_subnet(subnet_id)
+        try:
+            await self._api_repository.delete_subnet(subnet_id)
+        except DHCPAPIError as e:
+            raise DHCPEntryDeleteError(f"Failed to delete subnet: {e}")
 
     async def get_subnets(self) -> list[DHCPSubnet]:
         """Get all subnets."""
@@ -135,7 +143,10 @@ class KeaDHCPManager(AbstractDHCPManager):
 
     async def release_lease(self, ip_address: IPv4Address) -> None:
         """Release a lease."""
-        await self._api_repository.release_lease(ip_address)
+        try:
+            await self._api_repository.release_lease(ip_address)
+        except DHCPAPIError as e:
+            raise DHCPEntryDeleteError(f"Failed to release lease: {e}")
 
     async def list_active_leases(
         self,
@@ -197,8 +208,12 @@ class KeaDHCPManager(AbstractDHCPManager):
             identifier=mac_address,
             operation_target="all",
         )
-
-        await self._api_repository.delete_reservation(reservation)
+        try:
+            await self._api_repository.delete_reservation(reservation)
+        except DHCPAPIError as e:
+            raise DHCPEntryDeleteError(
+                f"Failed to delete reservation: {e}",
+            )
 
     async def get_reservations(
         self,

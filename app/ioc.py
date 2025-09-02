@@ -319,17 +319,6 @@ class MainProvider(Provider):
             repository = DHCPManagerRepository(session)
             return await repository.ensure_state()
 
-    @provide(scope=Scope.APP)
-    async def get_dhcp_http_client(
-        self,
-        settings: Settings,
-    ) -> AsyncIterator[DHCPManagerHTTPClient]:
-        """Get async client for DHCP manager."""
-        async with httpx.AsyncClient(
-            base_url=f"http://{settings.DHCP_HOST}:8000",
-        ) as client:
-            yield DHCPManagerHTTPClient(client)
-
     @provide(scope=Scope.SESSION)
     async def get_dhcp_mngr_class(
         self,
@@ -358,11 +347,14 @@ class MainProvider(Provider):
     @provide(scope=Scope.REQUEST)
     async def get_dhcp_api_repository(
         self,
-        http_client: DHCPManagerHTTPClient,
+        settings: Settings,
         dhcp_api_repository_class: type[DHCPAPIRepository],
     ) -> DHCPAPIRepository:
         """Get DHCPApiRepository instance."""
-        return dhcp_api_repository_class(http_client)
+        async with httpx.AsyncClient(
+            base_url=settings.DHCP_HOST,
+        ) as http_client:
+            return dhcp_api_repository_class(http_client)
 
     @provide(scope=Scope.REQUEST)
     async def get_dhcp_mngr(

@@ -33,7 +33,16 @@ class KeaDHCPCommands(StrEnum):
 
 
 class KeaDHCPResultCodes(IntEnum):
-    """Kea DHCP API result codes."""
+    """Kea DHCP API result codes.
+
+    0 - SUCCESS: Command completed successfully
+    1 - ERROR: An error occurred
+    2 - UNSUPPORTED: Command is not supported
+    3 - EMPTY: Command was completed successfully,
+    but no data was affected or returned
+    4 - CONFLICT: Command could not apply requested configuration changes
+    because they were in conflict with the server state
+    """
 
     SUCCESS = 0
     ERROR = 1

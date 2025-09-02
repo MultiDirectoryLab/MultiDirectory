@@ -11,11 +11,11 @@ from models import CatalogueSetting
 
 from .enums import DHCPManagerState
 
-DHCP_MANAGER_STATE_NAME = "DHCPManagerState"
-
 
 class DHCPManagerRepository:
     """Repository for managing DHCP configurations."""
+
+    STATE_NAME = "DHCPManagerState"
 
     _session: AsyncSession
 
@@ -27,7 +27,7 @@ class DHCPManagerRepository:
         """Get the current state of the DHCP manager."""
         state = await self._session.scalar(
             select(CatalogueSetting)
-            .filter(CatalogueSetting.name == DHCP_MANAGER_STATE_NAME),
+            .filter(CatalogueSetting.name == self.STATE_NAME),
         )  # fmt: skip
         return DHCPManagerState(state.value) if state else None
 
@@ -36,7 +36,7 @@ class DHCPManagerRepository:
         await self._session.execute(
             update(CatalogueSetting)
             .values({"value": state})
-            .where(CatalogueSetting.name == DHCP_MANAGER_STATE_NAME),
+            .where(CatalogueSetting.name == self.STATE_NAME),
         )
 
         await self._session.flush()
@@ -48,7 +48,7 @@ class DHCPManagerRepository:
         if current_state is None:
             self._session.add(
                 CatalogueSetting(
-                    name=DHCP_MANAGER_STATE_NAME,
+                    name=self.STATE_NAME,
                     value=DHCPManagerState.NOT_CONFIGURED,
                 ),
             )

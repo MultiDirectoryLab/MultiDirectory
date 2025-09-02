@@ -25,6 +25,10 @@ class DHCPEntryNotFoundError(DHCPError):
     """DHCP entry not found error."""
 
 
+class DHCPEntryDeleteError(DHCPError):
+    """DHCP entry deletion error."""
+
+
 class DHCPEntryUpdateError(DHCPError):
     """DHCP entry update error."""
 
