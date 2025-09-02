@@ -178,14 +178,17 @@ class IdentityManager(AbstractService):
                     self._session,
                 )
             if request_2fa:
-                response, key = await self._mfa_manager.two_factor_protocol(
+                (
+                    mfa_challenge,
+                    key,
+                ) = await self._mfa_manager.two_factor_protocol(
                     user=user,
                     network_policy=network_policy,
                     url=url,
                     ip=ip,
                     user_agent=user_agent,
                 )
-                return LoginDTO(key, response)
+                return LoginDTO(key, mfa_challenge)
 
         session_key = await self._repository.create_session_key(
             user,
