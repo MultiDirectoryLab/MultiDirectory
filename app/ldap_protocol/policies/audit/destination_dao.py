@@ -55,7 +55,9 @@ class AuditDestinationDAO(AbstractDAO[AuditDestinationDTO, int]):
         dto: AuditDestinationDTO,
     ) -> None:
         """Create a new audit destination."""
-        destination = AuditDestination(**asdict(dto))
+        d = asdict(dto)
+        del d["id"]
+        destination = AuditDestination(**d)
         self._session.add(destination)
         await self._session.flush()
 

@@ -22,7 +22,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import AttributeType
+from models import AttributeType, attribute_types_table
 
 _convert_model_to_dto = get_converter(AttributeType, AttributeTypeDTO)
 _convert_dto_to_model = get_converter(
@@ -107,9 +107,9 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         """
         query = build_paginated_search_query(
             model=AttributeType,
-            order_by_field=AttributeType.id,
+            order_by_field=attribute_types_table.c.id,
             params=params,
-            search_field=AttributeType.name,
+            search_field=attribute_types_table.c.name,
         )
 
         return await PaginationResult[AttributeType].get(
@@ -144,7 +144,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
 
         query = await self.__session.scalars(
             select(AttributeType)
-            .where(AttributeType.name.in_(names)),
+            .where(attribute_types_table.c.name.in_(names)),
         )  # fmt: skip
         return list(map(_convert_model_to_dto, query.all()))
 
@@ -160,8 +160,8 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         await self.__session.execute(
             delete(AttributeType)
             .where(
-                AttributeType.name.in_(names),
-                AttributeType.is_system.is_(False),
+                attribute_types_table.c.name.in_(names),
+                attribute_types_table.c.is_system.is_(False),
             ),
         )  # fmt: skip
         await self.__session.flush()

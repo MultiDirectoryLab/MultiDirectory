@@ -4,10 +4,11 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Settings
-from models import Base
+from models import metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,10 +19,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+target_metadata = metadata
 
 
-def run_sync_migrations(connection):
+def run_sync_migrations(connection: Connection) -> None:
     """Run sync migrations."""
     context.configure(
         connection=connection,
@@ -34,7 +35,7 @@ def run_sync_migrations(connection):
         context.run_migrations()
 
 
-async def run_async_migrations(settings):
+async def run_async_migrations(settings: Settings) -> None:
     """Run async migrations."""
     engine = create_async_engine(str(settings.POSTGRES_URI))
 
@@ -42,7 +43,7 @@ async def run_async_migrations(settings):
         await connection.run_sync(run_sync_migrations)
 
 
-def run_migrations_online():
+def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine

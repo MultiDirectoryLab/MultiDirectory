@@ -9,7 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.sql.expression import select
 from sqlalchemy.sql.selectable import CTE
 
-from models import Directory, DirectoryMembership, Group
+from models import (
+    Directory,
+    Group,
+    directory_memberships_table,
+    directory_table,
+    groups_table,
+)
 
 from .queries import get_filter_from_path
 
@@ -78,24 +84,32 @@ def find_members_recursive_cte(dn: str) -> CTE:
 
     """
     directory_hierarchy = (
-        select(Directory.id.label("directory_id"), Group.id.label("group_id"))
-        .join(Directory.group)
-        .select_from(Directory)
+        select(
+            directory_table.c.id.label("directory_id"),
+            groups_table.c.id.label("group_id"),
+        )
+        .join(
+            groups_table,
+            directory_table.c.id == groups_table.c.directory_id,
+        )
+        .select_from(directory_table)
         .where(get_filter_from_path(dn))
     ).cte(recursive=True)
     recursive_part = (
         select(
-            DirectoryMembership.directory_id.label("directory_id"),
-            Group.id.label("group_id"),
+            directory_memberships_table.c.directory_id.label("directory_id"),
+            groups_table.c.id.label("group_id"),
         )
-        .select_from(DirectoryMembership)
+        .select_from(directory_memberships_table)
         .join(
             directory_hierarchy,
-            directory_hierarchy.c.group_id == DirectoryMembership.group_id,
+            directory_hierarchy.c.group_id
+            == directory_memberships_table.c.group_id,
         )
         .join(
-            Group,
-            DirectoryMembership.directory_id == Group.directory_id,
+            groups_table,
+            directory_memberships_table.c.directory_id
+            == groups_table.c.directory_id,
             isouter=True,
         )
     )
@@ -138,25 +152,28 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     """
     directory_hierarchy = (
         select(
-            Directory.id.label("directory_id"),
-            Group.id.label("group_id"),
+            directory_table.c.id.label("directory_id"),
+            groups_table.c.id.label("group_id"),
         )
-        .select_from(Directory)
-        .join(Directory.group, isouter=True)
+        .select_from(directory_table)
+        .join(groups_table, isouter=True)
         .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
     recursive_part = (
         select(
-            Group.directory_id.label("directory_id"),
-            Group.id.label("group_id"),
+            groups_table.c.directory_id.label("directory_id"),
+            groups_table.c.id.label("group_id"),
         )
-        .select_from(DirectoryMembership)
+        .select_from(directory_memberships_table)
         .join(
             directory_hierarchy,
             directory_hierarchy.c.directory_id
-            == DirectoryMembership.directory_id,
+            == directory_memberships_table.c.directory_id,
         )
-        .join(Group, DirectoryMembership.group_id == Group.id)
+        .join(
+            groups_table,
+            directory_memberships_table.c.group_id == groups_table.c.id,
+        )
     )
     return directory_hierarchy.union_all(recursive_part)
 
@@ -238,6 +255,6 @@ async def get_all_parent_group_directories(
     if not directories_ids:
         return None
 
-    query = select(Directory).where(Directory.id.in_(directories_ids))
+    query = select(Directory).where(directory_table.c.id.in_(directories_ids))
 
     return await session.stream_scalars(query)

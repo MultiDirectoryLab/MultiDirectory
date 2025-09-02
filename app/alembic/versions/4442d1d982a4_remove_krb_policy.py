@@ -16,8 +16,8 @@ from models import Attribute, Directory
 # revision identifiers, used by Alembic.
 revision = "4442d1d982a4"
 down_revision = "692ae64e0cc5"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name

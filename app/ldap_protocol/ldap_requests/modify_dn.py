@@ -28,6 +28,9 @@ from models import (
     AccessControlEntryDirectoryMembership,
     Attribute,
     Directory,
+    access_control_entries_table,
+    directory_table,
+    queryable_attr as qa,
 )
 
 from .base import BaseRequest
@@ -117,7 +120,7 @@ class ModifyDNRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                selectinload(Directory.parent),
+                selectinload(qa(Directory.parent)),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -198,10 +201,10 @@ class ModifyDNRequest(BaseRequest):
                 old_attr_name = directory.path[-1].split("=")[0]
                 await ctx.session.execute(
                     update(Attribute)
-                    .where(
-                        Attribute.directory_id == directory.id,
-                        Attribute.name == old_attr_name,
-                        Attribute.value == directory.name,
+                    .filter_by(
+                        directory_id=directory.id,
+                        name=old_attr_name,
+                        value=directory.name,
                     )
                     .values(name=dn, value=name),
                 )
@@ -210,7 +213,7 @@ class ModifyDNRequest(BaseRequest):
                     Attribute(
                         name=dn,
                         value=name,
-                        directory=directory,
+                        directory_id=directory.id,
                     ),
                 )
             await ctx.session.flush()
@@ -221,7 +224,7 @@ class ModifyDNRequest(BaseRequest):
                 .where(
                     get_path_filter(
                         directory.path,
-                        column=Directory.path[1 : directory.depth],
+                        column=directory_table.c.path[1 : directory.depth],
                     ),
                 )
                 .values(
@@ -241,14 +244,12 @@ class ModifyDNRequest(BaseRequest):
 
             explicit_aces_query = (
                 select(AccessControlEntry)
-                .options(
-                    selectinload(AccessControlEntry.directories),
-                )
+                .options(selectinload(qa(AccessControlEntry.directories)))
                 .where(
-                    AccessControlEntry.directories.any(
-                        Directory.id == directory.id,
+                    qa(AccessControlEntry.directories).any(
+                        directory_table.c.id == directory.id,
                     ),
-                    AccessControlEntry.depth == directory.depth,
+                    access_control_entries_table.c.depth == directory.depth,
                 )
             )
 

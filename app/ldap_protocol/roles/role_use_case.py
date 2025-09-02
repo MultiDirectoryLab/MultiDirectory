@@ -7,15 +7,19 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from enum import StrEnum
 
 from sqlalchemy import and_, or_, select
+from sqlalchemy.orm import selectinload
 
 from enums import RoleScope
 from ldap_protocol.utils.queries import get_base_directories
 from models import (
     AccessControlEntry,
-    AccessControlEntryDirectoryMembership,
     AceType,
     Directory,
     Role,
+    access_control_entries_table,
+    directory_table,
+    queryable_attr as qa,
+    roles_table,
 )
 
 from .ace_dao import AccessControlEntryDAO
@@ -63,39 +67,53 @@ class RoleUseCase:
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
+        directory_filter = directory_table.c.id == parent_directory.id
+
+        subtree_inheritance = and_(
+            access_control_entries_table.c.depth != directory_table.c.depth,
+            access_control_entries_table.c.scope == RoleScope.WHOLE_SUBTREE,
+        )
+
+        explicit_inheritance = and_(
+            access_control_entries_table.c.depth == directory_table.c.depth,
+            access_control_entries_table.c.scope.in_(
+                [
+                    RoleScope.SINGLE_LEVEL,
+                    RoleScope.WHOLE_SUBTREE,
+                ],
+            ),
+        )
+
+        inheritance_conditions = or_(subtree_inheritance, explicit_inheritance)
+
+        subquery = (
+            select(directory_table.c.id)
+            .where(directory_table.c.parent_id == parent_directory.id)
+            .scalar_subquery()
+        )
+
         query = (
-            select(AccessControlEntry.id)
+            select(AccessControlEntry)
+            .join(qa(AccessControlEntry.directories))
+            .options(
+                selectinload(qa(AccessControlEntry.directories)),
+            )
             .where(
                 or_(
+                    and_(directory_filter, inheritance_conditions),
                     and_(
-                        AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
-                        AccessControlEntry.directories.any(
-                            Directory.id == parent_directory.id,
-                        ),
-                    ),
-                    and_(
-                        AccessControlEntry.scope == RoleScope.SINGLE_LEVEL,
-                        AccessControlEntry.depth == parent_directory.depth,
-                        AccessControlEntry.directories.any(
-                            Directory.parent_id == parent_directory.id,
-                        ),
+                        directory_table.c.id.in_(subquery),
+                        access_control_entries_table.c.scope == RoleScope.SINGLE_LEVEL,
+                        access_control_entries_table.c.depth == parent_directory.depth,
                     ),
                 ),
             )
         )  # fmt: skip
 
-        ace_ids = await self._role_dao._session.scalars(query)  # noqa: SLF001
+        aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
 
-        members = [
-            AccessControlEntryDirectoryMembership(
-                access_control_entry_id=ace_id,
-                directory_id=directory.id,
-            )
-            for ace_id in ace_ids
-        ]
-
-        if members:
-            self._role_dao._session.add_all(members)  # noqa: SLF001
+        for ace in aces:
+            ace.directories.append(directory)
 
     async def get_password_ace(
         self,
@@ -110,15 +128,16 @@ class RoleUseCase:
         """
         query = (
             select(AccessControlEntry)
-            .join(AccessControlEntry.directories)
+            .join(qa(AccessControlEntry.directories))
             .where(
-                Directory.id == dir_id,
-                AccessControlEntry.role_id.in_(user_role_ids),
-                AccessControlEntry.ace_type == AceType.PASSWORD_MODIFY,
+                directory_table.c.id == dir_id,
+                access_control_entries_table.c.role_id.in_(user_role_ids),
+                access_control_entries_table.c.ace_type
+                == AceType.PASSWORD_MODIFY,
             )
             .order_by(
-                AccessControlEntry.depth.asc(),
-                AccessControlEntry.is_allow.asc(),
+                access_control_entries_table.c.depth.asc(),
+                access_control_entries_table.c.is_allow.asc(),
             )
             .limit(1)
         )
@@ -137,8 +156,8 @@ class RoleUseCase:
         query = (
             select(Role)
             .where(
-                Role.id.in_(user_role_ids),
-                Role.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+                roles_table.c.id.in_(user_role_ids),
+                roles_table.c.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
             )
             .limit(1)
             .exists()

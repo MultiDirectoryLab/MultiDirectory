@@ -64,7 +64,6 @@ plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
 ignore_missing_imports = true
 platform = "linux"
 disallow_untyped_defs = true
-exclude = ["app/alembic", "alembic"]
 show_column_numbers = true
 pretty = true
 warn_unreachable = true

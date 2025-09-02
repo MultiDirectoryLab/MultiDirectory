@@ -1,44 +1,39 @@
 """MultiDirectory LDAP models.
 
-Copyright (c) 2024 MultiFactor
-License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+(imperative mapping + dataclasses, SQLAlchemy 2.0).
 """
 
 from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
-from typing import Annotated, ClassVar, Literal
+from typing import ClassVar, Literal, TypeVar, cast
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
+    Column,
     DateTime,
     Enum,
     ForeignKey,
     Index,
+    Integer,
     LargeBinary,
+    MetaData,
     String,
+    Table,
     UniqueConstraint,
     asc,
     desc,
     func,
     text,
 )
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.dialects.postgresql import ARRAY, CIDR, JSON, UUID as PG_UUID
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.ext.mutable import MutableList
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    backref,
-    mapped_column,
-    relationship,
-    synonym,
-)
-from sqlalchemy.schema import DDLElement
+from sqlalchemy.orm import QueryableAttribute, registry, relationship, synonym
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
@@ -53,878 +48,651 @@ from enums import (
 )
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
-
-
-class Base(DeclarativeBase, AsyncAttrs):
-    """Declarative base model."""
-
-
-nbool = Annotated[bool, mapped_column(nullable=False)]
-tbool = Annotated[
-    bool,
-    mapped_column(server_default=expression.true(), nullable=False),
-]
-fbool = Annotated[
-    bool,
-    mapped_column(server_default=expression.false(), nullable=False),
-]
-
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
 
 
+T = TypeVar("T")
+
+
+def queryable_attr(value: T) -> QueryableAttribute[T]:
+    """Cast a value to a QueryableAttribute.
+
+    :param T value: The value to cast.
+    :return QueryableAttribute[T]: The casted value.
+    """
+    return cast("QueryableAttribute[T]", value)
+
+
 @compiles(UniqueConstraint, "postgresql")
-def compile_create_uc(
-    create: DDLElement,
+def _compile_create_uc(
+    create: UniqueConstraint,
     compiler: DDLCompiler,
     **kw: dict,
 ) -> str:
-    """Add NULLS NOT DISTINCT if its in args."""
     stmt = compiler.visit_unique_constraint(create, **kw)
-    postgresql_opts = create.dialect_options["postgresql"]  # type: ignore
-
+    postgresql_opts = create.dialect_options["postgresql"]
     if postgresql_opts.get("nulls_not_distinct"):
         return stmt.rstrip().replace("UNIQUE (", "UNIQUE NULLS NOT DISTINCT (")
     return stmt
 
 
-class CatalogueSetting(Base):
-    """Catalogue params unit."""
+mapper_registry = registry()
+metadata: MetaData = mapper_registry.metadata
 
-    __tablename__ = "Settings"
+# Convenience server_default bools
+true_ = expression.true()
+false_ = expression.false()
 
-    __table_args__ = (
-        Index(
-            "ix_Settings_name",
-            "name",
-            unique=True,
-        ),
-    )
+# ---------------------------------------------------------------------------
+# Tables (association / m2m first where needed for FKs)
+# ---------------------------------------------------------------------------
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(nullable=False)
-    value: Mapped[str] = mapped_column(nullable=False)
+settings_table = Table(
+    "Settings",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String, nullable=False),
+    Column("value", String, nullable=False),
+    Index("ix_Settings_name", "name", unique=True),
+)
 
-
-class DirectoryMembership(Base):
-    """Directory membership - path m2m relationship."""
-
-    __tablename__ = "DirectoryMemberships"
-    group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-    directory_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
-class PolicyMembership(Base):
-    """Policy membership - path m2m relationship."""
-
-    __tablename__ = "PolicyMemberships"
-    group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
-class PolicyMFAMembership(Base):
-    """Policy membership - path m2m relationship."""
-
-    __tablename__ = "PolicyMFAMemberships"
-    group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    policy_id: Mapped[int] = mapped_column(
-        ForeignKey("Policies.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
-class AccessControlEntryDirectoryMembership(Base):
-    """Access Control Entry - Directory m2m relationship."""
-
-    __tablename__ = "AccessControlEntryDirectoryMemberships"
-
-    access_control_entry_id: Mapped[int] = mapped_column(
-        ForeignKey("AccessControlEntries.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    directory_id: Mapped[int] = mapped_column(
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
-class GroupRoleMembership(Base):
-    """Group - role m2m relationship."""
-
-    __tablename__ = "GroupRoleMemberships"
-
-    group_id: Mapped[int] = mapped_column(
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    role_id: Mapped[int] = mapped_column(
-        ForeignKey("Roles.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
-class EntityType(Base):
-    """Entity Type."""
-
-    __tablename__ = "EntityTypes"
-    __table_args__ = (
-        Index(
-            "idx_entity_types_name_gin_trgm",
-            "name",
-            postgresql_using="gin",
-        ),
-        Index(
-            "ix_Entity_Type_object_class_names",
-            "object_class_names",
-            unique=True,
-        ),
-        Index(
-            "lw_object_class_names",
-            text("array_lowercase(object_class_names)"),
-            postgresql_using="gin",
-        ),
-    )
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        unique=True,
-        index=True,
-    )
-    object_class_names: Mapped[list[str]] = mapped_column(
-        postgresql.ARRAY(String),
-        index=True,
-    )
-    is_system: Mapped[bool] = mapped_column(nullable=False)
-    directories: Mapped[list[Directory]] = relationship(
-        "Directory",
-        passive_deletes=True,
-        lazy="raise",
-        uselist=True,
-        foreign_keys="Directory.entity_type_id",
-    )
-
-    @property
-    def object_class_names_set(self) -> set[str]:
-        """Get object class names."""
-        return set(self.object_class_names)
-
-    @classmethod
-    def generate_entity_type_name(cls, directory: Directory) -> str:
-        """Generate entity type name based on Directory."""
-        return (
-            f"{directory.name}_entity_type_{directory.id}"
-            f"_{uuid.uuid4().hex[:6]}"
-        )
-
-
-class AccessControlEntry(Base):
-    """Access Control Entry (ACE) model."""
-
-    __tablename__ = "AccessControlEntries"
-
-    __table_args__ = (
-        Index(
-            "idx_ace_attribute_type_id",
-            "attributeTypeId",
-            postgresql_using="hash",
-        ),
-        Index(
-            "idx_ace_entity_type_id",
-            "entityTypeId",
-            postgresql_using="hash",
-        ),
-        Index(
-            "idx_ace_role_id_id",
-            "roleId",
-            postgresql_using="hash",
-        ),
-        Index(
-            "idx_ace_scope_hash",
-            "scope",
-            postgresql_using="hash",
-        ),
-        Index(
-            "idx_ace_type_hash",
-            "ace_type",
-            postgresql_using="hash",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    role_id: Mapped[int] = mapped_column(
-        "roleId",
-        ForeignKey("Roles.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-
-    ace_type: Mapped[AceType] = mapped_column(
-        Enum(AceType),
-        nullable=False,
-    )
-
-    depth: Mapped[int]
-
-    scope: Mapped[RoleScope] = mapped_column(
-        Enum(RoleScope),
-        nullable=False,
-    )
-
-    path: Mapped[str] = mapped_column(
-        nullable=False,
-        unique=False,
-    )
-
-    attribute_type_id: Mapped[int | None] = mapped_column(
-        "attributeTypeId",
-        ForeignKey("AttributeTypes.id", ondelete="CASCADE"),
-        nullable=True,
-    )
-
-    entity_type_id: Mapped[int | None] = mapped_column(
-        "entityTypeId",
-        ForeignKey("EntityTypes.id", ondelete="CASCADE"),
-        nullable=True,
-    )
-
-    is_allow: Mapped[nbool]
-
-    role: Mapped[Role] = relationship(
-        "Role",
-        back_populates="access_control_entries",
-        uselist=False,
-        lazy="raise",
-    )
-
-    attribute_type: Mapped[AttributeType] = relationship(
-        "AttributeType",
-        uselist=False,
-        lazy="raise",
-    )
-
-    entity_type: Mapped[EntityType] = relationship(
-        "EntityType",
-        uselist=False,
-        lazy="raise",
-    )
-
-    directories: Mapped[list[Directory]] = relationship(
-        "Directory",
-        secondary=AccessControlEntryDirectoryMembership.__table__,
-        order_by="Directory.depth",
-        back_populates="access_control_entries",
-        lazy="raise",
-    )
-
-    @property
-    def attribute_type_name(self) -> str | None:
-        """Get attribute type name."""
-        return (
-            self.attribute_type.name.lower() if self.attribute_type else None
-        )
-
-    @property
-    def entity_type_name(self) -> str | None:
-        """Get entity type name."""
-        return self.entity_type.name if self.entity_type else None
-
-    def __repr__(self) -> str:
-        """Representation of AccessControlEntry."""
-        return (
-            f"<AccessControlEntry id={self.id} "
-            f"role_id={self.role_id} "
-            f"attribute_type_id={self.attribute_type_id} "
-            f"entity_type_id={self.entity_type_id} "
-            f"is_allow={self.is_allow}>"
-            f" (type={self.ace_type}, "
-            f"depth={self.depth})"
-        )
-
-
-class Directory(Base):
-    """Chierarcy of catalogue unit."""
-
-    __tablename__ = "Directory"
-
-    __table_args__ = (
-        UniqueConstraint(
-            "parentId",
-            "name",
-            postgresql_nulls_not_distinct=True,
-            name="name_parent_uc",
-        ),
-        Index(
-            "idx_Directory_depth_hash",
-            "depth",
-            postgresql_using="hash",
-        ),
-        Index(
-            "idx_entity_type_dir_id",
-            "entity_type_id",
-            postgresql_using="hash",
-        ),
-        Index(
-            "ix_directory_objectGUID",
-            "objectGUID",
-            postgresql_using="hash",
-        ),
-        Index(
-            "lw_path",
-            text("array_lowercase(path)"),
-            postgresql_using="gin",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    parent_id: Mapped[int] = mapped_column(
+directory_table = Table(
+    "Directory",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
         "parentId",
+        Integer,
         ForeignKey("Directory.id", ondelete="CASCADE"),
         index=True,
         nullable=True,
-    )
-
-    parent: Mapped[Directory | None] = relationship(
-        lambda: Directory,
-        remote_side="Directory.id",
-        backref=backref("directories", cascade="all,delete", viewonly=True),
-        uselist=False,
-    )
-    entity_type_id: Mapped[int | None] = mapped_column(
+        key="parent_id",
+    ),
+    Column(
         "entity_type_id",
+        Integer,
         ForeignKey("EntityTypes.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
-    )
-
-    entity_type: Mapped[EntityType | None] = relationship(
-        EntityType,
-        uselist=False,
-        foreign_keys=[entity_type_id],
-        lazy="raise",
-        overlaps="directories",
-    )
-
-    @property
-    def entity_type_object_class_names_set(self) -> set[str]:
-        """Get object class names of entity type."""
-        return (
-            self.entity_type.object_class_names_set
-            if self.entity_type
-            else set()
-        )
-
-    @property
-    def object_class_names_set(self) -> set[str]:
-        return set(
-            self.attributes_dict.get("objectClass", [])
-            + self.attributes_dict.get("objectclass", []),
-        )
-
-    object_class: Mapped[str] = mapped_column("objectClass", nullable=False)
-    objectclass: Mapped[str] = synonym("object_class")
-
-    name: Mapped[str] = mapped_column(nullable=False)
-    rdname: Mapped[str] = mapped_column(String(64), nullable=False)
-
-    created_at: Mapped[datetime] = mapped_column(
+    ),
+    Column("objectClass", String, nullable=False, key="object_class"),
+    Column("name", String, nullable=False),
+    Column("rdname", String(64), nullable=False),
+    Column(
         "whenCreated",
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
+        key="created_at",
+    ),
+    Column(
         "whenChanged",
         DateTime(timezone=True),
         onupdate=func.now(),
         nullable=True,
-    )
-    depth: Mapped[int] = mapped_column(nullable=True)
-
-    object_sid: Mapped[str] = mapped_column("objectSid", nullable=True)
-    objectsid: Mapped[str] = synonym("object_sid")
-
-    password_policy_id: Mapped[int] = mapped_column(
+        key="updated_at",
+    ),
+    Column("depth", Integer, nullable=True),
+    Column("objectSid", String, nullable=True, key="object_sid"),
+    Column(
+        "password_policy_id",
+        Integer,
         ForeignKey("PasswordPolicies.id"),
         nullable=True,
-    )
-
-    object_guid: Mapped[uuid.UUID] = mapped_column(
+    ),
+    Column(
         "objectGUID",
-        postgresql.UUID(as_uuid=True),
+        PG_UUID(as_uuid=True),
         default=uuid.uuid4,
         nullable=False,
-    )
-    objectguid: Mapped[str] = synonym("object_guid")
+        key="object_guid",
+    ),
+    Column("path", ARRAY(String), nullable=False, index=True),
+    UniqueConstraint(
+        "parent_id",
+        "name",
+        name="name_parent_uc",
+        postgresql_nulls_not_distinct=True,
+    ),
+    Index("idx_Directory_depth_hash", "depth", postgresql_using="hash"),
+    Index("idx_entity_type_dir_id", "entity_type_id", postgresql_using="hash"),
+    Index("ix_directory_objectGUID", "object_guid", postgresql_using="hash"),
+    Index("lw_path", text("array_lowercase(path)"), postgresql_using="gin"),
+)
 
-    path: Mapped[list[str]] = mapped_column(
-        postgresql.ARRAY(String),
-        nullable=False,
-        index=True,
-    )
-
-    attributes: Mapped[list[Attribute]] = relationship(
-        "Attribute",
-        cascade="all",
-        passive_deletes=True,
-        lazy="raise",
-    )
-
-    @property
-    def attributes_dict(self) -> defaultdict[str, list[str]]:
-        attributes = defaultdict(list)
-        for attribute in self.attributes:
-            attributes[attribute.name].extend(attribute.values)
-        return attributes
-
-    group: Mapped[Group] = relationship(
-        "Group",
-        uselist=False,
-        cascade="all",
-        passive_deletes=True,
-        lazy="joined",
-    )
-    user: Mapped[User] = relationship(
-        "User",
-        uselist=False,
-        cascade="all",
-        passive_deletes=True,
-        lazy="joined",
-    )
-    groups: Mapped[list[Group]] = relationship(
-        "Group",
-        secondary=DirectoryMembership.__table__,
-        primaryjoin="Directory.id == DirectoryMembership.directory_id",
-        secondaryjoin="DirectoryMembership.group_id == Group.id",
-        back_populates="members",
-        cascade="all",
-        passive_deletes=True,
-        overlaps="group,directory",
-        lazy="raise",
-    )
-    access_control_entries: Mapped[list[AccessControlEntry]] = relationship(
-        "AccessControlEntry",
-        secondary=AccessControlEntryDirectoryMembership.__table__,
-        primaryjoin="Directory.id == AccessControlEntryDirectoryMembership.directory_id",  # noqa: E501
-        secondaryjoin="AccessControlEntryDirectoryMembership.access_control_entry_id == AccessControlEntry.id",  # noqa: E501
-        back_populates="directories",
-        order_by=(
-            desc(AccessControlEntry.depth),
-            asc(AccessControlEntry.is_allow),
-        ),
-    )
-
-    search_fields = {
-        "name": "name",
-        "objectguid": "objectGUID",
-        "objectsid": "objectSid",
-    }
-
-    ro_fields = {
-        "uid",
-        "whencreated",
-        "lastlogon",
-        "authtimestamp",
-        "objectguid",
-        "objectsid",
-        "entitytypename",
-    }
-
-    def get_dn_prefix(self) -> DistinguishedNamePrefix:
-        """Get distinguished name prefix."""
-        return {
-            "organizationalUnit": "ou",
-            "domain": "dc",
-        }.get(self.object_class, "cn")  # type: ignore
-
-    def get_dn(self, dn: str = "cn") -> str:
-        """Get distinguished name."""
-        return f"{dn}={self.name}"
-
-    @property
-    def is_domain(self) -> bool:
-        """Is directory domain."""
-        return not self.parent_id and self.object_class == "domain"
-
-    @property
-    def host_principal(self) -> str:
-        """Principal computer name."""
-        return f"host/{self.name}"
-
-    @property
-    def path_dn(self) -> str:
-        """Get DN from path."""
-        return ",".join(reversed(self.path))
-
-    def create_path(
-        self,
-        parent: Directory | None = None,
-        dn: str = "cn",
-    ) -> None:
-        """Create path from a new directory."""
-        pre_path: list[str] = parent.path if parent else []
-        self.path = pre_path + [self.get_dn(dn)]
-        self.depth = len(self.path)
-        self.rdname = dn
-
-    def __str__(self) -> str:
-        """Dir name."""
-        return f"Directory({self.name})"
-
-    def __repr__(self) -> str:
-        """Dir id and name."""
-        return f"Directory({self.id}:{self.name})"
-
-
-class User(Base):
-    """Users data from db."""
-
-    __tablename__ = "Users"
-
-    __table_args__ = (
-        Index(
-            "idx_User_display_name_gin",
-            "displayName",
-            postgresql_using="gin",
-        ),
-        Index(
-            "idx_User_san_gin",
-            "sAMAccountName",
-            postgresql_using="gin",
-        ),
-        Index(
-            "idx_User_upn_gin",
-            "userPrincipalName",
-            postgresql_using="gin",
-        ),
-        Index("idx_user_hash_dir_id", "directoryId", postgresql_using="hash"),
-    )
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    directory_id: Mapped[int] = mapped_column(
+groups_table = Table(
+    "Groups",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
         "directoryId",
+        Integer,
         ForeignKey("Directory.id", ondelete="CASCADE"),
         nullable=False,
-    )
+        key="directory_id",
+    ),
+    Index("idx_group_dir_id", "directory_id", postgresql_using="hash"),
+)
 
-    directory: Mapped[Directory] = relationship(
-        "Directory",
-        back_populates="user",
-        uselist=False,
-        lazy="joined",
-    )
-
-    sam_account_name: Mapped[str] = mapped_column(
+users_table = Table(
+    "Users",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "directoryId",
+        Integer,
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        nullable=False,
+        key="directory_id",
+    ),
+    Column(
         "sAMAccountName",
+        String,
         nullable=False,
         unique=True,
-    )
-    user_principal_name: Mapped[str] = mapped_column(
+        key="sam_account_name",
+    ),
+    Column(
         "userPrincipalName",
+        String,
         nullable=False,
         unique=True,
-    )
-
-    mail: Mapped[str | None] = mapped_column(String(255))
-    display_name: Mapped[str | None] = mapped_column(
-        "displayName",
-        nullable=True,
-    )
-    password: Mapped[str] = mapped_column(nullable=True)
-
-    samaccountname: Mapped[str] = synonym("sam_account_name")
-    userprincipalname: Mapped[str] = synonym("user_principal_name")
-    displayname: Mapped[str] = synonym("display_name")
-    uid: Mapped[str] = synonym("sam_account_name")
-    accountexpires: Mapped[str] = synonym("account_exp")
-
-    last_logon: Mapped[datetime | None] = mapped_column(
-        "lastLogon",
-        DateTime(timezone=True),
-    )
-    account_exp: Mapped[datetime | None] = mapped_column(
-        "accountExpires",
-        DateTime(timezone=True),
-    )
-
-    search_fields = {
-        "mail": "mail",
-        "samaccountname": "sAMAccountName",
-        "userprincipalname": "userPrincipalName",
-        "displayname": "displayName",
-        "uid": "uid",
-        "accountexpires": "accountExpires",
-    }
-
-    fields = {
-        "loginshell": "loginShell",
-        "uidnumber": "uidNumber",
-        "homedirectory": "homeDirectory",
-    }
-
-    password_history: Mapped[list[str]] = mapped_column(
-        MutableList.as_mutable(postgresql.ARRAY(String)),
+        key="user_principal_name",
+    ),
+    Column("mail", String(255), key="mail"),
+    Column("displayName", String, nullable=True, key="display_name"),
+    Column("password", String, nullable=True, key="password"),
+    Column("lastLogon", DateTime(timezone=True), key="last_logon"),
+    Column("accountExpires", DateTime(timezone=True), key="account_exp"),
+    Column(
+        "password_history",
+        ARRAY(String),
         server_default="{}",
         nullable=False,
-    )
+    ),
+    Index("idx_User_display_name_gin", "display_name", postgresql_using="gin"),
+    Index("idx_User_san_gin", "sam_account_name", postgresql_using="gin"),
+    Index("idx_User_upn_gin", "user_principal_name", postgresql_using="gin"),
+    Index("idx_user_hash_dir_id", "directory_id", postgresql_using="hash"),
+)
 
-    groups: Mapped[list[Group]] = relationship(
-        "Group",
-        secondary=DirectoryMembership.__table__,
-        primaryjoin="User.directory_id == DirectoryMembership.directory_id",
-        secondaryjoin="DirectoryMembership.group_id == Group.id",
-        back_populates="users",
-        cascade="all",
-        passive_deletes=True,
-        overlaps="group,groups,directory",
-    )
+directory_memberships_table = Table(
+    "DirectoryMemberships",
+    metadata,
+    Column(
+        "group_id",
+        Integer,
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "directory_id",
+        Integer,
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
-    def get_upn_prefix(self) -> str:
-        """Get userPrincipalName prefix."""
-        return self.user_principal_name.split("@")[0]
+policy_memberships_table = Table(
+    "PolicyMemberships",
+    metadata,
+    Column(
+        "group_id",
+        Integer,
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "policy_id",
+        Integer,
+        ForeignKey("Policies.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
-    def __str__(self) -> str:
-        """User show."""
-        return f"User({self.sam_account_name})"
+policy_mfa_memberships_table = Table(
+    "PolicyMFAMemberships",
+    metadata,
+    Column(
+        "group_id",
+        Integer,
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "policy_id",
+        Integer,
+        ForeignKey("Policies.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
-    def __repr__(self) -> str:
-        """User map with dir id."""
-        return f"User({self.directory_id}:{self.sam_account_name})"
+group_role_memberships_table = Table(
+    "GroupRoleMemberships",
+    metadata,
+    Column(
+        "group_id",
+        Integer,
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "role_id",
+        Integer,
+        ForeignKey("Roles.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
-    def is_expired(self) -> bool:
-        """Check AccountExpires."""
-        if self.account_exp is None:
-            return False
+entity_types_table = Table(
+    "EntityTypes",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(255), nullable=False, unique=True, index=True),
+    Column("object_class_names", ARRAY(String), index=True),
+    Column("is_system", Boolean, nullable=False),
+    Index("idx_entity_types_name_gin_trgm", "name", postgresql_using="gin"),
+    Index(
+        "ix_Entity_Type_object_class_names",
+        "object_class_names",
+        unique=True,
+    ),
+    Index(
+        "lw_object_class_names",
+        text("array_lowercase(object_class_names)"),
+        postgresql_using="gin",
+    ),
+)
 
-        now = datetime.now(tz=timezone.utc)
-        user_account_exp = self.account_exp.astimezone(timezone.utc)
+attribute_types_table = Table(
+    "AttributeTypes",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("oid", String(255), nullable=False, unique=True),
+    Column("name", String(255), nullable=False, unique=True, index=True),
+    Column("syntax", String(255), nullable=False),
+    Column("single_value", Boolean, nullable=False),
+    Column("no_user_modification", Boolean, nullable=False),
+    Column("is_system", Boolean, nullable=False),
+    Index("idx_attribute_types_name_gin_trgm", "name", postgresql_using="gin"),
+)
 
-        return now > user_account_exp
+object_classes_table = Table(
+    "ObjectClasses",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("oid", String(255), nullable=False, unique=True),
+    Column("name", String(255), nullable=False, unique=True),
+    Column(
+        "superior_name",
+        String(255),
+        ForeignKey("ObjectClasses.name", ondelete="SET NULL"),
+        nullable=True,
+    ),
+    Column("kind", Enum(KindType, name="objectclasskinds"), nullable=False),
+    Column("is_system", Boolean, nullable=False),
+    Index("idx_object_classes_name_gin_trgm", "name", postgresql_using="gin"),
+    Index("ix_ObjectClasses_name", "name", unique=True),
+)
 
+object_class_attr_must_table = Table(
+    "ObjectClassAttributeTypeMustMemberships",
+    metadata,
+    Column(
+        "attribute_type_name",
+        String(255),
+        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "object_class_name",
+        String(255),
+        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    UniqueConstraint(
+        "attribute_type_name",
+        "object_class_name",
+        name="object_class_must_attribute_type_uc",
+    ),
+)
 
-class Group(Base):
-    """Group params."""
+object_class_attr_may_table = Table(
+    "ObjectClassAttributeTypeMayMemberships",
+    metadata,
+    Column(
+        "attribute_type_name",
+        String(255),
+        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "object_class_name",
+        String(255),
+        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    UniqueConstraint(
+        "attribute_type_name",
+        "object_class_name",
+        name="object_class_may_attribute_type_uc",
+    ),
+)
 
-    __tablename__ = "Groups"
-
-    __table_args__ = (
-        Index(
-            "idx_group_dir_id",
-            "directoryId",
-            postgresql_using="hash",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    directory_id: Mapped[int] = mapped_column(
+attributes_table = Table(
+    "Attributes",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
         "directoryId",
+        Integer,
         ForeignKey("Directory.id", ondelete="CASCADE"),
         nullable=False,
-    )
+        key="directory_id",
+    ),
+    Column("name", String, nullable=False, index=True),
+    Column("value", String),
+    Column("bvalue", LargeBinary),
+    CheckConstraint(
+        "(value IS NULL) <> (bvalue IS NULL)",
+        name="constraint_value_xor_bvalue",
+    ),
+    Index("idx_attributes_name_gin_trgm", "name", postgresql_using="gin"),
+    Index(
+        "idx_attributes_lw_name_btree",
+        text("lower(name::text)"),
+        postgresql_using="btree",
+    ),
+    Index(
+        "idx_composite_attributes_directory_id_name",
+        "directory_id",
+        text("lower(name::text)"),
+        postgresql_using="btree",
+    ),
+    Index("idx_attributes_value", "value", postgresql_using="gin"),
+    Index(
+        "idx_attributes_name_value_trgm",
+        "name",
+        "value",
+        postgresql_using="gin",
+    ),
+)
 
-    directory: Mapped[Directory] = relationship(
-        "Directory",
-        back_populates="group",
-        uselist=False,
-    )
-
-    search_fields: ClassVar[dict[str, str]] = {}
-
-    members: Mapped[list[Directory]] = relationship(
-        "Directory",
-        secondary=DirectoryMembership.__table__,
-        back_populates="groups",
-        cascade="all",
-        passive_deletes=True,
-        overlaps="group,groups,directory",
-    )
-
-    parent_groups: Mapped[list[Group]] = relationship(
-        "Group",
-        secondary=DirectoryMembership.__table__,
-        primaryjoin="Group.directory_id == DirectoryMembership.directory_id",
-        secondaryjoin="DirectoryMembership.group_id == Group.id",
-        cascade="all",
-        passive_deletes=True,
-        overlaps="group,groups,members,directory",
-    )
-
-    policies: Mapped[list[NetworkPolicy]] = relationship(
-        "NetworkPolicy",
-        secondary=PolicyMembership.__table__,
-        primaryjoin="Group.id == PolicyMembership.group_id",
-        back_populates="groups",
-    )
-
-    mfa_policies: Mapped[list[NetworkPolicy]] = relationship(
-        "NetworkPolicy",
-        secondary=PolicyMFAMembership.__table__,
-        primaryjoin="Group.id == PolicyMFAMembership.group_id",
-        back_populates="mfa_groups",
-    )
-
-    users: Mapped[list[User]] = relationship(
-        "User",
-        secondary=DirectoryMembership.__table__,
-        primaryjoin="Group.id == DirectoryMembership.group_id",
-        secondaryjoin="DirectoryMembership.directory_id == User.directory_id",
-        back_populates="groups",
-        cascade="all",
-        passive_deletes=True,
-        overlaps="directory,group,members,parent_groups,groups",
-    )
-
-    roles: Mapped[list[Role]] = relationship(
-        "Role",
-        secondary=GroupRoleMembership.__table__,
-        primaryjoin="Group.id == GroupRoleMembership.group_id",
-        secondaryjoin="GroupRoleMembership.role_id == Role.id",
-        back_populates="groups",
-        lazy="raise",
-    )
-
-    def __str__(self) -> str:
-        """Group id."""
-        return f"Group({self.id})"
-
-    def __repr__(self) -> str:
-        """Group id and dir id."""
-        return f"Group({self.id}:{self.directory_id})"
-
-
-class Attribute(Base):
-    """Attributes data."""
-
-    __tablename__ = "Attributes"
-    __table_args__ = (
-        CheckConstraint(
-            "(value IS NULL) <> (bvalue IS NULL)",
-            name="constraint_value_xor_bvalue",
-        ),
-        Index(
-            "idx_attributes_name_gin_trgm",
-            "name",
-            postgresql_using="gin",
-        ),
-        Index(
-            "idx_attributes_lw_name_btree",
-            text("lower(name::text)"),
-            postgresql_using="btree",
-        ),
-        Index(
-            "idx_composite_attributes_directory_id_name",
-            "directoryId",
-            text("lower(name::text)"),
-            postgresql_using="btree",
-        ),
-        Index(
-            "idx_attributes_value",
-            "value",
-            postgresql_using="gin",
-        ),
-        Index(
-            "idx_attributes_name_value_trgm",
-            "name",
-            "value",
-            postgresql_using="gin",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    directory: Mapped[Directory] = relationship(
-        "Directory",
-        back_populates="attributes",
-        uselist=False,
-    )
-    directory_id: Mapped[int] = mapped_column(
-        "directoryId",
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-
-    name: Mapped[str] = mapped_column(nullable=False, index=True)
-    value: Mapped[str | None] = mapped_column(nullable=True)
-    bvalue: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
-
-    @property
-    def _decoded_value(self) -> str | None:
-        """Get attribute value."""
-        if self.value:
-            return self.value
-        if self.bvalue:
-            return self.bvalue.decode("latin-1")
-        return None
-
-    @property
-    def values(self) -> list[str]:
-        """Get attribute value by list."""
-        return [self._decoded_value] if self._decoded_value else []
-
-    def __str__(self) -> str:
-        """Attribute name and value."""
-        return f"Attribute({self.name}:{self._decoded_value})"
-
-    def __repr__(self) -> str:
-        """Attribute name and value."""
-        return f"Attribute({self.name}:{self._decoded_value})"
-
-
-class AttributeType(Base):
-    """Attribute Type."""
-
-    __tablename__ = "AttributeTypes"
-    __table_args__ = (
-        Index(
-            "idx_attribute_types_name_gin_trgm",
-            "name",
-            postgresql_using="gin",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(
+password_policies_table = Table(
+    "PasswordPolicies",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "name",
         String(255),
         nullable=False,
         unique=True,
-        index=True,
+        server_default="Default Policy",
+    ),
+    Column(
+        "password_history_length",
+        Integer,
+        nullable=False,
+        server_default="4",
+    ),
+    Column(
+        "maximum_password_age_days",
+        Integer,
+        nullable=False,
+        server_default="0",
+    ),
+    Column(
+        "minimum_password_age_days",
+        Integer,
+        nullable=False,
+        server_default="0",
+    ),
+    Column(
+        "minimum_password_length",
+        Integer,
+        nullable=False,
+        server_default="7",
+    ),
+    Column(
+        "password_must_meet_complexity_requirements",
+        Boolean,
+        server_default=false_,
+        nullable=False,
+    ),
+)
+
+roles_table = Table(
+    "Roles",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(255), nullable=False, unique=True),
+    Column("creator_upn", String, nullable=True),
+    Column("is_system", Boolean, nullable=False),
+    Column(
+        "whenCreated",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        key="created_at",
+    ),
+)
+
+access_control_entries_table = Table(
+    "AccessControlEntries",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "roleId",
+        Integer,
+        ForeignKey("Roles.id", ondelete="CASCADE"),
+        nullable=False,
+        key="role_id",
+    ),
+    Column("ace_type", Enum(AceType), nullable=False),
+    Column("depth", Integer, nullable=False),
+    Column("scope", Enum(RoleScope), nullable=False),
+    Column("path", String, nullable=False),
+    Column(
+        "attributeTypeId",
+        Integer,
+        ForeignKey("AttributeTypes.id", ondelete="CASCADE"),
+        nullable=True,
+        key="attribute_type_id",
+    ),
+    Column(
+        "entityTypeId",
+        Integer,
+        ForeignKey("EntityTypes.id", ondelete="CASCADE"),
+        nullable=True,
+        key="entity_type_id",
+    ),
+    Column("is_allow", Boolean, nullable=False),
+    Index(
+        "idx_ace_attribute_type_id",
+        "attribute_type_id",
+        postgresql_using="hash",
+    ),
+    Index("idx_ace_entity_type_id", "entity_type_id", postgresql_using="hash"),
+    Index("idx_ace_role_id_id", "role_id", postgresql_using="hash"),
+    Index("idx_ace_scope_hash", "scope", postgresql_using="hash"),
+    Index("idx_ace_type_hash", "ace_type", postgresql_using="hash"),
+)
+
+ace_directory_memberships_table = Table(
+    "AccessControlEntryDirectoryMemberships",
+    metadata,
+    Column(
+        "access_control_entry_id",
+        Integer,
+        ForeignKey("AccessControlEntries.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "directory_id",
+        Integer,
+        ForeignKey("Directory.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
+policies_table = Table(
+    "Policies",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String, nullable=False, unique=True),
+    Column("raw", JSON, nullable=False),
+    Column("netmasks", ARRAY(CIDR), nullable=False, unique=True, index=True),
+    Column("enabled", Boolean, server_default=true_, nullable=False),
+    Column("priority", Integer, nullable=False),
+    Column(
+        "mfa_status",
+        Enum(MFAFlags),
+        server_default="DISABLED",
+        nullable=False,
+    ),
+    Column("is_ldap", Boolean, server_default=true_, nullable=False),
+    Column("is_http", Boolean, server_default=true_, nullable=False),
+    Column("is_kerberos", Boolean, server_default=true_, nullable=False),
+    Column(
+        "bypass_no_connection",
+        Boolean,
+        server_default=false_,
+        nullable=False,
+    ),
+    Column(
+        "bypass_service_failure",
+        Boolean,
+        server_default=false_,
+        nullable=False,
+    ),
+    Column("ldap_session_ttl", Integer, server_default="-1", nullable=False),
+    Column(
+        "http_session_ttl",
+        Integer,
+        server_default="28800",
+        nullable=False,
+    ),
+    UniqueConstraint(
+        "priority",
+        name="priority_uc",
+        deferrable=True,
+        initially="DEFERRED",
+    ),
+)
+
+audit_policies_table = Table(
+    "AuditPolicies",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(255), nullable=False, unique=True),
+    Column("is_enabled", Boolean, server_default=false_, nullable=False),
+    Column("severity", Enum(AuditSeverity), nullable=False),
+)
+
+audit_policy_triggers_table = Table(
+    "AuditPolicyTriggers",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("is_ldap", Boolean, server_default=true_, nullable=False),
+    Column("is_http", Boolean, server_default=true_, nullable=False),
+    Column("operation_code", Integer, nullable=False),
+    Column("object_class", String, nullable=False),
+    Column("additional_info", JSON(none_as_null=True)),
+    Column("is_operation_success", Boolean, nullable=False),
+    Column(
+        "audit_policy_id",
+        Integer,
+        ForeignKey("AuditPolicies.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    ),
+    Index(
+        "idx_trigger_search",
+        "operation_code",
+        "is_operation_success",
+        "is_ldap",
+        "is_http",
+        postgresql_using="btree",
+    ),
+    Index(
+        "idx_audit_policy_id_fk",
+        "audit_policy_id",
+        postgresql_using="hash",
+    ),
+)
+
+audit_destinations_table = Table(
+    "AuditDestinations",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(255), nullable=False, unique=True),
+    Column("service_type", Enum(AuditDestinationServiceType), nullable=False),
+    Column("is_enabled", Boolean, server_default=true_, nullable=False),
+    Column("host", String(255), nullable=False),
+    Column("port", Integer, nullable=False),
+    Column("protocol", Enum(AuditDestinationProtocolType), nullable=False),
+)
+
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CatalogueSetting:
+    """Catalogue setting key/value pair stored in Settings table."""
+
+    id: int | None = field(init=False, default=None)
+    name: str = ""
+    value: str = ""
+
+
+@dataclass
+class EntityType:
+    """Entity type grouping object classes; assigned to directories."""
+
+    id: int | None = field(init=False, default=None)
+    name: str = ""
+    object_class_names: list[str] = field(default_factory=list)
+    is_system: bool = False
+    directories: list[Directory] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
     )
-    syntax: Mapped[str] = mapped_column(String(255), nullable=False)
-    single_value: Mapped[bool]
-    no_user_modification: Mapped[bool]
-    is_system: Mapped[bool]  # NOTE: it's not equal `NO-USER-MODIFICATION`
+
+    @property
+    def object_class_names_set(self) -> set[str]:
+        return set(self.object_class_names)
+
+    @classmethod
+    def generate_entity_type_name(cls, directory: Directory) -> str:
+        return f"{directory.name}_entity_type_{directory.id}"
+
+
+@dataclass
+class AttributeType:
+    """LDAP attribute type definition (schema element)."""
+
+    id: int | None = field(init=False, default=None)
+    oid: str = ""
+    name: str = ""
+    syntax: str = ""
+    single_value: bool = False
+    no_user_modification: bool = False
+    is_system: bool = False
 
     def get_raw_definition(self) -> str:
-        """Format SQLAlchemy Attribute Type object to LDAP definition."""
         if not self.oid or not self.name or not self.syntax:
-            err_msg = f"{self}: Fields 'oid', 'name', and 'syntax' are required for LDAP definition."  # noqa: E501
-            raise ValueError(err_msg)
-
+            raise ValueError(
+                f"{self}: Fields 'oid', 'name', "
+                "and 'syntax' are required for LDAP definition.",
+            )
         chunks = [
             "(",
-            f"{self.oid}",
+            self.oid,
             f"NAME '{self.name}'",
             f"SYNTAX '{self.syntax}'",
         ]
-
         if self.single_value:
             chunks.append("SINGLE-VALUE")
         if self.no_user_modification:
@@ -932,129 +700,37 @@ class AttributeType(Base):
         chunks.append(")")
         return " ".join(chunks)
 
-    def __str__(self) -> str:
-        """AttributeType name."""
-        return f"AttributeType({self.name})"
 
-    def __repr__(self) -> str:
-        """AttributeType oid and name."""
-        return f"AttributeType({self.oid}:{self.name})"
+@dataclass
+class ObjectClass:
+    """LDAP object class definition with MUST/MAY attribute sets."""
 
-
-class ObjectClassAttributeTypeMustMembership(Base):
-    """ObjectClass - MustAttributeType m2m relationship."""
-
-    __tablename__ = "ObjectClassAttributeTypeMustMemberships"
-
-    __table_args__ = (
-        UniqueConstraint(
-            "attribute_type_name",
-            "object_class_name",
-            name="object_class_must_attribute_type_uc",
-        ),
+    id: int = field(init=False)
+    oid: str = ""
+    name: str = ""
+    superior_name: str | None = None
+    kind: KindType | None = None
+    is_system: bool = False
+    superior: ObjectClass | None = field(default=None, repr=False)
+    attribute_types_must: list[AttributeType] = field(
+        default_factory=list,
+        repr=False,
     )
-
-    attribute_type_name: Mapped[str] = mapped_column(
-        String(255),
-        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    object_class_name: Mapped[str] = mapped_column(
-        String(255),
-        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
-class ObjectClassAttributeTypeMayMembership(Base):
-    """ObjectClass - MayAttributeType m2m relationship."""
-
-    __tablename__ = "ObjectClassAttributeTypeMayMemberships"
-
-    __table_args__ = (
-        UniqueConstraint(
-            "attribute_type_name",
-            "object_class_name",
-            name="object_class_may_attribute_type_uc",
-        ),
-    )
-
-    attribute_type_name: Mapped[str] = mapped_column(
-        String(255),
-        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    object_class_name: Mapped[str] = mapped_column(
-        String(255),
-        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
-class ObjectClass(Base):
-    """Object Class."""
-
-    __tablename__ = "ObjectClasses"
-    __table_args__ = (
-        Index(
-            "idx_object_classes_name_gin_trgm",
-            "name",
-            postgresql_using="gin",
-        ),
-        Index("ix_ObjectClasses_name", "name", unique=True),
-    )
-    id: Mapped[int] = mapped_column(primary_key=True)
-    oid: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        unique=True,
-    )
-    superior_name: Mapped[str | None] = mapped_column(
-        String(255),
-        ForeignKey("ObjectClasses.name", ondelete="SET NULL"),
-        nullable=True,
-    )
-    superior: Mapped[ObjectClass | None] = relationship(
-        "ObjectClass",
-        remote_side="ObjectClass.name",
-        uselist=False,
-    )
-    kind: Mapped[KindType] = mapped_column(
-        Enum(KindType, name="objectclasskinds"),
-        nullable=False,
-    )
-    is_system: Mapped[bool]
-
-    attribute_types_must: Mapped[list[AttributeType]] = relationship(
-        "AttributeType",
-        secondary=ObjectClassAttributeTypeMustMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMustMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMustMembership.attribute_type_name == AttributeType.name",  # noqa: E501
-        lazy="selectin",
-    )
-
-    attribute_types_may: Mapped[list[AttributeType]] = relationship(
-        "AttributeType",
-        secondary=ObjectClassAttributeTypeMayMembership.__table__,
-        primaryjoin="ObjectClass.name == ObjectClassAttributeTypeMayMembership.object_class_name",  # noqa: E501
-        secondaryjoin="ObjectClassAttributeTypeMayMembership.attribute_type_name == AttributeType.name",  # noqa: E501
-        lazy="selectin",
+    attribute_types_may: list[AttributeType] = field(
+        default_factory=list,
+        repr=False,
     )
 
     def get_raw_definition(self) -> str:
-        """Format SQLAlchemy Object Class object to LDAP definition."""
         if not self.oid or not self.name or not self.kind:
-            err_msg = f"{self}: Fields 'oid', 'name', and 'kind' are required for LDAP definition."  # noqa: E501
-            raise ValueError(err_msg)
-
-        chunks = ["(", f"{self.oid}", f"NAME '{self.name}'"]
-
+            raise ValueError(
+                f"{self}: Fields 'oid', 'name', and 'kind'"
+                " are required for LDAP definition.",
+            )
+        chunks = ["(", self.oid, f"NAME '{self.name}'"]
         if self.superior_name:
             chunks.append(f"SUP {self.superior_name}")
-
         chunks.append(self.kind)
-
         if self.attribute_type_names_must:
             chunks.append(
                 f"MUST ({' $ '.join(self.attribute_type_names_must)} )",
@@ -1068,244 +744,730 @@ class ObjectClass(Base):
 
     @property
     def attribute_type_names_must(self) -> list[str]:
-        """Display attribute types must."""
-        return [attr.name for attr in self.attribute_types_must]
+        return [a.name for a in self.attribute_types_must]
 
     @property
     def attribute_type_names_may(self) -> list[str]:
-        """Display attribute types may."""
-        return [attr.name for attr in self.attribute_types_may]
-
-    def __str__(self) -> str:
-        """ObjectClass name."""
-        return f"ObjectClass({self.name})"
-
-    def __repr__(self) -> str:
-        """ObjectClass oid and name."""
-        return f"ObjectClass({self.oid}:{self.name})"
+        return [a.name for a in self.attribute_types_may]
 
 
-class NetworkPolicy(Base):
-    """Network policy data."""
+@dataclass
+class PasswordPolicy:
+    """Password policy configuration (history/complexity/age)."""
 
-    __tablename__ = "Policies"
+    id: int | None = field(init=False, default=None)
+    name: str = "Default Policy"
+    password_history_length: int = 4
+    maximum_password_age_days: int = 0
+    minimum_password_age_days: int = 0
+    minimum_password_length: int = 7
+    password_must_meet_complexity_requirements: bool = False
 
-    __table_args__ = (
-        UniqueConstraint(
-            "priority",
-            name="priority_uc",
-            deferrable=True,
-            initially="DEFERRED",
+
+@dataclass
+class Directory:
+    """Directory (LDAP entry) node in hierarchy with attributes."""
+
+    id: int = field(init=False)
+    name: str
+    object_sid: str = field(default="")
+    object_guid: uuid.UUID = field(default_factory=uuid.uuid4)
+    parent_id: int | None = None
+    entity_type_id: int | None = None
+    object_class: str = ""
+    rdname: str = ""
+    created_at: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc),
+    )
+    updated_at: datetime | None = field(default=None)
+    depth: int = field(default=0)
+    password_policy_id: int | None = None
+    path: list[str] = field(default_factory=list)
+
+    parent: Directory | None = field(default=None, repr=False, compare=False)
+    entity_type: EntityType | None = field(
+        init=False,
+        default=None,
+        repr=False,
+        compare=False,
+    )
+    attributes: list[Attribute] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    group: Group = field(init=False, repr=False, compare=False)
+    user: User = field(init=False, repr=False, compare=False)
+    groups: list[Group] = field(init=False, repr=False, compare=False)
+    access_control_entries: list[AccessControlEntry] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+
+    search_fields: ClassVar[dict[str, str]] = {
+        "name": "name",
+        "objectguid": "objectGUID",
+        "objectsid": "objectSid",
+    }
+    ro_fields: ClassVar[set[str]] = {
+        "uid",
+        "whencreated",
+        "lastlogon",
+        "authtimestamp",
+        "objectguid",
+        "objectsid",
+        "entitytypename",
+    }
+
+    def get_dn_prefix(self) -> DistinguishedNamePrefix:
+        return {"organizationalUnit": "ou", "domain": "dc"}.get(
+            self.object_class,
+            "cn",
+        )  # type: ignore
+
+    def get_dn(self, dn: str = "cn") -> str:
+        return f"{dn}={self.name}"
+
+    @property
+    def is_domain(self) -> bool:
+        return not self.parent_id and self.object_class == "domain"
+
+    @property
+    def host_principal(self) -> str:
+        return f"host/{self.name}"
+
+    @property
+    def path_dn(self) -> str:
+        return ",".join(reversed(self.path))
+
+    def create_path(
+        self,
+        parent: Directory | None = None,
+        dn: str = "cn",
+    ) -> None:
+        pre = parent.path if parent else []
+        self.path = pre + [self.get_dn(dn)]
+        self.depth = len(self.path)
+        self.rdname = dn
+
+    @property
+    def attributes_dict(self) -> defaultdict[str, list[str]]:
+        d: defaultdict[str, list[str]] = defaultdict(list)
+        for attr in self.attributes:
+            d[attr.name].extend(attr.values)
+        return d
+
+    @property
+    def object_class_names_set(self) -> set[str]:
+        return set(
+            self.attributes_dict.get("objectClass", [])
+            + self.attributes_dict.get("objectclass", []),
+        )
+
+    @property
+    def entity_type_object_class_names_set(self) -> set[str]:
+        return (
+            self.entity_type.object_class_names_set
+            if self.entity_type
+            else set()
+        )
+
+
+@dataclass
+class Attribute:
+    """Single attribute (string or binary) attached to a Directory entry."""
+
+    id: int = field(init=False)
+    directory_id: int
+    name: str
+    value: str | None = None
+    bvalue: bytes | None = None
+    directory: Directory = field(init=False, repr=False)
+
+    @property
+    def _decoded_value(self) -> str | None:
+        if self.value:
+            return self.value
+        if self.bvalue:
+            return self.bvalue.decode("latin-1")
+        return None
+
+    @property
+    def values(self) -> list[str]:
+        return [self._decoded_value] if self._decoded_value else []
+
+
+@dataclass
+class User:
+    """User account (directory entry specialization)."""
+
+    id: int = field(init=False)
+    directory_id: int = field()
+    directory: Directory = field(repr=False, init=False)
+    sam_account_name: str
+    user_principal_name: str
+    mail: str | None = None
+    display_name: str | None = None
+    password: str | None = None
+    last_logon: datetime | None = None
+    account_exp: datetime | None = None
+    password_history: list[str] = field(default_factory=list)
+
+    samaccountname: str = field(init=False)
+    userprincipalname: str = field(init=False)
+    displayname: str = field(init=False)
+    uid: str = field(init=False)
+    accountexpires: datetime | None = field(init=False)
+
+    groups: list[Group] = field(default_factory=list, repr=False)
+
+    search_fields: ClassVar[dict[str, str]] = {
+        "mail": "mail",
+        "samaccountname": "sAMAccountName",
+        "userprincipalname": "userPrincipalName",
+        "displayname": "displayName",
+        "uid": "uid",
+        "accountexpires": "accountExpires",
+    }
+    fields: ClassVar[dict[str, str]] = {
+        "loginshell": "loginShell",
+        "uidnumber": "uidNumber",
+        "homedirectory": "homeDirectory",
+    }
+
+    def get_upn_prefix(self) -> str:
+        return self.user_principal_name.split("@")[0]
+
+    def is_expired(self) -> bool:
+        if self.account_exp is None:
+            return False
+        now = datetime.now(tz=timezone.utc)
+        user_account_exp = self.account_exp.astimezone(timezone.utc)
+        return now > user_account_exp
+
+
+@dataclass
+class Group:
+    """Group object referencing directory entry; manages memberships."""
+
+    id: int = field(init=False)
+    directory_id: int = field()
+    directory: Directory = field(
+        init=False,
+        repr=False,
+        compare=False,
+    )
+    members: list[Directory] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    parent_groups: list[Group] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    policies: list[NetworkPolicy] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    mfa_policies: list[NetworkPolicy] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    users: list[User] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    roles: list[Role] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    search_fields: ClassVar[dict[str, str]] = {}
+
+
+@dataclass
+class Role:
+    """Authorization role aggregating ACEs and group assignments."""
+
+    id: int = field(init=False)
+    name: str = ""
+    creator_upn: str | None = None
+    is_system: bool = False
+    created_at: datetime = field(init=False, repr=False)
+    groups: list[Group] = field(default_factory=list, repr=False)
+    access_control_entries: list[AccessControlEntry] = field(
+        default_factory=list,
+        repr=False,
+    )
+
+
+@dataclass
+class AccessControlEntry:
+    """Access Control Entry defining permission & scope constraints."""
+
+    id: int = field(init=False)
+    ace_type: AceType
+    scope: RoleScope
+    role_id: int | None = None
+    depth: int | None = None
+    path: str = ""
+    attribute_type_id: int | None = None
+    entity_type_id: int | None = None
+    is_allow: bool = False
+
+    role: Role | None = field(init=False, default=None, repr=False)
+    attribute_type: AttributeType | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    entity_type: EntityType | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    directories: list[Directory] = field(
+        default_factory=list,
+        repr=False,
+    )
+
+    @property
+    def attribute_type_name(self) -> str | None:
+        return (
+            self.attribute_type.name.lower() if self.attribute_type else None
+        )
+
+    @property
+    def entity_type_name(self) -> str | None:
+        return self.entity_type.name if self.entity_type else None
+
+
+@dataclass
+class NetworkPolicy:
+    """Network access policy (netmasks, protocol enable flags, MFA)."""
+
+    id: int = field(init=False)
+    name: str = ""
+    raw: dict | list = field(default_factory=dict)
+    netmasks: list[IPv4Network | IPv4Address] = field(default_factory=list)
+    enabled: bool = True
+    priority: int = 0
+    mfa_status: MFAFlags = MFAFlags.DISABLED
+    is_ldap: bool = True
+    is_http: bool = True
+    is_kerberos: bool = True
+    bypass_no_connection: bool = False
+    bypass_service_failure: bool = False
+    ldap_session_ttl: int = -1
+    http_session_ttl: int = 28800
+    groups: list[Group] = field(init=False, default_factory=list, repr=False)
+    mfa_groups: list[Group] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+    )
+
+
+@dataclass
+class AuditPolicyTrigger:
+    """Trigger describing auditable operation conditions."""
+
+    id: int | None = field(init=False, default=None)
+    audit_policy_id: int = field(init=False)
+    audit_policy: AuditPolicy = field(repr=False, init=False)
+    is_ldap: bool = True
+    is_http: bool = True
+    operation_code: int = 0
+    object_class: str = ""
+    additional_info: dict | None = None
+    is_operation_success: bool = True
+
+
+@dataclass
+class AuditPolicy:
+    """Audit policy grouping triggers with severity & enabled flag."""
+
+    id: int = field(init=False)
+    severity: AuditSeverity
+    name: str = ""
+    is_enabled: bool = False
+    triggers: list[AuditPolicyTrigger] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+    )
+
+
+@dataclass
+class AuditDestination:
+    """Destination for audit events (service/protocol/host/port)."""
+
+    id: int | None = field(init=False, default=None)
+    name: str
+    service_type: AuditDestinationServiceType
+    protocol: AuditDestinationProtocolType
+    is_enabled: bool = True
+    host: str = ""
+    port: int = 0
+
+
+# ---------------------------------------------------------------------------
+# Mappings
+# ---------------------------------------------------------------------------
+
+mapper_registry.map_imperatively(
+    CatalogueSetting,
+    settings_table,
+)
+
+mapper_registry.map_imperatively(
+    EntityType,
+    entity_types_table,
+    properties={
+        "directories": relationship(
+            Directory,
+            back_populates="entity_type",
+            lazy="raise",
+            passive_deletes=True,
+            cascade="all,delete-orphan",
+            uselist=True,
+            foreign_keys=directory_table.c.entity_type_id,
         ),
-    )
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    },
+)
 
-    raw: Mapped[dict | list] = mapped_column(postgresql.JSON, nullable=False)
-    netmasks: Mapped[list[IPv4Network | IPv4Address]] = mapped_column(
-        postgresql.ARRAY(postgresql.CIDR),
-        nullable=False,
-        unique=True,
-        index=True,
-    )
+mapper_registry.map_imperatively(
+    PasswordPolicy,
+    password_policies_table,
+)
 
-    enabled: Mapped[tbool]
-    priority: Mapped[int] = mapped_column(nullable=False)
-
-    groups: Mapped[list[Group]] = relationship(
-        "Group",
-        secondary=PolicyMembership.__table__,
-        back_populates="policies",
-    )
-    mfa_status: Mapped[MFAFlags] = mapped_column(
-        Enum(MFAFlags),
-        server_default="DISABLED",
-        nullable=False,
-    )
-
-    is_ldap: Mapped[tbool]
-    is_http: Mapped[tbool]
-    is_kerberos: Mapped[tbool]
-
-    mfa_groups: Mapped[list[Group]] = relationship(
-        "Group",
-        secondary=PolicyMFAMembership.__table__,
-        back_populates="mfa_policies",
-    )
-
-    bypass_no_connection: Mapped[fbool]
-    bypass_service_failure: Mapped[fbool]
-
-    ldap_session_ttl: Mapped[int] = mapped_column(
-        nullable=False,
-        server_default="-1",
-    )
-
-    http_session_ttl: Mapped[int] = mapped_column(
-        nullable=False,
-        server_default="28800",
-    )
-
-
-class PasswordPolicy(Base):
-    """Password policy."""
-
-    __tablename__ = "PasswordPolicies"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        unique=True,
-        server_default="Default Policy",
-    )
-    password_history_length: Mapped[int] = mapped_column(
-        nullable=False,
-        server_default="4",
-    )
-    maximum_password_age_days: Mapped[int] = mapped_column(
-        nullable=False,
-        server_default="0",
-    )
-    minimum_password_age_days: Mapped[int] = mapped_column(
-        nullable=False,
-        server_default="0",
-    )
-    minimum_password_length: Mapped[int] = mapped_column(
-        nullable=False,
-        server_default="7",
-    )
-    password_must_meet_complexity_requirements: Mapped[tbool]
-
-
-class Role(Base):
-    """Role."""
-
-    __tablename__ = "Roles"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-
-    creator_upn: Mapped[str | None] = mapped_column(
-        nullable=True,
-        unique=False,
-    )
-
-    is_system: Mapped[nbool]
-
-    created_at: Mapped[datetime] = mapped_column(
-        "whenCreated",
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-
-    groups: Mapped[list[Group]] = relationship(
-        "Group",
-        secondary=GroupRoleMembership.__table__,
-        primaryjoin="GroupRoleMembership.role_id == Role.id",
-        secondaryjoin="Group.id == GroupRoleMembership.group_id",
-        back_populates="roles",
-        lazy="raise",
-        passive_deletes=True,
-    )
-
-    access_control_entries: Mapped[list[AccessControlEntry]] = relationship(
-        "AccessControlEntry",
-        cascade="all",
-        lazy="raise",
-        back_populates="role",
-        passive_deletes=True,
-    )
-
-
-class AuditPolicy(Base):
-    """Audit policy."""
-
-    __tablename__ = "AuditPolicies"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-
-    is_enabled: Mapped[bool] = mapped_column(
-        nullable=False,
-        server_default=expression.false(),
-    )
-    severity: Mapped[AuditSeverity] = mapped_column(
-        Enum(AuditSeverity),
-        nullable=False,
-    )
-
-    triggers: Mapped[list[AuditPolicyTrigger]] = relationship(
-        "AuditPolicyTrigger",
-        back_populates="audit_policy",
-        cascade="all",
-        passive_deletes=True,
-        lazy="raise",
-    )
-
-
-class AuditPolicyTrigger(Base):
-    """Audit policy triggers."""
-
-    __tablename__ = "AuditPolicyTriggers"
-
-    __table_args__ = (
-        Index(
-            "idx_trigger_search",
-            "operation_code",
-            "is_operation_success",
-            "is_ldap",
-            "is_http",
-            postgresql_using="btree",
+mapper_registry.map_imperatively(
+    Directory,
+    directory_table,
+    properties={
+        "parent": relationship(
+            Directory,
+            remote_side=[directory_table.c.id],
+            backref="directories",
+            cascade="all,delete",
+            passive_deletes=True,
+            lazy="raise",
+            uselist=False,
+            overlaps="directories",
         ),
-        Index(
-            "idx_audit_policy_id_fk",
-            "audit_policy_id",
-            postgresql_using="hash",
+        "entity_type": relationship(
+            EntityType,
+            back_populates="directories",
+            lazy="raise",
+            uselist=False,
         ),
-    )
+        "attributes": relationship(
+            Attribute,
+            back_populates="directory",
+            cascade="all, delete-orphan",
+            passive_deletes=True,
+            lazy="raise",
+        ),
+        "group": relationship(
+            Group,
+            uselist=False,
+            back_populates="directory",
+            lazy="raise",
+            cascade="all",
+            passive_deletes=True,
+        ),
+        "user": relationship(
+            User,
+            uselist=False,
+            back_populates="directory",
+            lazy="raise",
+            cascade="all",
+            passive_deletes=True,
+        ),
+        "groups": relationship(
+            Group,
+            secondary=directory_memberships_table,
+            primaryjoin=directory_table.c.id
+            == directory_memberships_table.c.directory_id,
+            secondaryjoin=directory_memberships_table.c.group_id
+            == groups_table.c.id,
+            back_populates="members",
+            cascade="all",
+            passive_deletes=True,
+            overlaps="group,directory",
+            lazy="raise",
+        ),
+        "access_control_entries": relationship(
+            "AccessControlEntry",
+            secondary=ace_directory_memberships_table,
+            primaryjoin=directory_table.c.id
+            == ace_directory_memberships_table.c.directory_id,
+            secondaryjoin=ace_directory_memberships_table.c.access_control_entry_id
+            == access_control_entries_table.c.id,
+            back_populates="directories",
+            order_by=(
+                desc(access_control_entries_table.c.depth),
+                asc(access_control_entries_table.c.is_allow),
+            ),
+        ),
+        "objectclass": synonym("object_class"),
+        "objectguid": synonym("object_guid"),
+        "objectsid": synonym("object_sid"),
+        "whencreated": synonym("created_at"),
+        "whenchanged": synonym("updated_at"),
+    },
+)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    is_ldap: Mapped[tbool]
-    is_http: Mapped[tbool]
-    operation_code: Mapped[int]
-    object_class: Mapped[str]
-    additional_info: Mapped[dict | None] = mapped_column(
-        postgresql.JSON(none_as_null=True),
-        nullable=True,
-    )
-    is_operation_success: Mapped[nbool]
+mapper_registry.map_imperatively(
+    Attribute,
+    attributes_table,
+    properties={
+        "directory": relationship(
+            Directory,
+            back_populates="attributes",
+            lazy="raise",
+        ),
+        "directory_id": attributes_table.c.directory_id,
+    },
+)
 
-    audit_policy_id: Mapped[int] = mapped_column(
-        "audit_policy_id",
-        ForeignKey("AuditPolicies.id", ondelete="CASCADE", onupdate="CASCADE"),
-        nullable=False,
-    )
+mapper_registry.map_imperatively(
+    User,
+    users_table,
+    properties={
+        "directory": relationship(
+            Directory,
+            back_populates="user",
+            lazy="joined",
+        ),
+        "groups": relationship(
+            Group,
+            secondary=directory_memberships_table,
+            primaryjoin=users_table.c.directory_id
+            == directory_memberships_table.c.directory_id,
+            secondaryjoin=directory_memberships_table.c.group_id
+            == groups_table.c.id,
+            back_populates="users",
+            passive_deletes=True,
+            lazy="raise",
+            overlaps="group,groups,directory",
+        ),
+        "samaccountname": synonym("sam_account_name"),
+        "userprincipalname": synonym("user_principal_name"),
+        "displayname": synonym("display_name"),
+        "uid": synonym("sam_account_name"),
+        "accountexpires": synonym("account_exp"),
+    },
+)
 
-    audit_policy: Mapped[AuditPolicy] = relationship(
-        "AuditPolicy",
-        uselist=False,
-        back_populates="triggers",
-        lazy="raise",
-    )
+mapper_registry.map_imperatively(
+    Group,
+    groups_table,
+    properties={
+        "directory": relationship(Directory, back_populates="group"),
+        "members": relationship(
+            Directory,
+            secondary=directory_memberships_table,
+            back_populates="groups",
+            passive_deletes=True,
+            cascade="all",
+            overlaps="group,groups,directory",
+            lazy="raise",
+        ),
+        "parent_groups": relationship(
+            Group,
+            secondary=directory_memberships_table,
+            primaryjoin=groups_table.c.directory_id
+            == directory_memberships_table.c.directory_id,
+            secondaryjoin=directory_memberships_table.c.group_id
+            == groups_table.c.id,
+            passive_deletes=True,
+            cascade="all",
+            lazy="raise",
+            overlaps="group,groups,members,directory",
+        ),
+        "policies": relationship(
+            NetworkPolicy,
+            secondary=policy_memberships_table,
+            primaryjoin=groups_table.c.id
+            == policy_memberships_table.c.group_id,
+            back_populates="groups",
+            lazy="raise",
+        ),
+        "mfa_policies": relationship(
+            NetworkPolicy,
+            secondary=policy_mfa_memberships_table,
+            primaryjoin=groups_table.c.id
+            == policy_mfa_memberships_table.c.group_id,
+            back_populates="mfa_groups",
+            lazy="raise",
+        ),
+        "users": relationship(
+            User,
+            secondary=directory_memberships_table,
+            primaryjoin=groups_table.c.id
+            == directory_memberships_table.c.group_id,
+            secondaryjoin=directory_memberships_table.c.directory_id
+            == users_table.c.directory_id,
+            back_populates="groups",
+            passive_deletes=True,
+            cascade="all",
+            overlaps="directory,group,members,parent_groups,groups",
+            lazy="raise",
+        ),
+        "roles": relationship(
+            "Role",
+            secondary=group_role_memberships_table,
+            primaryjoin=groups_table.c.id
+            == group_role_memberships_table.c.group_id,
+            secondaryjoin=group_role_memberships_table.c.role_id
+            == roles_table.c.id,
+            back_populates="groups",
+            lazy="raise",
+        ),
+    },
+)
 
+mapper_registry.map_imperatively(
+    Role,
+    roles_table,
+    properties={
+        "groups": relationship(
+            Group,
+            secondary=group_role_memberships_table,
+            primaryjoin=group_role_memberships_table.c.role_id
+            == roles_table.c.id,
+            secondaryjoin=groups_table.c.id
+            == group_role_memberships_table.c.group_id,
+            back_populates="roles",
+            passive_deletes=True,
+            lazy="raise",
+        ),
+        "access_control_entries": relationship(
+            "AccessControlEntry",
+            back_populates="role",
+            cascade="all, delete-orphan",
+            passive_deletes=True,
+            lazy="raise",
+        ),
+    },
+)
 
-class AuditDestination(Base):
-    """Audit destinations."""
+mapper_registry.map_imperatively(
+    AccessControlEntry,
+    access_control_entries_table,
+    properties={
+        "role": relationship(
+            Role,
+            back_populates="access_control_entries",
+            lazy="raise",
+        ),
+        "attribute_type": relationship(
+            AttributeType,
+            lazy="raise",
+            uselist=False,
+        ),
+        "entity_type": relationship(EntityType, lazy="raise", uselist=False),
+        "directories": relationship(
+            Directory,
+            secondary=ace_directory_memberships_table,
+            back_populates="access_control_entries",
+            lazy="raise",
+        ),
+    },
+)
 
-    __tablename__ = "AuditDestinations"
+mapper_registry.map_imperatively(
+    AttributeType,
+    attribute_types_table,
+)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    service_type: Mapped[AuditDestinationServiceType] = mapped_column(
-        Enum(AuditDestinationServiceType),
-        nullable=False,
-    )
-    is_enabled: Mapped[tbool]
-    host: Mapped[str] = mapped_column(String(255), nullable=False)
-    port: Mapped[int] = mapped_column(nullable=False)
-    protocol: Mapped[AuditDestinationProtocolType] = mapped_column(
-        Enum(AuditDestinationProtocolType),
-        nullable=False,
-    )
+mapper_registry.map_imperatively(
+    ObjectClass,
+    object_classes_table,
+    properties={
+        "superior": relationship(
+            ObjectClass,
+            remote_side=[object_classes_table.c.name],
+            lazy="raise",
+        ),
+        "attribute_types_must": relationship(
+            AttributeType,
+            secondary=object_class_attr_must_table,
+            lazy="raise",
+        ),
+        "attribute_types_may": relationship(
+            AttributeType,
+            secondary=object_class_attr_may_table,
+            lazy="raise",
+        ),
+    },
+)
+
+mapper_registry.map_imperatively(
+    NetworkPolicy,
+    policies_table,
+    properties={
+        "groups": relationship(
+            Group,
+            secondary=policy_memberships_table,
+            primaryjoin=policies_table.c.id
+            == policy_memberships_table.c.policy_id,
+            back_populates="policies",
+            lazy="raise",
+        ),
+        "mfa_groups": relationship(
+            Group,
+            secondary=policy_mfa_memberships_table,
+            primaryjoin=policies_table.c.id
+            == policy_mfa_memberships_table.c.policy_id,
+            back_populates="mfa_policies",
+            lazy="raise",
+        ),
+    },
+)
+
+mapper_registry.map_imperatively(
+    AuditPolicy,
+    audit_policies_table,
+    properties={
+        "triggers": relationship(
+            "AuditPolicyTrigger",
+            back_populates="audit_policy",
+            cascade="all, delete-orphan",
+            passive_deletes=True,
+            lazy="raise",
+        ),
+    },
+)
+
+mapper_registry.map_imperatively(
+    AuditPolicyTrigger,
+    audit_policy_triggers_table,
+    properties={
+        "audit_policy": relationship(
+            AuditPolicy,
+            back_populates="triggers",
+            lazy="raise",
+        ),
+    },
+)
+
+mapper_registry.map_imperatively(
+    AuditDestination,
+    audit_destinations_table,
+)

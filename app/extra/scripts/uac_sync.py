@@ -12,7 +12,7 @@ from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.queries import add_lock_and_expire_attributes
-from models import Attribute, User
+from models import Attribute, User, attributes_table, users_table
 
 
 async def disable_accounts(
@@ -34,10 +34,10 @@ async def disable_accounts(
             a."name" = 'userAccountControl'
     """
     subquery = (
-        select(User.directory_id)
+        select(users_table.c.directory_id)
         .where(
-            User.account_exp < func.now(),
-            User.directory_id == Attribute.directory_id,
+            users_table.c.account_exp < func.now(),
+            users_table.c.directory_id == attributes_table.c.directory_id,
         )
         .scalar_subquery()
     )
@@ -54,21 +54,21 @@ async def disable_accounts(
             )
             == 0
         ),
-        Attribute.directory_id.in_(subquery),
-        Attribute.name == "userAccountControl",
+        attributes_table.c.directory_id.in_(subquery),
+        attributes_table.c.name == "userAccountControl",
     ]
 
     ids = await session.scalars(
         update(Attribute)
         .values(value=new_value)
         .where(*conditions)
-        .returning(Attribute.directory_id)
+        .returning(attributes_table.c.directory_id)
         .execution_options(synchronize_session=False),
     )
 
     users = await session.stream_scalars(
         select(User)
-        .where(User.directory_id.in_(ids)),
+        .where(users_table.c.directory_id.in_(ids)),
     )  # fmt: skip
 
     async for user in users:

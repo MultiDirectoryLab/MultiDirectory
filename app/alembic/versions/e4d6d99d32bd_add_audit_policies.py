@@ -11,7 +11,7 @@ from unittest.mock import Mock
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
@@ -22,14 +22,14 @@ from ldap_protocol.utils.queries import get_base_directories
 # revision identifiers, used by Alembic.
 revision = "e4d6d99d32bd"
 down_revision = "05ddc0bd562a"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 def upgrade() -> None:
     """Upgrade."""
 
-    async def _create_audit_policies(connection) -> None:
+    async def _create_audit_policies(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
 
         if not await get_base_directories(session):

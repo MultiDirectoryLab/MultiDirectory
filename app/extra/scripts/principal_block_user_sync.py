@@ -67,15 +67,13 @@ async def principal_block_sync(
             String,
         )
 
-        conditions = [
-            Attribute.directory_id == user.directory_id,
-            Attribute.name == "userAccountControl",
-        ]
-
         await session.execute(
             update(Attribute)
             .values(value=new_value)
-            .where(*conditions)
+            .filter_by(
+                directory_id=user.directory_id,
+                name="userAccountControl",
+            )
             .execution_options(synchronize_session=False),
         )
 

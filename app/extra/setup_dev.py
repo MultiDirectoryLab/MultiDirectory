@@ -15,6 +15,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Network
 from itertools import chain
 
 from loguru import logger
@@ -28,10 +29,11 @@ from ldap_protocol.utils.queries import get_domain_object_class
 from models import (
     Attribute,
     Directory,
-    DirectoryMembership,
     Group,
     NetworkPolicy,
     User,
+    directory_table,
+    queryable_attr as qa,
 )
 from password_manager import PasswordValidator
 
@@ -39,10 +41,10 @@ from password_manager import PasswordValidator
 async def _get_group(name: str, session: AsyncSession) -> Group:
     retval = await session.scalars(
         select(Group)
-        .join(Group.directory)
+        .join(qa(Group.directory))
         .filter(
-            Directory.name == name,
-            Directory.object_class == "group",
+            directory_table.c.name == name,
+            directory_table.c.object_class == "group",
         ),
     )
     return retval.one()
@@ -61,18 +63,20 @@ async def _create_dir(
         name=data["name"],
         parent=parent,
     )
+    dir_.groups = []
     dir_.create_path(parent, dir_.get_dn_prefix())
 
-    async with session.begin_nested():
-        session.add(dir_)
-        session.add(
-            Attribute(
-                name=dir_.rdname,
-                value=dir_.name,
-                directory=dir_,
-            ),
-        )
-        await session.flush()
+    session.add(dir_)
+    await session.flush()
+    await session.refresh(dir_, ["id"])
+
+    session.add(
+        Attribute(
+            name=dir_.rdname,
+            value=dir_.name,
+            directory_id=dir_.id,
+        ),
+    )
 
     dir_.object_sid = create_object_sid(
         domain,
@@ -81,16 +85,13 @@ async def _create_dir(
     )
 
     if dir_.object_class == "group":
-        group = Group(directory=dir_)
+        group = Group(directory_id=dir_.id)
         session.add(group)
         for group_name in data.get("groups", []):
             parent_group: Group = await _get_group(group_name, session)
-            session.add(
-                DirectoryMembership(
-                    group_id=parent_group.id,
-                    directory_id=dir_.id,
-                ),
-            )
+            dir_.groups.append(parent_group)
+
+        await session.flush()
 
     if "attributes" in data:
         attrs = chain(
@@ -102,7 +103,7 @@ async def _create_dir(
             for value in values:
                 session.add(
                     Attribute(
-                        directory=dir_,
+                        directory_id=dir_.id,
                         name=name,
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
@@ -112,7 +113,7 @@ async def _create_dir(
     if "organizationalPerson" in data:
         user_data = data["organizationalPerson"]
         user = User(
-            directory=dir_,
+            directory_id=dir_.id,
             sam_account_name=user_data["sam_account_name"],
             user_principal_name=user_data["user_principal_name"],
             display_name=user_data["display_name"],
@@ -125,7 +126,7 @@ async def _create_dir(
         await session.flush()
         session.add(
             Attribute(
-                directory=dir_,
+                directory_id=dir_.id,
                 name="homeDirectory",
                 value=f"/home/{user.uid}",
             ),
@@ -133,13 +134,7 @@ async def _create_dir(
 
         for group_name in user_data.get("groups", []):
             parent_group = await _get_group(group_name, session)
-            await session.flush()
-            session.add(
-                DirectoryMembership(
-                    group_id=parent_group.id,
-                    directory_id=dir_.id,
-                ),
-            )
+            dir_.groups.append(parent_group)
 
     await session.flush()
 
@@ -183,8 +178,8 @@ async def setup_enviroment(
     domain = Directory(
         name=dn,
         object_class="domain",
-        object_sid=generate_domain_sid(),
     )
+    domain.object_sid = generate_domain_sid()
     domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
     domain.depth = len(domain.path)
     domain.rdname = ""
@@ -194,11 +189,13 @@ async def setup_enviroment(
         session.add(
             NetworkPolicy(
                 name="Default open policy",
-                netmasks=["0.0.0.0/0"],
+                netmasks=[IPv4Network("0.0.0.0/0")],
                 raw=["0.0.0.0/0"],
                 priority=1,
             ),
         )
+        await session.flush()
+        await session.refresh(domain, ["id"])
         session.add_all(list(get_domain_object_class(domain)))
         await session.flush()
 

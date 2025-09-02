@@ -26,7 +26,17 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import Attribute, Directory, EntityType, ObjectClass
+from models import (
+    Attribute,
+    Directory,
+    EntityType,
+    ObjectClass,
+    attributes_table,
+    directory_table,
+    entity_types_table,
+    object_classes_table,
+    queryable_attr as qa,
+)
 
 _convert = get_converter(EntityType, EntityTypeDTO[int])
 
@@ -46,7 +56,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         self.__session = session
         self.__object_class_dao = object_class_dao
 
-    async def get_all(self) -> list[EntityTypeDTO]:
+    async def get_all(self) -> list[EntityTypeDTO[int]]:
         """Get all Entity Types."""
         return [
             _convert(entity_type)
@@ -55,7 +65,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             )
         ]
 
-    async def create(self, dto: EntityTypeDTO) -> None:
+    async def create(self, dto: EntityTypeDTO[None]) -> None:
         """Create a new Entity Type."""
         try:
             entity_type = EntityType(
@@ -70,7 +80,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
                 f"Entity Type with name '{dto.name}' already exists.",
             )
 
-    async def update(self, _id: str, dto: EntityTypeDTO) -> None:
+    async def update(self, _id: str, dto: EntityTypeDTO[int]) -> None:
         """Update an Entity Type."""
         entity_type = await self._get_one_raw_by_name(_id)
 
@@ -90,22 +100,22 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             )
             result = await self.__session.execute(
                 select(Directory)
-                .join(Directory.entity_type)
-                .where(EntityType.name == entity_type.name)
-                .options(selectinload(Directory.attributes)),
+                .join(qa(Directory.entity_type))
+                .where(entity_types_table.c.name == entity_type.name)
+                .options(selectinload(qa(Directory.attributes))),
             )  # fmt: skip
 
             await self.__session.execute(
                 delete(Attribute)
                 .where(
-                    Attribute.directory_id.in_(
-                        select(Directory.id)
-                        .join(Directory.entity_type)
-                        .where(EntityType.name == entity_type.name),
+                    attributes_table.c.directory_id.in_(
+                        select(directory_table.c.id)
+                        .join(qa(Directory.entity_type))
+                        .where(entity_types_table.c.name == entity_type.name),
                     ),
                     or_(
-                        Attribute.name == "objectclass",
-                        Attribute.name == "objectClass",
+                        attributes_table.c.name == "objectclass",
+                        attributes_table.c.name == "objectClass",
                     ),
                 ),
             )  # fmt: skip
@@ -114,7 +124,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
                 for object_class_name in entity_type.object_class_names:
                     self.__session.add(
                         Attribute(
-                            directory=directory,
+                            directory_id=directory.id,
                             value=object_class_name,
                             name="objectClass",
                         ),
@@ -200,10 +210,10 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         result = await self.__session.execute(
             select(EntityType)
             .where(
-                func.array_lowercase(EntityType.object_class_names).op("@>")(
+                func.array_lowercase(entity_types_table.c.object_class_names).op("@>")(
                     list_object_class_names,
                 ),
-                func.array_lowercase(EntityType.object_class_names).op("<@")(
+                func.array_lowercase(entity_types_table.c.object_class_names).op("<@")(
                     list_object_class_names,
                 ),
             ),
@@ -224,10 +234,14 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
         object_classes_query = await self.__session.scalars(
             select(ObjectClass)
-            .where(ObjectClass.name.in_(entity_type.object_class_names))
+            .where(
+                object_classes_table.c.name.in_(
+                    entity_type.object_class_names,
+                ),
+            )
             .options(
-                selectinload(ObjectClass.attribute_types_must),
-                selectinload(ObjectClass.attribute_types_may),
+                selectinload(qa(ObjectClass.attribute_types_must)),
+                selectinload(qa(ObjectClass.attribute_types_may)),
             ),
         )
         object_classes = list(object_classes_query.all())
@@ -249,11 +263,11 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         """
         await self.__session.execute(
             delete(EntityType).where(
-                EntityType.name.in_(names),
-                EntityType.is_system.is_(False),
-                EntityType.id.not_in(
-                    select(Directory.entity_type_id)
-                    .where(Directory.entity_type_id.isnot(None)),
+                entity_types_table.c.name.in_(names),
+                entity_types_table.c.is_system.is_(False),
+                entity_types_table.c.id.not_in(
+                    select(directory_table.c.entity_type_id)
+                    .where(directory_table.c.entity_type_id.isnot(None)),
                 ),
             ),
         )  # fmt: skip
@@ -266,10 +280,10 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         """
         result = await self.__session.execute(
             select(Directory)
-            .where(Directory.entity_type_id.is_(None))
+            .where(directory_table.c.entity_type_id.is_(None))
             .options(
-                selectinload(Directory.attributes),
-                selectinload(Directory.entity_type),
+                selectinload(qa(Directory.attributes)),
+                selectinload(qa(Directory.entity_type)),
             ),
         )
 

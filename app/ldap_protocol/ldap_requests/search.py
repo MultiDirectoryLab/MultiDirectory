@@ -14,7 +14,8 @@ from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, with_loader_criteria
+from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -56,6 +57,8 @@ from models import (
     Group,
     ObjectClass,
     User,
+    directory_table,
+    queryable_attr as qa,
 )
 
 from .base import BaseRequest
@@ -192,10 +195,7 @@ class SearchRequest(BaseRequest):
         :return defaultdict[str, list[str]]: queried attrs
         """
         data = defaultdict(list)
-        domain_query = (
-            select(Directory)
-            .where(Directory.object_class == "domain")
-        )  # fmt: skip
+        domain_query = select(Directory).filter_by(object_class="domain")
         domain = (await session.scalars(domain_query)).one()
 
         schema = "CN=Schema"
@@ -319,7 +319,8 @@ class SearchRequest(BaseRequest):
             cond = self.cast_filter()
             query = query.filter(cond)
         except Exception as err:
-            logger.error(f"Filter syntax error {err}")
+            logger.exception("Error occurred while filtering query")
+            logger.error(f"Filter syntax error {err}, {type(err)}")
             yield SearchResultDone(result_code=LDAPCodes.PROTOCOL_ERROR)
             return
 
@@ -380,12 +381,12 @@ class SearchRequest(BaseRequest):
         """Get attributes to load."""
         if self.entity_type_name:
             query = (
-                query.join(Directory.entity_type)
-                .options(selectinload(Directory.entity_type))
+                query.join(qa(Directory.entity_type))
+                .options(selectinload(qa(Directory.entity_type)))
             )  # fmt: skip
 
         if self.all_attrs:
-            return query.options(selectinload(Directory.attributes))
+            return query.options(selectinload(qa(Directory.attributes)))
 
         attrs = [
             attr
@@ -394,7 +395,7 @@ class SearchRequest(BaseRequest):
         ]
 
         return query.options(
-            selectinload(Directory.attributes),
+            selectinload(qa(Directory.attributes)),
             with_loader_criteria(
                 Attribute,
                 func.lower(Attribute.name).in_(attrs),
@@ -410,8 +411,9 @@ class SearchRequest(BaseRequest):
         """Build tree query."""
         query = (
             select(Directory)
-            .join(Directory.user, isouter=True)
-            .options(selectinload(Directory.group))
+            .join(qa(Directory.user), isouter=True)
+            .options(joinedload(qa(Directory.user)))
+            .options(selectinload(qa(Directory.group)))
         )
 
         query = self._mutate_query_with_attributes_to_load(query)
@@ -447,9 +449,9 @@ class SearchRequest(BaseRequest):
 
         elif self.scope == Scope.SINGLE_LEVEL:
             query = query.filter(
-                Directory.depth == len(search_path) + 1,
+                directory_table.c.depth == len(search_path) + 1,
                 get_path_filter(
-                    column=Directory.path[1 : len(search_path)],
+                    column=directory_table.c.path[1 : len(search_path)],
                     path=search_path,
                 ),
             )
@@ -457,19 +459,23 @@ class SearchRequest(BaseRequest):
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
             query = query.filter(
                 get_path_filter(
-                    column=Directory.path[1 : len(search_path)],
+                    column=directory_table.c.path[1 : len(search_path)],
                     path=search_path,
                 ),
             )
 
         if self.member:
             query = query.options(
-                selectinload(Directory.group).selectinload(Group.members),
+                selectinload(qa(Directory.group)).selectinload(
+                    qa(Group.members),
+                ),
             )
 
         if self.member_of or self.token_groups:
             query = query.options(
-                selectinload(Directory.groups).joinedload(Group.directory),
+                selectinload(qa(Directory.groups)).joinedload(
+                    qa(Group.directory),
+                ),
             )
 
         return query
@@ -538,6 +544,7 @@ class SearchRequest(BaseRequest):
                     )
 
         if self.member_of:
+            logger.debug(f"Member of group: {directory.groups}")
             for group in directory.groups:
                 attrs["memberOf"].append(group.directory.path_dn)
 

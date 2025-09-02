@@ -8,7 +8,7 @@ from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import AttributeType, ObjectClass
+from models import AttributeType, ObjectClass, attribute_types_table
 
 
 class RawDefinitionParser:
@@ -39,7 +39,7 @@ class RawDefinitionParser:
     ) -> list[AttributeType]:
         query = await session.execute(
             select(AttributeType)
-            .where(AttributeType.name.in_(names)),
+            .where(attribute_types_table.c.name.in_(names)),
         )  # fmt: skip
         return list(query.scalars().all())
 
@@ -53,7 +53,7 @@ class RawDefinitionParser:
 
         return AttributeType(
             oid=attribute_type_info.oid,
-            name=RawDefinitionParser._list_to_string(attribute_type_info.name),
+            name=RawDefinitionParser._list_to_string(attribute_type_info.name),  # type: ignore[arg-type]
             syntax=attribute_type_info.syntax,
             single_value=attribute_type_info.single_value,
             no_user_modification=attribute_type_info.no_user_modification,
@@ -70,7 +70,7 @@ class RawDefinitionParser:
 
         return await session.scalar(
             select(ObjectClass)
-            .where(ObjectClass.name == object_class_name),
+            .filter_by(name=object_class_name),
         )  # fmt: skip
 
     @staticmethod
@@ -92,7 +92,7 @@ class RawDefinitionParser:
 
         object_class = ObjectClass(
             oid=object_class_info.oid,
-            name=RawDefinitionParser._list_to_string(object_class_info.name),
+            name=RawDefinitionParser._list_to_string(object_class_info.name),  # type: ignore[arg-type]
             superior=superior_object_class,
             kind=object_class_info.kind,
             is_system=True,

@@ -18,7 +18,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory
+from models import Directory, queryable_attr as qa
 from tests.conftest import TestCreds
 
 from .conftest import perform_ldap_search_and_validate, run_ldap_modify
@@ -110,10 +110,10 @@ async def test_multiple_access(
     query = (
         select(Directory)
         .options(
-            subqueryload(Directory.attributes),
-            joinedload(Directory.user),
+            subqueryload(qa(Directory.attributes)),
+            joinedload(qa(Directory.user)),
         )
-        .filter(Directory.path == get_search_path(user_dn))
+        .filter_by(path=get_search_path(user_dn))
     )
 
     directory = (await session.scalars(query)).one()

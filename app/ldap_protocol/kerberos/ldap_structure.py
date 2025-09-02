@@ -13,7 +13,7 @@ from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_filter_from_path
-from models import Directory
+from models import Directory, directory_table
 
 
 class KRBLDAPStructureManager:
@@ -93,9 +93,7 @@ class KRBLDAPStructureManager:
         )
         directories = await self._session.scalars(directories_query)
         if directories:
-            await self._session.execute(
-                delete(Directory).where(
-                    Directory.id.in_([dir_.id for dir_ in directories]),
-                ),
-            )
+            q = directory_table.c.id.in_([dir_.id for dir_ in directories])
+            await self._session.execute(delete(Directory).where(q))
+
         await self._role_use_case.delete_kerberos_system_role()
