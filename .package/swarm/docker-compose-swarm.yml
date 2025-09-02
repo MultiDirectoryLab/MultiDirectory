@@ -147,7 +147,7 @@ services:
     command: uvicorn --factory web_app:create_app --host 0.0.0.0 --port 8000 --loop uvloop
 
   pgpool:
-    image: bitnami/pgpool:latest
+    image: bitnamilegacy/pgpool:latest
     hostname: 'postgres'
     ports:
       - 5432:5432

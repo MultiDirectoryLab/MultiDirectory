@@ -181,7 +181,7 @@ services:
       start_period: 5s
 
   pgpool:
-    image: bitnami/pgpool:latest
+    image: bitnamilegacy/pgpool:latest
     environment:
       - PGPOOL_BACKEND_NODES=0:postgres:5432
       - PGPOOL_SR_CHECK_USER=${POSTGRES_USER:-user1}

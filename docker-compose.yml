@@ -161,7 +161,7 @@ services:
       start_period: 3s
 
   pgpool:
-    image: bitnami/pgpool:latest
+    image: bitnamilegacy/pgpool:latest
     ports:
       - 5432:5432
     environment:
