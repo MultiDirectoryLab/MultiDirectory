@@ -13,14 +13,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from entities import AuditPolicy, AuditPolicyTrigger
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
-from models import (
-    AuditPolicyTrigger,
-    audit_policies_table,
-    audit_policy_triggers_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import queryable_attr as qa
 
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent
 from .managers import NormalizedAuditManager, RawAuditManager
@@ -200,14 +196,14 @@ class AuditEventHandler:
             select(AuditPolicyTrigger)
             .join(qa(AuditPolicyTrigger.audit_policy), isouter=True)
             .where(
-                audit_policies_table.c.is_enabled.is_(True),
-                audit_policy_triggers_table.c.operation_code == operation_code,
-                audit_policy_triggers_table.c.is_operation_success.is_(
+                qa(AuditPolicy.is_enabled).is_(True),
+                qa(AuditPolicyTrigger.operation_code) == operation_code,
+                qa(AuditPolicyTrigger.is_operation_success).is_(
                     event_data.is_event_successful,
                 ),
                 or_(
-                    audit_policy_triggers_table.c.is_ldap.is_(is_ldap),
-                    audit_policy_triggers_table.c.is_http.is_(is_http),
+                    qa(AuditPolicyTrigger.is_ldap).is_(is_ldap),
+                    qa(AuditPolicyTrigger.is_http).is_(is_http),
                 ),
             )
             .options(selectinload(qa(AuditPolicyTrigger.audit_policy))),

@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
+from entities import AccessControlEntry, Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -24,13 +25,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import (
-    AccessControlEntry,
-    Attribute,
-    Directory,
-    Group,
-    User,
-    access_control_entries_table,
+from repo.pg.tables import (
     directory_memberships_table,
     directory_table,
     queryable_attr as qa,
@@ -323,7 +318,7 @@ class ModifyDNRequest(BaseRequest):
                     qa(AccessControlEntry.directories).any(
                         directory_table.c.id == directory.id,
                     ),
-                    access_control_entries_table.c.depth == directory.depth,
+                    qa(AccessControlEntry.depth) == directory.depth,
                 )
             )
 

@@ -10,8 +10,8 @@ from alembic import op
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
+from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
-from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
 revision = "4442d1d982a4"

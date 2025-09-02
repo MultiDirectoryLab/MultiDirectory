@@ -20,6 +20,14 @@ from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
 from config import Settings
+from entities import (
+    Attribute,
+    AttributeType,
+    Directory,
+    Group,
+    ObjectClass,
+    User,
+)
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
@@ -50,16 +58,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from models import (
-    Attribute,
-    AttributeType,
-    Directory,
-    Group,
-    ObjectClass,
-    User,
-    directory_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPSearchRequestContext
@@ -449,9 +448,9 @@ class SearchRequest(BaseRequest):
 
         elif self.scope == Scope.SINGLE_LEVEL:
             query = query.filter(
-                directory_table.c.depth == len(search_path) + 1,
+                qa(Directory.depth) == len(search_path) + 1,
                 get_path_filter(
-                    column=directory_table.c.path[1 : len(search_path)],
+                    column=qa(Directory.path)[1 : len(search_path)],
                     path=search_path,
                 ),
             )
@@ -459,7 +458,7 @@ class SearchRequest(BaseRequest):
         elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
             query = query.filter(
                 get_path_filter(
-                    column=directory_table.c.path[1 : len(search_path)],
+                    column=qa(Directory.path)[1 : len(search_path)],
                     path=search_path,
                 ),
             )

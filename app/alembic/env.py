@@ -8,7 +8,7 @@ from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Settings
-from models import metadata
+from repo.pg.tables import metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from config import Settings
+from entities import User
 from enums import AceType, RoleScope
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -24,7 +25,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
-from models import User, queryable_attr as qa
+from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -140,7 +141,7 @@ async def test_bind_policy(
     ldap_session: LDAPSession,
 ) -> None:
     """Bind with policy."""
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
+    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)  # noqa: SLF001
     assert policy
 
     group_dir = await get_group(
@@ -180,7 +181,7 @@ async def test_bind_policy_missing_group(
     creds: TestCreds,
 ) -> None:
     """Bind policy fail."""
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
+    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)  # noqa: SLF001
 
     assert policy
 
