@@ -56,7 +56,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
         if not policy:
             raise PasswordPolicyNotFoundError("Policy not found")
 
-        return _convert_model_to_dto(policy)  # type: ignore
+        return _convert_model_to_dto(policy)
 
     async def create(
         self,
