@@ -11,6 +11,7 @@ from typing import Callable, TypeVar
 from fastapi import Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.datastructures import URL
 
 from api.auth.schema import OAuth2Form
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
@@ -223,6 +224,7 @@ class AuditMonitorUseCase:
         @wraps(attr)
         async def wrapped_login(
             form: OAuth2Form,
+            url: URL,
             ip: IPv4Address | IPv6Address,
             user_agent: str,
         ) -> object:
@@ -233,6 +235,7 @@ class AuditMonitorUseCase:
             try:
                 return await attr(
                     form=form,
+                    url=url,
                     ip=ip,
                     user_agent=user_agent,
                 )

@@ -9,9 +9,10 @@ from ipaddress import IPv4Address, IPv6Address
 from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.datastructures import URL
 
 from abstract_dao import AbstractService
-from api.auth.schema import OAuth2Form, SetupRequest
+from api.auth.schema import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.exceptions.auth import (
     AlreadyConfiguredError,
     ForbiddenError,
@@ -20,11 +21,11 @@ from api.exceptions.auth import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from api.exceptions.mfa import MFARequiredError
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
 from enums import MFAFlags
 from extra.setup_dev import setup_enviroment
+from ldap_protocol.identity.mfa_manager import MFAManager
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -66,6 +67,7 @@ class IdentityManager(AbstractService):
         audit_use_case: AuditUseCase,
         monitor: AuditMonitorUseCase,
         kadmin: AbstractKadmin,
+        mfa_manager: MFAManager,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -89,6 +91,7 @@ class IdentityManager(AbstractService):
         self._password_use_cases = password_use_cases
         self._password_validator = password_validator
         self._kadmin = kadmin
+        self._mfa_manager = mfa_manager
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -107,12 +110,14 @@ class IdentityManager(AbstractService):
     async def login(
         self,
         form: OAuth2Form,
+        url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> str:
+    ) -> tuple[MFAChallengeResponse | None, str | None]:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
+        :param url: URL for the MFA callback
         :param ip: Client IP
         :param user_agent: Client User-Agent
         :raises UnauthorizedError: if incorrect username or password
@@ -173,13 +178,23 @@ class IdentityManager(AbstractService):
                     self._session,
                 )
             if request_2fa:
-                raise MFARequiredError("Requires MFA connect")
+                result, key = await self._mfa_manager.two_factor_protocol(
+                    user=user,
+                    network_policy=network_policy,
+                    url=url,
+                    ip=ip,
+                    user_agent=user_agent,
+                )
+                return result, key
 
-        return await self._repository.create_session_key(
-            user,
-            ip,
-            user_agent,
-            self.key_ttl,
+        return (
+            None,
+            await self._repository.create_session_key(
+                user,
+                ip,
+                user_agent,
+                self.key_ttl,
+            ),
         )
 
     async def _update_password(

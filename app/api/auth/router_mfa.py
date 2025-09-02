@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Depends, Form, Request, Response, status
+from fastapi import Depends, Form, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
@@ -18,12 +18,7 @@ from api.auth.adapters import MFAFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
-from .schema import (
-    MFAChallengeResponse,
-    MFACreateRequest,
-    MFAGetResponse,
-    OAuth2Form,
-)
+from .schema import MFACreateRequest, MFAGetResponse
 
 mfa_router = APIRouter(
     prefix="/multifactor",
@@ -102,39 +97,6 @@ async def callback_mfa(
     return await mfa_manager.callback_mfa(
         access_token,
         mfa_creds,
-        ip,
-        user_agent,
-    )
-
-
-@mfa_router.post("/connect", response_model=MFAChallengeResponse)
-async def two_factor_protocol(
-    form: Annotated[OAuth2Form, Depends()],
-    request: Request,
-    response: Response,
-    ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
-    user_agent: Annotated[str, Depends(get_user_agent_from_request)],
-    mfa_manager: FromDishka[MFAFastAPIAdapter],
-) -> MFAChallengeResponse:
-    """Initiate two factor protocol with app.
-
-    \f
-    :param Annotated[OAuth2Form, Depends form: password form
-    :param Request request: FastAPI request
-    :param FromDishka[MultifactorAPI] api: wrapper for MFA DAO
-    :param Response response: FastAPI response
-    :param Annotated[IPv4Address  |  IPv6Address, Depends ip: client ip
-    :raises HTTPException: Missing API credentials
-    :raises HTTPException: Invalid credentials
-    :raises HTTPException: network policy violation
-    :raises HTTPException: Multifactor error
-    :return MFAChallengeResponse:
-        {'status': 'pending', 'message': https://example.com}.
-    """
-    return await mfa_manager.two_factor_protocol(
-        form,
-        request,
-        response,
         ip,
         user_agent,
     )

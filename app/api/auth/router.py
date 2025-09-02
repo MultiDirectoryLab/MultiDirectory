@@ -9,7 +9,7 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Body, Depends, Response, status
+from fastapi import APIRouter, Body, Depends, Request, Response, status
 
 from api.auth.adapters import IdentityFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
@@ -17,7 +17,7 @@ from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
 
 from .oauth2 import get_current_user
-from .schema import OAuth2Form, SetupRequest
+from .schema import MFAChallengeResponse, OAuth2Form, SetupRequest
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
@@ -25,11 +25,12 @@ auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 @auth_router.post("/")
 async def login(
     form: Annotated[OAuth2Form, Depends()],
+    request: Request,
     response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
     auth_manager: FromDishka[IdentityFastAPIAdapter],
-) -> None:
+) -> MFAChallengeResponse | None:
     """Create session to cookies and storage.
 
     - **username**: username formats:
@@ -50,8 +51,9 @@ async def login(
     :raises HTTPException: 403 if user not part of network policy
     :return None: None
     """
-    await auth_manager.login(
+    return await auth_manager.login(
         form=form,
+        request=request,
         response=response,
         ip=ip,
         user_agent=user_agent,
