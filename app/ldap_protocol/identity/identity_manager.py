@@ -320,7 +320,7 @@ class IdentityManager(AbstractService):
                 ],
             },
             {
-                "name": "Computers",
+                "name": "computers",
                 "object_class": "organizationalUnit",
                 "attributes": {"objectClass": ["top", "container"]},
                 "children": [],

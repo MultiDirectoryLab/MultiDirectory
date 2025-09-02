@@ -109,7 +109,7 @@ services:
       resources:
         limits:
           cpus: '0.50'
-          memory: 150M
+          memory: 500M
 
   migrations:
     image: multidirectory
@@ -342,7 +342,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 100M
+          memory: 300M
         reservations:
           cpus: '0.1'
           memory: 6M
