@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.object_class_router import ldap_schema_router
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
-from ldap_protocol.ldap_schema.entity_type_dao import (
+from ldap_protocol.ldap_schema.entity_type_dao_service import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
     EntityTypeUpdateSchema,
@@ -89,9 +89,7 @@ async def get_list_entity_types_with_pagination(
     :param PaginationParams params: Pagination parameters.
     :return EntityTypePaginationSchema: Paginator Schema.
     """
-    return await adapter.get_list_entity_types_with_pagination(
-        params=params,
-    )
+    return await adapter.get_list_entity_types_with_pagination(params=params)
 
 
 @ldap_schema_router.patch(
