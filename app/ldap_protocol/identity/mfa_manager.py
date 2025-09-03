@@ -17,14 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_dao import AbstractService
-from api.auth.oauth2 import ALGORITHM
-from api.auth.schema import (
-    MFAChallengeResponse,
-    MFACreateRequest,
-    MFAGetResponse,
-    OAuth2Form,
-)
-from api.exceptions.mfa import (
+from config import Settings
+from enums import MFAChallengeStatuses, MFAFlags
+from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
@@ -33,9 +28,12 @@ from api.exceptions.mfa import (
     MissingMFACredentialsError,
     NetworkPolicyError,
 )
-from config import Settings
-from enums import MFAChallengeStatuses, MFAFlags
-from ldap_protocol.identity.utils import authenticate_user, get_user
+from ldap_protocol.identity.schemas import (
+    MFAChallengeResponse,
+    MFACreateRequest,
+    MFAGetResponse,
+)
+from ldap_protocol.identity.utils import get_user
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -50,8 +48,10 @@ from ldap_protocol.policies.network_policy import (
 )
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from models import CatalogueSetting, User
+from models import CatalogueSetting, NetworkPolicy, User
 from password_manager import PasswordValidator
+
+ALGORITHM = "HS256"
 
 
 class MFAManager(AbstractService):
@@ -239,16 +239,19 @@ class MFAManager(AbstractService):
 
     async def two_factor_protocol(
         self,
-        form: OAuth2Form,
+        user: User,
+        network_policy: NetworkPolicy,
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
     ) -> tuple[MFAChallengeResponse, str | None]:
         """Initiate two-factor protocol with application.
 
-        :param form: OAuth2Form
+        :param user: User
+        :param network_policy: NetworkPolicy
         :param url: URL for MFA callback
         :param ip: IP address
+        :param user_agent: User-Agent string
         :return:
             tuple[MFAChallengeResponse, str | None] (session key | None)
         :raises MissingMFACredentialsError: if MFA is not initialized
@@ -258,18 +261,6 @@ class MFAManager(AbstractService):
         """
         if not self._mfa_api.is_initialized:
             raise MissingMFACredentialsError()
-        user = await authenticate_user(
-            self._session,
-            form.username,
-            form.password,
-            self._password_validator,
-        )
-        if not user:
-            raise InvalidCredentialsError()
-
-        network_policy = await get_user_network_policy(ip, user, self._session)
-        if network_policy is None:
-            raise NetworkPolicyError()
 
         bypass_coro = self._create_bypass_data(
             user,

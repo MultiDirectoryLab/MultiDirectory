@@ -1,10 +1,11 @@
 """Schemas for auth module.
 
-Copyright (c) 2024 MultiFactor
+Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
 from typing import Literal
@@ -27,13 +28,6 @@ _domain_re = re.compile(
 )
 
 
-class Login(BaseModel):
-    """Login form."""
-
-    username: str
-    password: str
-
-
 class OAuth2Form(OAuth2PasswordRequestForm):
     """OAuth2 custom form."""
 
@@ -45,14 +39,6 @@ class OAuth2Form(OAuth2PasswordRequestForm):
         """Initialize form."""
         self.username = username
         self.password = password
-
-
-class Token(BaseModel):
-    """Token model."""
-
-    access_token: str
-    refresh_token: str
-    type: str
 
 
 class SetupRequest(BaseModel):
@@ -110,6 +96,14 @@ class MFAChallengeResponse(BaseModel):
 
     status: str
     message: str
+
+
+@dataclass
+class LoginDTO:
+    """Login Data Transfer Object."""
+
+    session_key: str | None
+    mfa_challenge: MFAChallengeResponse | None
 
 
 class SessionContentSchema(BaseModel):
