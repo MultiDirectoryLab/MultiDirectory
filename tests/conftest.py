@@ -665,7 +665,17 @@ async def setup_session(
         audit_destination_dao,
         raw_audit_manager,
     )
+    password_policy_dao = PasswordPolicyDAO(session)
+    password_policy_validator = PasswordPolicyValidator(
+        password_validator,
+        Settings.from_os(),
+    )
+    password_use_cases = PasswordPolicyUseCases(
+        password_policy_dao,
+        password_policy_validator,
+    )
     await audit_use_case.create_policies()
+    await password_use_cases.create_policy()
     await setup_enviroment(
         session,
         dn="md.test",
