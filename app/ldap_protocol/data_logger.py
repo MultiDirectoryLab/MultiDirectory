@@ -25,9 +25,15 @@ class _LoggingProtocol(Protocol):
 class DataLogger:
     """LDAP Data Logger."""
 
-    def __init__(self, logger: _LoggingProtocol, full: bool = False) -> None:
+    def __init__(
+        self,
+        logger: _LoggingProtocol,
+        full: bool = False,
+        prefix: str = "",
+    ) -> None:
         """Set logging mode."""
         self.l = logger
+        self.prefix = prefix
         if full:
             self.req_log = self._req_log_full
             self.rsp_log = self._resp_log_full
@@ -36,15 +42,15 @@ class DataLogger:
 
     def _req_log_full(self, addr: str, msg: LDAPRequestMessage) -> None:
         self.l.debug(
-            f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
+            f"\n{self.prefix}From: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}\n",
         )
 
     def _resp_log_full(self, addr: str, msg: LDAPResponseMessage) -> None:
         self.l.debug(
-            f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
+            f"\n{self.prefix}To: {addr!r}\n{msg.name}[{msg.message_id}]: "
             f"{msg.model_dump_json()}"[:3000],
         )
 
     def _log_short(self, addr: str, msg: LDAPMessage) -> None:
-        self.l.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
+        self.l.info(f"\n{self.prefix}{addr!r}: {msg.name}[{msg.message_id}]\n")
