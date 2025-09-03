@@ -11,10 +11,10 @@ from typing import ClassVar
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import User
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
-from models import User
 from password_manager import PasswordValidator
 
 

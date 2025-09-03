@@ -149,7 +149,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.compiler import DDLCompiler
 from sqlalchemy.sql.expression import ClauseElement, Executable, Visitable
 
-from models import Directory
+from entities import Directory
 
 
 def validate_entry(entry: str) -> bool:
