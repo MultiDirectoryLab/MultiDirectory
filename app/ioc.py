@@ -310,14 +310,20 @@ class MainProvider(Provider):
     audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
+    async def get_dhcp_manager_repository(
+        self,
+        session: AsyncSession,
+    ) -> DHCPManagerRepository:
+        """Get DHCPManagerRepository instance."""
+        return DHCPManagerRepository(session)
+
+    @provide(scope=Scope.REQUEST)
     async def get_dhcp_manager_state(
         self,
-        session_maker: async_sessionmaker[AsyncSession],
+        dhcp_manager_repository: DHCPManagerRepository,
     ) -> DHCPManagerState:
         """Get current DHCP manager state."""
-        async with session_maker() as session:
-            repository = DHCPManagerRepository(session)
-            return await repository.ensure_state()
+        return await dhcp_manager_repository.ensure_state()
 
     @provide(scope=Scope.SESSION)
     async def get_dhcp_mngr_class(
@@ -334,15 +340,6 @@ class MainProvider(Provider):
     ) -> type[DHCPAPIRepository]:
         """Get DHCP API repository type."""
         return await get_dhcp_api_repository_class(dhcp_state)
-
-    @provide(scope=Scope.REQUEST)
-    async def get_dhcp_manager_repository(
-        self,
-        session_maker: async_sessionmaker[AsyncSession],
-    ) -> DHCPManagerRepository:
-        """Get DHCPManagerRepository instance."""
-        async with session_maker() as session:
-            return DHCPManagerRepository(session)
 
     @provide(scope=Scope.REQUEST)
     async def get_dhcp_api_repository(

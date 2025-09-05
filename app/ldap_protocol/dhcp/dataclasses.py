@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import IPv4Address, IPv4Network
 
@@ -28,12 +28,10 @@ class DHCPOptionData:
 class DHCPSubnet:
     """Data class for DHCP subnet."""
 
-    id: int | None = field(default=None)
-    subnet: IPv4Network | None = field(default=None)
-    pools: list[DHCPPool] | None = field(default=None)
-    option_data: list[DHCPOptionData] | None = field(
-        default=None,
-    )
+    id: int | None = None
+    subnet: IPv4Network | None = None
+    pools: list[DHCPPool] | None = None
+    option_data: list[DHCPOptionData] | None = None
 
 
 @dataclass
@@ -49,24 +47,20 @@ class DHCPReservation:
     """Data class for DHCP reservation."""
 
     ip_address: IPv4Address
-    subnet_id: int | None = field(default=None)
-    hw_address: str | None = field(default=None)
-    hostname: str | None = field(default=None)
-    identifier: str | None = field(default=None)
-    identifier_type: str | None = field(
-        default=None,
-    )
-    operation_target: str | None = field(
-        default=None,
-    )
+    subnet_id: int | None = None
+    hw_address: str | None = None
+    hostname: str | None = None
+    identifier: str | None = None
+    identifier_type: str | None = None
+    operation_target: str | None = None
 
 
 @dataclass
 class DHCPLease:
     """Data class for DHCP lease."""
 
-    id: int | None = field(default=None)
-    ip_address: IPv4Address | None = field(default=None)
-    mac_address: str | None = field(default=None)
-    hostname: str | None = field(default=None)
-    expires: datetime | None = field(default=None)
+    id: int | None = None
+    ip_address: IPv4Address | None = None
+    mac_address: str | None = None
+    hostname: str | None = None
+    expires: datetime | None = None

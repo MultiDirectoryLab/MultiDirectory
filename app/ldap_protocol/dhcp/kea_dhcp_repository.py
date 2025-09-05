@@ -447,12 +447,12 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
             hostname=lease_data.get("hostname"),
         )
 
-    async def get_lease_by_hostname(self, ip_address: str) -> DHCPLease:
-        """Get a lease by IP address."""
+    async def get_lease_by_hostname(self, hostname: str) -> DHCPLease:
+        """Get a lease by hostname."""
         data = get_lease_by_hostname_retort.dump(
             KeaDHCPBaseAPIRequest(
                 command=KeaDHCPCommands.LEASE4_GET_BY_HOSTNAME,
-                arguments=DHCPLease(ip_address=IPv4Address(ip_address)),
+                arguments=DHCPLease(hostname=hostname),
             ),
         )
 

@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .dataclasses import (
     DHCPLease,
@@ -27,6 +27,4 @@ class KeaDHCPBaseAPIRequest:
         | DHCPReservation
         | list[DHCPSharedNetwork]
         | None
-    ) = field(
-        default=None,
-    )
+    ) = None

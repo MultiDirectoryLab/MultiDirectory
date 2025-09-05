@@ -22,7 +22,7 @@ log = loguru_logger.bind(name="DHCPManager")
 
 log.add(
     "logs/dhcpmanager_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == "dhcpmanager",
+    filter=lambda rec: rec["extra"].get("name") == "DHCPmanager",
     retention="10 days",
     rotation="1d",
     colorize=False,
@@ -135,7 +135,7 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def update_subnet(
         self,
-        subnet_id: int,
+        name: str,
         subnet: IPv4Network,
         pool: IPv4Network | str,
         default_gateway: str | None = None,
