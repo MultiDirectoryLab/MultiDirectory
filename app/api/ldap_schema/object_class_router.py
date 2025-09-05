@@ -8,18 +8,17 @@ from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
 from fastapi import Query, status
-from ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
-from ldap_schema.schema import (
+
+from api.ldap_schema import LimitedListType
+from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
+from api.ldap_schema.attribute_type_router import ldap_schema_router
+from api.ldap_schema.schema import (
     ObjectClassPaginationSchema,
+    ObjectClassRequestSchema,
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-
-from api.ldap_schema import LimitedListType
-from api.ldap_schema.attribute_type_router import ldap_schema_router
 from ldap_protocol.utils.pagination import PaginationParams
-
-_DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
 
 @ldap_schema_router.post(
@@ -27,13 +26,14 @@ _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
     status_code=status.HTTP_201_CREATED,
 )
 async def create_one_object_class(
-    request_data: ObjectClassSchema,
+    request_data: ObjectClassRequestSchema,
     adapter: FromDishka[ObjectClassFastAPIAdapter],
 ) -> None:
     """Create a new Object Class.
 
     \f
-    :param ObjectClassSchema request_data: Data for creating Object Class.
+    :param ObjectClassRequestSchema request_data:
+        Data for creating Object Class.
     :param FromDishka[ObjectClassFastAPIAdapter] adapter:
         Object Class FastAPI Adapter.
     :raises HTTPException: 409 if object class already exists

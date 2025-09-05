@@ -17,6 +17,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import (
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
+from ldap_protocol.ldap_schema.exceptions import ObjectClassNotFoundError
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams
 
@@ -31,6 +32,7 @@ class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
     _exceptions_map: dict[type[Exception], int] = {
         EntityTypeDAO.EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         EntityTypeDAO.EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
+        ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
 
     async def modify_one_entity_type(
@@ -122,6 +124,18 @@ class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
             object_class_names=request_data.object_class_names,
         )
         await session.commit()
+
+    async def get_entity_type_attributes(
+        self,
+        entity_type_name: str,
+    ) -> list[str]:
+        """Get all attribute names for an Entity Type.
+
+        \f
+        :param str entity_type_name: Entity Type name.
+        :return list[str]: List of attribute names.
+        """
+        return await self._service.get_entity_type_attributes(entity_type_name)
 
     async def delete_bulk_entity_types(
         self,

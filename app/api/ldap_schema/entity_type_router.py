@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.object_class_router import ldap_schema_router
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
-from ldap_protocol.ldap_schema.entity_type_dao_service import (
+from ldap_protocol.ldap_schema.entity_type_dao import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
     EntityTypeUpdateSchema,
@@ -90,6 +90,26 @@ async def get_list_entity_types_with_pagination(
     :return EntityTypePaginationSchema: Paginator Schema.
     """
     return await adapter.get_list_entity_types_with_pagination(params=params)
+
+
+@ldap_schema_router.get(
+    "/entity_type/{entity_type_name}/attrs",
+    response_model=list[str],
+    status_code=status.HTTP_200_OK,
+)
+async def get_entity_type_attributes(
+    entity_type_name: str,
+    adapter: FromDishka[LDAPEntityTypeAdapter],
+) -> list[str]:
+    """Get all attribute names for an Entity Type.
+
+    \f
+    :param str entity_type_name: Name of the Entity Type.
+    :param FromDishka[LDAPEntityTypeAdapter] adapter: LDAPEntityTypeAdapter
+    instance.
+    :return list[str]: List of attribute names.
+    """
+    return await adapter.get_entity_type_attributes(entity_type_name)
 
 
 @ldap_schema_router.patch(

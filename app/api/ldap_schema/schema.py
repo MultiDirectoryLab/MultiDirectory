@@ -22,6 +22,17 @@ class AttributeTypeSchema(BaseModel):
     is_system: bool
 
 
+class AttributeTypeRequestSchema(BaseModel):
+    """Attribute Type Request Schema."""
+
+    oid: str
+    name: str
+    syntax: str
+    single_value: bool
+    no_user_modification: bool
+    is_system: bool
+
+
 class AttributeTypeUpdateSchema(BaseModel):
     """Attribute Type Schema for modify/update."""
 
@@ -44,6 +55,17 @@ class ObjectClassSchema(BaseModel):
     superior_name: str | None
     kind: KindType
     is_system: bool
+    attribute_type_names_must: list[str]
+    attribute_type_names_may: list[str]
+
+
+class ObjectClassRequestSchema(BaseModel):
+    """Object Class Request Schema."""
+
+    oid: str
+    name: str
+    superior_name: str | None
+    kind: KindType
     attribute_type_names_must: list[str]
     attribute_type_names_may: list[str]
 

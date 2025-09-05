@@ -32,9 +32,23 @@ class AttributeTypeUpdateDTO:
 
 
 @dataclass
+class ObjectClassRequestDTO:
+    """Object Class Request DTO."""
+
+    oid: str
+    name: str
+    superior_name: str | None
+    kind: KindType
+    attribute_type_names_must: list[str]
+    attribute_type_names_may: list[str]
+    is_system: bool
+
+
+@dataclass
 class ObjectClassDTO:
     """Object Class DTO."""
 
+    id: int
     oid: str
     name: str
     superior_name: str | None
