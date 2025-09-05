@@ -101,9 +101,9 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
             attribute_type_name,
         )
         await self._service.update(
-            _id=attribute_type.id,
+            _id=attribute_type.get_id(),
             dto=AttributeTypeDTO(
-                id=attribute_type.id,
+                id=attribute_type.get_id(),
                 oid=attribute_type.oid,
                 name=attribute_type.name,
                 syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,

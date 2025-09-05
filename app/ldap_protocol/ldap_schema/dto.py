@@ -13,13 +13,19 @@ from enums import KindType
 class AttributeTypeDTO:
     """Attribute Type DTO."""
 
-    id: int
+    id: int | None
     oid: str
     name: str
     syntax: str
     single_value: bool
     no_user_modification: bool
     is_system: bool
+
+    def get_id(self) -> int:
+        """Get the ID of the audit destination."""
+        if not self.id:
+            raise ValueError("ID is not set for the audit destination.")
+        return self.id
 
 
 @dataclass
