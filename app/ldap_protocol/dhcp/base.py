@@ -135,7 +135,7 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def update_subnet(
         self,
-        name: str,
+        subnet_id: int,
         subnet: IPv4Network,
         pool: IPv4Network | str,
         default_gateway: str | None = None,
