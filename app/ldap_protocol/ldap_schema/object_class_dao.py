@@ -73,7 +73,11 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
 
     async def create(self, dto: ObjectClassDTO) -> None:
         """Create Object Class."""
-        object_class = ObjectClass(**asdict(dto))
+        dto_dict = asdict(dto)
+        dto_dict.pop("attribute_types_must", None)
+        dto_dict.pop("attribute_types_may", None)
+
+        object_class = ObjectClass(**dto_dict)
         self.__session.add(object_class)
         await self.__session.flush()
 

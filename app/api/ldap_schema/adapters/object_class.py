@@ -14,10 +14,7 @@ from api.ldap_schema.schema import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from ldap_protocol.ldap_schema.dto import (
-    ObjectClassRequestDTO,
-    ObjectClassUpdateDTO,
-)
+from ldap_protocol.ldap_schema.dto import ObjectClassUpdateDTO
 from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
     ObjectClassCantModifyError,
@@ -47,17 +44,17 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
         request_data: ObjectClassRequestSchema,
     ) -> None:
         """Create a new Object Class."""
-        await self.object_class_dao.create(
-            ObjectClassRequestDTO(
-                oid=request_data.oid,
-                name=request_data.name,
-                superior_name=request_data.superior_name,
-                kind=request_data.kind,
-                is_system=self._DEFAULT_OBJECT_CLASS_IS_SYSTEM,
-                attribute_type_names_must=request_data.attribute_type_names_must,
-                attribute_type_names_may=request_data.attribute_type_names_may,
-            ),
-        )
+        # await self.object_class_dao.create(
+        #     ObjectClassRequestDTO(
+        #         oid=request_data.oid,
+        #         name=request_data.name,
+        #         superior_name=request_data.superior_name,
+        #         kind=request_data.kind,
+        #         is_system=self._DEFAULT_OBJECT_CLASS_IS_SYSTEM,
+        #         attribute_type_names_must=request_data.attribute_type_names_must,
+        #         attribute_type_names_may=request_data.attribute_type_names_may,
+        #     ),
+        # )
         await self.object_class_dao.create_one(
             oid=request_data.oid,
             name=request_data.name,
