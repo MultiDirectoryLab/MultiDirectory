@@ -107,3 +107,11 @@ if errorlevel 1 (
     )
     echo SECRET_KEY=!secret!>> .env
 )
+
+:: 8. CERTS_DIR
+if not exist "certs" (
+    mkdir certs
+    echo Created directory: certs
+) else (
+    echo Directory already exists: certs
+)
