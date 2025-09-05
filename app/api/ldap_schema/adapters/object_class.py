@@ -8,6 +8,7 @@ from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
+from api.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
 from api.ldap_schema.schema import (
     ObjectClassPaginationSchema,
     ObjectClassRequestSchema,
@@ -27,29 +28,23 @@ from ldap_protocol.utils.pagination import PaginationParams
 class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
     """Object Class FastAPI Adapter."""
 
-    _DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
-
     _exceptions_map: dict[type[Exception], int] = {
         ObjectClassAlreadyExistsError: status.HTTP_409_CONFLICT,
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
         ObjectClassCantModifyError: status.HTTP_403_FORBIDDEN,
     }
 
-    def __init__(self, object_class_dao: ObjectClassDAO) -> None:
-        """Initialize Object Class FastAPI Adapter."""
-        self.object_class_dao = object_class_dao
-
     async def create_one_object_class(
         self,
         request_data: ObjectClassRequestSchema,
     ) -> None:
         """Create a new Object Class."""
-        await self.object_class_dao.create_one(
+        await self._service.create_one(
             oid=request_data.oid,
             name=request_data.name,
             superior_name=request_data.superior_name,
             kind=request_data.kind,
-            is_system=self._DEFAULT_OBJECT_CLASS_IS_SYSTEM,
+            is_system=DEFAULT_OBJECT_CLASS_IS_SYSTEM,
             attribute_type_names_must=request_data.attribute_type_names_must,
             attribute_type_names_may=request_data.attribute_type_names_may,
         )
@@ -59,7 +54,7 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
         object_class_name: str,
     ) -> ObjectClassSchema:
         """Get one Object Class."""
-        object_class = await self.object_class_dao.get_one_by_name(
+        object_class = await self._service.get_one_by_name(
             object_class_name,
         )
         return ObjectClassSchema(
@@ -81,7 +76,7 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
         params: PaginationParams,
     ) -> ObjectClassPaginationSchema:
         """Get list of Object Classes with pagination."""
-        pagination_result = await self.object_class_dao.get_paginator(
+        pagination_result = await self._service.get_paginator(
             params=params,
         )
 
@@ -112,10 +107,10 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
         request_data: ObjectClassUpdateSchema,
     ) -> None:
         """Modify an Object Class."""
-        object_class = await self.object_class_dao.get_one_by_name(
+        object_class = await self._service.get_one_by_name(
             object_class_name,
         )
-        await self.object_class_dao.modify_one(
+        await self._service.modify_one(
             object_class,
             ObjectClassUpdateDTO(
                 attribute_type_names_must=request_data.attribute_type_names_must,
@@ -128,4 +123,4 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
         object_classes_names: LimitedListType,
     ) -> None:
         """Delete bulk Object Classes."""
-        await self.object_class_dao.delete_all_by_names(object_classes_names)
+        await self._service.delete_all_by_names(object_classes_names)

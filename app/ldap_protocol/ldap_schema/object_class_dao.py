@@ -192,7 +192,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
                 attribute_types_may=attribute_types_may,
             )
             self.__session.add(object_class)
-            await self.__session.commit()
+            await self.__session.flush()
         except IntegrityError:
             raise ObjectClassAlreadyExistsError(
                 f"Object Class with oid '{oid}' and name '{name}' already exists.",
