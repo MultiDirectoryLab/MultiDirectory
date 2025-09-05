@@ -10,10 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
-from ldap_protocol.ldap_schema.dto import (
-    AttributeTypeDTO,
-    AttributeTypeUpdateDTO,
-)
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeCantModifyError,
@@ -72,7 +69,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
                 is_system=dto.is_system,
             )
             self.__session.add(attribute_type)
-            await self.__session.commit()
+            await self.__session.flush()
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(
                 f"Attribute Type with oid '{dto.oid}' and name '{dto.name}' already exists.",
@@ -120,35 +117,6 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
             session=self.__session,
         )
 
-    async def create_one(
-        self,
-        oid: str,
-        name: str,
-        syntax: str,
-        single_value: bool,
-        no_user_modification: bool,
-        is_system: bool,
-    ) -> None:
-        """Create a new Attribute Type.
-
-        :param str oid: OID.
-        :param str name: Name.
-        :param str syntax: Syntax.
-        :param bool single_value: Single value.
-        :param bool no_user_modification: User can't modify it.
-        :param bool is_system: Attribute Type is system.
-        :return None.
-        """
-        attribute_type = AttributeType(
-            oid=oid,
-            name=name,
-            syntax=syntax,
-            single_value=single_value,
-            no_user_modification=no_user_modification,
-            is_system=is_system,
-        )
-        self.__session.add(attribute_type)
-
     async def get_one_by_name(
         self,
         attribute_type_name: str,
@@ -189,31 +157,6 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
         )  # fmt: skip
         return list(map(_convert, query.all()))
 
-    async def modify_one(
-        self,
-        attribute_type: AttributeTypeDTO,
-        new_statement: AttributeTypeUpdateDTO,
-    ) -> None:
-        """Modify Attribute Type.
-
-        :param AttributeTypeDTO attribute_type: Attribute Type.
-        :param AttributeTypeUpdateDTO new_statement: Attribute Type Schema.
-        :raise AttributeTypeCantModifyError: If Attribute Type is system,\
-            it cannot be changed.
-        :return None.
-        """
-        if attribute_type.is_system:
-            raise AttributeTypeCantModifyError(
-                "System Attribute Type cannot be modified.",
-            )
-
-        db_attribute_type = await self._get_raw(attribute_type.id)
-        db_attribute_type.syntax = new_statement.syntax
-        db_attribute_type.single_value = new_statement.single_value
-        db_attribute_type.no_user_modification = (
-            new_statement.no_user_modification
-        )
-
     async def delete_all_by_names(
         self,
         attribute_type_names: list[str],
@@ -233,3 +176,4 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
                 AttributeType.is_system.is_(False),
             ),
         )  # fmt: skip
+        await self.__session.flush()

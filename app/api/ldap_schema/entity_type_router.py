@@ -92,11 +92,7 @@ async def get_list_entity_types_with_pagination(
     return await adapter.get_list_entity_types_with_pagination(params=params)
 
 
-@ldap_schema_router.get(
-    "/entity_type/{entity_type_name}/attrs",
-    response_model=list[str],
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.get("/entity_type/{entity_type_name}/attrs")
 async def get_entity_type_attributes(
     entity_type_name: str,
     adapter: FromDishka[LDAPEntityTypeAdapter],
