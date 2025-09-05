@@ -6,55 +6,36 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Iterable
 
-from pydantic import BaseModel, Field
+from adaptix.conversion import get_converter
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from abstract_dao import AbstractDAO
 from constants import PRIMARY_ENTITY_TYPE_NAMES
-from ldap_protocol.exceptions import (
-    InstanceCantModifyError,
-    InstanceNotFoundError,
+from ldap_protocol.ldap_schema.dto import EntityTypeDTO
+from ldap_protocol.ldap_schema.exceptions import (
+    EntityTypeAlreadyExistsError,
+    EntityTypeCantModifyError,
+    EntityTypeNotFoundError,
 )
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import (
-    BasePaginationSchema,
     PaginationParams,
     PaginationResult,
     build_paginated_search_query,
 )
 from models import Attribute, Directory, EntityType, ObjectClass
 
-
-class EntityTypeSchema(BaseModel):
-    """Entity Type Schema."""
-
-    name: str
-    is_system: bool
-    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
+_convert = get_converter(EntityType, EntityTypeDTO)
 
 
-class EntityTypeUpdateSchema(BaseModel):
-    """Entity Type Schema for modify/update."""
-
-    name: str
-    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
-
-
-class EntityTypePaginationSchema(BasePaginationSchema[EntityTypeSchema]):
-    """Entity Type Schema with pagination result."""
-
-    items: list[EntityTypeSchema]
-
-
-class EntityTypeDAO:
+class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
     """Entity Type DAO."""
 
     __session: AsyncSession
     __object_class_dao: ObjectClassDAO
-    EntityTypeNotFoundError = InstanceNotFoundError
-    EntityTypeCantModifyError = InstanceCantModifyError
 
     def __init__(
         self,
@@ -65,166 +46,60 @@ class EntityTypeDAO:
         self.__session = session
         self.__object_class_dao = object_class_dao
 
-    async def get_paginator(
-        self,
-        params: PaginationParams,
-    ) -> PaginationResult:
-        """Retrieve paginated Entity Types.
-
-        :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of Entity Types and metadata.
-        """
-        query = build_paginated_search_query(
-            model=EntityType,
-            order_by_field=EntityType.name,
-            params=params,
-            search_field=EntityType.name,
-        )
-
-        return await PaginationResult[EntityType].get(
-            params=params,
-            query=query,
-            session=self.__session,
-        )
-
-    async def create_one(
-        self,
-        name: str,
-        object_class_names: Iterable[str],
-        is_system: bool,
-    ) -> None:
-        """Create a new Entity Type instance.
-
-        :param str name: Name.
-        :param Iterable[str] object_class_names: Object Class names.
-        :param bool is_system: Is system.
-        :return None.
-        """
-        entity_type = EntityType(
-            name=name,
-            object_class_names=sorted(set(object_class_names)),
-            is_system=is_system,
-        )
-        self.__session.add(entity_type)
-
-    async def get_one_by_name(
-        self,
-        entity_type_name: str,
-    ) -> EntityType:
-        """Get single Entity Type by name.
-
-        :param str entity_type_name: Entity Type name.
-        :raise EntityTypeNotFoundError: If Entity Type not found.
-        :return EntityType: Instance of Entity Type.
-        """
-        entity_type = await self.__session.scalar(
-            select(EntityType)
-            .where(EntityType.name == entity_type_name),
-        )  # fmt: skip
-
+    async def _get_raw(self, _id: int) -> EntityType:
+        """Get Entity Type by id."""
+        entity_type = await self.__session.get(EntityType, _id)
         if not entity_type:
-            raise self.EntityTypeNotFoundError(
-                f"Entity Type with name '{entity_type_name}' not found.",
+            raise EntityTypeNotFoundError(
+                f"Entity Type with id {_id} not found.",
             )
-
         return entity_type
 
-    async def get_entity_type_by_object_class_names(
-        self,
-        object_class_names: Iterable[str],
-    ) -> EntityType | None:
-        """Get single Entity Type by object class names.
+    async def get(self, _id: int) -> EntityTypeDTO:
+        """Get Entity Type by id."""
+        return _convert(await self._get_raw(_id))
 
-        :param Iterable[str] object_class_names: object class names.
-        :return EntityType | None: Instance of Entity Type or None.
-        """
-        list_object_class_names = [name.lower() for name in object_class_names]
-        result = await self.__session.execute(
-            select(EntityType)
-            .where(
-                func.array_lowercase(EntityType.object_class_names).op("@>")(
-                    list_object_class_names,
-                ),
-                func.array_lowercase(EntityType.object_class_names).op("<@")(
-                    list_object_class_names,
-                ),
-            ),
-        )  # fmt: skip
-
-        return result.scalars().first()
-
-    async def update_name(
-        self,
-        entity_type: EntityType,
-        new_statement: EntityTypeUpdateSchema,
-    ) -> None:
-        if entity_type.name in PRIMARY_ENTITY_TYPE_NAMES:
-            raise self.EntityTypeCantModifyError(
-                f"Can't change entity type name {entity_type.name}",
+    async def get_all(self) -> list[EntityTypeDTO]:
+        """Get all Entity Types."""
+        return [
+            _convert(entity_type)
+            for entity_type in await self.__session.scalars(
+                select(EntityType),
             )
-        entity_type.name = new_statement.name
+        ]
 
-    async def get_entity_type_attributes(
-        self,
-        entity_type_name: str,
-    ) -> list[str]:
-        """Get all attribute names for an Entity Type.
-
-        :param str entity_type_name: Entity Type name.
-        :return list[str]: List of attribute names.
-        """
-        entity_type = await self.get_one_by_name(entity_type_name)
-
-        if not entity_type.object_class_names:
-            return []
-
-        object_classes_query = await self.__session.scalars(
-            select(ObjectClass)
-            .where(ObjectClass.name.in_(entity_type.object_class_names))
-            .options(
-                selectinload(ObjectClass.attribute_types_must),
-                selectinload(ObjectClass.attribute_types_may),
-            ),
-        )
-        object_classes = list(object_classes_query.all())
-
-        attribute_names = set()
-        for object_class in object_classes:
-            for attr in object_class.attribute_types_must:
-                attribute_names.add(attr.name)
-            for attr in object_class.attribute_types_may:
-                attribute_names.add(attr.name)
-
-        return sorted(list(attribute_names))
-
-    async def modify_one(
-        self,
-        entity_type_name: str,
-        new_statement: EntityTypeUpdateSchema,
-        object_class_dao: ObjectClassDAO,
-    ) -> None:
-        """Modify Entity Type.
-
-        :param str entity_type_name: entity type name
-        :param EntityTypeUpdateSchema new_statement: New statement\
-            of Entity Type.
-        :return None.
-        """
+    async def create(self, dto: EntityTypeDTO) -> None:
+        """Create a new Entity Type."""
         try:
-            entity_type = await self.get_one_by_name(entity_type_name)
-            await object_class_dao.is_all_object_classes_exists(
-                new_statement.object_class_names,
+            entity_type = EntityType(
+                name=dto.name,
+                object_class_names=sorted(set(dto.object_class_names)),
+                is_system=dto.is_system,
+            )
+            self.__session.add(entity_type)
+            await self.__session.flush()
+        except IntegrityError:
+            raise EntityTypeAlreadyExistsError(
+                f"Entity Type with name '{dto.name}' already exists.",
             )
 
-            if new_statement.name != entity_type.name:
-                await self.update_name(entity_type, new_statement)
+    async def update(self, _id: int, dto: EntityTypeDTO) -> None:
+        """Update an Entity Type."""
+        entity_type = await self._get_raw(_id)
+
+        try:
+            await self.__object_class_dao.is_all_object_classes_exists(
+                dto.object_class_names,
+            )
+
+            entity_type.name = dto.name
 
             # Sort object_class_names to ensure a
             # consistent order for database operations
             # and to facilitate duplicate detection.
 
             entity_type.object_class_names = sorted(
-                new_statement.object_class_names,
+                dto.object_class_names,
             )
             result = await self.__session.execute(
                 select(Directory)
@@ -262,10 +137,126 @@ class EntityTypeDAO:
         except IntegrityError:
             # NOTE: Session has autoflush, so we can fall in select requests
             await self.__session.rollback()
-            raise self.EntityTypeCantModifyError(
-                f"Entity Type with name '{entity_type_name}' and object class "
-                f"names {new_statement.object_class_names} already exists.",
+            raise EntityTypeCantModifyError(
+                f"Entity Type with name '{dto.name}' and object class "
+                f"names {dto.object_class_names} already exists.",
             )
+
+    async def delete(self, _id: int) -> None:
+        """Delete an Entity Type."""
+        entity_type = await self._get_raw(_id)
+        await self.__session.delete(entity_type)
+        await self.__session.flush()
+
+    async def get_paginator(
+        self,
+        params: PaginationParams,
+    ) -> PaginationResult:
+        """Retrieve paginated Entity Types.
+
+        :param PaginationParams params: page_size and page_number.
+        :return PaginationResult: Chunk of Entity Types and metadata.
+        """
+        query = build_paginated_search_query(
+            model=EntityType,
+            order_by_field=EntityType.name,
+            params=params,
+            search_field=EntityType.name,
+        )
+
+        return await PaginationResult[EntityType].get(
+            params=params,
+            query=query,
+            session=self.__session,
+        )
+
+    async def get_one_by_name(
+        self,
+        entity_type_name: str,
+    ) -> EntityTypeDTO:
+        """Get single Entity Type by name.
+
+        :param str entity_type_name: Entity Type name.
+        :raise EntityTypeNotFoundError: If Entity Type not found.
+        :return EntityType: Instance of Entity Type.
+        """
+        entity_type = await self.__session.scalar(
+            select(EntityType)
+            .where(EntityType.name == entity_type_name),
+        )  # fmt: skip
+
+        if not entity_type:
+            raise EntityTypeNotFoundError(
+                f"Entity Type with name '{entity_type_name}' not found.",
+            )
+
+        return _convert(entity_type)
+
+    async def get_entity_type_by_object_class_names(
+        self,
+        object_class_names: Iterable[str],
+    ) -> EntityType | None:
+        """Get single Entity Type by object class names.
+
+        :param Iterable[str] object_class_names: object class names.
+        :return EntityType | None: Instance of Entity Type or None.
+        """
+        list_object_class_names = [name.lower() for name in object_class_names]
+        result = await self.__session.execute(
+            select(EntityType)
+            .where(
+                func.array_lowercase(EntityType.object_class_names).op("@>")(
+                    list_object_class_names,
+                ),
+                func.array_lowercase(EntityType.object_class_names).op("<@")(
+                    list_object_class_names,
+                ),
+            ),
+        )  # fmt: skip
+
+        return result.scalars().first()
+
+    async def validate_name(
+        self,
+        name: str,
+    ) -> None:
+        if name in PRIMARY_ENTITY_TYPE_NAMES:
+            raise EntityTypeCantModifyError(
+                f"Can't change entity type name {name}",
+            )
+
+    async def get_entity_type_attributes(
+        self,
+        entity_type_name: str,
+    ) -> list[str]:
+        """Get all attribute names for an Entity Type.
+
+        :param str entity_type_name: Entity Type name.
+        :return list[str]: List of attribute names.
+        """
+        entity_type = await self.get_one_by_name(entity_type_name)
+
+        if not entity_type.object_class_names:
+            return []
+
+        object_classes_query = await self.__session.scalars(
+            select(ObjectClass)
+            .where(ObjectClass.name.in_(entity_type.object_class_names))
+            .options(
+                selectinload(ObjectClass.attribute_types_must),
+                selectinload(ObjectClass.attribute_types_may),
+            ),
+        )
+        object_classes = list(object_classes_query.all())
+
+        attribute_names = set()
+        for object_class in object_classes:
+            for attr in object_class.attribute_types_must:
+                attribute_names.add(attr.name)
+            for attr in object_class.attribute_types_may:
+                attribute_names.add(attr.name)
+
+        return sorted(list(attribute_names))
 
     async def delete_all_by_names(
         self,
@@ -286,6 +277,7 @@ class EntityTypeDAO:
                 ),
             ),
         )  # fmt: skip
+        await self.__session.flush()
 
     async def attach_entity_type_to_directories(self) -> None:
         """Find all Directories without an Entity Type and attach it to them.
@@ -335,12 +327,14 @@ class EntityTypeDAO:
                 directory=directory,
             )
             try:
-                await self.create_one(
-                    name=entity_type_name,
-                    object_class_names=object_class_names,
-                    is_system=is_system_entity_type,
+                await self.create(
+                    EntityTypeDTO(
+                        id=None,
+                        name=entity_type_name,
+                        object_class_names=list(object_class_names),
+                        is_system=is_system_entity_type,
+                    ),
                 )
-                await self.__session.flush()
             except IntegrityError:
                 # NOTE: This happens when Race Condition occurs.
                 # If the Entity Type already exists, we can ignore the error.

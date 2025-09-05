@@ -22,9 +22,9 @@ from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.auth.utils import get_ip_from_request
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
+from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
@@ -408,7 +408,7 @@ class HTTPProvider(LDAPContextProvider):
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
     ldap_entity_type_adapter = provide(
-        LDAPEntityTypeAdapter,
+        LDAPEntityTypeFastAPIAdapter,
         scope=Scope.REQUEST,
     )
     kerberos_service = provide(KerberosService, scope=Scope.REQUEST)

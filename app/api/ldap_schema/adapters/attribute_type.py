@@ -50,7 +50,7 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
         """
         await self._service.create(
             AttributeTypeDTO(
-                id=0,
+                id=None,
                 oid=request_data.oid,
                 name=request_data.name,
                 syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,

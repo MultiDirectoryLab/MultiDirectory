@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from enums import KindType
 from ldap_protocol.utils.pagination import BasePaginationSchema
@@ -81,3 +81,24 @@ class ObjectClassUpdateSchema(BaseModel):
 
     attribute_type_names_must: list[str]
     attribute_type_names_may: list[str]
+
+
+class EntityTypeSchema(BaseModel):
+    """Entity Type Schema."""
+
+    name: str
+    is_system: bool
+    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
+
+
+class EntityTypeUpdateSchema(BaseModel):
+    """Entity Type Schema for modify/update."""
+
+    name: str
+    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
+
+
+class EntityTypePaginationSchema(BasePaginationSchema[EntityTypeSchema]):
+    """Entity Type Schema with pagination result."""
+
+    items: list[EntityTypeSchema]

@@ -28,6 +28,7 @@ from ldap_protocol.identity.mfa_manager import MFAManager
 from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form, SetupRequest
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -295,10 +296,15 @@ class IdentityManager(AbstractService):
             raise AlreadyConfiguredError("Setup already performed")
 
         for entity_type_data in ENTITY_TYPE_DATAS:
-            await self._entity_type_dao.create_one(
-                name=entity_type_data["name"],  # type: ignore
-                object_class_names=entity_type_data["object_class_names"],
-                is_system=True,
+            await self._entity_type_dao.create(
+                EntityTypeDTO(
+                    id=None,
+                    name=entity_type_data["name"],  # type: ignore
+                    object_class_names=list(
+                        entity_type_data["object_class_names"],
+                    ),
+                    is_system=True,
+                ),
             )
         data = [
             {

@@ -35,3 +35,19 @@ class ObjectClassCantModifyError(ObjectClassTypeError):
 
 class ObjectClassAlreadyExistsError(ObjectClassTypeError):
     """Raised when an object class already exists."""
+
+
+class EntityTypeTypeError(Exception):
+    """Raised when an entity type is not found."""
+
+
+class EntityTypeNotFoundError(EntityTypeTypeError):
+    """Raised when an entity type is not found."""
+
+
+class EntityTypeCantModifyError(EntityTypeTypeError):
+    """Raised when an entity type cannot be modified."""
+
+
+class EntityTypeAlreadyExistsError(EntityTypeTypeError):
+    """Raised when an entity type already exists."""
