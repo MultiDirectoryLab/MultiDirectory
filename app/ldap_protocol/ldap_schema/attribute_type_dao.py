@@ -72,7 +72,8 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
             await self.__session.flush()
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(
-                f"Attribute Type with oid '{dto.oid}' and name '{dto.name}' already exists.",
+                f"Attribute Type with oid '{dto.oid}' and name"
+                + f" '{dto.name}' already exists.",
             )
 
     async def update(self, _id: int, dto: AttributeTypeDTO) -> None:
