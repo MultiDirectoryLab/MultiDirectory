@@ -17,7 +17,6 @@ from api.ldap_schema.schema import (
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams
 
 
@@ -28,7 +27,6 @@ from ldap_protocol.utils.pagination import PaginationParams
 async def create_one_entity_type(
     request_data: EntityTypeSchema,
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],
-    object_class_dao: FromDishka[ObjectClassDAO],
 ) -> None:
     """Create a new Entity Type.
 
@@ -37,12 +35,10 @@ async def create_one_entity_type(
     :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter:
         LDAPEntityTypeFastAPIAdapter
     instance.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :return None.
     """
     await adapter.create(
         request_data=request_data,
-        object_class_dao=object_class_dao,
     )
 
 
