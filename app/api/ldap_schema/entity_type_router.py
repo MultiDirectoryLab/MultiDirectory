@@ -36,7 +36,8 @@ async def create_one_entity_type(
 
     \f
     :param EntityTypeSchema request_data: Data for creating Entity Type.
-    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter: LDAPEntityTypeFastAPIAdapter
+    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter:
+        LDAPEntityTypeFastAPIAdapter
     instance.
     :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :return None.
@@ -61,7 +62,8 @@ async def get_one_entity_type(
 
     \f
     :param str entity_type_name: name of the Entity Type.
-    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter: LDAPEntityTypeFastAPIAdapter
+    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter:
+        LDAPEntityTypeFastAPIAdapter
     instance.
     :return EntityTypeSchema: Entity Type Schema.
     """
@@ -76,7 +78,8 @@ async def get_list_entity_types_with_pagination(
     """Retrieve a chunk of Entity Types with pagination.
 
     \f
-    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter: LDAPEntityTypeFastAPIAdapter
+    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter:
+        LDAPEntityTypeFastAPIAdapter
     instance.
     :param PaginationParams params: Pagination parameters.
     :return EntityTypePaginationSchema: Paginator Schema.
@@ -93,7 +96,8 @@ async def get_entity_type_attributes(
 
     \f
     :param str entity_type_name: Name of the Entity Type.
-    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter: LDAPEntityTypeFastAPIAdapter
+    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter:
+        LDAPEntityTypeFastAPIAdapter
     instance.
     :return list[str]: List of attribute names.
     """
@@ -111,7 +115,8 @@ async def modify_one_entity_type(
     \f
     :param str entity_type_name: Name of the Entity Type for modifying.
     :param EntityTypeUpdateSchema request_data: Changed data.
-    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter: LDAPEntityTypeFastAPIAdapter
+    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter:
+        LDAPEntityTypeFastAPIAdapter
     instance.
     :return None.
     """
@@ -133,7 +138,8 @@ async def delete_bulk_entity_types(
 
     \f
     :param LimitedListType entity_type_names: List of Entity Type names.
-    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter: LDAPEntityTypeFastAPIAdapter
+    :param FromDishka[LDAPEntityTypeFastAPIAdapter] adapter:
+        LDAPEntityTypeFastAPIAdapter
     instance.
     :return None: None
     """

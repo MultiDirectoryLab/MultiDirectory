@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 from typing import Iterable
 
 from adaptix.conversion import get_converter
@@ -326,7 +327,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
             entity_type_name = EntityType.generate_entity_type_name(
                 directory=directory,
             )
-            try:
+            with contextlib.suppress(EntityTypeAlreadyExistsError):
                 await self.create(
                     EntityTypeDTO(
                         id=None,
@@ -335,10 +336,6 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
                         is_system=is_system_entity_type,
                     ),
                 )
-            except IntegrityError:
-                # NOTE: This happens when Race Condition occurs.
-                # If the Entity Type already exists, we can ignore the error.
-                pass
 
             entity_type = await self.get_entity_type_by_object_class_names(
                 object_class_names,
