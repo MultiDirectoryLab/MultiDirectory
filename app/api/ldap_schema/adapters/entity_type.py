@@ -15,17 +15,16 @@ from api.ldap_schema.schema import (
     EntityTypeUpdateSchema,
 )
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_use_case import EntityUseCase
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeCantModifyError,
     EntityTypeNotFoundError,
     ObjectClassNotFoundError,
 )
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams
 
 
-class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
+class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityUseCase]):
     """Adapter for LDAProuter."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -47,29 +46,15 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
         :return None.
         """
         try:
-            entity_type = await self._service.get_one_by_name(
+            entity_type = await self._service.get_by_name(
                 entity_type_name=entity_type_name,
             )
         except EntityTypeNotFoundError:
             raise EntityTypeCantModifyError
 
-        if entity_type.is_system:
-            raise EntityTypeCantModifyError(
-                f"Entity Type '{entity_type_name}' is system and "
-                f"cannot be modified.",
-            )
-        if request_data.name != entity_type.name:
-            await self._service.validate_name(
-                name=request_data.name,
-            )
         await self._service.update(
-            _id=entity_type.get_id(),
-            dto=EntityTypeDTO(
-                id=entity_type.get_id(),
-                name=request_data.name,
-                object_class_names=request_data.object_class_names,
-                is_system=entity_type.is_system,
-            ),
+            entity_type_dto=entity_type,
+            request_name=request_data.name,
         )
 
     async def get_paginated_entity(
@@ -105,7 +90,7 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
         :param str entity_type_name: name of the Entity Type.
         :return EntityTypeSchema: Entity Type Schema.
         """
-        entity_type = await self._service.get_one_by_name(
+        entity_type = await self._service.get_by_name(
             entity_type_name=entity_type_name,
         )
         return EntityTypeSchema.model_validate(
@@ -116,26 +101,19 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
     async def create(
         self,
         request_data: EntityTypeSchema,
-        object_class_dao: ObjectClassDAO,
     ) -> None:
         """Create a new Entity Type.
 
         \f
         :param EntityTypeSchema request_data: Data for creating
         a new Entity Type.
-        :param ObjectClassDAO object_class_dao: Object Class DAO.
-        :param AsyncSession session: Database session.
         :return None.
         """
-        await object_class_dao.is_all_object_classes_exists(
-            request_data.object_class_names,
-        )
         await self._service.create(
             EntityTypeDTO(
-                id=None,
                 name=request_data.name,
-                object_class_names=request_data.object_class_names,
                 is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
+                object_class_names=request_data.object_class_names,
             ),
         )
 

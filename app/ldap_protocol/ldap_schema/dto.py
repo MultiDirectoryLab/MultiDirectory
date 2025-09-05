@@ -13,13 +13,13 @@ from enums import KindType
 class AttributeTypeDTO:
     """Attribute Type DTO."""
 
-    id: int | None
     oid: str
     name: str
     syntax: str
     single_value: bool
     no_user_modification: bool
     is_system: bool
+    id: int | None = None
 
     def get_id(self) -> int:
         """Get the ID of the attribute type."""
@@ -76,10 +76,10 @@ class ObjectClassUpdateDTO:
 class EntityTypeDTO:
     """Entity Type DTO."""
 
-    id: int | None
     name: str
     is_system: bool
     object_class_names: list[str]
+    id: int | None = None
 
     def get_id(self) -> int:
         """Get the ID of the entity type."""
