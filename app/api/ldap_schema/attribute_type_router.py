@@ -13,6 +13,7 @@ from api.ldap_schema import LimitedListType, ldap_schema_router
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
+    AttributeTypeRequestSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
@@ -24,13 +25,14 @@ from ldap_protocol.utils.pagination import PaginationParams
     status_code=status.HTTP_201_CREATED,
 )
 async def create_one_attribute_type(
-    request_data: AttributeTypeSchema,
+    request_data: AttributeTypeRequestSchema,
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
     """Create a new Attribute Type.
 
     \f
-    :param AttributeTypeSchema request_data: Data for creating Attribute Type.
+    :param AttributeTypeRequestSchema request_data:
+        Data for creating Attribute Type.
     :param FromDishka[AttributeTypeFastAPIAdapter] adapter: Attribute Type\
           manager.
     :raises HTTPException: 409 if attr already exists
@@ -52,7 +54,8 @@ async def get_one_attribute_type(
 
     \f
     :param str attribute_type_name: name of the Attribute Type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
+    :param FromDishka[AttributeTypeFastAPIAdapter] adapter:
+        Attribute Type adapter.
     :return AttributeTypeSchema: Attribute Type Schema.
     """
     return await adapter.get_one_attribute_type(attribute_type_name)

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
@@ -344,13 +345,16 @@ def upgrade() -> None:
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await attribute_type_dao.create_one(
-                oid=oid,
-                name=name,
-                syntax="1.3.6.1.4.1.1466.115.121.1.15",
-                single_value=True,
-                no_user_modification=False,
-                is_system=True,
+            await attribute_type_dao.create(
+                AttributeTypeDTO(
+                    id=0,
+                    oid=oid,
+                    name=name,
+                    syntax="1.3.6.1.4.1.1466.115.121.1.15",
+                    single_value=True,
+                    no_user_modification=False,
+                    is_system=True,
+                ),
             )
 
         await session.commit()

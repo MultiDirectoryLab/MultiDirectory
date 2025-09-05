@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import asdict
-
 from adaptix.conversion import get_converter
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
@@ -65,16 +63,27 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
     async def create(self, dto: AttributeTypeDTO) -> None:
         """Create Attribute Type."""
         try:
-            attribute_type = AttributeType(**asdict(dto))
+            attribute_type = AttributeType(
+                oid=dto.oid,
+                name=dto.name,
+                syntax=dto.syntax,
+                single_value=dto.single_value,
+                no_user_modification=dto.no_user_modification,
+                is_system=dto.is_system,
+            )
             self.__session.add(attribute_type)
-            await self.__session.flush()
+            await self.__session.commit()
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(
-                "Attribute Type already exists.",
+                f"Attribute Type with oid '{dto.oid}' and name '{dto.name}' already exists.",
             )
 
     async def update(self, _id: int, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type."""
+        if dto.is_system:
+            raise AttributeTypeCantModifyError(
+                "System Attribute Type cannot be modified.",
+            )
         attribute_type = await self._get_raw(_id)
         attribute_type.oid = dto.oid
         attribute_type.name = dto.name
@@ -198,9 +207,10 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
                 "System Attribute Type cannot be modified.",
             )
 
-        attribute_type.syntax = new_statement.syntax
-        attribute_type.single_value = new_statement.single_value
-        attribute_type.no_user_modification = (
+        db_attribute_type = await self._get_raw(attribute_type.id)
+        db_attribute_type.syntax = new_statement.syntax
+        db_attribute_type.single_value = new_statement.single_value
+        db_attribute_type.no_user_modification = (
             new_statement.no_user_modification
         )
 

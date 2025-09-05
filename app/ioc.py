@@ -21,6 +21,8 @@ from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.auth.utils import get_ip_from_request
+from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
+from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
@@ -320,6 +322,14 @@ class MainProvider(Provider):
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
+    attribute_type_fastapi_adapter = provide(
+        AttributeTypeFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    object_class_fastapi_adapter = provide(
+        ObjectClassFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
 
 
 class LDAPContextProvider(Provider):

@@ -24,7 +24,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from models import Attribute, Directory, EntityType
+from models import Attribute, Directory, EntityType, ObjectClass
 
 
 class EntityTypeSchema(BaseModel):
@@ -163,6 +163,39 @@ class EntityTypeDAO:
                 f"Can't change entity type name {entity_type.name}",
             )
         entity_type.name = new_statement.name
+
+    async def get_entity_type_attributes(
+        self,
+        entity_type_name: str,
+    ) -> list[str]:
+        """Get all attribute names for an Entity Type.
+
+        :param str entity_type_name: Entity Type name.
+        :return list[str]: List of attribute names.
+        """
+        entity_type = await self.get_one_by_name(entity_type_name)
+
+        if not entity_type.object_class_names:
+            return []
+
+        object_classes_query = await self.__session.scalars(
+            select(ObjectClass)
+            .where(ObjectClass.name.in_(entity_type.object_class_names))
+            .options(
+                selectinload(ObjectClass.attribute_types_must),
+                selectinload(ObjectClass.attribute_types_may),
+            ),
+        )
+        object_classes = list(object_classes_query.all())
+
+        attribute_names = set()
+        for object_class in object_classes:
+            for attr in object_class.attribute_types_must:
+                attribute_names.add(attr.name)
+            for attr in object_class.attribute_types_may:
+                attribute_names.add(attr.name)
+
+        return sorted(list(attribute_names))
 
     async def modify_one(
         self,

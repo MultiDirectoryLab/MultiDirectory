@@ -42,6 +42,8 @@ from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
+from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
@@ -518,6 +520,14 @@ class TestProvider(Provider):
     )
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
     session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
+    attribute_type_fastapi_adapter = provide(
+        AttributeTypeFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    object_class_fastapi_adapter = provide(
+        ObjectClassFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
 
 
 @dataclass

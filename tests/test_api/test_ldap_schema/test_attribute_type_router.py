@@ -3,7 +3,8 @@
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from ldap_schema.schema import AttributeTypeUpdateSchema
+
+from api.ldap_schema.schema import AttributeTypeUpdateSchema
 
 from .test_attribute_type_router_datasets import (
     test_delete_bulk_attribute_types_dataset,
