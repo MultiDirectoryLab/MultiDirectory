@@ -1,37 +1,35 @@
-"""File for LDAPEntityTypeAdapter.
+"""File for LDAPEntityTypeFastAPIAdapter.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import ParamSpec, TypeVar
-
 from fastapi import status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
-from ldap_protocol.ldap_schema.entity_type_dao import (
-    EntityTypeDAO,
+from api.ldap_schema.schema import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.exceptions import ObjectClassNotFoundError
+from ldap_protocol.ldap_schema.dto import EntityTypeDTO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.exceptions import (
+    EntityTypeCantModifyError,
+    EntityTypeNotFoundError,
+    ObjectClassNotFoundError,
+)
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams
 
-P = ParamSpec("P")
-R = TypeVar("R")
 
-
-# NOTE: This is a workaround for non refactored DAOs
-class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
+class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
     """Adapter for LDAProuter."""
 
     _exceptions_map: dict[type[Exception], int] = {
-        EntityTypeDAO.EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
-        EntityTypeDAO.EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
+        EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
+        EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
 
@@ -39,24 +37,39 @@ class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
         self,
         entity_type_name: str,
         request_data: EntityTypeUpdateSchema,
-        object_class_dao: ObjectClassDAO,
-        session: AsyncSession,
     ) -> None:
         """Modify an Entity Type.
 
         \f
         :param str entity_type_name: Name of the Entity Type for modifying.
-        :param EntityTypeUpdateSchema request_data: Changed data.
-        :param ObjectClassDAO object_class_dao: Object Class DAO.
-        :param AsyncSession session: Database session.
+        :param EntityTypeUpdateDTO request_data: Changed data.
         :return None.
         """
-        await self._service.modify_one(
-            entity_type_name=entity_type_name,
-            new_statement=request_data,
-            object_class_dao=object_class_dao,
+        try:
+            entity_type = await self._service.get_one_by_name(
+                entity_type_name=entity_type_name,
+            )
+        except EntityTypeNotFoundError:
+            raise EntityTypeCantModifyError
+
+        if entity_type.is_system:
+            raise EntityTypeCantModifyError(
+                f"Entity Type '{entity_type_name}' is system and "
+                f"cannot be modified.",
+            )
+        if request_data.name != entity_type.name:
+            await self._service.validate_name(
+                name=request_data.name,
+            )
+        await self._service.update(
+            _id=entity_type.get_id(),
+            dto=EntityTypeDTO(
+                id=entity_type.get_id(),
+                name=request_data.name,
+                object_class_names=request_data.object_class_names,
+                is_system=entity_type.is_system,
+            ),
         )
-        await session.commit()
 
     async def get_list_entity_types_with_pagination(
         self,
@@ -104,7 +117,6 @@ class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
         request_data: EntityTypeSchema,
         object_class_dao: ObjectClassDAO,
         is_system: bool,
-        session: AsyncSession,
     ) -> None:
         """Create a new Entity Type.
 
@@ -118,12 +130,14 @@ class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
         await object_class_dao.is_all_object_classes_exists(
             request_data.object_class_names,
         )
-        await self._service.create_one(
-            name=request_data.name,
-            is_system=is_system,
-            object_class_names=request_data.object_class_names,
+        await self._service.create(
+            EntityTypeDTO(
+                id=None,
+                name=request_data.name,
+                object_class_names=request_data.object_class_names,
+                is_system=is_system,
+            ),
         )
-        await session.commit()
 
     async def get_entity_type_attributes(
         self,
@@ -140,17 +154,14 @@ class LDAPEntityTypeAdapter(BaseAdapter[EntityTypeDAO]):  # type: ignore
     async def delete_bulk_entity_types(
         self,
         entity_type_names: LimitedListType,
-        session: AsyncSession,
     ) -> None:
         """Delete multiple Entity Types.
 
         \f
         :param LimitedListType entity_type_names: Names of the
         Entity Types to delete.
-        :param AsyncSession session: Database session.
         :return None.
         """
         await self._service.delete_all_by_names(
             entity_type_names=entity_type_names,
         )
-        await session.commit()
