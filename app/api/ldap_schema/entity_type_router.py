@@ -20,8 +20,6 @@ from api.ldap_schema.schema import (
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams
 
-_DEFAULT_ENTITY_TYPE_IS_SYSTEM = False
-
 
 @ldap_schema_router.post(
     "/entity_type",
@@ -42,18 +40,13 @@ async def create_one_entity_type(
     :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
     :return None.
     """
-    await adapter.create_one_entity_type(
+    await adapter.create(
         request_data=request_data,
-        is_system=_DEFAULT_ENTITY_TYPE_IS_SYSTEM,
         object_class_dao=object_class_dao,
     )
 
 
-@ldap_schema_router.get(
-    "/entity_type/{entity_type_name}",
-    response_model=EntityTypeSchema,
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.get("/entity_type/{entity_type_name}")
 async def get_one_entity_type(
     entity_type_name: str,
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],
@@ -67,7 +60,7 @@ async def get_one_entity_type(
     instance.
     :return EntityTypeSchema: Entity Type Schema.
     """
-    return await adapter.get_one_entity_type(entity_type_name)
+    return await adapter.get_by_name(entity_type_name)
 
 
 @ldap_schema_router.get("/entity_types")
@@ -84,7 +77,7 @@ async def get_list_entity_types_with_pagination(
     :param PaginationParams params: Pagination parameters.
     :return EntityTypePaginationSchema: Paginator Schema.
     """
-    return await adapter.get_list_entity_types_with_pagination(params=params)
+    return await adapter.get_paginated_entity(params=params)
 
 
 @ldap_schema_router.get("/entity_type/{entity_type_name}/attrs")
@@ -120,16 +113,13 @@ async def modify_one_entity_type(
     instance.
     :return None.
     """
-    await adapter.modify_one_entity_type(
+    await adapter.update(
         entity_type_name=entity_type_name,
         request_data=request_data,
     )
 
 
-@ldap_schema_router.post(
-    "/entity_type/delete",
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.post("/entity_type/delete")
 async def delete_bulk_entity_types(
     entity_type_names: LimitedListType,
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],
@@ -143,6 +133,4 @@ async def delete_bulk_entity_types(
     instance.
     :return None: None
     """
-    await adapter.delete_bulk_entity_types(
-        entity_type_names=entity_type_names,
-    )
+    await adapter.delete_bulk(entity_type_names=entity_type_names)

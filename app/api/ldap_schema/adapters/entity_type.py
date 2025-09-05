@@ -8,6 +8,7 @@ from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
+from api.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
 from api.ldap_schema.schema import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
@@ -33,7 +34,7 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
 
-    async def modify_one_entity_type(
+    async def update(
         self,
         entity_type_name: str,
         request_data: EntityTypeUpdateSchema,
@@ -71,7 +72,7 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
             ),
         )
 
-    async def get_list_entity_types_with_pagination(
+    async def get_paginated_entity(
         self,
         params: PaginationParams,
     ) -> EntityTypePaginationSchema:
@@ -94,7 +95,7 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
             items=items,
         )
 
-    async def get_one_entity_type(
+    async def get_by_name(
         self,
         entity_type_name: str,
     ) -> EntityTypeSchema:
@@ -112,11 +113,10 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
             from_attributes=True,
         )
 
-    async def create_one_entity_type(
+    async def create(
         self,
         request_data: EntityTypeSchema,
         object_class_dao: ObjectClassDAO,
-        is_system: bool,
     ) -> None:
         """Create a new Entity Type.
 
@@ -135,7 +135,7 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
                 id=None,
                 name=request_data.name,
                 object_class_names=request_data.object_class_names,
-                is_system=is_system,
+                is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
             ),
         )
 
@@ -151,7 +151,7 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeDAO]):
         """
         return await self._service.get_entity_type_attributes(entity_type_name)
 
-    async def delete_bulk_entity_types(
+    async def delete_bulk(
         self,
         entity_type_names: LimitedListType,
     ) -> None:
