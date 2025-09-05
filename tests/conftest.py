@@ -42,8 +42,10 @@ from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
+from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
+from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.main.adapters.ldap_entity_type import LDAPEntityTypeAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
@@ -74,6 +76,7 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
@@ -384,7 +387,7 @@ class TestProvider(Provider):
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
     ldap_entity_type_adapter = provide(
-        LDAPEntityTypeAdapter,
+        LDAPEntityTypeFastAPIAdapter,
         scope=Scope.REQUEST,
     )
 
@@ -518,6 +521,14 @@ class TestProvider(Provider):
     )
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
     session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
+    attribute_type_fastapi_adapter = provide(
+        AttributeTypeFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    object_class_fastapi_adapter = provide(
+        ObjectClassFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
 
 
 @dataclass
@@ -650,10 +661,13 @@ async def setup_session(
     )
     entity_type_dao = EntityTypeDAO(session, object_class_dao=object_class_dao)
     for entity_type_data in ENTITY_TYPE_DATAS:
-        await entity_type_dao.create_one(
-            name=entity_type_data["name"],  # type: ignore
-            object_class_names=entity_type_data["object_class_names"],
-            is_system=True,
+        await entity_type_dao.create(
+            dto=EntityTypeDTO(
+                id=None,
+                name=entity_type_data["name"],  # type: ignore
+                object_class_names=entity_type_data["object_class_names"],  # type: ignore
+                is_system=True,
+            ),
         )
 
     await session.flush()
