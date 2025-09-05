@@ -109,6 +109,7 @@ def upgrade() -> None:
         for entity_type_data in ENTITY_TYPE_DATAS:
             await entity_type_dao.create(
                 dto=EntityTypeDTO(
+                    id=None,
                     name=entity_type_data["name"],
                     object_class_names=entity_type_data["object_class_names"],
                     is_system=True,
