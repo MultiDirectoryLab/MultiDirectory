@@ -38,7 +38,7 @@ async def create_one_attribute_type(
     :raises HTTPException: 409 if attr already exists
     :return None.
     """
-    await adapter.create_one_attribute_type(request_data)
+    await adapter.create(request_data)
 
 
 @ldap_schema_router.get(
@@ -58,7 +58,7 @@ async def get_one_attribute_type(
         Attribute Type adapter.
     :return AttributeTypeSchema: Attribute Type Schema.
     """
-    return await adapter.get_one_attribute_type(attribute_type_name)
+    return await adapter.get(attribute_type_name)
 
 
 @ldap_schema_router.get(
@@ -78,7 +78,7 @@ async def get_list_attribute_types_with_pagination(
     :param PaginationParams params: Pagination parameters.
     :return AttributeTypePaginationSchema: Paginator Schema.
     """
-    return await adapter.get_list_attribute_types_with_pagination(
+    return await adapter.get_list_paginated(
         params=params,
     )
 
@@ -102,7 +102,7 @@ async def modify_one_attribute_type(
     :raises HTTPException: 403 if attr read-only
     :return None.
     """
-    await adapter.modify_one_attribute_type(
+    await adapter.update(
         attribute_type_name=attribute_type_name,
         request_data=request_data,
     )
@@ -124,6 +124,6 @@ async def delete_bulk_attribute_types(
         Attribute Type adapter.
     :return None: None
     """
-    await adapter.delete_bulk_attribute_types(
+    await adapter.delete_bulk(
         attribute_types_names=attribute_types_names,
     )
