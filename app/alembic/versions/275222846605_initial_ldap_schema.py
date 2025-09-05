@@ -347,7 +347,7 @@ def upgrade() -> None:
         ):
             await attribute_type_dao.create(
                 AttributeTypeDTO(
-                    id=0,
+                    id=None,
                     oid=oid,
                     name=name,
                     syntax="1.3.6.1.4.1.1466.115.121.1.15",

@@ -294,7 +294,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
     ) -> None:
         """Modify Object Class.
 
-        :param ObjectClass object_class: Object Class.
+        :param ObjectClassDTO object_class: Object Class.
         :param ObjectClassDTO new_statement: New statement ObjectClass
         :raise ObjectClassCantModifyError: If Object Class is system,\
             it cannot be changed.

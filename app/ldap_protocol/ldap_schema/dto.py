@@ -22,7 +22,7 @@ class AttributeTypeDTO:
     is_system: bool
 
     def get_id(self) -> int:
-        """Get the ID of the audit destination."""
+        """Get the ID of the attribute type."""
         if not self.id:
             raise ValueError("ID is not set for the audit destination.")
         return self.id
