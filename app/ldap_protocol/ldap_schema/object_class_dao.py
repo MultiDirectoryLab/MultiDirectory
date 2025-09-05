@@ -195,7 +195,8 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
             await self.__session.flush()
         except IntegrityError:
             raise ObjectClassAlreadyExistsError(
-                f"Object Class with oid '{oid}' and name '{name}' already exists.",
+                f"Object Class with oid '{oid}' and name"
+                + f" '{name}' already exists.",
             )
 
     async def _count_exists_object_class_by_names(
