@@ -14,17 +14,19 @@ from .dataclasses import (
 )
 from .enums import KeaDHCPCommands
 
+type Args = (
+    list[DHCPSubnet]
+    | DHCPSubnet
+    | DHCPLease
+    | DHCPReservation
+    | list[DHCPSharedNetwork]
+    | None
+)
+
 
 @dataclass
 class KeaDHCPBaseAPIRequest:
     """Base request for Kea DHCP API."""
 
     command: KeaDHCPCommands
-    arguments: (
-        list[DHCPSubnet]
-        | DHCPSubnet
-        | DHCPLease
-        | DHCPReservation
-        | list[DHCPSharedNetwork]
-        | None
-    ) = None
+    arguments: Args = None
