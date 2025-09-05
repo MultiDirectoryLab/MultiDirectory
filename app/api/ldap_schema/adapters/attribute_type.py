@@ -38,7 +38,7 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
         AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
     }
 
-    async def create_one_attribute_type(
+    async def create(
         self,
         request_data: AttributeTypeRequestSchema,
     ) -> None:
@@ -60,7 +60,7 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
             ),
         )
 
-    async def get_one_attribute_type(
+    async def get(
         self,
         attribute_type_name: str,
     ) -> AttributeTypeSchema:
@@ -73,7 +73,7 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
             from_attributes=True,
         )
 
-    async def get_list_attribute_types_with_pagination(
+    async def get_list_paginated(
         self,
         params: PaginationParams,
     ) -> AttributeTypePaginationSchema:
@@ -91,7 +91,7 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
             items=items,
         )
 
-    async def modify_one_attribute_type(
+    async def update(
         self,
         attribute_type_name: str,
         request_data: AttributeTypeUpdateSchema,
@@ -113,7 +113,7 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
             ),
         )
 
-    async def delete_bulk_attribute_types(
+    async def delete_bulk(
         self,
         attribute_types_names: LimitedListType,
     ) -> None:
