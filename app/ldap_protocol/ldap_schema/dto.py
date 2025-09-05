@@ -24,7 +24,7 @@ class AttributeTypeDTO:
     def get_id(self) -> int:
         """Get the ID of the attribute type."""
         if not self.id:
-            raise ValueError("ID is not set for the audit destination.")
+            raise ValueError("ID is not set for the attribute type.")
         return self.id
 
 
