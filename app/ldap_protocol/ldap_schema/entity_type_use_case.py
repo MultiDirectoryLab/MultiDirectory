@@ -28,32 +28,22 @@ class EntityTypeUseCase(AbstractService):
         self._entity_type_dao = entity_type_dao
         self._object_class_dao = object_class_dao
 
-    async def create(self, entity_type_dto: EntityTypeDTO) -> None:
+    async def create(self, dto: EntityTypeDTO) -> None:
         """Create Entity Type."""
         await self._object_class_dao.is_all_object_classes_exists(
-            entity_type_dto.object_class_names,
+            dto.object_class_names,
         )
-        await self._entity_type_dao.create(entity_type_dto)
+        await self._entity_type_dao.create(dto)
 
-    async def update(
-        self,
-        entity_type_dto: EntityTypeDTO,
-        request_name: str,
-    ) -> None:
+    async def update(self, dto: EntityTypeDTO, name: str) -> None:
         """Update Entity Type."""
-        if entity_type_dto.is_system:
+        if dto.is_system:
             raise EntityTypeCantModifyError(
-                f"Entity Type '{entity_type_dto.name}' is system and "
-                f"cannot be modified.",
+                f"Entity Type '{dto.name}' is system and cannot be modified.",
             )
-        if request_name != entity_type_dto.name:
-            await self._entity_type_dao.validate_name(
-                name=request_name,
-            )
-        await self._entity_type_dao.update(
-            entity_type_dto.get_id(),
-            entity_type_dto,
-        )
+        if name != dto.name:
+            await self._entity_type_dao.validate_name(name=name)
+        await self._entity_type_dao.update(dto.get_id(), dto)
 
     async def get_by_name(self, name: str) -> EntityTypeDTO:
         """Get Entity Type by name."""

@@ -39,7 +39,7 @@ async def create_one_object_class(
     :raises HTTPException: 409 if object class already exists
     :return None.
     """
-    await adapter.create_one_object_class(request_data=request_data)
+    await adapter.create(request_data=request_data)
 
 
 @ldap_schema_router.get(
@@ -59,7 +59,7 @@ async def get_one_object_class(
         Object Class FastAPI Adapter.
     :return ObjectClassSchema: One Object Class Schemas.
     """
-    return await adapter.get_one_object_class(object_class_name)
+    return await adapter.get(object_class_name)
 
 
 @ldap_schema_router.get(
@@ -79,7 +79,7 @@ async def get_list_object_classes_with_pagination(
     :param PaginationParams params: Pagination parameters.
     :return ObjectClassPaginationSchema: Paginator.
     """
-    return await adapter.get_list_object_classes_with_pagination(params=params)
+    return await adapter.get_list_paginated(params=params)
 
 
 @ldap_schema_router.patch(
@@ -100,7 +100,7 @@ async def modify_one_object_class(
         Object Class FastAPI Adapter.
     :return None.
     """
-    await adapter.modify_one_object_class(object_class_name, request_data)
+    await adapter.update(object_class_name, request_data)
 
 
 @ldap_schema_router.post(
@@ -119,4 +119,4 @@ async def delete_bulk_object_classes(
         Object Class FastAPI Adapter.
     :return None: None
     """
-    await adapter.delete_bulk_object_classes(object_classes_names)
+    await adapter.delete_bulk(object_classes_names)

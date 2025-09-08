@@ -4,14 +4,14 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Any
+
 from fastapi import status
 
-from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
-from api.ldap_schema.constants import (
-    DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-    DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-    DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
+from api.ldap_schema.adapters.base_ldap_schema_adapter import (
+    BaseLDAPSchemaFastAPIAdapter,
+    create_adaptix_converter,
 )
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
@@ -20,6 +20,11 @@ from api.ldap_schema.schema import (
     AttributeTypeUpdateSchema,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.constants import (
+    DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
+    DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
+    DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
+)
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
@@ -29,7 +34,16 @@ from ldap_protocol.ldap_schema.exceptions import (
 from ldap_protocol.utils.pagination import PaginationParams
 
 
-class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
+class AttributeTypeFastAPIAdapter(
+    BaseLDAPSchemaFastAPIAdapter[
+        AttributeTypeDAO,
+        AttributeTypeSchema,
+        AttributeTypePaginationSchema,
+        AttributeTypeRequestSchema,
+        AttributeTypeUpdateSchema,
+        AttributeTypeDTO,
+    ],
+):
     """Attribute Type management routers."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -37,6 +51,10 @@ class AttributeTypeFastAPIAdapter(BaseAdapter[AttributeTypeDAO]):
         AttributeTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
     }
+
+    def _get_converter(self) -> dict[str, Any]:
+        """Get converter functions for AttributeType schema <-> DTO."""
+        return create_adaptix_converter(AttributeTypeSchema, AttributeTypeDTO)
 
     async def create(
         self,

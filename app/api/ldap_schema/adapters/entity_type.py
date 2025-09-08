@@ -4,16 +4,21 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Any
+
 from fastapi import status
 
-from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
-from api.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
+from api.ldap_schema.adapters.base_ldap_schema_adapter import (
+    BaseLDAPSchemaFastAPIAdapter,
+    create_adaptix_converter,
+)
 from api.ldap_schema.schema import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
+from ldap_protocol.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.exceptions import (
@@ -24,7 +29,16 @@ from ldap_protocol.ldap_schema.exceptions import (
 from ldap_protocol.utils.pagination import PaginationParams
 
 
-class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeUseCase]):
+class LDAPEntityTypeFastAPIAdapter(
+    BaseLDAPSchemaFastAPIAdapter[
+        EntityTypeUseCase,
+        EntityTypeSchema,
+        EntityTypePaginationSchema,
+        EntityTypeSchema,  # TO_DO TRequestSchema
+        EntityTypeUpdateSchema,
+        EntityTypeDTO,
+    ],
+):
     """Adapter for LDAProuter."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -32,6 +46,10 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeUseCase]):
         EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
+
+    def _get_converter(self) -> dict[str, Any]:
+        """Get converter functions for EntityType schema <-> DTO."""
+        return create_adaptix_converter(EntityTypeSchema, EntityTypeDTO)
 
     async def update(
         self,
@@ -57,12 +75,9 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeUseCase]):
             is_system=entity_type.is_system,
         )
 
-        await self._service.update(
-            entity_type_dto=updated_entity_type,
-            request_name=request_data.name,
-        )
+        await self._service.update(updated_entity_type, request_data.name)
 
-    async def get_paginated_entity(
+    async def get_list_paginated(
         self,
         params: PaginationParams,
     ) -> EntityTypePaginationSchema:
@@ -85,7 +100,7 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeUseCase]):
             items=items,
         )
 
-    async def get_by_name(
+    async def get(
         self,
         name: str,
     ) -> EntityTypeSchema:
