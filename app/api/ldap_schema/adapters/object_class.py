@@ -49,14 +49,9 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
             attribute_type_names_may=request_data.attribute_type_names_may,
         )
 
-    async def get_one_object_class(
-        self,
-        object_class_name: str,
-    ) -> ObjectClassSchema:
+    async def get_one_object_class(self, name: str) -> ObjectClassSchema:
         """Get one Object Class."""
-        object_class = await self._service.get_one_by_name(
-            object_class_name,
-        )
+        object_class = await self._service.get_one_by_name(name)
         return ObjectClassSchema(
             oid=object_class.oid,
             name=object_class.name,
@@ -103,13 +98,11 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
 
     async def modify_one_object_class(
         self,
-        object_class_name: str,
+        name: str,
         request_data: ObjectClassUpdateSchema,
     ) -> None:
         """Modify an Object Class."""
-        object_class = await self._service.get_one_by_name(
-            object_class_name,
-        )
+        object_class = await self._service.get_one_by_name(name)
         await self._service.modify_one(
             object_class,
             ObjectClassUpdateDTO(
@@ -118,9 +111,6 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
             ),
         )
 
-    async def delete_bulk_object_classes(
-        self,
-        object_classes_names: LimitedListType,
-    ) -> None:
+    async def delete_bulk_object_classes(self, names: LimitedListType) -> None:
         """Delete bulk Object Classes."""
-        await self._service.delete_all_by_names(object_classes_names)
+        await self._service.delete_all_by_names(names)
