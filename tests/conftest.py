@@ -78,6 +78,7 @@ from ldap_protocol.ldap_requests.contexts import (
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -529,6 +530,8 @@ class TestProvider(Provider):
         ObjectClassFastAPIAdapter,
         scope=Scope.REQUEST,
     )
+
+    entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
 
 
 @dataclass

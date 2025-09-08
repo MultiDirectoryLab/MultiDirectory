@@ -15,7 +15,7 @@ from api.ldap_schema.schema import (
     EntityTypeUpdateSchema,
 )
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_use_case import EntityUseCase
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeCantModifyError,
     EntityTypeNotFoundError,
@@ -24,7 +24,7 @@ from ldap_protocol.ldap_schema.exceptions import (
 from ldap_protocol.utils.pagination import PaginationParams
 
 
-class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityUseCase]):
+class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityTypeUseCase]):
     """Adapter for LDAProuter."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -35,25 +35,30 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityUseCase]):
 
     async def update(
         self,
-        entity_type_name: str,
+        name: str,
         request_data: EntityTypeUpdateSchema,
     ) -> None:
         """Modify an Entity Type.
 
         \f
-        :param str entity_type_name: Name of the Entity Type for modifying.
+        :param str name: Name of the Entity Type for modifying.
         :param EntityTypeUpdateDTO request_data: Changed data.
         :return None.
         """
         try:
-            entity_type = await self._service.get_by_name(
-                entity_type_name=entity_type_name,
-            )
+            entity_type = await self._service.get_by_name(name=name)
         except EntityTypeNotFoundError:
             raise EntityTypeCantModifyError
 
+        updated_entity_type = EntityTypeDTO(
+            id=entity_type.id,
+            name=request_data.name,
+            object_class_names=request_data.object_class_names,
+            is_system=entity_type.is_system,
+        )
+
         await self._service.update(
-            entity_type_dto=entity_type,
+            entity_type_dto=updated_entity_type,
             request_name=request_data.name,
         )
 
@@ -82,26 +87,21 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityUseCase]):
 
     async def get_by_name(
         self,
-        entity_type_name: str,
+        name: str,
     ) -> EntityTypeSchema:
         """Retrieve a one Entity Type.
 
         \f
-        :param str entity_type_name: name of the Entity Type.
+        :param str name: name of the Entity Type.
         :return EntityTypeSchema: Entity Type Schema.
         """
-        entity_type = await self._service.get_by_name(
-            entity_type_name=entity_type_name,
-        )
+        entity_type = await self._service.get_by_name(name=name)
         return EntityTypeSchema.model_validate(
             entity_type,
             from_attributes=True,
         )
 
-    async def create(
-        self,
-        request_data: EntityTypeSchema,
-    ) -> None:
+    async def create(self, request_data: EntityTypeSchema) -> None:
         """Create a new Entity Type.
 
         \f
@@ -119,27 +119,22 @@ class LDAPEntityTypeFastAPIAdapter(BaseAdapter[EntityUseCase]):
 
     async def get_entity_type_attributes(
         self,
-        entity_type_name: str,
+        name: str,
     ) -> list[str]:
         """Get all attribute names for an Entity Type.
 
         \f
-        :param str entity_type_name: Entity Type name.
+        :param str name: Entity Type name.
         :return list[str]: List of attribute names.
         """
-        return await self._service.get_entity_type_attributes(entity_type_name)
+        return await self._service.get_entity_type_attributes(name)
 
-    async def delete_bulk(
-        self,
-        entity_type_names: LimitedListType,
-    ) -> None:
+    async def delete_bulk(self, names: LimitedListType) -> None:
         """Delete multiple Entity Types.
 
         \f
-        :param LimitedListType entity_type_names: Names of the
+        :param LimitedListType names: Names of the
         Entity Types to delete.
         :return None.
         """
-        await self._service.delete_all_by_names(
-            entity_type_names=entity_type_names,
-        )
+        await self._service.delete_all_by_names(names=names)
