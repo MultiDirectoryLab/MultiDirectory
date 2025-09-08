@@ -51,7 +51,7 @@ class ShadowAdapter(BaseAdapter):
 
     async def change_password(self, principal: str, new_password: str) -> None:
         """Change the password for a user."""
-        return await self._identity_manager.change_password(
+        return await self._identity_manager.sync_password_from_service(
             principal,
             new_password,
         )

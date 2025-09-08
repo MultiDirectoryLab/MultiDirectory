@@ -202,11 +202,13 @@ class IdentityManager(AbstractService):
         self,
         identity: str,
         new_password: str,
+        include_krb: bool,
     ) -> None:
         """Change the user's password and update Kerberos.
 
         :param identity: str
         :param new_password: str
+        :param include_krb: bool
         :raises UserNotFoundError: if user not found
         :raises PasswordPolicyError: if password does not meet policy
         :raises KRBAPIError: if Kerberos password update failed
@@ -227,15 +229,16 @@ class IdentityManager(AbstractService):
         if errors:
             raise PasswordPolicyError(errors)
 
-        try:
-            await self._kadmin.create_or_update_principal_pw(
-                user.get_upn_prefix(),
-                new_password,
-            )
-        except KRBAPIError:
-            raise KRBAPIError(
-                "Failed kerberos password update",
-            )
+        if include_krb:
+            try:
+                await self._kadmin.create_or_update_principal_pw(
+                    user.get_upn_prefix(),
+                    new_password,
+                )
+            except KRBAPIError:
+                raise KRBAPIError(
+                    "Failed kerberos password update",
+                )
 
         user.password = self._password_validator.get_password_hash(
             new_password,
@@ -243,9 +246,17 @@ class IdentityManager(AbstractService):
         await self._password_use_cases.post_save_password_actions(user)
         await self._session.commit()
 
-    async def change_password(self, principal: str, new_password: str) -> None:
-        """Synchronize the password for the shadow account."""
-        await self._update_password(principal, new_password)
+    async def sync_password_from_service(
+        self,
+        principal: str,
+        new_password: str,
+    ) -> None:
+        """Synchronize the password from the shadow api."""
+        await self._update_password(
+            principal,
+            new_password,
+            include_krb=False,
+        )
 
     async def reset_password(
         self,
@@ -253,7 +264,11 @@ class IdentityManager(AbstractService):
         new_password: str,
     ) -> None:
         """Change the user's password and update Kerberos."""
-        await self._update_password(identity, new_password)
+        await self._update_password(
+            identity,
+            new_password,
+            include_krb=True,
+        )
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
