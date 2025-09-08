@@ -56,7 +56,7 @@ async def get_one_entity_type(
     instance.
     :return EntityTypeSchema: Entity Type Schema.
     """
-    return await adapter.get_by_name(entity_type_name)
+    return await adapter.get(entity_type_name)
 
 
 @ldap_schema_router.get("/entity_types")
@@ -73,7 +73,7 @@ async def get_list_entity_types_with_pagination(
     :param PaginationParams params: Pagination parameters.
     :return EntityTypePaginationSchema: Paginator Schema.
     """
-    return await adapter.get_paginated_entity(params=params)
+    return await adapter.get_list_paginated(params=params)
 
 
 @ldap_schema_router.get("/entity_type/{entity_type_name}/attrs")

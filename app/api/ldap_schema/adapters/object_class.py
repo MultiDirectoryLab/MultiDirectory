@@ -4,18 +4,22 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Any
+
 from fastapi import status
 
-from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
-from api.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
+from api.ldap_schema.adapters.base_ldap_schema_adapter import (
+    BaseLDAPSchemaFastAPIAdapter,
+)
 from api.ldap_schema.schema import (
     ObjectClassPaginationSchema,
     ObjectClassRequestSchema,
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from ldap_protocol.ldap_schema.dto import ObjectClassUpdateDTO
+from ldap_protocol.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
+from ldap_protocol.ldap_schema.dto import ObjectClassDTO, ObjectClassUpdateDTO
 from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
     ObjectClassCantModifyError,
@@ -25,7 +29,16 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams
 
 
-class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
+class ObjectClassFastAPIAdapter(
+    BaseLDAPSchemaFastAPIAdapter[
+        ObjectClassDAO,
+        ObjectClassSchema,
+        ObjectClassPaginationSchema,
+        ObjectClassRequestSchema,
+        ObjectClassUpdateSchema,
+        ObjectClassDTO,
+    ],
+):
     """Object Class FastAPI Adapter."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -34,7 +47,15 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
         ObjectClassCantModifyError: status.HTTP_403_FORBIDDEN,
     }
 
-    async def create_one_object_class(
+    def _get_converter(self) -> dict[str, Any]:
+        """Get converter functions for ObjectClass schema <-> DTO."""
+        # ObjectClassSchema and ObjectClassDTO are incompatible for
+        # automatic conversion due to different field structures
+        # (names vs DTOs, id field, etc.)
+        # Return empty dict to indicate no automatic conversion
+        return {}
+
+    async def create(
         self,
         request_data: ObjectClassRequestSchema,
     ) -> None:
@@ -49,7 +70,7 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
             attribute_type_names_may=request_data.attribute_type_names_may,
         )
 
-    async def get_one_object_class(self, name: str) -> ObjectClassSchema:
+    async def get(self, name: str) -> ObjectClassSchema:
         """Get one Object Class."""
         object_class = await self._service.get_one_by_name(name)
         return ObjectClassSchema(
@@ -66,7 +87,7 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
             ],
         )
 
-    async def get_list_object_classes_with_pagination(
+    async def get_list_paginated(
         self,
         params: PaginationParams,
     ) -> ObjectClassPaginationSchema:
@@ -96,7 +117,7 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
             items=items,
         )
 
-    async def modify_one_object_class(
+    async def update(
         self,
         name: str,
         request_data: ObjectClassUpdateSchema,
@@ -111,6 +132,6 @@ class ObjectClassFastAPIAdapter(BaseAdapter[ObjectClassDAO]):
             ),
         )
 
-    async def delete_bulk_object_classes(self, names: LimitedListType) -> None:
+    async def delete_bulk(self, names: LimitedListType) -> None:
         """Delete bulk Object Classes."""
         await self._service.delete_all_by_names(names)
