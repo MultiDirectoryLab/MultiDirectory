@@ -110,7 +110,7 @@ async def modify_one_entity_type(
     :return None.
     """
     await adapter.update(
-        entity_type_name=entity_type_name,
+        name=entity_type_name,
         request_data=request_data,
     )
 
@@ -129,4 +129,4 @@ async def delete_bulk_entity_types(
     instance.
     :return None: None
     """
-    await adapter.delete_bulk(entity_type_names=entity_type_names)
+    await adapter.delete_bulk(entity_type_names)

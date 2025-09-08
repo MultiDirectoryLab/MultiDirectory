@@ -12,7 +12,7 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 
-class EntityUseCase(AbstractService):
+class EntityTypeUseCase(AbstractService):
     """Entity Use Case."""
 
     def __init__(
@@ -55,9 +55,9 @@ class EntityUseCase(AbstractService):
             entity_type_dto,
         )
 
-    async def get_by_name(self, entity_type_name: str) -> EntityTypeDTO:
+    async def get_by_name(self, name: str) -> EntityTypeDTO:
         """Get Entity Type by name."""
-        return await self._entity_type_dao.get_one_by_name(entity_type_name)
+        return await self._entity_type_dao.get_one_by_name(name)
 
     async def get_paginator(
         self,
@@ -66,18 +66,10 @@ class EntityUseCase(AbstractService):
         """Get paginated Entity Types."""
         return await self._entity_type_dao.get_paginator(params)
 
-    async def get_entity_type_attributes(
-        self,
-        entity_type_name: str,
-    ) -> list[str]:
+    async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get entity type attributes."""
-        return await self._entity_type_dao.get_entity_type_attributes(
-            entity_type_name,
-        )
+        return await self._entity_type_dao.get_entity_type_attributes(name)
 
-    async def delete_all_by_names(
-        self,
-        entity_type_names: list[str],
-    ) -> None:
+    async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete all Entity Types by names."""
-        await self._entity_type_dao.delete_all_by_names(entity_type_names)
+        await self._entity_type_dao.delete_all_by_names(names)
