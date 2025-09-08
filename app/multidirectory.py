@@ -14,7 +14,7 @@ from typing import AsyncIterator, Callable, Coroutine
 import uvicorn
 import uvloop
 from alembic.config import Config, command
-from dishka import Provider, Scope, make_async_container
+from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
 from fastapi import FastAPI, Request, Response
@@ -46,13 +46,12 @@ from api.exception_handlers import (
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
-    APIProvider,
     EventSenderProvider,
+    HTTPProvider,
     LDAPServerProvider,
     MainProvider,
     MFACredsProvider,
     MFAProvider,
-    ShadowAPIProvider,
 )
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dns import (
@@ -183,8 +182,7 @@ def _add_app_sqlalchemy_debugger(app: FastAPI, settings: Settings) -> None:
         )
 
 
-def create_web_app(
-    providers: list[Provider],
+def create_prod_app(
     factory: Callable[[Settings], FastAPI] = _create_basic_app,
     settings: Settings | None = None,
 ) -> FastAPI:
@@ -192,7 +190,10 @@ def create_web_app(
     settings = settings or Settings.from_os()
     app = factory(settings)
     container = make_async_container(
-        *providers,
+        MainProvider(),
+        MFAProvider(),
+        HTTPProvider(),
+        MFACredsProvider(),
         context={Settings: settings},
     )
 
@@ -272,29 +273,9 @@ async def event_sender_factory(settings: Settings) -> None:
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
 scheduler = partial(run_entrypoint, factory=scheduler_factory)
+create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 event_handler = partial(run_entrypoint, factory=event_handler_factory)
 event_sender = partial(run_entrypoint, factory=event_sender_factory)
-
-create_prod_app = partial(
-    create_web_app,
-    providers=[
-        MainProvider(),
-        APIProvider(),
-        MFACredsProvider(),
-        MFAProvider(),
-    ],
-    factory=_create_basic_app,
-)
-create_shadow_app = partial(
-    create_web_app,
-    providers=[
-        MainProvider(),
-        ShadowAPIProvider(),
-        MFACredsProvider(),
-        MFAProvider(),
-    ],
-    factory=_create_shadow_app,
-)
 
 
 if __name__ == "__main__":

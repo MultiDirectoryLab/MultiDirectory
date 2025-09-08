@@ -35,11 +35,7 @@ from ldap_protocol.dns import (
     resolve_dns_server_ip,
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.kerberos import (
-    AbstractKadmin,
-    StubKadminMDADPIClient,
-    get_kerberos_class,
-)
+from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
@@ -326,7 +322,7 @@ class MainProvider(Provider):
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
 
 
-class _LDAPContextProvider(Provider):
+class LDAPContextProvider(Provider):
     """Context provider."""
 
     add_request_context = provide(
@@ -363,11 +359,10 @@ class _LDAPContextProvider(Provider):
     )
 
 
-class _HTTPBaseProvider(Provider):
-    """Base provider for http app."""
+class HTTPProvider(LDAPContextProvider):
+    """HTTP LDAP session."""
 
     scope = Scope.REQUEST
-    settings = from_context(provides=Settings, scope=Scope.APP)
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
     audit_monitor = provide(
@@ -388,21 +383,20 @@ class _HTTPBaseProvider(Provider):
         yield session
         await session.disconnect()
 
-    identity_manager = provide(
-        IdentityManager,
-        scope=Scope.REQUEST,
-    )
-    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
-
-
-class APIProvider(_LDAPContextProvider, _HTTPBaseProvider):
-    """HTTP LDAP session."""
-
     identity_fastapi_adapter = provide(
         IdentityFastAPIAdapter,
         scope=Scope.REQUEST,
     )
+    identity_manager = provide(
+        IdentityManager,
+        scope=Scope.REQUEST,
+    )
+    shadow_adapter = provide(
+        ShadowAdapter,
+        scope=Scope.REQUEST,
+    )
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
+    mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
     ldap_entity_type_adapter = provide(
         LDAPEntityTypeAdapter,
         scope=Scope.REQUEST,
@@ -427,21 +421,7 @@ class APIProvider(_LDAPContextProvider, _HTTPBaseProvider):
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
 
-class ShadowAPIProvider(_HTTPBaseProvider):
-    """Provider for shadow api."""
-
-    @provide(override=True)
-    def get_krb_class(self) -> type[AbstractKadmin]:
-        """Get kerberos type."""
-        return StubKadminMDADPIClient
-
-    shadow_adapter = provide(
-        ShadowAdapter,
-        scope=Scope.REQUEST,
-    )
-
-
-class LDAPServerProvider(_LDAPContextProvider):
+class LDAPServerProvider(LDAPContextProvider):
     """Provider with session scope."""
 
     scope = Scope.SESSION
