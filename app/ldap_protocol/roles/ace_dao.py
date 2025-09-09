@@ -9,7 +9,7 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
 from enums import RoleScope
@@ -68,6 +68,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO]):
                 joinedload(AccessControlEntry.attribute_type),
                 joinedload(AccessControlEntry.entity_type),
                 joinedload(AccessControlEntry.role),
+                selectinload(AccessControlEntry.directories),
             )
             .where(AccessControlEntry.id == _id)
         )
