@@ -4,14 +4,19 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any
+from typing import Callable
 
+from adaptix import P
+from adaptix.conversion import (
+    allow_unlinked_optional,
+    get_converter,
+    link_function,
+)
 from fastapi import status
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
     BaseLDAPSchemaFastAPIAdapter,
-    create_adaptix_converter,
 )
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
@@ -34,6 +39,52 @@ from ldap_protocol.ldap_schema.exceptions import (
 from ldap_protocol.utils.pagination import PaginationParams
 
 
+def make_attribute_type_request_dto(
+    request: AttributeTypeRequestSchema,
+) -> AttributeTypeDTO:
+    """Convert AttributeTypeRequestSchema to AttributeTypeDTO."""
+    return AttributeTypeDTO(
+        id=None,
+        oid=request.oid,
+        name=request.name,
+        syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
+        single_value=request.single_value,
+        no_user_modification=DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
+        is_system=DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
+    )
+
+
+def make_attribute_type_schema(dto: AttributeTypeDTO) -> AttributeTypeSchema:
+    """Convert AttributeTypeDTO to AttributeTypeSchema."""
+    return AttributeTypeSchema(
+        id=dto.id or 0,  # Handle None id
+        oid=dto.oid,
+        name=dto.name,
+        syntax=dto.syntax,
+        single_value=dto.single_value,
+        no_user_modification=dto.no_user_modification,
+        is_system=dto.is_system,
+    )
+
+
+_convert_request_to_dto = get_converter(
+    AttributeTypeRequestSchema,
+    AttributeTypeDTO,
+    recipe=[
+        link_function(make_attribute_type_request_dto, P[AttributeTypeDTO]),
+        allow_unlinked_optional(P[AttributeTypeDTO].id),
+    ],
+)
+
+_convert_dto_to_schema = get_converter(
+    AttributeTypeDTO,
+    AttributeTypeSchema,
+    recipe=[
+        link_function(make_attribute_type_schema, P[AttributeTypeSchema]),
+    ],
+)
+
+
 class AttributeTypeFastAPIAdapter(
     BaseLDAPSchemaFastAPIAdapter[
         AttributeTypeDAO,
@@ -52,9 +103,12 @@ class AttributeTypeFastAPIAdapter(
         AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
     }
 
-    def _get_converter(self) -> dict[str, Any]:
+    def _get_converter(self) -> tuple[Callable, Callable]:
         """Get converter functions for AttributeType schema <-> DTO."""
-        return create_adaptix_converter(AttributeTypeSchema, AttributeTypeDTO)
+        return (
+            _convert_dto_to_schema,  # DTO -> Schema (index 0)
+            _convert_request_to_dto,  # Request -> DTO (index 1)
+        )
 
     async def create(
         self,

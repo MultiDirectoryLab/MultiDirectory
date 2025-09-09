@@ -13,7 +13,6 @@ from ldap_protocol.utils.pagination import BasePaginationSchema
 class AttributeTypeSchema(BaseModel):
     """Attribute Type Schema."""
 
-    id: int
     oid: str
     name: str
     syntax: str
