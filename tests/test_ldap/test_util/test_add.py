@@ -20,7 +20,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.dataclasses import AccessControlEntryBulkDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory, Group, User
@@ -379,22 +379,22 @@ async def test_ldap_add_access_control(
 
     role_id = role_dao.get_last_id()
 
-    add_ace = AccessControlEntryDTO(
+    add_ace = AccessControlEntryBulkDTO(
         role_id=role_id,
         ace_type=AceType.CREATE_CHILD,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,
-        attribute_type_id=None,
+        attribute_type_ids=None,
         entity_type_id=None,
         is_allow=True,
     )
 
-    read_ace = AccessControlEntryDTO(
+    read_ace = AccessControlEntryBulkDTO(
         role_id=role_id,
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,
-        attribute_type_id=None,
+        attribute_type_ids=None,
         entity_type_id=None,
         is_allow=True,
     )

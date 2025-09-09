@@ -16,7 +16,7 @@ from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.dataclasses import AccessControlEntryBulkDTO, RoleDTO
 from ldap_protocol.utils.queries import get_search_path
 from models import Directory
 from tests.conftest import TestCreds
@@ -53,40 +53,40 @@ async def test_multiple_access(
     assert user_account_control_attr
 
     aces = [
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=user_account_control_attr.id,
+            attribute_type_ids=[user_account_control_attr.id],
             is_allow=True,
         ),
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=user_principal_name.id,
+            attribute_type_ids=[user_principal_name.id],
             is_allow=True,
         ),
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.WRITE,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=posix_email_attr.id,
+            attribute_type_ids=[posix_email_attr.id],
             is_allow=True,
         ),
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.DELETE,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="ou=russia,ou=users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=posix_email_attr.id,
+            attribute_type_ids=[posix_email_attr.id],
             is_allow=True,
         ),
     ]

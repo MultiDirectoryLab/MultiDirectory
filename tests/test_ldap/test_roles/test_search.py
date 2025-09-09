@@ -11,7 +11,11 @@ from enums import AceType, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from ldap_protocol.roles.dataclasses import (
+    AccessControlEntryBulkDTO,
+    AccessControlEntryDTO,
+    RoleDTO,
+)
 from tests.conftest import TestCreds
 
 from .conftest import perform_ldap_search_and_validate
@@ -268,21 +272,21 @@ async def test_role_search_7(
     assert description_attr
 
     aces = [
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
-            attribute_type_id=None,
+            attribute_type_ids=None,
             entity_type_id=user_entity_type.id,
             is_allow=True,
         ),
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
-            attribute_type_id=description_attr.id,
+            attribute_type_ids=[description_attr.id],
             entity_type_id=user_entity_type.id,
             is_allow=False,
         ),
@@ -328,21 +332,21 @@ async def test_role_search_8(
     assert description_attr
 
     aces = [
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="dc=md,dc=test",
-            attribute_type_id=None,
+            attribute_type_ids=None,
             entity_type_id=user_entity_type.id,
             is_allow=False,
         ),
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
-            attribute_type_id=description_attr.id,
+            attribute_type_ids=[description_attr.id],
             entity_type_id=user_entity_type.id,
             is_allow=True,
         ),
@@ -391,21 +395,21 @@ async def test_role_search_9(
     assert posix_email_attr
 
     aces = [
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
-            attribute_type_id=posix_email_attr.id,
+            attribute_type_ids=[posix_email_attr.id],
             entity_type_id=user_entity_type.id,
             is_allow=True,
         ),
-        AccessControlEntryDTO(
+        AccessControlEntryBulkDTO(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
             base_dn="cn=user0,ou=users,dc=md,dc=test",
-            attribute_type_id=description_attr.id,
+            attribute_type_ids=[description_attr.id],
             entity_type_id=user_entity_type.id,
             is_allow=False,
         ),
