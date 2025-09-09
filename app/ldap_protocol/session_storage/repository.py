@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractService
 from config import Settings
+from entities import User
 from ldap_protocol.utils.queries import get_user, set_user_logon_attrs
-from models import User
 
 from .redis import SessionStorage
 

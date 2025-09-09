@@ -8,19 +8,20 @@ Create Date: 2025-07-17 09:16:20.056149
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from entities import Group
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from models import Directory, Group
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "05ddc0bd562a"
 down_revision = "a7971f00ba4d"
-branch_labels = None
-depends_on = None
+branch_labels: None = None
+depends_on: None = None
 
 
 def upgrade() -> None:
@@ -151,7 +152,7 @@ def upgrade() -> None:
     op.drop_table("AccessPolicyMemberships")
     op.drop_table("AccessPolicies")
 
-    async def _create_system_roles(connection):
+    async def _create_system_roles(connection: AsyncConnection) -> None:
         session = AsyncSession(connection)
         await session.begin()
 
@@ -167,8 +168,8 @@ def upgrade() -> None:
 
         krb_group_query = (
             select(Group)
-            .join(Group.directory)
-            .where(Directory.name == "krbadmin")
+            .join(qa(Group.directory))
+            .where(qa(Group.directory).name == "krbadmin")
             .exists()
         )
 
