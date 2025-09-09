@@ -56,7 +56,7 @@ def make_attribute_type_request_dto(
 def make_attribute_type_schema(dto: AttributeTypeDTO) -> AttributeTypeSchema:
     """Convert AttributeTypeDTO to AttributeTypeSchema."""
     return AttributeTypeSchema(
-        id=dto.id or 0,  # Handle None id
+        id=dto.get_id(),
         oid=dto.oid,
         name=dto.name,
         syntax=dto.syntax,
@@ -70,8 +70,19 @@ _convert_request_to_dto = get_converter(
     AttributeTypeRequestSchema,
     AttributeTypeDTO,
     recipe=[
-        link_function(make_attribute_type_request_dto, P[AttributeTypeDTO]),
         allow_unlinked_optional(P[AttributeTypeDTO].id),
+        link_function(
+            lambda _: DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
+            P[AttributeTypeDTO].syntax,
+        ),
+        link_function(
+            lambda _: DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
+            P[AttributeTypeDTO].no_user_modification,
+        ),
+        link_function(
+            lambda _: DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
+            P[AttributeTypeDTO].is_system,
+        ),
     ],
 )
 
@@ -119,15 +130,9 @@ class AttributeTypeFastAPIAdapter(
             Data for creating Attribute Type.
         :return None.
         """
+        dto = _convert_request_to_dto(request_data)
         await self._service.create(
-            AttributeTypeDTO(
-                oid=request_data.oid,
-                name=request_data.name,
-                syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
-                single_value=request_data.single_value,
-                no_user_modification=DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-                is_system=DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-            ),
+            dto,
         )
 
     async def get(
