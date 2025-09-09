@@ -33,6 +33,27 @@ class AccessControlEntryDTO:
 
 
 @dataclass
+class AccessControlEntryBulkDTO:
+    """Access control entry data transfer object with multiple attributes."""
+
+    role_id: int
+    ace_type: AceType
+    scope: RoleScope
+    base_dn: GRANT_DN_STRING
+    is_allow: bool
+    attribute_type_ids: list[int] | None
+    entity_type_id: int | None
+
+    id: int | None = None
+    role_name: str | None = None
+
+    def get_id(self) -> int:
+        if self.id is None:
+            raise ValueError("Non read model value")
+        return self.id
+
+
+@dataclass
 class RoleDTO:
     """Role data transfer object."""
 
