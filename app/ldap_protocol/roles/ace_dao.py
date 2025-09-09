@@ -189,7 +189,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO]):
     ) -> None:
         """Create multiple access control entries with multiple attributes.
 
-        :param: list[AccessControlEntryBulkDTO] dtos: List of
+        :param list[AccessControlEntryBulkDTO] dtos: List of
             AccessControlEntryBulkDTO objects to create.
         """
         directory_cache = {}
@@ -209,6 +209,17 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO]):
                     f"Invalid distinguished name: {ace.base_dn}",
                 )
 
+            common_params = {
+                "role_id": ace.role_id,
+                "ace_type": ace.ace_type.value,
+                "depth": get_depth_by_dn(ace.base_dn),
+                "path": ace.base_dn,
+                "scope": ace.scope.value,
+                "entity_type_id": ace.entity_type_id,
+                "is_allow": ace.is_allow,
+                "directories": directory_cache[cache_key],
+            }
+
             if ace.attribute_type_ids is not None:
                 if len(ace.attribute_type_ids) == 0:
                     raise AccessControlEntryAddError(
@@ -217,31 +228,17 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO]):
 
                 aces = [
                     AccessControlEntry(
-                        role_id=ace.role_id,
-                        ace_type=ace.ace_type.value,
-                        depth=get_depth_by_dn(ace.base_dn),
-                        path=ace.base_dn,
-                        scope=ace.scope.value,
-                        entity_type_id=ace.entity_type_id,
+                        **common_params,
                         attribute_type_id=attribute_type_id,
-                        is_allow=ace.is_allow,
-                        directories=directory_cache[cache_key],
-                    ) for attribute_type_id in ace.attribute_type_ids
+                    )
+                    for attribute_type_id in ace.attribute_type_ids
                 ]
-
                 new_aces.extend(aces)
             else:
                 new_aces.append(
                     AccessControlEntry(
-                        role_id=ace.role_id,
-                        ace_type=ace.ace_type.value,
-                        depth=get_depth_by_dn(ace.base_dn),
-                        path=ace.base_dn,
-                        scope=ace.scope.value,
-                        entity_type_id=ace.entity_type_id,
+                        **common_params,
                         attribute_type_id=None,
-                        is_allow=ace.is_allow,
-                        directories=directory_cache[cache_key],
                     ),
                 )
 
