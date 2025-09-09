@@ -17,7 +17,7 @@ from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from models import AccessControlEntry, Directory
 
-from .dataclasses import AccessControlEntryDTO
+from .dataclasses import AccessControlEntryBulkDTO, AccessControlEntryDTO
 from .exceptions import (
     AccessControlEntryAddError,
     AccessControlEntryNotFoundError,
@@ -183,11 +183,14 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO]):
                 "Failed to add access control entries.",
             )
 
-    async def create_bulk(self, dtos: list[AccessControlEntryDTO]) -> None:
-        """Create multiple access control entries.
+    async def create_bulk(
+        self,
+        dtos: list[AccessControlEntryBulkDTO],
+    ) -> None:
+        """Create multiple access control entries with multiple attributes.
 
-        :param list[AccessControlEntryDTO] dtos: List of AccessControlEntryDTO
-            objects to create.
+        :param: list[AccessControlEntryBulkDTO] dtos: List of
+            AccessControlEntryBulkDTO objects to create.
         """
         directory_cache = {}
         new_aces = []
@@ -206,18 +209,41 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO]):
                     f"Invalid distinguished name: {ace.base_dn}",
                 )
 
-            new_ace = AccessControlEntry(
-                role_id=ace.role_id,
-                ace_type=ace.ace_type.value,
-                depth=get_depth_by_dn(ace.base_dn),
-                path=ace.base_dn,
-                scope=ace.scope.value,
-                entity_type_id=ace.entity_type_id,
-                attribute_type_id=ace.attribute_type_id,
-                is_allow=ace.is_allow,
-                directories=directory_cache[cache_key],
-            )
-            new_aces.append(new_ace)
+            if ace.attribute_type_ids is not None:
+                if len(ace.attribute_type_ids) == 0:
+                    raise AccessControlEntryAddError(
+                        "Attribute type ids cannot be an empty list.",
+                    )
+
+                aces = [
+                    AccessControlEntry(
+                        role_id=ace.role_id,
+                        ace_type=ace.ace_type.value,
+                        depth=get_depth_by_dn(ace.base_dn),
+                        path=ace.base_dn,
+                        scope=ace.scope.value,
+                        entity_type_id=ace.entity_type_id,
+                        attribute_type_id=attribute_type_id,
+                        is_allow=ace.is_allow,
+                        directories=directory_cache[cache_key],
+                    ) for attribute_type_id in ace.attribute_type_ids
+                ]
+
+                new_aces.extend(aces)
+            else:
+                new_aces.append(
+                    AccessControlEntry(
+                        role_id=ace.role_id,
+                        ace_type=ace.ace_type.value,
+                        depth=get_depth_by_dn(ace.base_dn),
+                        path=ace.base_dn,
+                        scope=ace.scope.value,
+                        entity_type_id=ace.entity_type_id,
+                        attribute_type_id=None,
+                        is_allow=ace.is_allow,
+                        directories=directory_cache[cache_key],
+                    ),
+                )
 
         self._session.add_all(new_aces)
         try:
