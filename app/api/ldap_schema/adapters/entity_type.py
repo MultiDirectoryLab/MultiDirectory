@@ -48,7 +48,7 @@ def make_entity_type_request_dto(
 def make_entity_type_schema(dto: EntityTypeDTO) -> EntityTypeSchema:
     """Convert EntityTypeDTO to EntityTypeSchema."""
     return EntityTypeSchema(
-        id=dto.id or 0,  # Handle None id
+        id=dto.get_id(),
         name=dto.name,
         object_class_names=dto.object_class_names,
         is_system=dto.is_system,
@@ -69,7 +69,7 @@ _convert_dto_to_schema = get_converter(
     EntityTypeSchema,
     recipe=[
         link_function(
-            lambda dto: dto.id or 0,
+            lambda dto: dto.get_id(),
             P[EntityTypeSchema].id,
         ),
     ],
