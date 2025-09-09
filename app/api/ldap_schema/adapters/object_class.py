@@ -77,7 +77,6 @@ def make_object_class_update_dto(
     )
 
 
-# Конвертеры
 _convert_request_to_dto = get_converter(
     ObjectClassRequestSchema,
     ObjectClassRequestDTO,
@@ -131,8 +130,8 @@ class ObjectClassFastAPIAdapter(
     def _get_converter(self) -> tuple[Callable, Callable]:
         """Get converter functions for ObjectClass schema <-> DTO."""
         return (
-            _convert_dto_to_schema,  # DTO -> Schema (index 0)
-            _convert_request_to_dto,  # Request -> DTO (index 1)
+            _convert_dto_to_schema,
+            _convert_request_to_dto,
         )
 
     async def create(self, request_data: ObjectClassRequestSchema) -> None:
