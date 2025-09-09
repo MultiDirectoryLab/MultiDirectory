@@ -14,7 +14,11 @@ from ldap_protocol.utils.queries import get_base_directories
 from models import AccessControlEntry, AceType, Directory, Role
 
 from .ace_dao import AccessControlEntryDAO
-from .dataclasses import AccessControlEntryDTO, RoleDTO
+from .dataclasses import (
+    AccessControlEntryBulkDTO,
+    AccessControlEntryDTO,
+    RoleDTO,
+)
 from .exceptions import RoleNotFoundError
 from .role_dao import RoleDAO
 
@@ -240,46 +244,46 @@ class RoleUseCase:
         self,
         role_id: int,
         base_dn: str,
-    ) -> list[AccessControlEntryDTO]:
+    ) -> list[AccessControlEntryBulkDTO]:
         """Get a full access ACE.
 
         :param base_dn: Base DN for the role.
         :return: List of AccessControlEntryDTO objects with full access.
         """
         return [
-            AccessControlEntryDTO(
+            AccessControlEntryBulkDTO(
                 role_id=role_id,
                 ace_type=AceType.READ,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
-                attribute_type_id=None,
+                attribute_type_ids=None,
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntryDTO(
+            AccessControlEntryBulkDTO(
                 role_id=role_id,
                 ace_type=AceType.CREATE_CHILD,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
-                attribute_type_id=None,
+                attribute_type_ids=None,
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntryDTO(
+            AccessControlEntryBulkDTO(
                 role_id=role_id,
                 ace_type=AceType.WRITE,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
-                attribute_type_id=None,
+                attribute_type_ids=None,
                 entity_type_id=None,
                 is_allow=True,
             ),
-            AccessControlEntryDTO(
+            AccessControlEntryBulkDTO(
                 role_id=role_id,
                 ace_type=AceType.DELETE,
                 scope=RoleScope.WHOLE_SUBTREE,
                 base_dn=base_dn,
-                attribute_type_id=None,
+                attribute_type_ids=None,
                 entity_type_id=None,
                 is_allow=True,
             ),
