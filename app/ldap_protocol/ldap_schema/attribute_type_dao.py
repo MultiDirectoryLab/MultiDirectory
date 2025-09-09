@@ -4,7 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from adaptix.conversion import get_converter
+from adaptix import P
+from adaptix.conversion import get_converter, link_function
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +25,16 @@ from ldap_protocol.utils.pagination import (
 from models import AttributeType
 
 _convert_model_to_dto = get_converter(AttributeType, AttributeTypeDTO)
-_convert_dto_to_model = get_converter(AttributeTypeDTO, AttributeType)
+_convert_dto_to_model = get_converter(
+    AttributeTypeDTO,
+    AttributeType,
+    recipe=[
+        link_function(
+            lambda _: None,
+            P[AttributeType].id,
+        ),
+    ],
+)
 
 
 class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):

@@ -44,7 +44,6 @@ def make_attribute_type_request_dto(
 ) -> AttributeTypeDTO:
     """Convert AttributeTypeRequestSchema to AttributeTypeDTO."""
     return AttributeTypeDTO(
-        id=None,
         oid=request.oid,
         name=request.name,
         syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
