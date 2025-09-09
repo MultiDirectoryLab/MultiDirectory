@@ -14,9 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from enums import KindType
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.dto import ObjectClassDTO, ObjectClassUpdateDTO
+from ldap_protocol.ldap_schema.dto import (
+    ObjectClassDTO,
+    ObjectClassRequestDTO,
+    ObjectClassUpdateDTO,
+)
 from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
     ObjectClassCantModifyError,
@@ -121,13 +124,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
 
     async def create_one(
         self,
-        oid: str,
-        name: str,
-        superior_name: str | None,
-        kind: KindType,
-        is_system: bool,
-        attribute_type_names_must: list[str],
-        attribute_type_names_may: list[str],
+        dto: ObjectClassRequestDTO,
     ) -> None:
         """Create a new Object Class.
 
@@ -143,29 +140,29 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
         """
         try:
             superior = None
-            if superior_name:
+            if dto.superior_name:
                 superior_query = await self.__session.scalars(
                     select(ObjectClass).where(
-                        ObjectClass.name == superior_name,
+                        ObjectClass.name == dto.superior_name,
                     ),
                 )
                 superior = superior_query.first()
-            if superior_name and not superior:
+            if dto.superior_name and not superior:
                 raise ObjectClassNotFoundError(
-                    f"Superior (parent) Object class {superior_name} not found\
-                        in schema.",
+                    f"Superior (parent) Object class {dto.superior_name} not \
+                        found in schema.",
                 )
 
             attribute_types_may_filtered = [
                 name
-                for name in attribute_type_names_may
-                if name not in attribute_type_names_must
+                for name in dto.attribute_type_names_may
+                if name not in dto.attribute_type_names_must
             ]
 
-            if attribute_type_names_must:
+            if dto.attribute_type_names_must:
                 must_query = await self.__session.scalars(
                     select(AttributeType).where(
-                        AttributeType.name.in_(attribute_type_names_must),
+                        AttributeType.name.in_(dto.attribute_type_names_must),
                     ),
                 )
                 attribute_types_must = list(must_query.all())
@@ -183,11 +180,11 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
                 attribute_types_may = []
 
             object_class = ObjectClass(
-                oid=oid,
-                name=name,
+                oid=dto.oid,
+                name=dto.name,
                 superior=superior,
-                kind=kind,
-                is_system=is_system,
+                kind=dto.kind,
+                is_system=dto.is_system,
                 attribute_types_must=attribute_types_must,
                 attribute_types_may=attribute_types_may,
             )
@@ -195,8 +192,8 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
             await self.__session.flush()
         except IntegrityError:
             raise ObjectClassAlreadyExistsError(
-                f"Object Class with oid '{oid}' and name"
-                + f" '{name}' already exists.",
+                f"Object Class with oid '{dto.oid}' and name"
+                + f" '{dto.name}' already exists.",
             )
 
     async def _count_exists_object_class_by_names(

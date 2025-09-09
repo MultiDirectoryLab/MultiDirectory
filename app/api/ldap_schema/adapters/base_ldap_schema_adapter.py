@@ -54,7 +54,7 @@ class BaseLDAPSchemaFastAPIAdapter(
         self._converter = self._get_converter()
 
     @abstractmethod
-    def _get_converter(self) -> dict[str, Callable]:
+    def _get_converter(self) -> tuple[Callable, Callable]:
         """Get the converter functions for schema <-> DTO conversion.
 
         Should return a dictionary with keys:
@@ -74,7 +74,7 @@ class BaseLDAPSchemaFastAPIAdapter(
             raise NotImplementedError(
                 "No converter available for this adapter",
             )
-        return self._converter["schema_to_dto"](schema)
+        return self._converter[0](schema)
 
     def _convert_dto_to_schema(self, dto: TDTO) -> Any:
         """Convert DTO to schema using adaptix converter.
@@ -86,7 +86,7 @@ class BaseLDAPSchemaFastAPIAdapter(
             raise NotImplementedError(
                 "No converter available for this adapter",
             )
-        return self._converter["dto_to_schema"](dto)
+        return self._converter[1](dto)
 
     @abstractmethod
     async def create(
@@ -149,7 +149,7 @@ class BaseLDAPSchemaFastAPIAdapter(
 def create_adaptix_converter(
     schema_class: type,
     dto_class: type,
-) -> dict[str, Callable]:
+) -> tuple[Callable, Callable]:
     """Create adaptix converter functions for schema <-> DTO conversion.
 
     :param type schema_class: Schema class type.
@@ -167,20 +167,20 @@ def create_adaptix_converter(
             link_function(lambda x: x.id or 0, P[schema_class].id),
         ]
 
-        return {
-            "schema_to_dto": get_converter(
+        return (
+            get_converter(
                 schema_class,
                 dto_class,
                 recipe=schema_to_dto_recipe,
             ),
-            "dto_to_schema": get_converter(
+            get_converter(
                 dto_class,
                 schema_class,
                 recipe=dto_to_schema_recipe,
             ),
-        }
+        )
     else:
-        return {
-            "schema_to_dto": get_converter(schema_class, dto_class),
-            "dto_to_schema": get_converter(dto_class, schema_class),
-        }
+        return (
+            get_converter(schema_class, dto_class),
+            get_converter(dto_class, schema_class),
+        )

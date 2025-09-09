@@ -4,14 +4,19 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any
+from typing import Callable
 
+from adaptix import P
+from adaptix.conversion import (
+    allow_unlinked_optional,
+    get_converter,
+    link_function,
+)
 from fastapi import status
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
     BaseLDAPSchemaFastAPIAdapter,
-    create_adaptix_converter,
 )
 from api.ldap_schema.schema import (
     EntityTypePaginationSchema,
@@ -27,6 +32,48 @@ from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassNotFoundError,
 )
 from ldap_protocol.utils.pagination import PaginationParams
+
+
+def make_entity_type_request_dto(
+    request: EntityTypeSchema,
+) -> EntityTypeDTO:
+    """Convert EntityTypeSchema to EntityTypeDTO."""
+    return EntityTypeDTO(
+        name=request.name,
+        is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
+        object_class_names=request.object_class_names,
+    )
+
+
+def make_entity_type_schema(dto: EntityTypeDTO) -> EntityTypeSchema:
+    """Convert EntityTypeDTO to EntityTypeSchema."""
+    return EntityTypeSchema(
+        id=dto.id or 0,  # Handle None id
+        name=dto.name,
+        object_class_names=dto.object_class_names,
+        is_system=dto.is_system,
+    )
+
+
+_convert_request_to_dto = get_converter(
+    EntityTypeSchema,
+    EntityTypeDTO,
+    recipe=[
+        link_function(make_entity_type_request_dto, P[EntityTypeDTO]),
+        allow_unlinked_optional(P[EntityTypeDTO].id),
+    ],
+)
+
+_convert_dto_to_schema = get_converter(
+    EntityTypeDTO,
+    EntityTypeSchema,
+    recipe=[
+        link_function(
+            lambda dto: dto.id or 0,
+            P[EntityTypeSchema].id,
+        ),
+    ],
+)
 
 
 class LDAPEntityTypeFastAPIAdapter(
@@ -47,9 +94,12 @@ class LDAPEntityTypeFastAPIAdapter(
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
 
-    def _get_converter(self) -> dict[str, Any]:
+    def _get_converter(self) -> tuple[Callable, Callable]:
         """Get converter functions for EntityType schema <-> DTO."""
-        return create_adaptix_converter(EntityTypeSchema, EntityTypeDTO)
+        return (
+            _convert_dto_to_schema,  # DTO -> Schema (index 0)
+            _convert_request_to_dto,  # Request -> DTO (index 1)
+        )
 
     async def update(
         self,
@@ -92,8 +142,7 @@ class LDAPEntityTypeFastAPIAdapter(
         )
 
         items = [
-            EntityTypeSchema.model_validate(item, from_attributes=True)
-            for item in pagination_result.items
+            _convert_dto_to_schema(item) for item in pagination_result.items
         ]
         return EntityTypePaginationSchema(
             metadata=pagination_result.metadata,
@@ -111,10 +160,7 @@ class LDAPEntityTypeFastAPIAdapter(
         :return EntityTypeSchema: Entity Type Schema.
         """
         entity_type = await self._service.get_by_name(name=name)
-        return EntityTypeSchema.model_validate(
-            entity_type,
-            from_attributes=True,
-        )
+        return _convert_dto_to_schema(entity_type)
 
     async def create(self, request_data: EntityTypeSchema) -> None:
         """Create a new Entity Type.
@@ -124,13 +170,8 @@ class LDAPEntityTypeFastAPIAdapter(
         a new Entity Type.
         :return None.
         """
-        await self._service.create(
-            EntityTypeDTO(
-                name=request_data.name,
-                is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
-                object_class_names=request_data.object_class_names,
-            ),
-        )
+        dto = _convert_request_to_dto(request_data)
+        await self._service.create(dto)
 
     async def get_entity_type_attributes(
         self,
