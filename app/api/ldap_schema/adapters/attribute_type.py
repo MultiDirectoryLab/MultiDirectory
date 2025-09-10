@@ -131,9 +131,7 @@ class AttributeTypeFastAPIAdapter(
         :return None.
         """
         dto = _convert_request_to_dto(request_data)
-        await self._service.create(
-            dto,
-        )
+        await self._service.create(dto)
 
     async def get(
         self,

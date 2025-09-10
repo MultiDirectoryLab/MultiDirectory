@@ -39,11 +39,14 @@ class BaseLDAPSchemaFastAPIAdapter(
         TDTO,
     ],
 ):
-    """Base interface for LDAP Schema adapters with generic type support.
+    """Base interface for LDAP Schema adapters with generic type support."""
 
-    This interface provides common functionality for LDAP schema adapters
-    including automatic conversion between schemas and DTOs using adaptix.
-    """
+    _service: TService
+    _schema: TSchema
+    _pagination_schema: TPaginationSchema
+    _request_schema: TRequestSchema
+    _update_schema: TUpdateSchema
+    _dto: TDTO
 
     def __init__(self, service: TService) -> None:
         """Initialize the adapter with service and converters.
@@ -51,7 +54,9 @@ class BaseLDAPSchemaFastAPIAdapter(
         :param TService service: The service instance to use.
         """
         super().__init__(service)
-        self._converter = self._get_converter()
+        self._converter_to_dto, self._converter_to_schema = (
+            self._get_converter()
+        )
 
     @abstractmethod
     def _get_converter(self) -> tuple[Callable, Callable]:
@@ -70,11 +75,7 @@ class BaseLDAPSchemaFastAPIAdapter(
         :param TSchema schema: Schema instance to convert.
         :return Any: Converted DTO instance.
         """
-        if not self._converter:
-            raise NotImplementedError(
-                "No converter available for this adapter",
-            )
-        return self._converter[0](schema)
+        return self._converter_to_dto(schema)
 
     def _convert_dto_to_schema(self, dto: TDTO) -> Any:
         """Convert DTO to schema using adaptix converter.
@@ -82,11 +83,7 @@ class BaseLDAPSchemaFastAPIAdapter(
         :param TDTO dto: DTO instance to convert.
         :return Any: Converted schema instance.
         """
-        if not self._converter:
-            raise NotImplementedError(
-                "No converter available for this adapter",
-            )
-        return self._converter[1](dto)
+        return self._converter_to_schema(dto)
 
     @abstractmethod
     async def create(
