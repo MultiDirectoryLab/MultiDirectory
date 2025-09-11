@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Callable
-
 from adaptix import P
 from adaptix.conversion import (
     allow_unlinked_optional,
@@ -14,10 +12,8 @@ from adaptix.conversion import (
 )
 from fastapi import status
 
-from api.ldap_schema import LimitedListType
-from api.ldap_schema.adapters.base_ldap_schema_adapter import (
-    BaseLDAPSchemaFastAPIAdapter,
-)
+from api.base_adapter import BaseAdapter
+from api.ldap_schema.adapters.base_ldap_schema_adapter import BaseLDAPSchema
 from api.ldap_schema.schema import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
@@ -31,7 +27,6 @@ from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeNotFoundError,
     ObjectClassNotFoundError,
 )
-from ldap_protocol.utils.pagination import PaginationParams
 
 
 def make_entity_type_request_dto(
@@ -77,29 +72,24 @@ _convert_dto_to_schema = get_converter(
 
 
 class LDAPEntityTypeFastAPIAdapter(
-    BaseLDAPSchemaFastAPIAdapter[
-        EntityTypeUseCase,
-        EntityTypeSchema,
-        EntityTypePaginationSchema,
-        EntityTypeSchema,  # TO_DO TRequestSchema
-        EntityTypeUpdateSchema,
-        EntityTypeDTO,
-    ],
+    BaseAdapter[EntityTypeUseCase],
+    BaseLDAPSchema,
 ):
-    """Adapter for LDAProuter."""
+    """Adapter for LDAP Entity Type router."""
+
+    _schema = EntityTypeSchema
+    _pagination_schema = EntityTypePaginationSchema
+    _request_schema = EntityTypeSchema
+    _update_schema = EntityTypeUpdateSchema
+    _dto = EntityTypeDTO
+    converter_to_dto = _convert_request_to_dto
+    converter_to_schema = _convert_dto_to_schema
 
     _exceptions_map: dict[type[Exception], int] = {
         EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
-
-    def _get_converter(self) -> tuple[Callable, Callable]:
-        """Get converter functions for EntityType schema <-> DTO."""
-        return (
-            _convert_dto_to_schema,
-            _convert_request_to_dto,
-        )
 
     async def update(
         self,
@@ -114,7 +104,7 @@ class LDAPEntityTypeFastAPIAdapter(
         :return None.
         """
         try:
-            entity_type = await self._service.get_by_name(name=name)
+            entity_type = await self._service.get_one_by_name(name=name)
         except EntityTypeNotFoundError:
             raise EntityTypeCantModifyError
 
@@ -127,52 +117,6 @@ class LDAPEntityTypeFastAPIAdapter(
 
         await self._service.update(updated_entity_type, request_data.name)
 
-    async def get_list_paginated(
-        self,
-        params: PaginationParams,
-    ) -> EntityTypePaginationSchema:
-        """Retrieve a chunk of Entity Types with pagination.
-
-        \f
-        :param PaginationParams params: Pagination parameters.
-        :return EntityTypePaginationSchema: Paginator Schema.
-        """
-        pagination_result = await self._service.get_paginator(
-            params=params,
-        )
-
-        items = [
-            _convert_dto_to_schema(item) for item in pagination_result.items
-        ]
-        return EntityTypePaginationSchema(
-            metadata=pagination_result.metadata,
-            items=items,
-        )
-
-    async def get(
-        self,
-        name: str,
-    ) -> EntityTypeSchema:
-        """Retrieve a one Entity Type.
-
-        \f
-        :param str name: name of the Entity Type.
-        :return EntityTypeSchema: Entity Type Schema.
-        """
-        entity_type = await self._service.get_by_name(name=name)
-        return _convert_dto_to_schema(entity_type)
-
-    async def create(self, request_data: EntityTypeSchema) -> None:
-        """Create a new Entity Type.
-
-        \f
-        :param EntityTypeSchema request_data: Data for creating
-        a new Entity Type.
-        :return None.
-        """
-        dto = _convert_request_to_dto(request_data)
-        await self._service.create(dto)
-
     async def get_entity_type_attributes(
         self,
         name: str,
@@ -184,13 +128,3 @@ class LDAPEntityTypeFastAPIAdapter(
         :return list[str]: List of attribute names.
         """
         return await self._service.get_entity_type_attributes(name)
-
-    async def delete_bulk(self, names: LimitedListType) -> None:
-        """Delete multiple Entity Types.
-
-        \f
-        :param LimitedListType names: Names of the
-        Entity Types to delete.
-        :return None.
-        """
-        await self._service.delete_all_by_names(names=names)

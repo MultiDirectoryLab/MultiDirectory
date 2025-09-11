@@ -45,7 +45,7 @@ class EntityTypeUseCase(AbstractService):
             await self._entity_type_dao.validate_name(name=name)
         await self._entity_type_dao.update(dto.get_id(), dto)
 
-    async def get_by_name(self, name: str) -> EntityTypeDTO:
+    async def get_one_by_name(self, name: str) -> EntityTypeDTO:
         """Get Entity Type by name."""
         return await self._entity_type_dao.get_one_by_name(name)
 

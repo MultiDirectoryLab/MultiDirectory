@@ -8,6 +8,7 @@ from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
 from fastapi import Query, status
+from pydantic import BaseModel
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
@@ -17,7 +18,10 @@ from api.ldap_schema.schema import (
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from ldap_protocol.utils.pagination import PaginationParams
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    PaginationParams,
+)
 
 
 @ldap_schema_router.post(
@@ -49,7 +53,7 @@ async def create_one_attribute_type(
 async def get_one_attribute_type(
     attribute_type_name: str,
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
-) -> AttributeTypeSchema:
+) -> BaseModel:
     """Retrieve a one Attribute Type.
 
     \f
@@ -69,7 +73,7 @@ async def get_one_attribute_type(
 async def get_list_attribute_types_with_pagination(
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
     params: Annotated[PaginationParams, Query()],
-) -> AttributeTypePaginationSchema:
+) -> BasePaginationSchema:
     """Retrieve a chunk of Attribute Types with pagination.
 
     \f
@@ -124,6 +128,4 @@ async def delete_bulk_attribute_types(
         Attribute Type adapter.
     :return None: None
     """
-    await adapter.delete_bulk(
-        attribute_types_names=attribute_types_names,
-    )
+    await adapter.delete_bulk(attribute_types_names)

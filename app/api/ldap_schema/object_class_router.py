@@ -8,6 +8,7 @@ from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
 from fastapi import Query, status
+from pydantic import BaseModel
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
@@ -18,7 +19,10 @@ from api.ldap_schema.schema import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from ldap_protocol.utils.pagination import PaginationParams
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    PaginationParams,
+)
 
 
 @ldap_schema_router.post(
@@ -50,7 +54,7 @@ async def create_one_object_class(
 async def get_one_object_class(
     object_class_name: str,
     adapter: FromDishka[ObjectClassFastAPIAdapter],
-) -> ObjectClassSchema:
+) -> BaseModel:
     """Retrieve a one object class.
 
     \f
@@ -70,7 +74,7 @@ async def get_one_object_class(
 async def get_list_object_classes_with_pagination(
     adapter: FromDishka[ObjectClassFastAPIAdapter],
     params: Annotated[PaginationParams, Query()],
-) -> ObjectClassPaginationSchema:
+) -> BasePaginationSchema:
     """Retrieve a list of all object classes with paginate.
 
     \f

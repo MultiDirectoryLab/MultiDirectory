@@ -8,6 +8,7 @@ from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
 from fastapi import Query, status
+from pydantic import BaseModel
 
 from api.ldap_schema import LimitedListType
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -17,7 +18,10 @@ from api.ldap_schema.schema import (
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
-from ldap_protocol.utils.pagination import PaginationParams
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    PaginationParams,
+)
 
 
 @ldap_schema_router.post(
@@ -42,11 +46,14 @@ async def create_one_entity_type(
     )
 
 
-@ldap_schema_router.get("/entity_type/{entity_type_name}")
+@ldap_schema_router.get(
+    "/entity_type/{entity_type_name}",
+    response_model=EntityTypeSchema,
+)
 async def get_one_entity_type(
     entity_type_name: str,
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],
-) -> EntityTypeSchema:
+) -> BaseModel:
     """Retrieve a one Entity Type.
 
     \f
@@ -59,11 +66,14 @@ async def get_one_entity_type(
     return await adapter.get(entity_type_name)
 
 
-@ldap_schema_router.get("/entity_types")
+@ldap_schema_router.get(
+    "/entity_types",
+    response_model=EntityTypePaginationSchema,
+)
 async def get_list_entity_types_with_pagination(
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],
     params: Annotated[PaginationParams, Query()],
-) -> EntityTypePaginationSchema:
+) -> BasePaginationSchema:
     """Retrieve a chunk of Entity Types with pagination.
 
     \f
