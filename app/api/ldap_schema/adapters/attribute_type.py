@@ -4,8 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Callable
-
 from adaptix import P
 from adaptix.conversion import (
     allow_unlinked_optional,
@@ -14,10 +12,8 @@ from adaptix.conversion import (
 )
 from fastapi import status
 
-from api.ldap_schema import LimitedListType
-from api.ldap_schema.adapters.base_ldap_schema_adapter import (
-    BaseLDAPSchemaFastAPIAdapter,
-)
+from api.base_adapter import BaseAdapter
+from api.ldap_schema.adapters.base_ldap_schema_adapter import BaseLDAPSchema
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
     AttributeTypeRequestSchema,
@@ -36,7 +32,6 @@ from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeCantModifyError,
     AttributeTypeNotFoundError,
 )
-from ldap_protocol.utils.pagination import PaginationParams
 
 
 def make_attribute_type_request_dto(
@@ -96,73 +91,24 @@ _convert_dto_to_schema = get_converter(
 
 
 class AttributeTypeFastAPIAdapter(
-    BaseLDAPSchemaFastAPIAdapter[
-        AttributeTypeDAO,
-        AttributeTypeSchema,
-        AttributeTypePaginationSchema,
-        AttributeTypeRequestSchema,
-        AttributeTypeUpdateSchema,
-        AttributeTypeDTO,
-    ],
+    BaseAdapter[AttributeTypeDAO],
+    BaseLDAPSchema,
 ):
     """Attribute Type management routers."""
+
+    _schema = AttributeTypeSchema
+    _pagination_schema = AttributeTypePaginationSchema
+    _request_schema = AttributeTypeRequestSchema
+    _update_schema = AttributeTypeUpdateSchema
+    _dto = AttributeTypeDTO
+    converter_to_dto = _convert_request_to_dto
+    converter_to_schema = _convert_dto_to_schema
 
     _exceptions_map: dict[type[Exception], int] = {
         AttributeTypeAlreadyExistsError: status.HTTP_409_CONFLICT,
         AttributeTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
     }
-
-    def _get_converter(self) -> tuple[Callable, Callable]:
-        """Get converter functions for AttributeType schema <-> DTO."""
-        return (
-            _convert_dto_to_schema,
-            _convert_request_to_dto,
-        )
-
-    async def create(
-        self,
-        request_data: AttributeTypeRequestSchema,
-    ) -> None:
-        """Create a new Attribute Type.
-
-        :param AttributeTypeRequestSchema request_data:
-            Data for creating Attribute Type.
-        :return None.
-        """
-        dto = _convert_request_to_dto(request_data)
-        await self._service.create(dto)
-
-    async def get(
-        self,
-        attribute_type_name: str,
-    ) -> AttributeTypeSchema:
-        """Get a single Attribute Type by name."""
-        attribute_type = await self._service.get_one_by_name(
-            attribute_type_name,
-        )
-        return AttributeTypeSchema.model_validate(
-            attribute_type,
-            from_attributes=True,
-        )
-
-    async def get_list_paginated(
-        self,
-        params: PaginationParams,
-    ) -> AttributeTypePaginationSchema:
-        """Get a list of Attribute Types with pagination."""
-        pagination_result = await self._service.get_paginator(params)
-        items = [
-            AttributeTypeSchema.model_validate(
-                item,
-                from_attributes=True,
-            )
-            for item in pagination_result.items
-        ]
-        return AttributeTypePaginationSchema(
-            metadata=pagination_result.metadata,
-            items=items,
-        )
 
     async def update(
         self,
@@ -185,10 +131,3 @@ class AttributeTypeFastAPIAdapter(
                 is_system=attribute_type.is_system,
             ),
         )
-
-    async def delete_bulk(
-        self,
-        attribute_types_names: LimitedListType,
-    ) -> None:
-        """Delete bulk Attribute Types."""
-        await self._service.delete_all_by_names(attribute_types_names)

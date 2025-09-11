@@ -4,16 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Callable
-
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
 from fastapi import status
 
-from api.ldap_schema import LimitedListType
-from api.ldap_schema.adapters.base_ldap_schema_adapter import (
-    BaseLDAPSchemaFastAPIAdapter,
-)
+from api.base_adapter import BaseAdapter
+from api.ldap_schema.adapters.base_ldap_schema_adapter import BaseLDAPSchema
 from api.ldap_schema.schema import (
     ObjectClassPaginationSchema,
     ObjectClassRequestSchema,
@@ -32,7 +28,6 @@ from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassNotFoundError,
 )
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.utils.pagination import PaginationParams
 
 
 def make_object_class_request_dto(
@@ -110,16 +105,18 @@ _convert_update_to_dto = get_converter(
 
 
 class ObjectClassFastAPIAdapter(
-    BaseLDAPSchemaFastAPIAdapter[
-        ObjectClassDAO,
-        ObjectClassSchema,
-        ObjectClassPaginationSchema,
-        ObjectClassRequestSchema,
-        ObjectClassUpdateSchema,
-        ObjectClassDTO,
-    ],
+    BaseAdapter[ObjectClassDAO],
+    BaseLDAPSchema,
 ):
     """Object Class FastAPI Adapter."""
+
+    _schema = ObjectClassSchema
+    _pagination_schema = ObjectClassPaginationSchema
+    _request_schema = ObjectClassRequestSchema
+    _update_schema = ObjectClassUpdateSchema
+    _dto = ObjectClassDTO
+    converter_to_dto = _convert_request_to_dto
+    converter_to_schema = _convert_dto_to_schema
 
     _exceptions_map: dict[type[Exception], int] = {
         ObjectClassAlreadyExistsError: status.HTTP_409_CONFLICT,
@@ -127,39 +124,10 @@ class ObjectClassFastAPIAdapter(
         ObjectClassCantModifyError: status.HTTP_403_FORBIDDEN,
     }
 
-    def _get_converter(self) -> tuple[Callable, Callable]:
-        """Get converter functions for ObjectClass schema <-> DTO."""
-        return (
-            _convert_dto_to_schema,
-            _convert_request_to_dto,
-        )
-
     async def create(self, request_data: ObjectClassRequestSchema) -> None:
         """Create a new Object Class."""
-        dto = _convert_request_to_dto(request_data)
+        dto = self._convert_schema_to_dto(request_data)
         await self._service.create_one(dto)
-
-    async def get(self, name: str) -> ObjectClassSchema:
-        """Get one Object Class."""
-        object_class = await self._service.get_one_by_name(name)
-        return _convert_dto_to_schema(object_class)
-
-    async def get_list_paginated(
-        self,
-        params: PaginationParams,
-    ) -> ObjectClassPaginationSchema:
-        """Get list of Object Classes with pagination."""
-        pagination_result = await self._service.get_paginator(
-            params=params,
-        )
-
-        items = [
-            _convert_dto_to_schema(item) for item in pagination_result.items
-        ]
-        return ObjectClassPaginationSchema(
-            metadata=pagination_result.metadata,
-            items=items,
-        )
 
     async def update(
         self,
@@ -170,7 +138,3 @@ class ObjectClassFastAPIAdapter(
         object_class = await self._service.get_one_by_name(name)
         update_dto = _convert_update_to_dto(request_data)
         await self._service.modify_one(object_class, update_dto)
-
-    async def delete_bulk(self, names: LimitedListType) -> None:
-        """Delete bulk Object Classes."""
-        await self._service.delete_all_by_names(names)

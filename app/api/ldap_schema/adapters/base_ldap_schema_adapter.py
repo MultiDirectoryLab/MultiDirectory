@@ -4,134 +4,102 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, ClassVar, Protocol
 
-from adaptix import P
-from adaptix.conversion import (
-    allow_unlinked_optional,
-    get_converter,
-    link_function,
+from pydantic import BaseModel
+
+from api.ldap_schema import LimitedListType
+from ldap_protocol.utils.pagination import (
+    BasePaginationSchema,
+    PaginationParams,
 )
 
-from abstract_dao import AbstractDAO, AbstractService
-from api.base_adapter import BaseAdapter
-from api.ldap_schema import LimitedListType
-from ldap_protocol.utils.pagination import PaginationParams
 
-TService = TypeVar("TService", bound=AbstractDAO | AbstractService)
-TSchema = TypeVar("TSchema")
-TPaginationSchema = TypeVar("TPaginationSchema")
-TRequestSchema = TypeVar("TRequestSchema")
-TUpdateSchema = TypeVar("TUpdateSchema")
-TDTO = TypeVar("TDTO")
+class BaseLDAPSchema(Protocol):
+    """Base interface for LDAP Schema adapters with ClassVar behavior."""
 
+    _service: Any  # Service instance
+    _schema: ClassVar[type[BaseModel]]
+    _pagination_schema: ClassVar[type[BasePaginationSchema]]
+    _request_schema: ClassVar[type[BaseModel]]
+    _update_schema: ClassVar[type[BaseModel]]
+    _dto: ClassVar[type[Any]]
+    converter_to_dto: ClassVar[Callable[..., Any]]
+    converter_to_schema: ClassVar[Callable[..., Any]]
 
-class BaseLDAPSchemaFastAPIAdapter(
-    BaseAdapter[TService],
-    ABC,
-    Generic[
-        TService,
-        TSchema,
-        TPaginationSchema,
-        TRequestSchema,
-        TUpdateSchema,
-        TDTO,
-    ],
-):
-    """Base interface for LDAP Schema adapters with generic type support."""
-
-    _service: TService
-    _schema: TSchema
-    _pagination_schema: TPaginationSchema
-    _request_schema: TRequestSchema
-    _update_schema: TUpdateSchema
-    _dto: TDTO
-
-    def __init__(self, service: TService) -> None:
-        """Initialize the adapter with service and converters.
-
-        :param TService service: The service instance to use.
-        """
-        super().__init__(service)
-        self._converter_to_dto, self._converter_to_schema = (
-            self._get_converter()
-        )
-
-    @abstractmethod
-    def _get_converter(self) -> tuple[Callable, Callable]:
-        """Get the converter functions for schema <-> DTO conversion.
-
-        Should return a dictionary with keys:
-        - 'schema_to_dto': function to convert schema to DTO
-        - 'dto_to_schema': function to convert DTO to schema
-
-        :return dict[str, Callable]: Dictionary of converter functions.
-        """
-
-    def _convert_schema_to_dto(self, schema: TSchema) -> Any:
+    def _convert_schema_to_dto(self, schema: BaseModel) -> Any:
         """Convert schema to DTO using adaptix converter.
 
-        :param TSchema schema: Schema instance to convert.
-        :return Any: Converted DTO instance.
+        :param schema: Schema instance to convert.
+        :return: Converted DTO instance.
         """
-        return self._converter_to_dto(schema)
+        return type(self).converter_to_dto(schema)
 
-    def _convert_dto_to_schema(self, dto: TDTO) -> Any:
+    def _convert_dto_to_schema(self, dto: Any) -> BaseModel:
         """Convert DTO to schema using adaptix converter.
 
-        :param TDTO dto: DTO instance to convert.
-        :return Any: Converted schema instance.
+        :param dto: DTO instance to convert.
+        :return: Converted schema instance.
         """
-        return self._converter_to_schema(dto)
+        return type(self).converter_to_schema(dto)
 
-    @abstractmethod
     async def create(
         self,
-        request_data: TRequestSchema,
+        request_data: Any,
     ) -> None:
         """Create a new entity.
 
-        :param TRequestSchema request_data: Data for creating entity.
-        :return None.
+        :param request_data: Data for creating entity.
         """
+        dto = self._convert_schema_to_dto(request_data)
+        await self._service.create(dto)
 
-    @abstractmethod
     async def get(
         self,
         name: str,
-    ) -> TSchema:
+    ) -> BaseModel:
         """Get a single entity by name.
 
         :param str name: Name of the entity.
-        :return TSchema: Entity schema.
+        :return: Entity schema.
         """
+        attribute_type = await self._service.get_one_by_name(
+            name,
+        )
+        return self._convert_dto_to_schema(attribute_type)
 
-    @abstractmethod
     async def get_list_paginated(
         self,
         params: PaginationParams,
-    ) -> TPaginationSchema:
+    ) -> BasePaginationSchema:
         """Get a list of entities with pagination.
 
         :param PaginationParams params: Pagination parameters.
-        :return TPaginationSchema: Paginated result schema.
+        :return: Paginated result schema.
         """
+        pagination_result = await self._service.get_paginator(params)
 
-    @abstractmethod
+        items = [
+            self._convert_dto_to_schema(item)
+            for item in pagination_result.items
+        ]
+
+        return self._pagination_schema(
+            metadata=pagination_result.metadata,
+            items=items,
+        )
+
     async def update(
         self,
         name: str,
-        request_data: TUpdateSchema,
+        request_data: Any,
     ) -> None:
         """Modify an entity.
 
         :param str name: Name of the entity to modify.
-        :param TUpdateSchema request_data: Updated data.
-        :return None.
+        :param request_data: Updated data.
         """
 
-    @abstractmethod
     async def delete_bulk(
         self,
         names: LimitedListType,
@@ -139,45 +107,5 @@ class BaseLDAPSchemaFastAPIAdapter(
         """Delete multiple entities.
 
         :param LimitedListType names: Names of entities to delete.
-        :return None.
         """
-
-
-def create_adaptix_converter(
-    schema_class: type,
-    dto_class: type,
-) -> tuple[Callable, Callable]:
-    """Create adaptix converter functions for schema <-> DTO conversion.
-
-    :param type schema_class: Schema class type.
-    :param type dto_class: DTO class type.
-    :return dict[str, Callable]: Dictionary with converter functions.
-    """
-    has_id_field = (
-        hasattr(dto_class, "__annotations__")
-        and "id" in dto_class.__annotations__
-    )
-
-    if has_id_field:
-        schema_to_dto_recipe = [allow_unlinked_optional(P[dto_class].id)]
-        dto_to_schema_recipe = [
-            link_function(lambda x: x.id or 0, P[schema_class].id),
-        ]
-
-        return (
-            get_converter(
-                schema_class,
-                dto_class,
-                recipe=schema_to_dto_recipe,
-            ),
-            get_converter(
-                dto_class,
-                schema_class,
-                recipe=dto_to_schema_recipe,
-            ),
-        )
-    else:
-        return (
-            get_converter(schema_class, dto_class),
-            get_converter(dto_class, schema_class),
-        )
+        await self._service.delete_all_by_names(names)
