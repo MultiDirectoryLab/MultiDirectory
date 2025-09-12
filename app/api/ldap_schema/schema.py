@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from pydantic import BaseModel, Field
 
 from enums import KindType
+from ldap_protocol.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
 from ldap_protocol.utils.pagination import BasePaginationSchema
 
 
@@ -93,6 +94,7 @@ class EntityTypeSchema(BaseModel):
 class EntityTypeUpdateSchema(BaseModel):
     """Entity Type Schema for modify/update."""
 
+    is_system: bool = DEFAULT_ENTITY_TYPE_IS_SYSTEM
     name: str
     object_class_names: list[str] = Field([], min_length=1, max_length=10000)
 

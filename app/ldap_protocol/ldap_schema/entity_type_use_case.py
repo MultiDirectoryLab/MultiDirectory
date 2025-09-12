@@ -5,9 +5,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abstract_dao import AbstractService
+from constants import PRIMARY_ENTITY_TYPE_NAMES
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.exceptions import EntityTypeCantModifyError
+from ldap_protocol.ldap_schema.exceptions import (
+    EntityTypeCantModifyError,
+    EntityTypeNotFoundError,
+)
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
@@ -37,17 +41,31 @@ class EntityTypeUseCase(AbstractService):
 
     async def update(self, dto: EntityTypeDTO, name: str) -> None:
         """Update Entity Type."""
-        if dto.is_system:
+        try:
+            entity_type = await self.get_one_by_name(name=name)
+
+        except EntityTypeNotFoundError:
+            raise EntityTypeCantModifyError
+        if entity_type.is_system:
             raise EntityTypeCantModifyError(
                 f"Entity Type '{dto.name}' is system and cannot be modified.",
             )
         if name != dto.name:
-            await self._entity_type_dao.validate_name(name=name)
-        await self._entity_type_dao.update(dto.get_id(), dto)
+            await self.validate_name(name=name)
+        await self._entity_type_dao.update(entity_type.get_id(), dto)
 
     async def get_one_by_name(self, name: str) -> EntityTypeDTO:
         """Get Entity Type by name."""
         return await self._entity_type_dao.get_one_by_name(name)
+
+    async def validate_name(
+        self,
+        name: str,
+    ) -> None:
+        if name in PRIMARY_ENTITY_TYPE_NAMES:
+            raise EntityTypeCantModifyError(
+                f"Can't change entity type name {name}",
+            )
 
     async def get_paginator(
         self,

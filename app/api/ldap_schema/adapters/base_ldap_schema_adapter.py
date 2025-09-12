@@ -26,6 +26,7 @@ class BaseLDAPSchema(Protocol):
     _dto: ClassVar[type[Any]]
     converter_to_dto: ClassVar[Callable[..., Any]]
     converter_to_schema: ClassVar[Callable[..., Any]]
+    converter_to_base_schema: ClassVar[Callable[..., Any]]
 
     def _convert_schema_to_dto(self, schema: BaseModel) -> Any:
         """Convert schema to DTO using adaptix converter.
@@ -42,6 +43,17 @@ class BaseLDAPSchema(Protocol):
         :return: Converted schema instance.
         """
         return type(self).converter_to_schema(dto)
+
+    def _convert_to_base_schema(
+        self,
+        base_schema: Any,
+    ) -> Any:
+        """Convert base schema to schema using adaptix converter.
+
+        :param base_schema: Base schema instance to convert.
+        :return: Converted schema instance.
+        """
+        return type(self).converter_to_base_schema(base_schema)
 
     async def create(
         self,
@@ -99,6 +111,11 @@ class BaseLDAPSchema(Protocol):
         :param str name: Name of the entity to modify.
         :param request_data: Updated data.
         """
+        entity = await self._service.get_one_by_name(name)
+        schema = self._convert_to_base_schema(request_data)
+        dto = self._convert_schema_to_dto(schema)
+
+        await self._service.update(entity.id, dto)
 
     async def delete_bulk(
         self,

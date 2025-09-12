@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from constants import PRIMARY_ENTITY_TYPE_NAMES
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeAlreadyExistsError,
@@ -216,15 +215,6 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
         )  # fmt: skip
 
         return result.scalars().first()
-
-    async def validate_name(
-        self,
-        name: str,
-    ) -> None:
-        if name in PRIMARY_ENTITY_TYPE_NAMES:
-            raise EntityTypeCantModifyError(
-                f"Can't change entity type name {name}",
-            )
 
     async def get_entity_type_attributes(
         self,
