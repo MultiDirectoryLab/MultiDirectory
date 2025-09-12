@@ -4,61 +4,42 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import asdict
 from typing import Iterable, Literal
 
-from pydantic import BaseModel
+from adaptix.conversion import get_converter
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from enums import KindType
-from ldap_protocol.exceptions import (
-    InstanceCantModifyError,
-    InstanceNotFoundError,
-)
+from abstract_dao import AbstractDAO
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.dto import (
+    ObjectClassDTO,
+    ObjectClassRequestDTO,
+    ObjectClassUpdateDTO,
+)
+from ldap_protocol.ldap_schema.exceptions import (
+    ObjectClassAlreadyExistsError,
+    ObjectClassCantModifyError,
+    ObjectClassNotFoundError,
+)
 from ldap_protocol.utils.pagination import (
-    BasePaginationSchema,
     PaginationParams,
     PaginationResult,
     build_paginated_search_query,
 )
-from models import EntityType, ObjectClass
+from models import AttributeType, EntityType, ObjectClass
+
+_converter = get_converter(ObjectClass, ObjectClassDTO)
 
 
-class ObjectClassSchema(BaseModel):
-    """Object Class Schema."""
-
-    oid: str
-    name: str
-    superior_name: str | None
-    kind: KindType
-    is_system: bool
-    attribute_type_names_must: list[str]
-    attribute_type_names_may: list[str]
-
-
-class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
-    """Object Class Schema with pagination result."""
-
-    items: list[ObjectClassSchema]
-
-
-class ObjectClassUpdateSchema(BaseModel):
-    """Object Class Schema for modify/update."""
-
-    attribute_type_names_must: list[str]
-    attribute_type_names_may: list[str]
-
-
-class ObjectClassDAO:
+class ObjectClassDAO(AbstractDAO[ObjectClassDTO]):
     """Object Class DAO."""
 
     __session: AsyncSession
     __attribute_type_dao: AttributeTypeDAO
-
-    ObjectClassNotFoundError = InstanceNotFoundError
-    ObjectClassCantModifyError = InstanceCantModifyError
 
     def __init__(
         self,
@@ -68,6 +49,56 @@ class ObjectClassDAO:
         """Initialize Object Class DAO with session."""
         self.__session = session
         self.__attribute_type_dao = attribute_type_dao
+
+    async def _get_raw(self, _id: int) -> ObjectClass:
+        """Get raw Object Class by id."""
+        object_class = await self.__session.scalar(
+            select(ObjectClass).where(ObjectClass.id == _id),
+        )
+        if not object_class:
+            raise ObjectClassNotFoundError(
+                f"Object Class with id {_id} not found.",
+            )
+        return object_class
+
+    async def get(self, _id: int) -> ObjectClassDTO:
+        """Get Object Class by id."""
+        return _converter(await self._get_raw(_id))
+
+    async def get_all(self) -> list[ObjectClassDTO]:
+        """Get all Object Classes."""
+        return [
+            _converter(object_class)
+            for object_class in await self.__session.scalars(
+                select(ObjectClass),
+            )
+        ]
+
+    async def create(self, dto: ObjectClassDTO) -> None:
+        """Create Object Class."""
+        dto_dict = asdict(dto)
+        dto_dict.pop("attribute_types_must", None)
+        dto_dict.pop("attribute_types_may", None)
+
+        object_class = ObjectClass(**dto_dict)
+        self.__session.add(object_class)
+        await self.__session.flush()
+
+    async def update(self, _id: int, dto: ObjectClassDTO) -> None:
+        """Update Object Class."""
+        object_class = await self._get_raw(_id)
+        object_class.oid = dto.oid
+        object_class.name = dto.name
+        object_class.superior_name = dto.superior_name
+        object_class.kind = dto.kind
+        object_class.is_system = dto.is_system
+        await self.__session.flush()
+
+    async def delete(self, _id: int) -> None:
+        """Delete Object Class."""
+        object_class = await self._get_raw(_id)
+        await self.__session.delete(object_class)
+        await self.__session.flush()
 
     async def get_paginator(
         self,
@@ -93,13 +124,7 @@ class ObjectClassDAO:
 
     async def create_one(
         self,
-        oid: str,
-        name: str,
-        superior_name: str | None,
-        kind: KindType,
-        is_system: bool,
-        attribute_type_names_must: list[str],
-        attribute_type_names_may: list[str],
+        dto: ObjectClassRequestDTO,
     ) -> None:
         """Create a new Object Class.
 
@@ -113,42 +138,63 @@ class ObjectClassDAO:
         :raise ObjectClassNotFoundError: If superior Object Class not found.
         :return None.
         """
-        superior = (
-            await self.get_one_by_name(superior_name)
-            if superior_name
-            else None
-        )
-        if superior_name and not superior:
-            raise self.ObjectClassNotFoundError(
-                f"Superior (parent) Object class {superior_name} not found\
-                    in schema.",
+        try:
+            superior = None
+            if dto.superior_name:
+                superior_query = await self.__session.scalars(
+                    select(ObjectClass).where(
+                        ObjectClass.name == dto.superior_name,
+                    ),
+                )
+                superior = superior_query.first()
+            if dto.superior_name and not superior:
+                raise ObjectClassNotFoundError(
+                    f"Superior (parent) Object class {dto.superior_name} not \
+                        found in schema.",
+                )
+
+            attribute_types_may_filtered = [
+                name
+                for name in dto.attribute_type_names_may
+                if name not in dto.attribute_type_names_must
+            ]
+
+            if dto.attribute_type_names_must:
+                must_query = await self.__session.scalars(
+                    select(AttributeType).where(
+                        AttributeType.name.in_(dto.attribute_type_names_must),
+                    ),
+                )
+                attribute_types_must = list(must_query.all())
+            else:
+                attribute_types_must = []
+
+            if attribute_types_may_filtered:
+                may_query = await self.__session.scalars(
+                    select(AttributeType).where(
+                        AttributeType.name.in_(attribute_types_may_filtered),
+                    ),
+                )
+                attribute_types_may = list(may_query.all())
+            else:
+                attribute_types_may = []
+
+            object_class = ObjectClass(
+                oid=dto.oid,
+                name=dto.name,
+                superior=superior,
+                kind=dto.kind,
+                is_system=dto.is_system,
+                attribute_types_must=attribute_types_must,
+                attribute_types_may=attribute_types_may,
             )
-
-        attribute_types_may_filtered = [
-            name
-            for name in attribute_type_names_may
-            if name not in attribute_type_names_must
-        ]
-
-        attribute_types_must = (
-            await self.__attribute_type_dao.get_all_by_names(
-                attribute_type_names_must,
+            self.__session.add(object_class)
+            await self.__session.flush()
+        except IntegrityError:
+            raise ObjectClassAlreadyExistsError(
+                f"Object Class with oid '{dto.oid}' and name"
+                + f" '{dto.name}' already exists.",
             )
-        )
-        attribute_types_may = await self.__attribute_type_dao.get_all_by_names(
-            attribute_types_may_filtered,
-        )
-
-        object_class = ObjectClass(
-            oid=oid,
-            name=name,
-            superior=superior,
-            kind=kind,
-            is_system=is_system,
-            attribute_types_must=attribute_types_must,
-            attribute_types_may=attribute_types_may,
-        )
-        self.__session.add(object_class)
 
     async def _count_exists_object_class_by_names(
         self,
@@ -186,7 +232,7 @@ class ObjectClassDAO:
         )
 
         if count_ != len(object_class_names):
-            raise self.ObjectClassNotFoundError(
+            raise ObjectClassNotFoundError(
                 f"Not all Object Classes\
                     with names {object_class_names} found.",
             )
@@ -196,7 +242,7 @@ class ObjectClassDAO:
     async def get_one_by_name(
         self,
         object_class_name: str,
-    ) -> ObjectClass:
+    ) -> ObjectClassDTO:
         """Get single Object Class by name.
 
         :param str object_class_name: Object Class name.
@@ -205,24 +251,28 @@ class ObjectClassDAO:
         """
         object_class = await self.__session.scalar(
             select(ObjectClass)
-            .where(ObjectClass.name == object_class_name),
+            .where(ObjectClass.name == object_class_name)
+            .options(
+                selectinload(ObjectClass.attribute_types_must),
+                selectinload(ObjectClass.attribute_types_may),
+            ),
         )  # fmt: skip
 
         if not object_class:
-            raise self.ObjectClassNotFoundError(
+            raise ObjectClassNotFoundError(
                 f"Object Class with name '{object_class_name}' not found.",
             )
 
-        return object_class
+        return _converter(object_class)
 
     async def get_all_by_names(
         self,
         object_class_names: list[str] | set[str],
-    ) -> list[ObjectClass]:
+    ) -> list[ObjectClassDTO]:
         """Get list of Object Classes by names.
 
         :param list[str] object_class_names: Object Classes names.
-        :return list[ObjectClass]: List of Object Classes.
+        :return list[ObjectClassDTO]: List of Object Classes.
         """
         query = await self.__session.scalars(
             select(ObjectClass)
@@ -232,44 +282,56 @@ class ObjectClassDAO:
                 selectinload(ObjectClass.attribute_types_may),
             ),
         )  # fmt: skip
-        return list(query.all())
+        return list(map(_converter, query.all()))
 
     async def modify_one(
         self,
-        object_class: ObjectClass,
-        new_statement: ObjectClassUpdateSchema,
+        object_class: ObjectClassDTO,
+        new_statement: ObjectClassUpdateDTO,
     ) -> None:
         """Modify Object Class.
 
-        :param ObjectClass object_class: Object Class.
-        :param ObjectClassUpdateSchema new_statement: New statement ObjectClass
+        :param ObjectClassDTO object_class: Object Class.
+        :param ObjectClassDTO new_statement: New statement ObjectClass
         :raise ObjectClassCantModifyError: If Object Class is system,\
             it cannot be changed.
         :return None.
         """
         if object_class.is_system:
-            raise self.ObjectClassCantModifyError(
+            raise ObjectClassCantModifyError(
                 "System Object Class cannot be modified.",
             )
 
-        object_class.attribute_types_must.clear()
-        object_class.attribute_types_must.extend(
-            await self.__attribute_type_dao.get_all_by_names(
-                new_statement.attribute_type_names_must,
-            ),
-        )
+        db_object_class = await self._get_raw(object_class.id)
+
+        db_object_class.attribute_types_must.clear()
+        db_object_class.attribute_types_may.clear()
+
+        if new_statement.attribute_type_names_must:
+            must_query = await self.__session.scalars(
+                select(AttributeType).where(
+                    AttributeType.name.in_(
+                        new_statement.attribute_type_names_must,
+                    ),
+                ),
+            )
+            db_object_class.attribute_types_must.extend(must_query.all())
 
         attribute_types_may_filtered = [
             name
             for name in new_statement.attribute_type_names_may
             if name not in new_statement.attribute_type_names_must
         ]
-        object_class.attribute_types_may.clear()
-        object_class.attribute_types_may.extend(
-            await self.__attribute_type_dao.get_all_by_names(
-                attribute_types_may_filtered,
-            ),
-        )
+
+        if attribute_types_may_filtered:
+            may_query = await self.__session.scalars(
+                select(AttributeType).where(
+                    AttributeType.name.in_(attribute_types_may_filtered),
+                ),
+            )
+            db_object_class.attribute_types_may.extend(list(may_query.all()))
+
+        await self.__session.flush()
 
     async def delete_all_by_names(
         self,

@@ -4,7 +4,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassUpdateSchema
+from api.ldap_schema.schema import ObjectClassUpdateSchema
 
 from .test_object_class_router_datasets import (
     test_create_one_object_class_dataset,

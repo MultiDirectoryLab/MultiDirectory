@@ -4,58 +4,101 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from pydantic import BaseModel
+from adaptix import P
+from adaptix.conversion import get_converter, link_function
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.exceptions import (
-    InstanceCantModifyError,
-    InstanceNotFoundError,
+from abstract_dao import AbstractDAO
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
+from ldap_protocol.ldap_schema.exceptions import (
+    AttributeTypeAlreadyExistsError,
+    AttributeTypeCantModifyError,
+    AttributeTypeNotFoundError,
 )
 from ldap_protocol.utils.pagination import (
-    BasePaginationSchema,
     PaginationParams,
     PaginationResult,
     build_paginated_search_query,
 )
 from models import AttributeType
 
-
-class AttributeTypeSchema(BaseModel):
-    """Attribute Type Schema."""
-
-    oid: str
-    name: str
-    syntax: str
-    single_value: bool
-    no_user_modification: bool
-    is_system: bool
-
-
-class AttributeTypeUpdateSchema(BaseModel):
-    """Attribute Type Schema for modify/update."""
-
-    syntax: str
-    single_value: bool
-    no_user_modification: bool
+_convert_model_to_dto = get_converter(AttributeType, AttributeTypeDTO)
+_convert_dto_to_model = get_converter(
+    AttributeTypeDTO,
+    AttributeType,
+    recipe=[
+        link_function(
+            lambda _: None,
+            P[AttributeType].id,
+        ),
+    ],
+)
 
 
-class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
-    """Attribute Type Schema with pagination result."""
-
-    items: list[AttributeTypeSchema]
-
-
-class AttributeTypeDAO:
+class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
     """Attribute Type DAO."""
 
     __session: AsyncSession
-    AttributeTypeNotFoundError = InstanceNotFoundError
-    AttributeTypeCantModifyError = InstanceCantModifyError
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
+
+    async def _get_raw(self, _id: int) -> AttributeType:
+        """Get Attribute Type by id."""
+        attribute_type = await self.__session.get(AttributeType, _id)
+        if not attribute_type:
+            raise AttributeTypeNotFoundError(
+                f"Attribute Type with id {_id} not found.",
+            )
+        return attribute_type
+
+    async def get(self, _id: int) -> AttributeTypeDTO:
+        """Get Attribute Type by id."""
+        return _convert_model_to_dto(await self._get_raw(_id))
+
+    async def get_all(self) -> list[AttributeTypeDTO]:
+        """Get all Attribute Types."""
+        return [
+            _convert_model_to_dto(attribute_type)
+            for attribute_type in await self.__session.scalars(
+                select(AttributeType),
+            )
+        ]
+
+    async def create(self, dto: AttributeTypeDTO) -> None:
+        """Create Attribute Type."""
+        try:
+            attribute_type = _convert_dto_to_model(dto)
+            self.__session.add(attribute_type)
+            await self.__session.flush()
+        except IntegrityError:
+            raise AttributeTypeAlreadyExistsError(
+                f"Attribute Type with oid '{dto.oid}' and name"
+                + f" '{dto.name}' already exists.",
+            )
+
+    async def update(self, _id: int, dto: AttributeTypeDTO) -> None:
+        """Update Attribute Type."""
+        if dto.is_system:
+            raise AttributeTypeCantModifyError(
+                "System Attribute Type cannot be modified.",
+            )
+        attribute_type = await self._get_raw(_id)
+        attribute_type.oid = dto.oid
+        attribute_type.name = dto.name
+        attribute_type.syntax = dto.syntax
+        attribute_type.single_value = dto.single_value
+        attribute_type.no_user_modification = dto.no_user_modification
+        await self.__session.flush()
+
+    async def delete(self, _id: int) -> None:
+        """Delete Attribute Type."""
+        attribute_type = await self._get_raw(_id)
+        await self.__session.delete(attribute_type)
+        await self.__session.flush()
 
     async def get_paginator(
         self,
@@ -79,39 +122,10 @@ class AttributeTypeDAO:
             session=self.__session,
         )
 
-    async def create_one(
-        self,
-        oid: str,
-        name: str,
-        syntax: str,
-        single_value: bool,
-        no_user_modification: bool,
-        is_system: bool,
-    ) -> None:
-        """Create a new Attribute Type.
-
-        :param str oid: OID.
-        :param str name: Name.
-        :param str syntax: Syntax.
-        :param bool single_value: Single value.
-        :param bool no_user_modification: User can't modify it.
-        :param bool is_system: Attribute Type is system.
-        :return None.
-        """
-        attribute_type = AttributeType(
-            oid=oid,
-            name=name,
-            syntax=syntax,
-            single_value=single_value,
-            no_user_modification=no_user_modification,
-            is_system=is_system,
-        )
-        self.__session.add(attribute_type)
-
     async def get_one_by_name(
         self,
         attribute_type_name: str,
-    ) -> AttributeType:
+    ) -> AttributeTypeDTO:
         """Get single Attribute Type by name.
 
         :param str attribute_type_name: Attribute Type name.
@@ -124,20 +138,20 @@ class AttributeTypeDAO:
         )  # fmt: skip
 
         if not attribute_type:
-            raise self.AttributeTypeNotFoundError(
+            raise AttributeTypeNotFoundError(
                 f"Attribute Type with name '{attribute_type_name}' not found.",
             )
 
-        return attribute_type
+        return _convert_model_to_dto(attribute_type)
 
     async def get_all_by_names(
         self,
         attribute_type_names: list[str] | set[str],
-    ) -> list[AttributeType]:
+    ) -> list[AttributeTypeDTO]:
         """Get list of Attribute Types by names.
 
         :param list[str] attribute_type_names: Attribute Type names.
-        :return list[AttributeType]: List of Attribute Types.
+        :return list[AttributeTypeDTO]: List of Attribute Types.
         """
         if not attribute_type_names:
             return []
@@ -146,31 +160,7 @@ class AttributeTypeDAO:
             select(AttributeType)
             .where(AttributeType.name.in_(attribute_type_names)),
         )  # fmt: skip
-        return list(query.all())
-
-    async def modify_one(
-        self,
-        attribute_type: AttributeType,
-        new_statement: AttributeTypeUpdateSchema,
-    ) -> None:
-        """Modify Attribute Type.
-
-        :param AttributeType attribute_type: Attribute Type.
-        :param AttributeTypeUpdateSchema new_statement: Attribute Type Schema.
-        :raise AttributeTypeCantModifyError: If Attribute Type is system,\
-            it cannot be changed.
-        :return None.
-        """
-        if attribute_type.is_system:
-            raise self.AttributeTypeCantModifyError(
-                "System Attribute Type cannot be modified.",
-            )
-
-        attribute_type.syntax = new_statement.syntax
-        attribute_type.single_value = new_statement.single_value
-        attribute_type.no_user_modification = (
-            new_statement.no_user_modification
-        )
+        return list(map(_convert_model_to_dto, query.all()))
 
     async def delete_all_by_names(
         self,
@@ -179,11 +169,10 @@ class AttributeTypeDAO:
         """Delete not system Attribute Types by names.
 
         :param list[str] attribute_type_names: List of Attribute Types names.
-        :param AsyncSession session: Database session.
         :return None: None.
         """
         if not attribute_type_names:
-            return None
+            return
 
         await self.__session.execute(
             delete(AttributeType)
@@ -192,3 +181,4 @@ class AttributeTypeDAO:
                 AttributeType.is_system.is_(False),
             ),
         )  # fmt: skip
+        await self.__session.flush()

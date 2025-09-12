@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from constants import ENTITY_TYPE_DATAS
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.queries import get_base_directories
@@ -106,10 +107,13 @@ def upgrade() -> None:
         )
 
         for entity_type_data in ENTITY_TYPE_DATAS:
-            await entity_type_dao.create_one(
-                name=entity_type_data["name"],
-                object_class_names=entity_type_data["object_class_names"],
-                is_system=True,
+            await entity_type_dao.create(
+                dto=EntityTypeDTO(
+                    id=None,
+                    name=entity_type_data["name"],
+                    object_class_names=entity_type_data["object_class_names"],
+                    is_system=True,
+                ),
             )
 
         await session.commit()
