@@ -77,13 +77,28 @@ class RoleUseCase:
 
         inheritance_conditions = or_(subtree_inheritance, explicit_inheritance)
 
+        subquery = (
+            select(Directory.id)
+            .where(Directory.parent_id == parent_directory.id)
+            .scalar_subquery()
+        )
+
         query = (
             select(AccessControlEntry)
             .join(AccessControlEntry.directories)
             .options(
                 selectinload(AccessControlEntry.directories),
             )
-            .where(directory_filter, inheritance_conditions)
+            .where(
+                or_(
+                    and_(directory_filter, inheritance_conditions),
+                    and_(
+                        Directory.id.in_(subquery),
+                        AccessControlEntry.scope == RoleScope.SINGLE_LEVEL,
+                        AccessControlEntry.depth == parent_directory.depth,
+                    ),
+                ),
+            )
         )
 
         aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
