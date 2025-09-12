@@ -90,6 +90,22 @@ _convert_dto_to_schema = get_converter(
 )
 
 
+def make_attribute_type_update_dto(
+    request: AttributeTypeUpdateSchema,
+    existing_attribute_type: AttributeTypeDTO,
+) -> AttributeTypeDTO:
+    """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
+    return AttributeTypeDTO(
+        id=existing_attribute_type.id,
+        oid=existing_attribute_type.oid,
+        name=existing_attribute_type.name,
+        syntax=request.syntax,
+        single_value=request.single_value,
+        no_user_modification=request.no_user_modification,
+        is_system=existing_attribute_type.is_system,
+    )
+
+
 class AttributeTypeFastAPIAdapter(
     BaseAdapter[AttributeTypeDAO],
     BaseLDAPSchema,
@@ -119,15 +135,13 @@ class AttributeTypeFastAPIAdapter(
         attribute_type = await self._service.get_one_by_name(
             attribute_type_name,
         )
+
+        updated_attribute_type = make_attribute_type_update_dto(
+            request_data,
+            attribute_type,
+        )
+
         await self._service.update(
             _id=attribute_type.get_id(),
-            dto=AttributeTypeDTO(
-                id=attribute_type.get_id(),
-                oid=attribute_type.oid,
-                name=attribute_type.name,
-                syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
-                single_value=request_data.single_value,
-                no_user_modification=DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-                is_system=attribute_type.is_system,
-            ),
+            dto=updated_attribute_type,
         )

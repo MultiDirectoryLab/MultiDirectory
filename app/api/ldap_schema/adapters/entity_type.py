@@ -40,6 +40,17 @@ def make_entity_type_request_dto(
     )
 
 
+def make_entity_type_shema_by_update(
+    data: EntityTypeUpdateSchema,
+) -> EntityTypeSchema:
+    """Convert EntityTypeUpdateSchema to EntityTypeSchema."""
+    return EntityTypeSchema(
+        is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
+        name=data.name,
+        object_class_names=data.object_class_names,
+    )
+
+
 def make_entity_type_schema(dto: EntityTypeDTO) -> EntityTypeSchema:
     """Convert EntityTypeDTO to EntityTypeSchema."""
     return EntityTypeSchema(
@@ -69,6 +80,20 @@ _convert_dto_to_schema = get_converter(
         ),
     ],
 )
+_convert_to_base_schema = get_converter(
+    EntityTypeUpdateSchema,
+    EntityTypeSchema,
+    recipe=[
+        link_function(
+            lambda data: EntityTypeSchema(
+                is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
+                name=data.name,
+                object_class_names=data.object_class_names,
+            ),
+            P[EntityTypeSchema],
+        ),
+    ],
+)
 
 
 class LDAPEntityTypeFastAPIAdapter(
@@ -84,38 +109,13 @@ class LDAPEntityTypeFastAPIAdapter(
     _dto = EntityTypeDTO
     converter_to_dto = _convert_request_to_dto
     converter_to_schema = _convert_dto_to_schema
+    converter_to_base_schema = make_entity_type_shema_by_update
 
     _exceptions_map: dict[type[Exception], int] = {
         EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
-
-    async def update(
-        self,
-        name: str,
-        request_data: EntityTypeUpdateSchema,
-    ) -> None:
-        """Modify an Entity Type.
-
-        \f
-        :param str name: Name of the Entity Type for modifying.
-        :param EntityTypeUpdateDTO request_data: Changed data.
-        :return None.
-        """
-        try:
-            entity_type = await self._service.get_one_by_name(name=name)
-        except EntityTypeNotFoundError:
-            raise EntityTypeCantModifyError
-
-        updated_entity_type = EntityTypeDTO(
-            id=entity_type.id,
-            name=request_data.name,
-            object_class_names=request_data.object_class_names,
-            is_system=entity_type.is_system,
-        )
-
-        await self._service.update(updated_entity_type, request_data.name)
 
     async def get_entity_type_attributes(
         self,
