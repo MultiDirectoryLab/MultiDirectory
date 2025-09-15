@@ -79,8 +79,8 @@ class RoleUseCase:
         inheritance_conditions = or_(subtree_inheritance, explicit_inheritance)
 
         subquery = (
-            select(directory_table.c.id)
-            .where(directory_table.c.parent_id == parent_directory.id)
+            select(qa(Directory.id))
+            .filter_by(parent_id=parent_directory.id)
             .scalar_subquery()
         )
 
@@ -94,9 +94,9 @@ class RoleUseCase:
                 or_(
                     and_(directory_filter, inheritance_conditions),
                     and_(
-                        directory_table.c.id.in_(subquery),
-                        access_control_entries_table.c.scope == RoleScope.SINGLE_LEVEL,
-                        access_control_entries_table.c.depth == parent_directory.depth,
+                        qa(Directory.id).in_(subquery),
+                        qa(AccessControlEntry.scope) == RoleScope.SINGLE_LEVEL,
+                        qa(AccessControlEntry.depth) == parent_directory.depth,
                     ),
                 ),
             )
