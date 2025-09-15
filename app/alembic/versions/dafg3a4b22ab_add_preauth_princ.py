@@ -10,15 +10,16 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
+from entities import Attribute, CatalogueSetting, User
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
-from models import Attribute, CatalogueSetting, User
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "dafg3a4b22ab"
 down_revision = "f68a134a3685"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
@@ -36,10 +37,7 @@ def upgrade() -> None:
 
         attr_principal = session.scalar(
             sa.select(Attribute)
-            .filter(
-                Attribute.name == "krbprincipalname",
-                Attribute.value == principal,
-            ),
+            .filter_by(name="krbprincipalname", value=principal),
         )  # fmt: skip
         if attr_principal:
             session.add(
@@ -53,15 +51,15 @@ def upgrade() -> None:
     # NOTE: Remove duplicate Kerberos state settings and keep the latest one
     settings = session.scalar(
         sa.select(CatalogueSetting)
-        .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
+        .filter_by(name=KERBEROS_STATE_NAME),
     )  # fmt: skip
 
     if settings:
         session.execute(
             sa.delete(CatalogueSetting)
             .where(
-                CatalogueSetting.name == KERBEROS_STATE_NAME,
-                CatalogueSetting.id != settings.id,
+                qa(CatalogueSetting.name) == KERBEROS_STATE_NAME,
+                qa(CatalogueSetting.id) != settings.id,
             ),
         )  # fmt: skip
 

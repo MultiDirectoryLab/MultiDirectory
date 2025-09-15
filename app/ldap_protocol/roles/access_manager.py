@@ -9,9 +9,10 @@ from typing import Literal
 from sqlalchemy import Select, and_
 from sqlalchemy.orm import selectinload, with_loader_criteria
 
+from entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from ldap_protocol.objects import Changes, Operation
-from models import AccessControlEntry, Directory
+from repo.pg.tables import queryable_attr as qa
 
 
 class AccessManager:
@@ -313,28 +314,30 @@ class AccessManager:
             null attribute_type_id
         :return: mutated query with access control entries loaded
         """
-        selectin_loader = selectinload(Directory.access_control_entries)
+        selectin_loader = selectinload(
+            qa(Directory.access_control_entries),
+        )
         if load_attribute_type:
             selectin_loader = selectin_loader.joinedload(
-                AccessControlEntry.attribute_type,
+                qa(AccessControlEntry.attribute_type),
             )
 
         criteria_conditions = [
-            AccessControlEntry.role_id.in_(user_role_ids),
+            qa(AccessControlEntry.role_id).in_(user_role_ids),
         ]
 
         if len(ace_types) == 1:
             criteria_conditions.append(
-                AccessControlEntry.ace_type == ace_types[0],  # type: ignore
+                qa(AccessControlEntry.ace_type) == ace_types[0],  # type: ignore
             )
         else:
             criteria_conditions.append(
-                AccessControlEntry.ace_type.in_(ace_types),
+                qa(AccessControlEntry.ace_type).in_(ace_types),
             )
 
         if require_attribute_type_null:
             criteria_conditions.append(
-                AccessControlEntry.attribute_type_id.is_(None),
+                qa(AccessControlEntry.attribute_type_id).is_(None),
             )
 
         return query.options(

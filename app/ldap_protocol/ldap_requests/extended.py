@@ -12,6 +12,7 @@ from loguru import logger
 from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 
+from entities import Directory, User
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -21,7 +22,6 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.utils.queries import get_user
-from models import Directory, User
 
 from .base import BaseRequest
 from .contexts import LDAPExtendedRequestContext
@@ -235,7 +235,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             )
             await ctx.password_use_cases.post_save_password_actions(user)
             await ctx.session.execute(
-                update(Directory).where(Directory.id == user.directory_id),
+                update(Directory).filter_by(id=user.directory_id),
             )
             await ctx.session.commit()
 
