@@ -99,7 +99,7 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
         .outerjoin(Directory.entity_type)
         .where(
             Directory.name.ilike(name),
-            EntityType.name == "User",
+            EntityType.name == "KRB Principal",
         )
         .scalar_subquery()
     )
