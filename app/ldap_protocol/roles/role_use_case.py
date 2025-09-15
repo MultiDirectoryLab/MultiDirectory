@@ -99,6 +99,7 @@ class RoleUseCase:
                     ),
                 ),
             )
+            .distinct()
         )
 
         aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
