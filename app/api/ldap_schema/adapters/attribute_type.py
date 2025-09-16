@@ -34,10 +34,12 @@ from ldap_protocol.ldap_schema.exceptions import (
 from .base_ldap_schema_adapter import BaseLDAPSchemaAdapter
 
 
-def _make_attribute_type_schema(dto: AttributeTypeDTO) -> AttributeTypeSchema:
+def _make_attribute_type_schema(
+    dto: AttributeTypeDTO[int],
+) -> AttributeTypeSchema:
     """Convert AttributeTypeDTO to AttributeTypeSchema."""
     return AttributeTypeSchema(
-        id=dto.get_id(),
+        id=dto.id,
         oid=dto.oid,
         name=dto.name,
         syntax=dto.syntax,
@@ -49,7 +51,7 @@ def _make_attribute_type_schema(dto: AttributeTypeDTO) -> AttributeTypeSchema:
 
 _convert_schema_to_dto = get_converter(
     AttributeTypeSchema,
-    AttributeTypeDTO,
+    AttributeTypeDTO[None],
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].id),
         link_function(
@@ -68,7 +70,7 @@ _convert_schema_to_dto = get_converter(
 )
 
 _convert_dto_to_schema = get_converter(
-    AttributeTypeDTO,
+    AttributeTypeDTO[int],
     AttributeTypeSchema,
     recipe=[
         link_function(_make_attribute_type_schema, P[AttributeTypeSchema]),
@@ -78,7 +80,7 @@ _convert_dto_to_schema = get_converter(
 
 def make_attribute_type_update_dto(
     request: AttributeTypeUpdateSchema,
-) -> AttributeTypeDTO:
+) -> AttributeTypeDTO[None]:
     """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
     return AttributeTypeDTO(
         id=None,

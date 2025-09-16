@@ -27,7 +27,7 @@ from .exceptions import (
     ObjectClassNotFoundError,
 )
 
-_converter = get_converter(ObjectClass, ObjectClassDTO[AttributeTypeDTO])
+_converter = get_converter(ObjectClass, ObjectClassDTO[int, AttributeTypeDTO])
 
 
 class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
@@ -87,7 +87,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
 
     async def create(
         self,
-        dto: ObjectClassDTO[str],
+        dto: ObjectClassDTO[None, str],
     ) -> None:
         """Create a new Object Class.
 
@@ -259,12 +259,12 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
     async def update(
         self,
         name: str,
-        new_statement: ObjectClassDTO[str],
+        dto: ObjectClassDTO[None, str],
     ) -> None:
         """Modify Object Class.
 
         :param ObjectClassDTO object_class: Object Class.
-        :param ObjectClassDTO new_statement: New statement ObjectClass
+        :param ObjectClassDTO dto: New statement ObjectClass
         :raise ObjectClassCantModifyError: If Object Class is system,\
             it cannot be changed.
         :return None.
@@ -278,11 +278,11 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         obj.attribute_types_must.clear()
         obj.attribute_types_may.clear()
 
-        if new_statement.attribute_types_must:
+        if dto.attribute_types_must:
             must_query = await self.__session.scalars(
                 select(AttributeType).where(
                     AttributeType.name.in_(
-                        new_statement.attribute_types_must,
+                        dto.attribute_types_must,
                     ),
                 ),
             )
@@ -290,8 +290,8 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
 
         attribute_types_may_filtered = [
             name
-            for name in new_statement.attribute_types_may
-            if name not in new_statement.attribute_types_must
+            for name in dto.attribute_types_may
+            if name not in dto.attribute_types_must
         ]
 
         if attribute_types_may_filtered:

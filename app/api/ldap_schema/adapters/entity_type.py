@@ -33,7 +33,7 @@ from ldap_protocol.ldap_schema.exceptions import (
 
 def make_entity_type_request_dto(
     request: EntityTypeSchema,
-) -> EntityTypeDTO:
+) -> EntityTypeDTO[None]:
     """Convert EntityTypeSchema to EntityTypeDTO."""
     return EntityTypeDTO(
         name=request.name,
@@ -53,10 +53,10 @@ def make_entity_type_shema_by_update(
     )
 
 
-def make_entity_type_schema(dto: EntityTypeDTO) -> EntityTypeSchema:
+def make_entity_type_schema(dto: EntityTypeDTO[int]) -> EntityTypeSchema:
     """Convert EntityTypeDTO to EntityTypeSchema."""
     return EntityTypeSchema(
-        id=dto.get_id(),
+        id=dto.id,
         name=dto.name,
         object_class_names=dto.object_class_names,
         is_system=dto.is_system,

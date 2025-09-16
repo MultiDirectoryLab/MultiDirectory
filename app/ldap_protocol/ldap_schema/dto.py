@@ -9,9 +9,11 @@ from typing import Generic, TypeVar
 
 from enums import KindType
 
+_IdT = TypeVar("_IdT", int, None)
+
 
 @dataclass
-class AttributeTypeDTO:
+class AttributeTypeDTO(Generic[_IdT]):
     """Attribute Type DTO."""
 
     oid: str
@@ -20,49 +22,31 @@ class AttributeTypeDTO:
     single_value: bool
     no_user_modification: bool
     is_system: bool
-    id: int | None = None
-
-    def get_id(self) -> int:
-        """Get the ID of the attribute type."""
-        if not self.id:
-            raise ValueError("ID is not set for the attribute type.")
-        return self.id
+    id: _IdT = None  # type: ignore
 
 
-_T = TypeVar("_T", AttributeTypeDTO, str)
+_LinkT = TypeVar("_LinkT", AttributeTypeDTO, str)
 
 
 @dataclass
-class ObjectClassDTO(Generic[_T]):
+class ObjectClassDTO(Generic[_IdT, _LinkT]):
     """Object Class DTO."""
 
-    id: int | None
+    id: _IdT
     oid: str
     name: str
     superior_name: str | None
     kind: KindType
     is_system: bool
-    attribute_types_must: list[_T]
-    attribute_types_may: list[_T]
-
-    def get_id(self) -> int:
-        """Get the ID of the object class."""
-        if not self.id:
-            raise ValueError("ID is not set for the object class.")
-        return self.id
+    attribute_types_must: list[_LinkT]
+    attribute_types_may: list[_LinkT]
 
 
 @dataclass
-class EntityTypeDTO:
+class EntityTypeDTO(Generic[_IdT]):
     """Entity Type DTO."""
 
     name: str
     is_system: bool
     object_class_names: list[str]
-    id: int | None = None
-
-    def get_id(self) -> int:
-        """Get the ID of the entity type."""
-        if not self.id:
-            raise ValueError("ID is not set for the entity type.")
-        return self.id
+    id: _IdT = None  # type: ignore

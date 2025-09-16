@@ -30,7 +30,7 @@ from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 
 def _convert_update_sch_to_dto(
     request: ObjectClassUpdateSchema,
-) -> ObjectClassDTO:
+) -> ObjectClassDTO[None, str]:
     """Convert ObjectClassUpdateSchema to ObjectClassDTO."""
     return ObjectClassDTO(
         id=None,
@@ -46,7 +46,7 @@ def _convert_update_sch_to_dto(
 
 _convert_schema_to_dto = get_converter(
     ObjectClassSchema,
-    ObjectClassDTO[str],
+    ObjectClassDTO[None, str],
     recipe=[
         link_function(
             lambda _: DEFAULT_OBJECT_CLASS_IS_SYSTEM,
@@ -65,7 +65,7 @@ _convert_schema_to_dto = get_converter(
 )
 
 _convert_dto_to_schema = get_converter(
-    ObjectClassDTO[AttributeTypeDTO],
+    ObjectClassDTO[int, AttributeTypeDTO],
     ObjectClassSchema,
     recipe=[
         link_function(
