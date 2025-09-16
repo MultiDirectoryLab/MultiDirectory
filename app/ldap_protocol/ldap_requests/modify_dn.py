@@ -24,14 +24,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import (
-    AccessControlEntry,
-    Attribute,
-    Directory,
-    DirectoryMembership,
-    Group,
-    User,
-)
+from models import AccessControlEntry, Attribute, Directory
 
 from .base import BaseRequest
 from .contexts import LDAPModifyDNRequestContext
@@ -92,7 +85,7 @@ class ModifyDNRequest(BaseRequest):
             new_superior=None if len(data) < 4 else data[3].value,
         )
 
-    async def handle(  # noqa: C901
+    async def handle(
         self,
         ctx: LDAPModifyDNRequestContext,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
@@ -155,47 +148,7 @@ class ModifyDNRequest(BaseRequest):
 
         dn, name = self.newrdn.split("=")
 
-        if self.new_superior is None:
-            new_directory = Directory(
-                name=name,
-                object_class=directory.object_class,
-                parent_id=directory.parent_id,
-                created_at=directory.created_at,
-                object_guid=directory.object_guid,
-                object_sid=directory.object_sid,
-            )
-
-            parent_query = select(Directory).filter(
-                Directory.id == directory.parent_id,
-            )
-            parent_query = ctx.access_manager.mutate_query_with_ace_load(
-                user_role_ids=ctx.ldap_session.user.role_ids,
-                query=parent_query,
-                ace_types=[AceType.CREATE_CHILD],
-                require_attribute_type_null=True,
-            )
-
-            parent_dir = await ctx.session.scalar(parent_query)
-            if parent_dir:
-                can_add = ctx.access_manager.check_entity_level_access(
-                    aces=parent_dir.access_control_entries,
-                    entity_type_id=directory.entity_type_id,
-                )
-                if not can_add:
-                    yield ModifyDNResponse(
-                        result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-                    )
-                    return
-
-            ctx.session.add(new_directory)
-            new_directory.create_path(directory.parent, dn)
-            if directory.parent:
-                await ctx.role_use_case.inherit_parent_aces(
-                    parent_directory=directory.parent,
-                    directory=new_directory,
-                )
-
-        else:
+        if self.new_superior:
             new_sup_query = select(Directory).filter(
                 get_filter_from_path(self.new_superior),
             )
@@ -223,23 +176,14 @@ class ModifyDNRequest(BaseRequest):
                 )
                 return
 
-            new_directory = Directory(
-                object_class=directory.object_class,
-                name=name,
-                parent=new_parent_dir,
-                object_guid=directory.object_guid,
-                object_sid=directory.object_sid,
-            )
-            ctx.session.add(new_directory)
-            new_directory.create_path(new_parent_dir, dn=dn)
+            directory.create_path(new_parent_dir, dn=dn)
 
             await ctx.role_use_case.inherit_parent_aces(
                 parent_directory=new_parent_dir,
-                directory=new_directory,
+                directory=directory,
             )
 
         try:
-            ctx.session.add(new_directory)
             await ctx.session.flush()
         except IntegrityError:
             await ctx.session.rollback()
@@ -247,14 +191,6 @@ class ModifyDNRequest(BaseRequest):
             return
 
         async with ctx.session.begin_nested():
-            await ctx.session.execute(
-                update(Directory)
-                .where(Directory.parent == directory)
-                .values(parent_id=new_directory.id),
-            )
-
-            await ctx.session.flush()
-
             if self.deleteoldrdn:
                 old_attr_name = directory.path[-1].split("=")[0]
                 await ctx.session.execute(
@@ -271,20 +207,12 @@ class ModifyDNRequest(BaseRequest):
                     Attribute(
                         name=dn,
                         value=name,
-                        directory=new_directory,
+                        directory=directory,
                     ),
                 )
             await ctx.session.flush()
 
-            for model in (User, Group, Attribute, DirectoryMembership):
-                await ctx.session.execute(
-                    update(model)
-                    .where(model.directory_id == directory.id)
-                    .values(directory_id=new_directory.id),
-                )
-
-            await ctx.session.flush()
-
+            new_path = directory.path[:-1] + [f"{dn}={name}"]
             update_query = (
                 update(Directory)
                 .where(
@@ -295,7 +223,7 @@ class ModifyDNRequest(BaseRequest):
                 )
                 .values(
                     path=func.array_cat(
-                        new_directory.path,
+                        new_path,
                         text("path[:depth :]").bindparams(
                             depth=directory.depth + 1,
                         ),
@@ -326,26 +254,10 @@ class ModifyDNRequest(BaseRequest):
             ).all()
 
             for ace in explicit_aces:
-                ace.directories.append(new_directory)
-                ace.path = new_directory.path_dn
-                ace.depth = new_directory.depth
+                ace.directories.append(directory)
+                ace.path = directory.path_dn
+                ace.depth = directory.depth
 
-            await ctx.session.flush()
-
-            # NOTE: update relationship, don't delete row
-            await ctx.session.refresh(directory)
-            await ctx.session.delete(directory)
-            await ctx.session.flush()
-
-            await ctx.session.refresh(
-                instance=new_directory,
-                attribute_names=["attributes"],
-                with_for_update=None,
-            )
-            await ctx.entity_type_dao.attach_entity_type_to_directory(
-                directory=new_directory,
-                is_system_entity_type=False,
-            )
             await ctx.session.flush()
 
         await ctx.session.commit()

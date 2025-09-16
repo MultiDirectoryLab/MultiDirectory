@@ -63,7 +63,7 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
             "entry": old_group_dn,
             "newrdn": newrdn_group,
             "deleteoldrdn": True,
-            "new_superior": new_superior_group,
+            "new_superior": None,  # TODO зачем тут был указан новый родитель, хотя родитель не меняется?
         },
     )
 
