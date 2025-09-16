@@ -29,28 +29,18 @@ DtoT = TypeVar("DtoT", bound=_DataclassInstance)
 class _ServiceProtocol(Protocol[DtoT]):
     """Protocol for service layer operations."""
 
-    async def create(self, dto: DtoT) -> None:
-        """Create a new entity."""
-        ...
+    async def create(self, dto: DtoT) -> None: ...
 
-    async def get(self, _id: str) -> DtoT:
-        """Get entity by ID."""
-        ...
+    async def get(self, _id: str) -> DtoT: ...
 
     async def get_paginator(
         self,
         params: PaginationParams,
-    ) -> PaginationResult:
-        """Get paginated entities."""
-        ...
+    ) -> PaginationResult: ...
 
-    async def update(self, _id: str, dto: DtoT) -> None:
-        """Update entity."""
-        ...
+    async def update(self, _id: str, dto: DtoT) -> None: ...
 
-    async def delete_all_by_names(self, names: list[str]) -> None:
-        """Delete multiple entities by names."""
-        ...
+    async def delete_all_by_names(self, names: list[str]) -> None: ...
 
 
 ServiceT = TypeVar("ServiceT", bound=_ServiceProtocol)
