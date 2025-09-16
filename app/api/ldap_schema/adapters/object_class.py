@@ -28,12 +28,11 @@ from ldap_protocol.ldap_schema.exceptions import (
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 
 
-def _convert_update_sch_to_dto(
+def _convert_update_schema_to_dto(
     request: ObjectClassUpdateSchema,
 ) -> ObjectClassDTO[None, str]:
     """Convert ObjectClassUpdateSchema to ObjectClassDTO."""
     return ObjectClassDTO(
-        id=None,
         oid="",
         name="",
         superior_name="",
@@ -96,7 +95,7 @@ class ObjectClassFastAPIAdapter(
 
     _converter_to_dto = staticmethod(_convert_schema_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
-    _converter_update_sch_to_dto = staticmethod(_convert_update_sch_to_dto)
+    _converter_update_sch_to_dto = staticmethod(_convert_update_schema_to_dto)
 
     _exceptions_map: dict[type[Exception], int] = {
         ObjectClassAlreadyExistsError: status.HTTP_409_CONFLICT,

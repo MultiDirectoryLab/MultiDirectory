@@ -34,18 +34,17 @@ from ldap_protocol.ldap_schema.exceptions import (
 from .base_ldap_schema_adapter import BaseLDAPSchemaAdapter
 
 
-def _make_attribute_type_schema(
-    dto: AttributeTypeDTO[int],
-) -> AttributeTypeSchema:
-    """Convert AttributeTypeDTO to AttributeTypeSchema."""
-    return AttributeTypeSchema(
-        id=dto.id,
-        oid=dto.oid,
-        name=dto.name,
-        syntax=dto.syntax,
-        single_value=dto.single_value,
-        no_user_modification=dto.no_user_modification,
-        is_system=dto.is_system,
+def _convert_update_uschema_to_dto(
+    request: AttributeTypeUpdateSchema,
+) -> AttributeTypeDTO[None]:
+    """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
+    return AttributeTypeDTO(
+        oid="",
+        name="",
+        syntax=request.syntax,
+        single_value=request.single_value,
+        no_user_modification=request.no_user_modification,
+        is_system=False,
     )
 
 
@@ -72,25 +71,7 @@ _convert_schema_to_dto = get_converter(
 _convert_dto_to_schema = get_converter(
     AttributeTypeDTO[int],
     AttributeTypeSchema,
-    recipe=[
-        link_function(_make_attribute_type_schema, P[AttributeTypeSchema]),
-    ],
 )
-
-
-def make_attribute_type_update_dto(
-    request: AttributeTypeUpdateSchema,
-) -> AttributeTypeDTO[None]:
-    """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
-    return AttributeTypeDTO(
-        id=None,
-        oid="",
-        name="",
-        syntax=request.syntax,
-        single_value=request.single_value,
-        no_user_modification=request.no_user_modification,
-        is_system=False,
-    )
 
 
 class AttributeTypeFastAPIAdapter(
@@ -109,7 +90,7 @@ class AttributeTypeFastAPIAdapter(
 
     _converter_to_dto = staticmethod(_convert_schema_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
-    _converter_update_sch_to_dto = staticmethod(make_attribute_type_update_dto)
+    _converter_update_sch_to_dto = staticmethod(_convert_update_uschema_to_dto)
 
     _exceptions_map: dict[type[Exception], int] = {
         AttributeTypeAlreadyExistsError: status.HTTP_409_CONFLICT,

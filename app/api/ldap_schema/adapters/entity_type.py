@@ -5,11 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from adaptix import P
-from adaptix.conversion import (
-    allow_unlinked_optional,
-    get_converter,
-    link_function,
-)
+from adaptix.conversion import allow_unlinked_optional, get_converter
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
@@ -31,18 +27,7 @@ from ldap_protocol.ldap_schema.exceptions import (
 )
 
 
-def make_entity_type_request_dto(
-    request: EntityTypeSchema,
-) -> EntityTypeDTO[None]:
-    """Convert EntityTypeSchema to EntityTypeDTO."""
-    return EntityTypeDTO(
-        name=request.name,
-        is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
-        object_class_names=request.object_class_names,
-    )
-
-
-def make_entity_type_shema_by_update(
+def _convert_update_chema_to_dto(
     data: EntityTypeUpdateSchema,
 ) -> EntityTypeDTO:
     """Convert EntityTypeUpdateSchema to EntityTypeDTO."""
@@ -53,48 +38,15 @@ def make_entity_type_shema_by_update(
     )
 
 
-def make_entity_type_schema(dto: EntityTypeDTO[int]) -> EntityTypeSchema:
-    """Convert EntityTypeDTO to EntityTypeSchema."""
-    return EntityTypeSchema(
-        id=dto.id,
-        name=dto.name,
-        object_class_names=dto.object_class_names,
-        is_system=dto.is_system,
-    )
-
-
 _convert_request_to_dto = get_converter(
     EntityTypeSchema,
-    EntityTypeDTO,
-    recipe=[
-        link_function(make_entity_type_request_dto, P[EntityTypeDTO]),
-        allow_unlinked_optional(P[EntityTypeDTO].id),
-    ],
+    EntityTypeDTO[None],
+    recipe=[allow_unlinked_optional(P[EntityTypeDTO].id)],
 )
 
 _convert_dto_to_schema = get_converter(
-    EntityTypeDTO,
+    EntityTypeDTO[int],
     EntityTypeSchema,
-    recipe=[
-        link_function(
-            lambda dto: dto.get_id(),
-            P[EntityTypeSchema].id,
-        ),
-    ],
-)
-_convert_to_base_schema = get_converter(
-    EntityTypeUpdateSchema,
-    EntityTypeSchema,
-    recipe=[
-        link_function(
-            lambda data: EntityTypeSchema(
-                is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
-                name=data.name,
-                object_class_names=data.object_class_names,
-            ),
-            P[EntityTypeSchema],
-        ),
-    ],
 )
 
 
@@ -114,9 +66,7 @@ class LDAPEntityTypeFastAPIAdapter(
 
     _converter_to_dto = staticmethod(_convert_request_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
-    _converter_update_sch_to_dto = staticmethod(
-        make_entity_type_shema_by_update,
-    )
+    _converter_update_sch_to_dto = staticmethod(_convert_update_chema_to_dto)
 
     _exceptions_map: dict[type[Exception], int] = {
         EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
@@ -124,13 +74,9 @@ class LDAPEntityTypeFastAPIAdapter(
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
     }
 
-    async def get_entity_type_attributes(
-        self,
-        name: str,
-    ) -> list[str]:
+    async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get all attribute names for an Entity Type.
 
-        \f
         :param str name: Entity Type name.
         :return list[str]: List of attribute names.
         """
