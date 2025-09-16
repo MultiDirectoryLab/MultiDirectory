@@ -19,7 +19,7 @@ from .exception import AuditNotFoundError
 _convert = get_converter(AuditPolicy, AuditPolicyDTO)
 
 
-class AuditPoliciesDAO(AbstractDAO[AuditPolicyDTO]):
+class AuditPoliciesDAO(AbstractDAO[AuditPolicyDTO, int]):
     """Audit DAO for managing audit policies."""
 
     def __init__(self, session: AsyncSession) -> None:
