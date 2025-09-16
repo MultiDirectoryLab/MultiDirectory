@@ -164,7 +164,7 @@ async def test_role_search_5(
 
     User with a custom role should see all Users objects.
     """
-    user_entity_type = await entity_type_dao.get_one_by_name("User")
+    user_entity_type = await entity_type_dao.get("User")
     assert user_entity_type
 
     ace = AccessControlEntryDTO(
@@ -212,10 +212,10 @@ async def test_role_search_6(
 
     User with a custom role should see only the posixEmail attribute.
     """
-    user_entity_type = await entity_type_dao.get_one_by_name("User")
+    user_entity_type = await entity_type_dao.get("User")
     assert user_entity_type
 
-    posix_email_attr = await attribute_type_dao.get_one_by_name("posixEmail")
+    posix_email_attr = await attribute_type_dao.get("posixEmail")
     assert posix_email_attr
 
     ace = AccessControlEntryDTO(
@@ -261,10 +261,10 @@ async def test_role_search_7(
 
     User with a custom role should see all attributes except description.
     """
-    user_entity_type = await entity_type_dao.get_one_by_name("User")
+    user_entity_type = await entity_type_dao.get("User")
     assert user_entity_type
 
-    description_attr = await attribute_type_dao.get_one_by_name("description")
+    description_attr = await attribute_type_dao.get("description")
     assert description_attr
 
     aces = [
@@ -321,10 +321,10 @@ async def test_role_search_8(
 
     User with a custom role should see only the description attribute.
     """
-    user_entity_type = await entity_type_dao.get_one_by_name("User")
+    user_entity_type = await entity_type_dao.get("User")
     assert user_entity_type
 
-    description_attr = await attribute_type_dao.get_one_by_name("description")
+    description_attr = await attribute_type_dao.get("description")
     assert description_attr
 
     aces = [
@@ -381,13 +381,13 @@ async def test_role_search_9(
 
     User with a custom role should see only the posixEmail attribute.
     """
-    user_entity_type = await entity_type_dao.get_one_by_name("User")
+    user_entity_type = await entity_type_dao.get("User")
     assert user_entity_type
 
-    description_attr = await attribute_type_dao.get_one_by_name("description")
+    description_attr = await attribute_type_dao.get("description")
     assert description_attr
 
-    posix_email_attr = await attribute_type_dao.get_one_by_name("posixEmail")
+    posix_email_attr = await attribute_type_dao.get("posixEmail")
     assert posix_email_attr
 
     aces = [

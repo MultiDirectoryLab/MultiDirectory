@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dataclasses import dataclass
+from typing import Generic, TypeVar
 
 from enums import KindType
 
@@ -28,48 +29,27 @@ class AttributeTypeDTO:
         return self.id
 
 
-@dataclass
-class AttributeTypeUpdateDTO:
-    """Attribute Type Update DTO."""
-
-    syntax: str
-    single_value: bool
-    no_user_modification: bool
+_T = TypeVar("_T", AttributeTypeDTO, str)
 
 
 @dataclass
-class ObjectClassRequestDTO:
-    """Object Class Request DTO."""
-
-    oid: str
-    name: str
-    superior_name: str | None
-    kind: KindType
-    attribute_type_names_must: list[str]
-    attribute_type_names_may: list[str]
-    is_system: bool
-
-
-@dataclass
-class ObjectClassDTO:
+class ObjectClassDTO(Generic[_T]):
     """Object Class DTO."""
 
-    id: int
+    id: int | None
     oid: str
     name: str
     superior_name: str | None
     kind: KindType
     is_system: bool
-    attribute_types_must: list[AttributeTypeDTO]
-    attribute_types_may: list[AttributeTypeDTO]
+    attribute_types_must: list[_T]
+    attribute_types_may: list[_T]
 
-
-@dataclass
-class ObjectClassUpdateDTO:
-    """Object Class Update DTO."""
-
-    attribute_type_names_must: list[str]
-    attribute_type_names_may: list[str]
+    def get_id(self) -> int:
+        """Get the ID of the object class."""
+        if not self.id:
+            raise ValueError("ID is not set for the object class.")
+        return self.id
 
 
 @dataclass
@@ -86,11 +66,3 @@ class EntityTypeDTO:
         if not self.id:
             raise ValueError("ID is not set for the entity type.")
         return self.id
-
-
-@dataclass
-class EntityTypeUpdateDTO:
-    """Entity Type Update DTO."""
-
-    name: str
-    object_class_names: list[str]

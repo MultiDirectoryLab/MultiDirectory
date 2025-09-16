@@ -364,24 +364,17 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        attribute_type_dao = AttributeTypeDAO(session)
-        object_class_dao = ObjectClassDAO(
-            session,
-            attribute_type_dao=attribute_type_dao,
-        )
+        at_dao = AttributeTypeDAO(session)
+        oc_dao = ObjectClassDAO(session)
 
-        for object_class_name, attribute_type_may_names in (
+        for oc_name, at_names in (
             ("user", ("nsAccountLock", "shadowExpire")),
             ("computer", ("userAccountControl",)),
             ("posixAccount", ("posixEmail",)),
             ("organizationalUnit", ("title", "jpegPhoto")),
         ):
-            object_class = await object_class_dao.get_one_by_name(
-                object_class_name=object_class_name,
-            )
-            attribute_types_may = await attribute_type_dao.get_all_by_names(
-                attribute_type_names=attribute_type_may_names,
-            )
+            object_class = await oc_dao.get(oc_name)
+            attribute_types_may = await at_dao.get_all_by_names(at_names)
             object_class.attribute_types_may.extend(attribute_types_may)
 
         await session.commit()

@@ -39,10 +39,10 @@ class EntityTypeUseCase(AbstractService):
         )
         await self._entity_type_dao.create(dto)
 
-    async def update(self, dto: EntityTypeDTO, name: str) -> None:
+    async def update(self, _id: str, dto: EntityTypeDTO) -> None:
         """Update Entity Type."""
         try:
-            entity_type = await self.get_one_by_name(name=name)
+            entity_type = await self.get(_id)
 
         except EntityTypeNotFoundError:
             raise EntityTypeCantModifyError
@@ -50,15 +50,15 @@ class EntityTypeUseCase(AbstractService):
             raise EntityTypeCantModifyError(
                 f"Entity Type '{dto.name}' is system and cannot be modified.",
             )
-        if name != dto.name:
-            await self.validate_name(name=name)
-        await self._entity_type_dao.update(entity_type.get_id(), dto)
+        if _id != dto.name:
+            await self._validate_name(name=_id)
+        await self._entity_type_dao.update(entity_type.name, dto)
 
-    async def get_one_by_name(self, name: str) -> EntityTypeDTO:
+    async def get(self, _id: str) -> EntityTypeDTO:
         """Get Entity Type by name."""
-        return await self._entity_type_dao.get_one_by_name(name)
+        return await self._entity_type_dao.get(_id)
 
-    async def validate_name(
+    async def _validate_name(
         self,
         name: str,
     ) -> None:

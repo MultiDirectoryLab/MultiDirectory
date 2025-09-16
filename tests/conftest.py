@@ -232,16 +232,9 @@ class TestProvider(Provider):
         return AttributeTypeDAO(session)
 
     @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
-    def get_object_class_dao(
-        self,
-        attribute_type_dao: AttributeTypeDAO,
-        session: AsyncSession,
-    ) -> ObjectClassDAO:
+    def get_object_class_dao(self, session: AsyncSession) -> ObjectClassDAO:
         """Get Object Class DAO."""
-        return ObjectClassDAO(
-            attribute_type_dao=attribute_type_dao,
-            session=session,
-        )
+        return ObjectClassDAO(session=session)
 
     get_entity_type_dao = provide(
         EntityTypeDAO,
@@ -657,11 +650,7 @@ async def setup_session(
     password_validator: PasswordValidator,
 ) -> None:
     """Get session and acquire after completion."""
-    attribute_type_dao = AttributeTypeDAO(session)
-    object_class_dao = ObjectClassDAO(
-        session,
-        attribute_type_dao=attribute_type_dao,
-    )
+    object_class_dao = ObjectClassDAO(session)
     entity_type_dao = EntityTypeDAO(session, object_class_dao=object_class_dao)
     for entity_type_data in ENTITY_TYPE_DATAS:
         await entity_type_dao.create(
@@ -769,11 +758,7 @@ async def entity_type_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        attribute_type_dao = AttributeTypeDAO(session)
-        object_class_dao = ObjectClassDAO(
-            session,
-            attribute_type_dao=attribute_type_dao,
-        )
+        object_class_dao = ObjectClassDAO(session)
         yield EntityTypeDAO(session, object_class_dao)
 
 

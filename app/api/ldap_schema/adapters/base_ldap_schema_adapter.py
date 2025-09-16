@@ -4,7 +4,10 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any, Callable, ClassVar, Protocol
+from __future__ import annotations
+
+from dataclasses import Field
+from typing import ClassVar, Generic, Protocol, TypeVar
 
 from pydantic import BaseModel
 
@@ -12,78 +15,95 @@ from api.ldap_schema import LimitedListType
 from ldap_protocol.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
+    PaginationResult,
 )
 
 
-class BaseLDAPSchema(Protocol):
+class _DataclassInstance(Protocol):
+    __dataclass_fields__: ClassVar[dict[str, Field[object]]]
+
+
+DtoT = TypeVar("DtoT", bound=_DataclassInstance)
+
+
+class _ServiceProtocol(Protocol[DtoT]):
+    """Protocol for service layer operations."""
+
+    async def create(self, dto: DtoT) -> None:
+        """Create a new entity."""
+        ...
+
+    async def get(self, _id: str) -> DtoT:
+        """Get entity by ID."""
+        ...
+
+    async def get_paginator(
+        self,
+        params: PaginationParams,
+    ) -> PaginationResult:
+        """Get paginated entities."""
+        ...
+
+    async def update(self, _id: str, dto: DtoT) -> None:
+        """Update entity."""
+        ...
+
+    async def delete_all_by_names(self, names: list[str]) -> None:
+        """Delete multiple entities by names."""
+        ...
+
+
+ServiceT = TypeVar("ServiceT", bound=_ServiceProtocol)
+SchemaT = TypeVar("SchemaT", bound=BaseModel)
+UpdateSchemaT = TypeVar("UpdateSchemaT", bound=BaseModel)
+PaginationSchemaT = TypeVar("PaginationSchemaT", bound=BasePaginationSchema)
+
+
+class BaseLDAPSchemaAdapter(
+    Generic[
+        ServiceT,
+        SchemaT,
+        UpdateSchemaT,
+        PaginationSchemaT,
+        DtoT,
+    ],
+):
     """Base interface for LDAP Schema adapters with ClassVar behavior."""
 
-    _service: Any  # Service instance
-    _schema: ClassVar[type[BaseModel]]
-    _pagination_schema: ClassVar[type[BasePaginationSchema]]
-    _request_schema: ClassVar[type[BaseModel]]
-    _update_schema: ClassVar[type[BaseModel]]
-    _dto: ClassVar[type[Any]]
-    converter_to_dto: ClassVar[Callable[..., Any]]
-    converter_to_schema: ClassVar[Callable[..., Any]]
-    converter_to_base_schema: ClassVar[Callable[..., Any]]
+    _service: ServiceT
+    _pagination_schema: type[PaginationSchemaT]
 
-    def _convert_schema_to_dto(self, schema: BaseModel) -> Any:
-        """Convert schema to DTO using adaptix converter.
-
-        :param schema: Schema instance to convert.
-        :return: Converted DTO instance.
-        """
-        return type(self).converter_to_dto(schema)
-
-    def _convert_dto_to_schema(self, dto: Any) -> BaseModel:
-        """Convert DTO to schema using adaptix converter.
-
-        :param dto: DTO instance to convert.
-        :return: Converted schema instance.
-        """
-        return type(self).converter_to_schema(dto)
-
-    def _convert_to_base_schema(
-        self,
-        base_schema: Any,
-    ) -> Any:
-        """Convert base schema to schema using adaptix converter.
-
-        :param base_schema: Base schema instance to convert.
-        :return: Converted schema instance.
-        """
-        return type(self).converter_to_base_schema(base_schema)
+    _converter_to_dto: staticmethod[[SchemaT], DtoT]
+    _converter_to_schema: staticmethod[[DtoT], SchemaT]
+    _converter_update_sch_to_dto: staticmethod[[UpdateSchemaT], DtoT]
 
     async def create(
         self,
-        request_data: Any,
+        request_data: SchemaT,
     ) -> None:
         """Create a new entity.
 
         :param request_data: Data for creating entity.
         """
-        dto = self._convert_schema_to_dto(request_data)
+        dto = self._converter_to_dto(request_data)
         await self._service.create(dto)
 
     async def get(
         self,
         name: str,
-    ) -> BaseModel:
+    ) -> SchemaT:
         """Get a single entity by name.
 
         :param str name: Name of the entity.
         :return: Entity schema.
         """
-        attribute_type = await self._service.get_one_by_name(
-            name,
-        )
-        return self._convert_dto_to_schema(attribute_type)
+        attribute_type = await self._service.get(name)
+        return self._converter_to_schema(attribute_type)
 
     async def get_list_paginated(
         self,
         params: PaginationParams,
-    ) -> BasePaginationSchema:
+    ) -> PaginationSchemaT:
         """Get a list of entities with pagination.
 
         :param PaginationParams params: Pagination parameters.
@@ -91,9 +111,8 @@ class BaseLDAPSchema(Protocol):
         """
         pagination_result = await self._service.get_paginator(params)
 
-        items = [
-            self._convert_dto_to_schema(item)
-            for item in pagination_result.items
+        items: list[SchemaT] = [
+            self._converter_to_schema(item) for item in pagination_result.items
         ]
 
         return self._pagination_schema(
@@ -104,18 +123,15 @@ class BaseLDAPSchema(Protocol):
     async def update(
         self,
         name: str,
-        request_data: Any,
+        data: UpdateSchemaT,
     ) -> None:
         """Modify an entity.
 
         :param str name: Name of the entity to modify.
-        :param request_data: Updated data.
+        :param data: Updated data.
         """
-        entity = await self._service.get_one_by_name(name)
-        schema = self._convert_to_base_schema(request_data)
-        dto = self._convert_schema_to_dto(schema)
-
-        await self._service.update(entity.id, dto)
+        dto = self._converter_update_sch_to_dto(data)
+        await self._service.update(name, dto)
 
     async def delete_bulk(
         self,

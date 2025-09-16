@@ -37,7 +37,7 @@ _convert_dto_to_model = get_converter(
 )
 
 
-class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
+class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
     """Attribute Type DAO."""
 
     __session: AsyncSession
@@ -55,9 +55,9 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
             )
         return attribute_type
 
-    async def get(self, _id: int) -> AttributeTypeDTO:
+    async def get(self, _id: str) -> AttributeTypeDTO:
         """Get Attribute Type by id."""
-        return _convert_model_to_dto(await self._get_raw(_id))
+        return _convert_model_to_dto(await self._get_one_raw_by_name(_id))
 
     async def get_all(self) -> list[AttributeTypeDTO]:
         """Get all Attribute Types."""
@@ -74,29 +74,34 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
             attribute_type = _convert_dto_to_model(dto)
             self.__session.add(attribute_type)
             await self.__session.flush()
+
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(
                 f"Attribute Type with oid '{dto.oid}' and name"
                 + f" '{dto.name}' already exists.",
             )
 
-    async def update(self, _id: int, dto: AttributeTypeDTO) -> None:
-        """Update Attribute Type."""
-        if dto.is_system:
+    async def update(self, _id: str, dto: AttributeTypeDTO) -> None:
+        """Update Attribute Type.
+
+        NOTE: Only 3 attrs can be updated.
+        """
+        obj = await self._get_one_raw_by_name(_id)
+
+        if obj.is_system:
             raise AttributeTypeCantModifyError(
                 "System Attribute Type cannot be modified.",
             )
-        attribute_type = await self._get_raw(_id)
-        attribute_type.oid = dto.oid
-        attribute_type.name = dto.name
-        attribute_type.syntax = dto.syntax
-        attribute_type.single_value = dto.single_value
-        attribute_type.no_user_modification = dto.no_user_modification
+
+        obj.syntax = dto.syntax
+        obj.single_value = dto.single_value
+        obj.no_user_modification = dto.no_user_modification
+
         await self.__session.flush()
 
-    async def delete(self, _id: int) -> None:
+    async def delete(self, _id: str) -> None:
         """Delete Attribute Type."""
-        attribute_type = await self._get_raw(_id)
+        attribute_type = await self._get_one_raw_by_name(_id)
         await self.__session.delete(attribute_type)
         await self.__session.flush()
 
@@ -122,62 +127,52 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO]):
             session=self.__session,
         )
 
-    async def get_one_by_name(
+    async def _get_one_raw_by_name(
         self,
-        attribute_type_name: str,
-    ) -> AttributeTypeDTO:
-        """Get single Attribute Type by name.
-
-        :param str attribute_type_name: Attribute Type name.
-        :raise AttributeTypeNotFoundError: If Attribute Type not found.
-        :return AttributeType: Instance of Attribute Type.
-        """
+        name: str,
+    ) -> AttributeType:
         attribute_type = await self.__session.scalar(
             select(AttributeType)
-            .where(AttributeType.name == attribute_type_name),
+            .filter_by(name=name),
         )  # fmt: skip
 
         if not attribute_type:
             raise AttributeTypeNotFoundError(
-                f"Attribute Type with name '{attribute_type_name}' not found.",
+                f"Attribute Type with name '{name}' not found.",
             )
-
-        return _convert_model_to_dto(attribute_type)
+        return attribute_type
 
     async def get_all_by_names(
         self,
-        attribute_type_names: list[str] | set[str],
+        names: list[str] | set[str],
     ) -> list[AttributeTypeDTO]:
         """Get list of Attribute Types by names.
 
-        :param list[str] attribute_type_names: Attribute Type names.
+        :param list[str] names: Attribute Type names.
         :return list[AttributeTypeDTO]: List of Attribute Types.
         """
-        if not attribute_type_names:
+        if not names:
             return []
 
         query = await self.__session.scalars(
             select(AttributeType)
-            .where(AttributeType.name.in_(attribute_type_names)),
+            .where(AttributeType.name.in_(names)),
         )  # fmt: skip
         return list(map(_convert_model_to_dto, query.all()))
 
-    async def delete_all_by_names(
-        self,
-        attribute_type_names: list[str],
-    ) -> None:
+    async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system Attribute Types by names.
 
-        :param list[str] attribute_type_names: List of Attribute Types names.
+        :param list[str] names: List of Attribute Types names.
         :return None: None.
         """
-        if not attribute_type_names:
+        if not names:
             return
 
         await self.__session.execute(
             delete(AttributeType)
             .where(
-                AttributeType.name.in_(attribute_type_names),
+                AttributeType.name.in_(names),
                 AttributeType.is_system.is_(False),
             ),
         )  # fmt: skip

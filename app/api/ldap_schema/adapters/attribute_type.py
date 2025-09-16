@@ -13,10 +13,8 @@ from adaptix.conversion import (
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from api.ldap_schema.adapters.base_ldap_schema_adapter import BaseLDAPSchema
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
-    AttributeTypeRequestSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
@@ -33,22 +31,10 @@ from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeNotFoundError,
 )
 
-
-def make_attribute_type_request_dto(
-    request: AttributeTypeRequestSchema,
-) -> AttributeTypeDTO:
-    """Convert AttributeTypeRequestSchema to AttributeTypeDTO."""
-    return AttributeTypeDTO(
-        oid=request.oid,
-        name=request.name,
-        syntax=DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
-        single_value=request.single_value,
-        no_user_modification=DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-        is_system=DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-    )
+from .base_ldap_schema_adapter import BaseLDAPSchemaAdapter
 
 
-def make_attribute_type_schema(dto: AttributeTypeDTO) -> AttributeTypeSchema:
+def _make_attribute_type_schema(dto: AttributeTypeDTO) -> AttributeTypeSchema:
     """Convert AttributeTypeDTO to AttributeTypeSchema."""
     return AttributeTypeSchema(
         id=dto.get_id(),
@@ -61,8 +47,8 @@ def make_attribute_type_schema(dto: AttributeTypeDTO) -> AttributeTypeSchema:
     )
 
 
-_convert_request_to_dto = get_converter(
-    AttributeTypeRequestSchema,
+_convert_schema_to_dto = get_converter(
+    AttributeTypeSchema,
     AttributeTypeDTO,
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].id),
@@ -85,63 +71,46 @@ _convert_dto_to_schema = get_converter(
     AttributeTypeDTO,
     AttributeTypeSchema,
     recipe=[
-        link_function(make_attribute_type_schema, P[AttributeTypeSchema]),
+        link_function(_make_attribute_type_schema, P[AttributeTypeSchema]),
     ],
 )
 
 
 def make_attribute_type_update_dto(
     request: AttributeTypeUpdateSchema,
-    existing_attribute_type: AttributeTypeDTO,
 ) -> AttributeTypeDTO:
     """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
     return AttributeTypeDTO(
-        id=existing_attribute_type.id,
-        oid=existing_attribute_type.oid,
-        name=existing_attribute_type.name,
+        id=None,
+        oid="",
+        name="",
         syntax=request.syntax,
         single_value=request.single_value,
         no_user_modification=request.no_user_modification,
-        is_system=existing_attribute_type.is_system,
+        is_system=False,
     )
 
 
 class AttributeTypeFastAPIAdapter(
     BaseAdapter[AttributeTypeDAO],
-    BaseLDAPSchema,
+    BaseLDAPSchemaAdapter[
+        AttributeTypeDAO,
+        AttributeTypeSchema,
+        AttributeTypeUpdateSchema,
+        AttributeTypePaginationSchema,
+        AttributeTypeDTO,
+    ],
 ):
     """Attribute Type management routers."""
 
-    _schema = AttributeTypeSchema
     _pagination_schema = AttributeTypePaginationSchema
-    _request_schema = AttributeTypeRequestSchema
-    _update_schema = AttributeTypeUpdateSchema
-    _dto = AttributeTypeDTO
-    converter_to_dto = _convert_request_to_dto
-    converter_to_schema = _convert_dto_to_schema
+
+    _converter_to_dto = staticmethod(_convert_schema_to_dto)
+    _converter_to_schema = staticmethod(_convert_dto_to_schema)
+    _converter_update_sch_to_dto = staticmethod(make_attribute_type_update_dto)
 
     _exceptions_map: dict[type[Exception], int] = {
         AttributeTypeAlreadyExistsError: status.HTTP_409_CONFLICT,
         AttributeTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
     }
-
-    async def update(
-        self,
-        attribute_type_name: str,
-        request_data: AttributeTypeUpdateSchema,
-    ) -> None:
-        """Modify an Attribute Type."""
-        attribute_type = await self._service.get_one_by_name(
-            attribute_type_name,
-        )
-
-        updated_attribute_type = make_attribute_type_update_dto(
-            request_data,
-            attribute_type,
-        )
-
-        await self._service.update(
-            _id=attribute_type.get_id(),
-            dto=updated_attribute_type,
-        )

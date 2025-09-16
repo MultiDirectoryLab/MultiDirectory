@@ -31,7 +31,7 @@ from models import Attribute, Directory, EntityType, ObjectClass
 _convert = get_converter(EntityType, EntityTypeDTO)
 
 
-class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
+class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
     """Entity Type DAO."""
 
     __session: AsyncSession
@@ -54,10 +54,6 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
                 f"Entity Type with id {_id} not found.",
             )
         return entity_type
-
-    async def get(self, _id: int) -> EntityTypeDTO:
-        """Get Entity Type by id."""
-        return _convert(await self._get_raw(_id))
 
     async def get_all(self) -> list[EntityTypeDTO]:
         """Get all Entity Types."""
@@ -83,9 +79,9 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
                 f"Entity Type with name '{dto.name}' already exists.",
             )
 
-    async def update(self, _id: int, dto: EntityTypeDTO) -> None:
+    async def update(self, _id: str, dto: EntityTypeDTO) -> None:
         """Update an Entity Type."""
-        entity_type = await self._get_raw(_id)
+        entity_type = await self._get_one_raw_by_name(_id)
 
         try:
             await self.__object_class_dao.is_all_object_classes_exists(
@@ -142,9 +138,9 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
                 f"names {dto.object_class_names} already exists.",
             )
 
-    async def delete(self, _id: int) -> None:
+    async def delete(self, _id: str) -> None:
         """Delete an Entity Type."""
-        entity_type = await self._get_raw(_id)
+        entity_type = await self._get_one_raw_by_name(_id)
         await self.__session.delete(entity_type)
         await self.__session.flush()
 
@@ -170,27 +166,35 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
             session=self.__session,
         )
 
-    async def get_one_by_name(
+    async def _get_one_raw_by_name(
         self,
-        entity_type_name: str,
-    ) -> EntityTypeDTO:
+        name: str,
+    ) -> EntityType:
         """Get single Entity Type by name.
 
-        :param str entity_type_name: Entity Type name.
+        :param str name: Entity Type name.
         :raise EntityTypeNotFoundError: If Entity Type not found.
         :return EntityType: Instance of Entity Type.
         """
         entity_type = await self.__session.scalar(
             select(EntityType)
-            .where(EntityType.name == entity_type_name),
+            .filter_by(name=name),
         )  # fmt: skip
 
         if not entity_type:
             raise EntityTypeNotFoundError(
-                f"Entity Type with name '{entity_type_name}' not found.",
+                f"Entity Type with name '{name}' not found.",
             )
+        return entity_type
 
-        return _convert(entity_type)
+    async def get(self, _id: str) -> EntityTypeDTO:
+        """Get single Entity Type by name.
+
+        :param str name: Entity Type name.
+        :raise EntityTypeNotFoundError: If Entity Type not found.
+        :return EntityType: Instance of Entity Type.
+        """
+        return _convert(await self._get_one_raw_by_name(_id))
 
     async def get_entity_type_by_object_class_names(
         self,
@@ -216,16 +220,13 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO]):
 
         return result.scalars().first()
 
-    async def get_entity_type_attributes(
-        self,
-        entity_type_name: str,
-    ) -> list[str]:
+    async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get all attribute names for an Entity Type.
 
         :param str entity_type_name: Entity Type name.
         :return list[str]: List of attribute names.
         """
-        entity_type = await self.get_one_by_name(entity_type_name)
+        entity_type = await self._get_one_raw_by_name(name)
 
         if not entity_type.object_class_names:
             return []

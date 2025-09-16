@@ -119,10 +119,7 @@ async def modify_one_entity_type(
     instance.
     :return None.
     """
-    await adapter.update(
-        name=entity_type_name,
-        request_data=request_data,
-    )
+    await adapter.update(name=entity_type_name, data=request_data)
 
 
 @ldap_schema_router.post("/entity_type/delete")

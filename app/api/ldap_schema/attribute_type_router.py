@@ -14,7 +14,6 @@ from api.ldap_schema import LimitedListType, ldap_schema_router
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
-    AttributeTypeRequestSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
@@ -29,7 +28,7 @@ from ldap_protocol.utils.pagination import (
     status_code=status.HTTP_201_CREATED,
 )
 async def create_one_attribute_type(
-    request_data: AttributeTypeRequestSchema,
+    request_data: AttributeTypeSchema,
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
     """Create a new Attribute Type.
@@ -82,9 +81,7 @@ async def get_list_attribute_types_with_pagination(
     :param PaginationParams params: Pagination parameters.
     :return AttributeTypePaginationSchema: Paginator Schema.
     """
-    return await adapter.get_list_paginated(
-        params=params,
-    )
+    return await adapter.get_list_paginated(params)
 
 
 @ldap_schema_router.patch(
@@ -107,8 +104,8 @@ async def modify_one_attribute_type(
     :return None.
     """
     await adapter.update(
-        attribute_type_name=attribute_type_name,
-        request_data=request_data,
+        name=attribute_type_name,
+        data=request_data,
     )
 
 

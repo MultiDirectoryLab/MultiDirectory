@@ -36,18 +36,16 @@ async def test_multiple_access(
     custom_role: RoleDTO,
 ) -> None:
     """Test multiple access control entries in a role."""
-    user_entity_type = await entity_type_dao.get_one_by_name("User")
+    user_entity_type = await entity_type_dao.get("User")
     assert user_entity_type
 
-    posix_email_attr = await attribute_type_dao.get_one_by_name("posixEmail")
+    posix_email_attr = await attribute_type_dao.get("posixEmail")
     assert posix_email_attr
 
-    user_principal_name = await attribute_type_dao.get_one_by_name(
-        "userPrincipalName",
-    )
+    user_principal_name = await attribute_type_dao.get("userPrincipalName")
     assert user_principal_name
 
-    user_account_control_attr = await attribute_type_dao.get_one_by_name(
+    user_account_control_attr = await attribute_type_dao.get(
         "userAccountControl",
     )
     assert user_account_control_attr

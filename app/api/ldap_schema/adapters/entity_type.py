@@ -13,7 +13,9 @@ from adaptix.conversion import (
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from api.ldap_schema.adapters.base_ldap_schema_adapter import BaseLDAPSchema
+from api.ldap_schema.adapters.base_ldap_schema_adapter import (
+    BaseLDAPSchemaAdapter,
+)
 from api.ldap_schema.schema import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
@@ -42,11 +44,11 @@ def make_entity_type_request_dto(
 
 def make_entity_type_shema_by_update(
     data: EntityTypeUpdateSchema,
-) -> EntityTypeSchema:
-    """Convert EntityTypeUpdateSchema to EntityTypeSchema."""
-    return EntityTypeSchema(
-        is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
+) -> EntityTypeDTO:
+    """Convert EntityTypeUpdateSchema to EntityTypeDTO."""
+    return EntityTypeDTO(
         name=data.name,
+        is_system=DEFAULT_ENTITY_TYPE_IS_SYSTEM,
         object_class_names=data.object_class_names,
     )
 
@@ -98,18 +100,23 @@ _convert_to_base_schema = get_converter(
 
 class LDAPEntityTypeFastAPIAdapter(
     BaseAdapter[EntityTypeUseCase],
-    BaseLDAPSchema,
+    BaseLDAPSchemaAdapter[
+        EntityTypeUseCase,
+        EntityTypeSchema,
+        EntityTypeUpdateSchema,
+        EntityTypePaginationSchema,
+        EntityTypeDTO,
+    ],
 ):
     """Adapter for LDAP Entity Type router."""
 
-    _schema = EntityTypeSchema
     _pagination_schema = EntityTypePaginationSchema
-    _request_schema = EntityTypeSchema
-    _update_schema = EntityTypeUpdateSchema
-    _dto = EntityTypeDTO
-    converter_to_dto = _convert_request_to_dto
-    converter_to_schema = _convert_dto_to_schema
-    converter_to_base_schema = make_entity_type_shema_by_update
+
+    _converter_to_dto = staticmethod(_convert_request_to_dto)
+    _converter_to_schema = staticmethod(_convert_dto_to_schema)
+    _converter_update_sch_to_dto = staticmethod(
+        make_entity_type_shema_by_update,
+    )
 
     _exceptions_map: dict[type[Exception], int] = {
         EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
