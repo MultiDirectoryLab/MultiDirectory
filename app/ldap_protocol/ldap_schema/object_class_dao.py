@@ -37,17 +37,6 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         """Initialize Object Class DAO with session."""
         self.__session = session
 
-    async def _get_raw(self, _id: int) -> ObjectClass:
-        """Get raw Object Class by id."""
-        object_class = await self.__session.scalar(
-            select(ObjectClass).where(ObjectClass.id == _id),
-        )
-        if not object_class:
-            raise ObjectClassNotFoundError(
-                f"Object Class with id {_id} not found.",
-            )
-        return object_class
-
     async def get_all(self) -> list[ObjectClassDTO]:
         """Get all Object Classes."""
         return [
@@ -256,11 +245,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         )  # fmt: skip
         return list(map(_converter, query.all()))
 
-    async def update(
-        self,
-        name: str,
-        dto: ObjectClassDTO[None, str],
-    ) -> None:
+    async def update(self, _id: str, dto: ObjectClassDTO[None, str]) -> None:
         """Modify Object Class.
 
         :param ObjectClassDTO object_class: Object Class.
@@ -269,7 +254,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             it cannot be changed.
         :return None.
         """
-        obj = await self._get_one_raw_by_name(name)
+        obj = await self._get_one_raw_by_name(_id)
         if obj.is_system:
             raise ObjectClassCantModifyError(
                 "System Object Class cannot be modified.",
@@ -296,10 +281,9 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
 
         if attribute_types_may_filtered:
             may_query = await self.__session.scalars(
-                select(AttributeType).where(
-                    AttributeType.name.in_(attribute_types_may_filtered),
-                ),
-            )
+                select(AttributeType)
+                .where(AttributeType.name.in_(attribute_types_may_filtered)),
+            )  # fmt: skip
             obj.attribute_types_may.extend(list(may_query.all()))
 
         await self.__session.flush()

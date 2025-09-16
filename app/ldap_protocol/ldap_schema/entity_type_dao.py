@@ -28,7 +28,7 @@ from ldap_protocol.utils.pagination import (
 )
 from models import Attribute, Directory, EntityType, ObjectClass
 
-_convert = get_converter(EntityType, EntityTypeDTO)
+_convert = get_converter(EntityType, EntityTypeDTO[int])
 
 
 class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
@@ -45,15 +45,6 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
         self.__object_class_dao = object_class_dao
-
-    async def _get_raw(self, _id: int) -> EntityType:
-        """Get Entity Type by id."""
-        entity_type = await self.__session.get(EntityType, _id)
-        if not entity_type:
-            raise EntityTypeNotFoundError(
-                f"Entity Type with id {_id} not found.",
-            )
-        return entity_type
 
     async def get_all(self) -> list[EntityTypeDTO]:
         """Get all Entity Types."""
@@ -320,8 +311,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             )
             with contextlib.suppress(EntityTypeAlreadyExistsError):
                 await self.create(
-                    EntityTypeDTO(
-                        id=None,
+                    EntityTypeDTO[None](
                         name=entity_type_name,
                         object_class_names=list(object_class_names),
                         is_system=is_system_entity_type,

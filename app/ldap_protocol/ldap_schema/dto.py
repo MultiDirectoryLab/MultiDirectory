@@ -32,7 +32,6 @@ _LinkT = TypeVar("_LinkT", AttributeTypeDTO, str)
 class ObjectClassDTO(Generic[_IdT, _LinkT]):
     """Object Class DTO."""
 
-    id: _IdT
     oid: str
     name: str
     superior_name: str | None
@@ -40,6 +39,7 @@ class ObjectClassDTO(Generic[_IdT, _LinkT]):
     is_system: bool
     attribute_types_must: list[_LinkT]
     attribute_types_may: list[_LinkT]
+    id: _IdT = None  # type: ignore
 
 
 @dataclass

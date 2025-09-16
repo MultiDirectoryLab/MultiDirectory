@@ -46,15 +46,6 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         """Initialize Attribute Type DAO with session."""
         self.__session = session
 
-    async def _get_raw(self, _id: int) -> AttributeType:
-        """Get Attribute Type by id."""
-        attribute_type = await self.__session.get(AttributeType, _id)
-        if not attribute_type:
-            raise AttributeTypeNotFoundError(
-                f"Attribute Type with id {_id} not found.",
-            )
-        return attribute_type
-
     async def get(self, _id: str) -> AttributeTypeDTO:
         """Get Attribute Type by id."""
         return _convert_model_to_dto(await self._get_one_raw_by_name(_id))
