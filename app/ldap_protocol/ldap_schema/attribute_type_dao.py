@@ -118,10 +118,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
             session=self.__session,
         )
 
-    async def _get_one_raw_by_name(
-        self,
-        name: str,
-    ) -> AttributeType:
+    async def _get_one_raw_by_name(self, name: str) -> AttributeType:
         attribute_type = await self.__session.scalar(
             select(AttributeType)
             .filter_by(name=name),

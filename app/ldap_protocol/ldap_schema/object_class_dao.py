@@ -189,19 +189,16 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
 
         return True
 
-    async def _get_one_raw_by_name(
-        self,
-        object_class_name: str,
-    ) -> ObjectClass:
+    async def _get_one_raw_by_name(self, name: str) -> ObjectClass:
         """Get single Object Class by name.
 
-        :param str object_class_name: Object Class name.
+        :param str name: Object Class name.
         :raise ObjectClassNotFoundError: If Object Class not found.
         :return ObjectClass: Instance of Object Class.
         """
         object_class = await self.__session.scalar(
             select(ObjectClass)
-            .where(ObjectClass.name == object_class_name)
+            .where(ObjectClass.name == name)
             .options(
                 selectinload(ObjectClass.attribute_types_must),
                 selectinload(ObjectClass.attribute_types_may),
@@ -210,21 +207,18 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
 
         if not object_class:
             raise ObjectClassNotFoundError(
-                f"Object Class with name '{object_class_name}' not found.",
+                f"Object Class with name '{name}' not found.",
             )
         return object_class
 
-    async def get(
-        self,
-        name: str,
-    ) -> ObjectClassDTO:
-        """Get single Object Class by name.
+    async def get(self, _id: str) -> ObjectClassDTO:
+        """Get single Object Class by id.
 
-        :param str name: Object Class name.
+        :param str _id: Object Class name.
         :raise ObjectClassNotFoundError: If Object Class not found.
         :return ObjectClass: Instance of Object Class.
         """
-        return _converter(await self._get_one_raw_by_name(name))
+        return _converter(await self._get_one_raw_by_name(_id))
 
     async def get_all_by_names(
         self,
@@ -288,19 +282,16 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
 
         await self.__session.flush()
 
-    async def delete_all_by_names(
-        self,
-        object_classes_names: list[str],
-    ) -> None:
+    async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system Object Classes by Names.
 
-        :param list[str] object_classes_names: Object Classes names.
+        :param list[str] names: Object Classes names.
         :return None.
         """
         await self.__session.execute(
             delete(ObjectClass)
             .where(
-                ObjectClass.name.in_(object_classes_names),
+                ObjectClass.name.in_(names),
                 ObjectClass.is_system.is_(False),
                 ~ObjectClass.name.in_(
                     select(func.unnest(EntityType.object_class_names))

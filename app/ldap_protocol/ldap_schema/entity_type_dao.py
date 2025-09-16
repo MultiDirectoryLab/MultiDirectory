@@ -241,18 +241,15 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
         return sorted(list(attribute_names))
 
-    async def delete_all_by_names(
-        self,
-        entity_type_names: list[str],
-    ) -> None:
+    async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system and not used Entity Type by their names.
 
-        :param list[str] entity_type_names: Entity Type names.
+        :param list[str] names: Entity Type names.
         :return None.
         """
         await self.__session.execute(
             delete(EntityType).where(
-                EntityType.name.in_(entity_type_names),
+                EntityType.name.in_(names),
                 EntityType.is_system.is_(False),
                 EntityType.id.not_in(
                     select(Directory.entity_type_id)
