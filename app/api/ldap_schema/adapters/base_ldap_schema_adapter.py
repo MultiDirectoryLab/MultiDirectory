@@ -67,15 +67,12 @@ class BaseLDAPSchemaAdapter(
     _converter_to_schema: staticmethod[[DtoT], SchemaT]
     _converter_update_sch_to_dto: staticmethod[[UpdateSchemaT], DtoT]
 
-    async def create(
-        self,
-        request_data: SchemaT,
-    ) -> None:
+    async def create(self, data: SchemaT) -> None:
         """Create a new entity.
 
         :param request_data: Data for creating entity.
         """
-        dto = self._converter_to_dto(request_data)
+        dto = self._converter_to_dto(data)
         await self._service.create(dto)
 
     async def get(
