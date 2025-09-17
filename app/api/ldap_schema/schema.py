@@ -7,15 +7,18 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from pydantic import BaseModel, Field
 
 from enums import KindType
-from ldap_protocol.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
+from ldap_protocol.ldap_schema.constants import (
+    DEFAULT_ENTITY_TYPE_IS_SYSTEM,
+    OID_REGEX_PATTERN,
+)
 from ldap_protocol.utils.pagination import BasePaginationSchema
 
 
 class AttributeTypeSchema(BaseModel):
     """Attribute Type Schema."""
 
-    oid: str
-    name: str
+    oid: str = Field(pattern=OID_REGEX_PATTERN)
+    name: str = Field(min_length=1, max_length=255)
     syntax: str
     single_value: bool
     no_user_modification: bool
@@ -39,8 +42,8 @@ class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
 class ObjectClassSchema(BaseModel):
     """Object Class Request Schema."""
 
-    oid: str
-    name: str
+    oid: str = Field(pattern=r"^[0-9]+(\.[0-9]+)+$")
+    name: str = Field(min_length=1, max_length=255)
     superior_name: str | None
     kind: KindType
     attribute_type_names_must: list[str]
@@ -66,7 +69,11 @@ class EntityTypeSchema(BaseModel):
 
     name: str
     is_system: bool
-    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
+    object_class_names: list[str] = Field(
+        default_factory=list,
+        min_length=1,
+        max_length=10000,
+    )
 
 
 class EntityTypeUpdateSchema(BaseModel):
@@ -74,7 +81,11 @@ class EntityTypeUpdateSchema(BaseModel):
 
     is_system: bool = DEFAULT_ENTITY_TYPE_IS_SYSTEM
     name: str
-    object_class_names: list[str] = Field([], min_length=1, max_length=10000)
+    object_class_names: list[str] = Field(
+        default_factory=list,
+        min_length=1,
+        max_length=10000,
+    )
 
 
 class EntityTypePaginationSchema(BasePaginationSchema[EntityTypeSchema]):
