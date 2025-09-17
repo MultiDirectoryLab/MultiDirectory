@@ -32,7 +32,7 @@ _convert_dto_to_model = get_converter(
 )
 
 
-class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO]):
+class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
     """Password Policy DAO."""
 
     _session: AsyncSession

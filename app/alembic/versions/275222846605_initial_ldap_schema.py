@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
@@ -344,13 +345,15 @@ def upgrade() -> None:
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await attribute_type_dao.create_one(
-                oid=oid,
-                name=name,
-                syntax="1.3.6.1.4.1.1466.115.121.1.15",
-                single_value=True,
-                no_user_modification=False,
-                is_system=True,
+            await attribute_type_dao.create(
+                AttributeTypeDTO(
+                    oid=oid,
+                    name=name,
+                    syntax="1.3.6.1.4.1.1466.115.121.1.15",
+                    single_value=True,
+                    no_user_modification=False,
+                    is_system=True,
+                ),
             )
 
         await session.commit()
@@ -361,24 +364,17 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        attribute_type_dao = AttributeTypeDAO(session)
-        object_class_dao = ObjectClassDAO(
-            session,
-            attribute_type_dao=attribute_type_dao,
-        )
+        at_dao = AttributeTypeDAO(session)
+        oc_dao = ObjectClassDAO(session)
 
-        for object_class_name, attribute_type_may_names in (
+        for oc_name, at_names in (
             ("user", ("nsAccountLock", "shadowExpire")),
             ("computer", ("userAccountControl",)),
             ("posixAccount", ("posixEmail",)),
             ("organizationalUnit", ("title", "jpegPhoto")),
         ):
-            object_class = await object_class_dao.get_one_by_name(
-                object_class_name=object_class_name,
-            )
-            attribute_types_may = await attribute_type_dao.get_all_by_names(
-                attribute_type_names=attribute_type_may_names,
-            )
+            object_class = await oc_dao.get(oc_name)
+            attribute_types_may = await at_dao.get_all_by_names(at_names)
             object_class.attribute_types_may.extend(attribute_types_may)
 
         await session.commit()
