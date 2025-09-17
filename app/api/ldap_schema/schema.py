@@ -42,7 +42,7 @@ class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
 class ObjectClassSchema(BaseModel):
     """Object Class Request Schema."""
 
-    oid: str = Field(pattern=r"^[0-9]+(\.[0-9]+)+$")
+    oid: str = Field(pattern=OID_REGEX_PATTERN)
     name: str = Field(min_length=1, max_length=255)
     superior_name: str | None
     kind: KindType
