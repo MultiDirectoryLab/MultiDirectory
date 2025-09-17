@@ -38,6 +38,8 @@ class KDCContext:
     krbgroup: str
     services_container: str
     ldap_uri: str
+    mfa_push_url: str
+    sync_password_url: str
 
 
 @dataclass

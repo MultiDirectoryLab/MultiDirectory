@@ -39,6 +39,8 @@ async def update_krb5_config(
         krbadmin=krbadmin,
         services_container=services_container,
         ldap_uri=settings.KRB5_LDAP_URI,
+        mfa_push_url=settings.KRB5_MFA_PUSH_URL,
+        sync_password_url=settings.KRB5_SYNC_PASSWORD_URL,
     )
 
     await kadmin.setup_configs(krb5_config, kdc_config)

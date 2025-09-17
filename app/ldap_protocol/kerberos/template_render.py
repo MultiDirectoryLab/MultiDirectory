@@ -36,6 +36,8 @@ class KRBTemplateRenderer:
             krbadmin=context.krbadmin,
             services_container=context.services_container,
             ldap_uri=context.ldap_uri,
+            mfa_push_url=context.mfa_push_url,
+            sync_password_url=context.sync_password_url,
         )
 
     async def render_kdc(self, context: KDCContext) -> str:

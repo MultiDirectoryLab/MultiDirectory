@@ -214,7 +214,6 @@ class KerberosService(AbstractService):
         """
         try:
             context = await self._get_kdc_context()
-            context.ldap_uri = self._settings.KRB5_LDAP_URI
             krb5_config = await self._template_render.render_krb5(context)
             kdc_config = await self._template_render.render_kdc(context)
             await self._authenticate_admin(user, admin_password)
@@ -263,7 +262,9 @@ class KerberosService(AbstractService):
             krbadmin=krbadmin,
             krbgroup=krbgroup,
             services_container=services_container,
-            ldap_uri="",
+            ldap_uri=self._settings.KRB5_LDAP_URI,
+            mfa_push_url=self._settings.KRB5_MFA_PUSH_URL,
+            sync_password_url=self._settings.KRB5_SYNC_PASSWORD_URL,
         )
 
     async def _authenticate_admin(
