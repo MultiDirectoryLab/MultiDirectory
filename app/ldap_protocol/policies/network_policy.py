@@ -81,6 +81,7 @@ async def get_user_network_policy(
     ip: IPv4Address | IPv6Address,
     user: User,
     session: AsyncSession,
+    policy_type: Literal["is_http", "is_ldap", "is_kerberos"],
 ) -> NetworkPolicy | None:
     """Get the highest priority network policy for user, ip and protocol.
 
@@ -90,7 +91,7 @@ async def get_user_network_policy(
     """
     user_group_ids = [group.id for group in user.groups]
 
-    query = build_policy_query(ip, "is_http", user_group_ids)
+    query = build_policy_query(ip, policy_type, user_group_ids)
 
     return await session.scalar(query)
 
