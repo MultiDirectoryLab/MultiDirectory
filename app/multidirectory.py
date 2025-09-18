@@ -39,8 +39,6 @@ from api.exception_handlers import (
     handle_db_connect_error,
     handle_dns_api_error,
     handle_dns_error,
-    handle_instance_cant_modify_error,
-    handle_instance_not_found_error,
     handle_not_implemented_error,
 )
 from config import Settings
@@ -58,10 +56,6 @@ from ldap_protocol.dns import (
     DNSConnectionError,
     DNSError,
     DNSNotImplementedError,
-)
-from ldap_protocol.exceptions import (
-    InstanceCantModifyError,
-    InstanceNotFoundError,
 )
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
@@ -128,14 +122,6 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.add_exception_handler(DNSException, handle_dns_error)
     app.add_exception_handler(DNSConnectionError, handle_dns_error)
     app.add_exception_handler(DNSError, handle_dns_api_error)
-    app.add_exception_handler(
-        InstanceNotFoundError,
-        handle_instance_not_found_error,
-    )
-    app.add_exception_handler(
-        InstanceCantModifyError,
-        handle_instance_cant_modify_error,
-    )
     app.add_exception_handler(
         DNSNotImplementedError,
         handle_not_implemented_error,
