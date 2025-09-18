@@ -49,7 +49,7 @@ def _convert_update_uschema_to_dto(
 
 
 _convert_schema_to_dto = get_converter(
-    AttributeTypeSchema,
+    AttributeTypeSchema[None],
     AttributeTypeDTO[None],
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].id),
@@ -70,7 +70,7 @@ _convert_schema_to_dto = get_converter(
 
 _convert_dto_to_schema = get_converter(
     AttributeTypeDTO[int],
-    AttributeTypeSchema,
+    AttributeTypeSchema[int],
 )
 
 

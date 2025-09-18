@@ -24,7 +24,7 @@ from ldap_protocol.utils.pagination import PaginationParams
     status_code=status.HTTP_201_CREATED,
 )
 async def create_one_attribute_type(
-    request_data: AttributeTypeSchema,
+    request_data: AttributeTypeSchema[None],
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
     """Create a new Attribute Type."""
@@ -35,7 +35,7 @@ async def create_one_attribute_type(
 async def get_one_attribute_type(
     attribute_type_name: str,
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
-) -> AttributeTypeSchema:
+) -> AttributeTypeSchema[int]:
     """Retrieve a one Attribute Type."""
     return await adapter.get(attribute_type_name)
 

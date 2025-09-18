@@ -4,8 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from adaptix import P
-from adaptix.conversion import allow_unlinked_optional, get_converter
+from adaptix.conversion import get_converter
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
@@ -39,14 +38,13 @@ def _convert_update_chema_to_dto(
 
 
 _convert_request_to_dto = get_converter(
-    EntityTypeSchema,
+    EntityTypeSchema[None],
     EntityTypeDTO[None],
-    recipe=[allow_unlinked_optional(P[EntityTypeDTO].id)],
 )
 
 _convert_dto_to_schema = get_converter(
     EntityTypeDTO[int],
-    EntityTypeSchema,
+    EntityTypeSchema[int],
 )
 
 
