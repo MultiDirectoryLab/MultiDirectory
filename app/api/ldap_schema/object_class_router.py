@@ -22,7 +22,7 @@ from ldap_protocol.utils.pagination import PaginationParams
 
 @ldap_schema_router.post("/object_class", status_code=status.HTTP_201_CREATED)
 async def create_one_object_class(
-    request_data: ObjectClassSchema,
+    request_data: ObjectClassSchema[None],
     adapter: FromDishka[ObjectClassFastAPIAdapter],
 ) -> None:
     """Create a new Object Class."""
@@ -33,7 +33,7 @@ async def create_one_object_class(
 async def get_one_object_class(
     object_class_name: str,
     adapter: FromDishka[ObjectClassFastAPIAdapter],
-) -> ObjectClassSchema:
+) -> ObjectClassSchema[int]:
     """Retrieve a one object class."""
     return await adapter.get(object_class_name)
 
