@@ -2,7 +2,8 @@
 
 from typing import NoReturn
 
-from .base import AbstractKadmin, KRBAPIError
+from .base import AbstractKadmin
+from .exceptions import KRBAPIError
 from .utils import logger_wraps
 
 

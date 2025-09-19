@@ -27,11 +27,12 @@ from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 from password_manager import PasswordValidator
 
-from .base import AbstractKadmin, KerberosState, KRBAPIError
+from .base import AbstractKadmin
+from .exceptions import KRBAPIError
 from .ldap_structure import KRBLDAPStructureManager
 from .schemas import AddRequests, KDCContext, KerberosAdminDnGroup, TaskStruct
 from .template_render import KRBTemplateRenderer
-from .utils import get_krb_server_state, set_state
+from .utils import KerberosState, get_krb_server_state, set_state
 
 
 class KerberosService(AbstractService):
