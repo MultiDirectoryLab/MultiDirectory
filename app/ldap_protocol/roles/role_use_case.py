@@ -105,7 +105,8 @@ class RoleUseCase:
         aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
 
         for ace in aces:
-            ace.directories.append(directory)
+            if directory not in ace.directories:
+                ace.directories.append(directory)
 
     async def get_password_ace(
         self,
