@@ -222,8 +222,9 @@ class IdentityManager(AbstractService):
                 f"User {identity} not found in the database.",
             )
 
-        uac_check = await get_check_uac(self._session, user.directory_id)
-        if uac_check(UserAccountControlFlag.PASSWD_CANT_CHANGE):
+        if await self._password_use_cases.password_cant_change(
+            user.directory_id,
+        ):
             raise PasswordPolicyError(
                 "User is not allowed to change the password.",
             )
