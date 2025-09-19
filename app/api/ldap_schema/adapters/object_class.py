@@ -44,7 +44,7 @@ def _convert_update_schema_to_dto(
 
 
 _convert_schema_to_dto = get_converter(
-    ObjectClassSchema,
+    ObjectClassSchema[None],
     ObjectClassDTO[None, str],
     recipe=[
         link_function(
@@ -65,7 +65,7 @@ _convert_schema_to_dto = get_converter(
 
 _convert_dto_to_schema = get_converter(
     ObjectClassDTO[int, AttributeTypeDTO],
-    ObjectClassSchema,
+    ObjectClassSchema[int],
     recipe=[
         link_function(
             lambda dto: [attr.name for attr in dto.attribute_types_must],

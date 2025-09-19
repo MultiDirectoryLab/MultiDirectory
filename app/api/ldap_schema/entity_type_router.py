@@ -22,7 +22,7 @@ from ldap_protocol.utils.pagination import PaginationParams
 
 @ldap_schema_router.post("/entity_type", status_code=status.HTTP_201_CREATED)
 async def create_one_entity_type(
-    request_data: EntityTypeSchema,
+    request_data: EntityTypeSchema[None],
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],
 ) -> None:
     """Create a new Entity Type."""
@@ -33,7 +33,7 @@ async def create_one_entity_type(
 async def get_one_entity_type(
     entity_type_name: str,
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],
-) -> EntityTypeSchema:
+) -> EntityTypeSchema[int]:
     """Retrieve a one Entity Type."""
     return await adapter.get(entity_type_name)
 
