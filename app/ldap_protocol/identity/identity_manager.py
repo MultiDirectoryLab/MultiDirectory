@@ -258,6 +258,7 @@ class IdentityManager(AbstractService):
             new_password,
             include_krb=False,
         )
+        await self._repository.clear_user_sessions(principal)
 
     async def reset_password(
         self,
