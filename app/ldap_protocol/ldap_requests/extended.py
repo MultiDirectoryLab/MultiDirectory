@@ -195,7 +195,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
 
             user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
-        if await ctx.password_use_cases.password_cant_change(
+        if await ctx.password_use_cases.is_password_change_restricted(
             user.directory_id,
         ):
             raise PermissionError("Password cannot be changed")

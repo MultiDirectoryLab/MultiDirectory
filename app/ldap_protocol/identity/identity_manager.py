@@ -222,7 +222,7 @@ class IdentityManager(AbstractService):
                 f"User {identity} not found in the database.",
             )
 
-        if await self._password_use_cases.password_cant_change(
+        if await self._password_use_cases.is_password_change_restricted(
             user.directory_id,
         ):
             raise PasswordPolicyError(

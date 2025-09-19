@@ -180,7 +180,9 @@ class ModifyRequest(BaseRequest):
 
         if (
             password_change_requested
-            and await ctx.password_use_cases.password_cant_change(directory.id)
+            and await ctx.password_use_cases.is_password_change_restricted(
+                directory.id,
+            )
         ):
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,

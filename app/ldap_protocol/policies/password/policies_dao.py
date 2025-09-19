@@ -161,7 +161,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         user.password_history.append(user.password)
         await self._session.flush()
 
-    async def password_cant_change(self, user_directory_id: int) -> bool:
+    async def is_password_change_restricted(
+        self,
+        user_directory_id: int,
+    ) -> bool:
         """Check if user is restricted from changing password via UAC flag.
 
         :param int user_directory_id: user's directory ID
