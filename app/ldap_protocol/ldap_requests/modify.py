@@ -318,9 +318,7 @@ class ModifyRequest(BaseRequest):
         self,
         names: set[str],
     ) -> bool:
-        return ("userpassword" in names or "unicodepwd" in names) and len(
-            names,
-        ) == 1
+        return bool(names & {"userpassword", "unicodepwd"})
 
     async def _can_delete_group_from_directory(
         self,
