@@ -261,7 +261,6 @@ class KAdminLocalManager(AbstractKRBManager):
             princ.change_password,
             new_password,
         )
-        await self.force_pw_principal(name)
 
     async def create_or_update_princ_pw(self, name: str, new_password) -> None:
         """Create new principal or update password.
