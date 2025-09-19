@@ -254,6 +254,13 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is None
 
+    auth = await http_client.post(
+        "auth/",
+        data={"username": "user0", "password": "Password123"},
+    )
+    assert auth.status_code == 200
+    assert list(auth.cookies.keys()) == ["id"]
+
     response = await http_client.post(
         "entry/search",
         json={

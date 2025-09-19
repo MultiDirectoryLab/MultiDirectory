@@ -101,6 +101,7 @@ class LDAPExtendedRequestContext:
     password_validator: PasswordValidator
     settings: Settings
     role_use_case: RoleUseCase
+    session_storage: SessionStorage
 
 
 @dataclass
