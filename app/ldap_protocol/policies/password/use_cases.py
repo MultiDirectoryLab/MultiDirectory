@@ -177,3 +177,16 @@ class PasswordPolicyUseCases(AbstractService):
 
         await self.policy_validator.validate(password)
         return self.policy_validator._error_messages  # noqa: SLF001
+
+    async def is_password_change_restricted(
+        self,
+        user_directory_id: int,
+    ) -> bool:
+        """Check if user is restricted from changing password via UAC flag.
+
+        :param int user_directory_id: user's directory ID
+        :return bool: True if user is restricted, False otherwise
+        """
+        return await self.password_policy_dao.is_password_change_restricted(
+            user_directory_id,
+        )
