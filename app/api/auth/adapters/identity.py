@@ -42,6 +42,7 @@ class IdentityFastAPIAdapter(
         LoginFailedError: status.HTTP_403_FORBIDDEN,
         MFARequiredError: status.HTTP_426_UPGRADE_REQUIRED,
         PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        PermissionError: status.HTTP_403_FORBIDDEN,
         UserNotFoundError: status.HTTP_404_NOT_FOUND,
         KRBAPIError: status.HTTP_424_FAILED_DEPENDENCY,
         AlreadyConfiguredError: status.HTTP_423_LOCKED,

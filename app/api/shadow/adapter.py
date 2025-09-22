@@ -30,6 +30,7 @@ class ShadowAdapter(BaseAdapter):
         NetworkPolicyError: status.HTTP_403_FORBIDDEN,
         AuthenticationError: status.HTTP_401_UNAUTHORIZED,
         PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        PermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     def __init__(
