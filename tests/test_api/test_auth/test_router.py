@@ -254,6 +254,8 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is None
 
+    # NOTE: After updating the password, all sessions are closed.
+    # Need to login again.
     auth = await http_client.post(
         "auth/",
         data={"username": "user0", "password": "Password123"},
