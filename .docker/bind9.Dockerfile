@@ -1,4 +1,4 @@
-FROM python:3.12.6-bookworm AS builder
+FROM python:3.12.3-bookworm AS builder
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
@@ -22,7 +22,21 @@ ENV LANG=C.UTF-8 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-RUN apt update 
+RUN cat > /etc/apt/sources.list.d/ubuntu.sources <<EOF
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu/
+Suites: noble noble-updates noble-backports
+Components: main universe restricted multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
+Suites: noble-security
+Components: main universe restricted multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
+
+RUN apt update
 RUN apt install -y python3.12
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
