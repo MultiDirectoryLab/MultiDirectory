@@ -237,9 +237,9 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             await ctx.session.execute(
                 update(Directory).where(Directory.id == user.directory_id),
             )
+            await ctx.session.commit()
 
             await ctx.session_storage.clear_user_sessions(user.id)
-            await ctx.session.commit()
 
             return PasswdModifyResponse()
         raise PermissionError("No user provided")

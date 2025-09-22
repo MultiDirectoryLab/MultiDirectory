@@ -721,6 +721,7 @@ class ModifyRequest(BaseRequest):
                     directory.user.get_upn_prefix(),
                     value,
                 )
+
                 await session_storage.clear_user_sessions(directory.user.id)
 
             else:
