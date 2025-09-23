@@ -206,9 +206,7 @@ class LDAPSession:
 
         while True:
             try:
-                await asyncio.sleep(
-                    self.settings.LDAP_SESSION_CLOSE_INTERVAL,
-                )
+                await asyncio.sleep(self.settings.LDAP_SESSION_CLOSE_INTERVAL)
 
                 if not self.user:
                     continue
