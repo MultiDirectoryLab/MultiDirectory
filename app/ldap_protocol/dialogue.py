@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, AsyncIterator
 import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from entities import NetworkPolicy, User
 from ldap_protocol.policies.network_policy import build_policy_query
 
@@ -83,6 +84,7 @@ class LDAPSession:
     def __init__(
         self,
         *,
+        settings: Settings,
         user: UserSchema | None = None,
         storage: SessionStorage | None = None,
     ) -> None:
@@ -94,6 +96,7 @@ class LDAPSession:
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
+        self.settings = settings
 
     def __str__(self) -> str:
         """Session with id."""
@@ -195,14 +198,17 @@ class LDAPSession:
     async def ensure_session_exists(self) -> None:
         """Ensure session exists in storage.
 
-        Does nothing if anonymous, wait 30s and if user bound, check it.
+        Does nothing if anonymous, wait LDAP_SESSION_CLOSE_INTERVAL seconds
+        and if user bound, check it.
         """
         if self.storage is None:
             raise AttributeError("Storage is not set")
 
         while True:
             try:
-                await asyncio.sleep(30)
+                await asyncio.sleep(
+                    self.settings.LDAP_SESSION_CLOSE_INTERVAL,
+                )
 
                 if not self.user:
                     continue

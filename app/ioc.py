@@ -387,10 +387,11 @@ class HTTPProvider(LDAPContextProvider):
     async def get_session(
         self,
         request: Request,
+        settings: Settings,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         ip = get_ip_from_request(request)
-        session = LDAPSession()
+        session = LDAPSession(settings=settings)
         await session.start()
         session.ip = ip
         yield session
@@ -443,9 +444,10 @@ class LDAPServerProvider(LDAPContextProvider):
     async def get_session(
         self,
         storage: SessionStorage,
+        settings: Settings,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        session = LDAPSession(storage=storage)
+        session = LDAPSession(storage=storage, settings=settings)
         await session.start()
         yield session
         await session.disconnect()
