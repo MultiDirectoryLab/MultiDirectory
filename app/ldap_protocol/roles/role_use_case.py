@@ -7,11 +7,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from enum import StrEnum
 
 from sqlalchemy import and_, or_, select
-from sqlalchemy.orm import selectinload
 
 from enums import RoleScope
 from ldap_protocol.utils.queries import get_base_directories
-from models import AccessControlEntry, AceType, Directory, Role
+from models import (
+    AccessControlEntry,
+    AccessControlEntryDirectoryMembership,
+    AceType,
+    Directory,
+    Role,
+)
 
 from .ace_dao import AccessControlEntryDAO
 from .dataclasses import AccessControlEntryDTO, RoleDTO
@@ -60,23 +65,6 @@ class RoleUseCase:
         """
         directory_filter = Directory.id == parent_directory.id
 
-        subtree_inheritance = and_(
-            AccessControlEntry.depth != Directory.depth,
-            AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
-        )
-
-        explicit_inheritance = and_(
-            AccessControlEntry.depth == Directory.depth,
-            AccessControlEntry.scope.in_(
-                [
-                    RoleScope.SINGLE_LEVEL,
-                    RoleScope.WHOLE_SUBTREE,
-                ],
-            ),
-        )
-
-        inheritance_conditions = or_(subtree_inheritance, explicit_inheritance)
-
         subquery = (
             select(Directory.id)
             .where(Directory.parent_id == parent_directory.id)
@@ -84,14 +72,14 @@ class RoleUseCase:
         )
 
         query = (
-            select(AccessControlEntry)
+            select(AccessControlEntry.id)
             .join(AccessControlEntry.directories)
-            .options(
-                selectinload(AccessControlEntry.directories),
-            )
             .where(
                 or_(
-                    and_(directory_filter, inheritance_conditions),
+                    and_(
+                        directory_filter,
+                        AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
+                    ),
                     and_(
                         Directory.id.in_(subquery),
                         AccessControlEntry.scope == RoleScope.SINGLE_LEVEL,
@@ -102,10 +90,20 @@ class RoleUseCase:
             .distinct()
         )
 
-        aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
+        ace_ids = (
+            (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
+        )
 
-        for ace in aces:
-            ace.directories.append(directory)
+        members = [
+            AccessControlEntryDirectoryMembership(
+                access_control_entry_id=ace_id,
+                directory_id=directory.id,
+            )
+            for ace_id in ace_ids
+        ]
+
+        if members:
+            self._role_dao._session.add_all(members)  # noqa: SLF001
 
     async def get_password_ace(
         self,
