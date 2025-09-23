@@ -9,6 +9,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import uuid
 from abc import abstractmethod
 from contextlib import suppress
+from datetime import datetime
 from operator import eq, ge, le, ne
 from typing import Callable, Protocol
 
@@ -243,10 +244,16 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
         if is_substring:
             return col.ilike(self._get_substring(right))
+
         op_method = {3: eq, 5: ge, 6: le, 8: ne}[item.tag_id]
+
+        value: str | datetime
         if attr == "objectguid":
             col = col
             value = str(uuid.UUID(bytes_le=right.value))
+        elif attr == "accountexpires":
+            col = col
+            value = ft_to_dt(int(right.value))
         else:
             col = func.lower(col)
             value = right.value.lower()

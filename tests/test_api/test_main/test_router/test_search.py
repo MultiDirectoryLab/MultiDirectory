@@ -206,9 +206,12 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
 @pytest.mark.parametrize(
     "filter_",
     [
+        "(accountExpires=*)",
+        "(accountExpires=134006890408650000)",
+        "(accountExpires<=134006890408650000)",
         "(accountExpires>=134006890408650000)",
         "(accountExpires>=0)",  # NOTE: mindate
-        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate 30 Dec 9999
+        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
     ],
 )
 async def test_api_search_filter_account_expires(
