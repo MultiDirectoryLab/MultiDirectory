@@ -203,6 +203,39 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "filter_",
+    [
+        "(accountExpires>=134006890408650000)",
+        "(accountExpires>=0)",  # NOTE: mindate
+        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate 30 Dec 9999
+    ],
+)
+async def test_api_search_filter_account_expires(
+    filter_: str,
+    http_client: AsyncClient,
+) -> None:
+    """Test api search."""
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": filter_,
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+    response = raw_response.json()
+    assert response["resultCode"] == LDAPCodes.SUCCESS
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
 async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
     """Test api search."""
     user = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"

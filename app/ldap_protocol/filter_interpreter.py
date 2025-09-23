@@ -20,6 +20,7 @@ from sqlalchemy.sql.elements import (
     UnaryExpression,
 )
 
+from ldap_protocol.utils.helpers import ft_to_dt
 from models import Attribute, Directory, EntityType, Group, User
 
 from .asn1parser import ASN1Row, TagNumbers
@@ -316,8 +317,16 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
 
         if is_substring:
             return col.ilike(item.val.replace("*", "%"))
+
         op_method = {"=": eq, ">=": ge, "<=": le, "~=": ne}[item.comp]
-        col = col if item.attr == "objectguid" else func.lower(col)
+
+        if item.attr == "objectguid":
+            col = col
+        elif item.attr == "accountexpires":
+            item.val = ft_to_dt(int(item.val))
+        else:
+            col = func.lower(col)
+
         return op_method(col, item.val)
 
     def _api_filter(self, item: Filter) -> UnaryExpression:
