@@ -234,7 +234,7 @@ class ModifyDNRequest(BaseRequest):
             await ctx.session.flush()
             if parent_dir:
                 await ctx.role_use_case.inherit_parent_aces(
-                    parent_directory=parent_dir,  # type: ignore
+                    parent_directory=parent_dir,
                     directory=new_directory,
                 )
                 await ctx.session.flush()
