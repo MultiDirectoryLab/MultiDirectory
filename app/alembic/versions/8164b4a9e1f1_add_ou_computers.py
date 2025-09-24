@@ -1,4 +1,4 @@
-"""Add OU 'computers' if it not exists.
+"""Add OU 'computers' if it doesn't exist.
 
 Revision ID: 8164b4a9e1f1
 Revises: eeaed5989eb0
