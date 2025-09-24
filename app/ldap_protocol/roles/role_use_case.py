@@ -84,9 +84,7 @@ class RoleUseCase:
             )
         )  # fmt: skip
 
-        ace_ids = (
-            (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
-        )
+        ace_ids = (await self._role_dao._session.scalars(query)).all()  # noqa: SLF001
 
         members = [
             AccessControlEntryDirectoryMembership(
