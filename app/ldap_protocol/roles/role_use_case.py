@@ -63,31 +63,25 @@ class RoleUseCase:
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
-        directory_filter = Directory.id == parent_directory.id
-
-        subquery = (
-            select(Directory.id)
-            .where(Directory.parent_id == parent_directory.id)
-            .scalar_subquery()
-        )
-
         query = (
             select(AccessControlEntry.id)
-            .join(AccessControlEntry.directories)
             .where(
                 or_(
                     and_(
-                        directory_filter,
                         AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
+                        AccessControlEntry.directories.any(
+                            Directory.id == parent_directory.id,
+                        ),
                     ),
                     and_(
-                        Directory.id.in_(subquery),
                         AccessControlEntry.scope == RoleScope.SINGLE_LEVEL,
                         AccessControlEntry.depth == parent_directory.depth,
+                        AccessControlEntry.directories.any(
+                            Directory.parent_id == parent_directory.id,
+                        ),
                     ),
                 ),
             )
-            .distinct()
         )
 
         ace_ids = (
