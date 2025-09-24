@@ -82,7 +82,7 @@ class RoleUseCase:
                     ),
                 ),
             )
-        )
+        )  # fmt: skip
 
         ace_ids = (
             (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
