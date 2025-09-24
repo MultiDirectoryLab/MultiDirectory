@@ -7,7 +7,7 @@ Create Date: 2025-09-24 09:37:33.334259
 """
 
 from alembic import op
-from sqlalchemy import exists, select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -25,10 +25,18 @@ branch_labels = None
 depends_on = None
 
 
+_OU_COMPUTERS_DATA = {
+    "name": "computers",
+    "object_class": "organizationalUnit",
+    "attributes": {"objectClass": ["top", "container"]},
+    "children": [],
+}
+
+
 def upgrade() -> None:
     """Upgrade."""
 
-    async def _create_ou_computers(connection) -> None:
+    async def _create_ou_computers(connection: AsyncSession) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -36,54 +44,41 @@ def upgrade() -> None:
         if not base_dn_list:
             return
 
-        ou_computers_res = await session.scalars(
+        ou_computers = await session.scalar(
             select(
                 exists(Directory)
                 .where(Directory.name == "computers"),
             ),
         )  # fmt: skip
-
-        if ou_computers_res.one():
+        if ou_computers:
             return
 
         try:
-            parent_res = await session.scalars(
+            domain_dir = await session.scalar(
                 select(Directory)
                 .where(Directory.parent_id.is_(None)),
             )  # fmt: skip
-            parent = parent_res.one()
 
-            data = {
-                "name": "computers",
-                "object_class": "organizationalUnit",
-                "attributes": {"objectClass": ["top", "container"]},
-                "children": [],
-            }
             await create_dir(
-                data,
+                _OU_COMPUTERS_DATA,
                 session,
-                parent,
+                domain_dir,
                 PasswordValidator(),
-                parent,
+                domain_dir,
             )
 
-            ou_computers_res = await session.scalars(
-                select(Directory)
+            ou_computers_dir_id = await session.scalar(
+                select(Directory.id)
                 .where(Directory.name == "computers"),
             )  # fmt: skip
-            ou_computers = ou_computers_res.one()
-            ou_computers_dir_id = ou_computers.id
 
+            role_names = (
+                RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+                RoleConstants.READ_ONLY_ROLE_NAME,
+            )
             roles_res = await session.scalars(
                 select(Role)
-                .where(
-                    Role.name.in_(
-                        (
-                            RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
-                            RoleConstants.READ_ONLY_ROLE_NAME,
-                        ),
-                    ),
-                )
+                .where(Role.name.in_((role_names)))
                 .options(selectinload(Role.access_control_entries)),
             )
             roles = roles_res.all()
@@ -110,3 +105,20 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
+
+    async def _delete_ou_computers(connection: AsyncSession) -> None:
+        session = AsyncSession(bind=connection)
+        await session.begin()
+
+        base_dn_list = await get_base_directories(session)
+        if not base_dn_list:
+            return
+
+        await session.execute(
+            delete(Directory)
+            .where(Directory.name == "computers"),
+        )  # fmt: skip
+
+        await session.commit()
+
+    op.run_async(_delete_ou_computers)
