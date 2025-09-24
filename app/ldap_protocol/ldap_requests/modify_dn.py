@@ -226,7 +226,6 @@ class ModifyDNRequest(BaseRequest):
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
-            ctx.session.add(new_directory)
             new_directory.create_path(parent_dir, dn=dn)
 
         try:
