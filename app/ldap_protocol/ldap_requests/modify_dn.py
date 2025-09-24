@@ -189,11 +189,7 @@ class ModifyDNRequest(BaseRequest):
 
             ctx.session.add(new_directory)
             new_directory.create_path(directory.parent, dn)
-            if directory.parent:
-                await ctx.role_use_case.inherit_parent_aces(
-                    parent_directory=directory.parent,
-                    directory=new_directory,
-                )
+            parent_dir = directory.parent
 
         else:
             new_sup_query = select(Directory).filter(
@@ -206,14 +202,14 @@ class ModifyDNRequest(BaseRequest):
                 require_attribute_type_null=True,
             )
 
-            new_parent_dir = await ctx.session.scalar(new_sup_query)
+            parent_dir = await ctx.session.scalar(new_sup_query)
 
-            if not new_parent_dir:
+            if not parent_dir:
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
 
             can_add = ctx.access_manager.check_entity_level_access(
-                aces=new_parent_dir.access_control_entries,
+                aces=parent_dir.access_control_entries,
                 entity_type_id=directory.entity_type_id,
             )
 
@@ -226,21 +222,21 @@ class ModifyDNRequest(BaseRequest):
             new_directory = Directory(
                 object_class=directory.object_class,
                 name=name,
-                parent=new_parent_dir,
+                parent=parent_dir,
                 object_guid=directory.object_guid,
                 object_sid=directory.object_sid,
             )
-            ctx.session.add(new_directory)
-            new_directory.create_path(new_parent_dir, dn=dn)
-
-            await ctx.role_use_case.inherit_parent_aces(
-                parent_directory=new_parent_dir,
-                directory=new_directory,
-            )
+            new_directory.create_path(parent_dir, dn=dn)
 
         try:
             ctx.session.add(new_directory)
             await ctx.session.flush()
+            if parent_dir:
+                await ctx.role_use_case.inherit_parent_aces(
+                    parent_directory=parent_dir,
+                    directory=new_directory,
+                )
+                await ctx.session.flush()
         except IntegrityError:
             await ctx.session.rollback()
             yield ModifyDNResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
