@@ -188,10 +188,8 @@ class ModifyDNRequest(BaseRequest):
                         directory=directory,
                     )
                     await ctx.session.flush()
-            except IntegrityError as e:
+            except IntegrityError:
                 await ctx.session.rollback()
-                print("WASD")
-                print(e)
                 yield ModifyDNResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
                 )
