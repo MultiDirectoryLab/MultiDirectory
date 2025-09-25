@@ -91,7 +91,6 @@ def upgrade() -> None:
         session.add_all(members)
 
         await session.commit()
-        await session.close()
 
     op.run_async(_create_ou_computers)
 
