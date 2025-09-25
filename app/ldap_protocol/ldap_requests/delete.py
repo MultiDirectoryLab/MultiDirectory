@@ -12,6 +12,7 @@ from sqlalchemy.orm import defaultload, selectinload
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.kerberos.base import KRBAPIPrincipalNotFoundError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -120,16 +121,18 @@ class DeleteRequest(BaseRequest):
                         error_message="Cannot delete yourself.",
                     )
                     return
-                await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
                 await ctx.session_storage.clear_user_sessions(
                     directory.user.id,
                 )
+                await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
 
             if await is_computer(directory.id, ctx.session):
                 await ctx.kadmin.del_principal(directory.host_principal)
                 await ctx.kadmin.del_principal(
                     f"{directory.host_principal}.{base_dn.name}",
                 )
+        except KRBAPIPrincipalNotFoundError:
+            pass
         except KRBAPIError:
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,
