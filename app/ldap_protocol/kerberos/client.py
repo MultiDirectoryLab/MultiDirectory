@@ -2,7 +2,7 @@
 
 import httpx
 
-from .base import AbstractKadmin, KRBAPIError
+from .base import AbstractKadmin, KRBAPIError, KRBAPIPrincipalNotFoundError
 from .utils import logger_wraps
 
 
@@ -34,6 +34,10 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def get_principal(self, name: str) -> dict:
         """Get request."""
         response = await self.client.get("principal", params={"name": name})
+
+        if response.status_code == 404:
+            raise KRBAPIPrincipalNotFoundError
+
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
@@ -43,6 +47,10 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def del_principal(self, name: str) -> None:
         """Delete principal."""
         response = await self.client.delete("principal", params={"name": name})
+
+        if response.status_code == 404:
+            raise KRBAPIPrincipalNotFoundError
+
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
@@ -71,6 +79,10 @@ class KerberosMDAPIClient(AbstractKadmin):
             "/principal/create_or_update",
             json={"name": name, "password": password},
         )
+
+        if response.status_code == 404:
+            raise KRBAPIPrincipalNotFoundError
+
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
@@ -98,7 +110,7 @@ class KerberosMDAPIClient(AbstractKadmin):
 
         response = await self.client.send(request, stream=True)
         if response.status_code == 404:
-            raise KRBAPIError("Principal not found")
+            raise KRBAPIPrincipalNotFoundError
 
         return response
 
@@ -114,6 +126,9 @@ class KerberosMDAPIClient(AbstractKadmin):
             json={"name": name},
         )
 
+        if response.status_code == 404:
+            raise KRBAPIPrincipalNotFoundError
+
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
@@ -127,6 +142,9 @@ class KerberosMDAPIClient(AbstractKadmin):
             "principal/force_reset",
             json={"name": name},
         )
+
+        if response.status_code == 404:
+            raise KRBAPIPrincipalNotFoundError
 
         if response.status_code != 200:
             raise KRBAPIError(response.text)

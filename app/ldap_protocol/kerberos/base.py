@@ -31,6 +31,10 @@ class KRBAPIError(Exception):
     """API Error."""
 
 
+class KRBAPIPrincipalNotFoundError(KRBAPIError):
+    """Principal not found error."""
+
+
 class AbstractKadmin(ABC):
     """Stub client for non set up dirs."""
 
