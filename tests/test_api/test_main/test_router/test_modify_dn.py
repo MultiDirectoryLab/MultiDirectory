@@ -90,7 +90,7 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
             "entry": old_group_dn,
             "newrdn": newrdn_group,
             "deleteoldrdn": True,
-            "new_superior": None,
+            "new_superior": new_superior_group,  # NOTE: new_superior equal old_superior  # noqa: E501
         },
     )
 

@@ -141,7 +141,9 @@ class ModifyDNRequest(BaseRequest):
 
         dn, name = self.newrdn.split("=")
 
-        if self.new_superior:
+        if self.new_superior and (
+            directory.parent and self.new_superior != directory.parent.path_dn
+        ):
             new_sup_query = select(Directory).filter(
                 get_filter_from_path(self.new_superior),
             )
