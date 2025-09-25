@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import func, text, update
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -24,7 +24,12 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import AccessControlEntry, Attribute, Directory
+from models import (
+    AccessControlEntry,
+    AccessControlEntryDirectoryMembership,
+    Attribute,
+    Directory,
+)
 
 from .base import BaseRequest
 from .contexts import LDAPModifyDNRequestContext
@@ -135,17 +140,6 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        can_delete = ctx.access_manager.check_entity_level_access(
-            aces=directory.access_control_entries,
-            entity_type_id=directory.entity_type_id,
-        )
-
-        if not can_delete:
-            yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
-            return
-
         dn, name = self.newrdn.split("=")
 
         if self.new_superior:
@@ -159,14 +153,14 @@ class ModifyDNRequest(BaseRequest):
                 require_attribute_type_null=True,
             )
 
-            new_parent_dir = await ctx.session.scalar(new_sup_query)
+            parent_dir = await ctx.session.scalar(new_sup_query)
 
-            if not new_parent_dir:
+            if not parent_dir:
                 yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
                 return
 
             can_add = ctx.access_manager.check_entity_level_access(
-                aces=new_parent_dir.access_control_entries,
+                aces=parent_dir.access_control_entries,
                 entity_type_id=directory.entity_type_id,
             )
 
@@ -176,19 +170,32 @@ class ModifyDNRequest(BaseRequest):
                 )
                 return
 
-            directory.create_path(new_parent_dir, dn=dn)
+            directory.create_path(parent_dir, dn=dn)
 
-            await ctx.role_use_case.inherit_parent_aces(
-                parent_directory=new_parent_dir,
-                directory=directory,
-            )
+            try:
+                await ctx.session.flush()
+                if parent_dir:
+                    await ctx.session.execute(
+                        delete(AccessControlEntryDirectoryMembership)
+                        .where(
+                            AccessControlEntryDirectoryMembership.directory_id
+                            == directory.id,
+                        ),
+                    )  # fmt: skip
 
-        try:
-            await ctx.session.flush()
-        except IntegrityError:
-            await ctx.session.rollback()
-            yield ModifyDNResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
-            return
+                    await ctx.role_use_case.inherit_parent_aces(
+                        parent_directory=parent_dir,
+                        directory=directory,
+                    )
+                    await ctx.session.flush()
+            except IntegrityError as e:
+                await ctx.session.rollback()
+                print("WASD")
+                print(e)
+                yield ModifyDNResponse(
+                    result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                )
+                return
 
         async with ctx.session.begin_nested():
             if self.deleteoldrdn:

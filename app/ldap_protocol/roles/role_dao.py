@@ -52,7 +52,7 @@ _convert = retort.get_converter(Role, RoleDTO)
 _convert_without_aces = retort_without_ace.get_converter(Role, RoleDTO)
 
 
-class RoleDAO(AbstractDAO[RoleDTO]):
+class RoleDAO(AbstractDAO[RoleDTO, int]):
     """Role DAO."""
 
     _session: AsyncSession

@@ -7,22 +7,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import HTTPException, Query, status
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Query, status
 
 from api.ldap_schema import LimitedListType, ldap_schema_router
-from ldap_protocol.ldap_schema.attribute_type_dao import (
-    AttributeTypeDAO,
+from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
+from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
 from ldap_protocol.utils.pagination import PaginationParams
-
-_DEFAULT_ATTRIBUTE_TYPE_SYNTAX = "1.3.6.1.4.1.1466.115.121.1.15"
-_DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD = False
-_DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM = False
 
 
 @ldap_schema_router.post(
@@ -30,145 +24,45 @@ _DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM = False
     status_code=status.HTTP_201_CREATED,
 )
 async def create_one_attribute_type(
-    request_data: AttributeTypeSchema,
-    session: FromDishka[AsyncSession],
-    attribute_type_dao: FromDishka[AttributeTypeDAO],
+    request_data: AttributeTypeSchema[None],
+    adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
-    """Create a new Attribute Type.
-
-    \f
-    :param AttributeTypeSchema request_data: Data for creating Attribute Type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type\
-          manager.
-    :param FromDishka[AsyncSession] session: Database session.
-    :raises HTTPException: 409 if attr already exists
-    :return None.
-    """
-    try:
-        await attribute_type_dao.create_one(
-            oid=request_data.oid,
-            name=request_data.name,
-            syntax=_DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
-            single_value=request_data.single_value,
-            no_user_modification=_DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-            is_system=_DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-        )
-        await session.commit()
-    except IntegrityError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Attribute already exists",
-        )
+    """Create a new Attribute Type."""
+    await adapter.create(request_data)
 
 
-@ldap_schema_router.get(
-    "/attribute_type/{attribute_type_name}",
-    response_model=AttributeTypeSchema,
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.get("/attribute_type/{attribute_type_name}")
 async def get_one_attribute_type(
     attribute_type_name: str,
-    attribute_type_dao: FromDishka[AttributeTypeDAO],
-) -> AttributeTypeSchema:
-    """Retrieve a one Attribute Type.
-
-    \f
-    :param str attribute_type_name: name of the Attribute Type.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
-    :return AttributeTypeSchema: Attribute Type Schema.
-    """
-    attribute_type = await attribute_type_dao.get_one_by_name(
-        attribute_type_name,
-    )
-    return AttributeTypeSchema.model_validate(
-        attribute_type,
-        from_attributes=True,
-    )
+    adapter: FromDishka[AttributeTypeFastAPIAdapter],
+) -> AttributeTypeSchema[int]:
+    """Retrieve a one Attribute Type."""
+    return await adapter.get(attribute_type_name)
 
 
-@ldap_schema_router.get(
-    "/attribute_types",
-    response_model=AttributeTypePaginationSchema,
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.get("/attribute_types")
 async def get_list_attribute_types_with_pagination(
-    attribute_type_dao: FromDishka[AttributeTypeDAO],
+    adapter: FromDishka[AttributeTypeFastAPIAdapter],
     params: Annotated[PaginationParams, Query()],
 ) -> AttributeTypePaginationSchema:
-    """Retrieve a chunk of Attribute Types with pagination.
-
-    \f
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
-    :param PaginationParams params: Pagination parameters.
-    :return AttributeTypePaginationSchema: Paginator Schema.
-    """
-    pagination_result = await attribute_type_dao.get_paginator(params=params)
-
-    items = [
-        AttributeTypeSchema.model_validate(item, from_attributes=True)
-        for item in pagination_result.items
-    ]
-    return AttributeTypePaginationSchema(
-        metadata=pagination_result.metadata,
-        items=items,
-    )
+    """Retrieve a chunk of Attribute Types with pagination."""
+    return await adapter.get_list_paginated(params)
 
 
-@ldap_schema_router.patch(
-    "/attribute_type/{attribute_type_name}",
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.patch("/attribute_type/{attribute_type_name}")
 async def modify_one_attribute_type(
     attribute_type_name: str,
     request_data: AttributeTypeUpdateSchema,
-    session: FromDishka[AsyncSession],
-    attribute_type_dao: FromDishka[AttributeTypeDAO],
+    adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
-    """Modify an Attribute Type.
-
-    \f
-    :param str attribute_type_name: name of the Attribute Type for modifying.
-    :param AttributeTypeUpdateSchema request_data: Changed data.
-    :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute Type dao.
-    :raises HTTPException: 403 if attr read-only
-    :return None.
-    """
-    try:
-        attribute_type = await attribute_type_dao.get_one_by_name(
-            attribute_type_name,
-        )
-
-        request_data.syntax = _DEFAULT_ATTRIBUTE_TYPE_SYNTAX
-        request_data.no_user_modification = _DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD
-        await attribute_type_dao.modify_one(
-            attribute_type=attribute_type,
-            new_statement=request_data,
-        )
-        await session.commit()
-    except attribute_type_dao.AttributeTypeCantModifyError as error:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(error),
-        )
+    """Modify an Attribute Type."""
+    await adapter.update(name=attribute_type_name, data=request_data)
 
 
-@ldap_schema_router.post(
-    "/attribute_types/delete",
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.post("/attribute_types/delete")
 async def delete_bulk_attribute_types(
     attribute_types_names: LimitedListType,
-    session: FromDishka[AsyncSession],
-    attribute_type_dao: FromDishka[AttributeTypeDAO],
+    adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
-    """Delete Attribute Types by their names.
-
-    \f
-    :param LimitedListType attribute_types_names: List of Attribute Type names
-    :param FromDishka[AsyncSession] session: Database session.
-    :param FromDishka[AttributeTypeDAO] attribute_type_dao: Attribute type dao.
-    :return None: None
-    """
-    await attribute_type_dao.delete_all_by_names(attribute_types_names)
-    await session.commit()
+    """Delete Attribute Types by their names."""
+    await adapter.delete_bulk(attribute_types_names)

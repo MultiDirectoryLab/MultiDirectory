@@ -7,160 +7,60 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import HTTPException, Query, status
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Query, status
 
 from api.ldap_schema import LimitedListType
+from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.ldap_schema.attribute_type_router import ldap_schema_router
-from ldap_protocol.ldap_schema.object_class_dao import (
-    ObjectClassDAO,
+from api.ldap_schema.schema import (
     ObjectClassPaginationSchema,
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
 from ldap_protocol.utils.pagination import PaginationParams
 
-_DEFAULT_OBJECT_CLASS_IS_SYSTEM = False
 
-
-@ldap_schema_router.post(
-    "/object_class",
-    status_code=status.HTTP_201_CREATED,
-)
+@ldap_schema_router.post("/object_class", status_code=status.HTTP_201_CREATED)
 async def create_one_object_class(
-    request_data: ObjectClassSchema,
-    object_class_dao: FromDishka[ObjectClassDAO],
-    session: FromDishka[AsyncSession],
+    request_data: ObjectClassSchema[None],
+    adapter: FromDishka[ObjectClassFastAPIAdapter],
 ) -> None:
-    """Create a new Object Class.
-
-    \f
-    :param ObjectClassSchema request_data: Data for creating Object Class.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :raises HTTPException: 409 if object class already exists
-    :return None.
-    """
-    try:
-        await object_class_dao.create_one(
-            oid=request_data.oid,
-            name=request_data.name,
-            superior_name=request_data.superior_name,
-            kind=request_data.kind,
-            is_system=_DEFAULT_OBJECT_CLASS_IS_SYSTEM,
-            attribute_type_names_must=request_data.attribute_type_names_must,
-            attribute_type_names_may=request_data.attribute_type_names_may,
-        )
-        await session.commit()
-    except IntegrityError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Object Class already exists",
-        )
+    """Create a new Object Class."""
+    await adapter.create(request_data)
 
 
-@ldap_schema_router.get(
-    "/object_class/{object_class_name}",
-    response_model=ObjectClassSchema,
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.get("/object_class/{object_class_name}")
 async def get_one_object_class(
     object_class_name: str,
-    object_class_dao: FromDishka[ObjectClassDAO],
-) -> ObjectClassSchema:
-    """Retrieve a one object class.
-
-    \f
-    :param str object_class_name: name of the Object Class.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :return ObjectClassSchema: One Object Class Schemas.
-    """
-    object_class = await object_class_dao.get_one_by_name(object_class_name)
-
-    return ObjectClassSchema.model_validate(object_class, from_attributes=True)
+    adapter: FromDishka[ObjectClassFastAPIAdapter],
+) -> ObjectClassSchema[int]:
+    """Retrieve a one object class."""
+    return await adapter.get(object_class_name)
 
 
-@ldap_schema_router.get(
-    "/object_classes",
-    response_model=ObjectClassPaginationSchema,
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.get("/object_classes")
 async def get_list_object_classes_with_pagination(
-    object_class_dao: FromDishka[ObjectClassDAO],
+    adapter: FromDishka[ObjectClassFastAPIAdapter],
     params: Annotated[PaginationParams, Query()],
 ) -> ObjectClassPaginationSchema:
-    """Retrieve a list of all object classes with paginate.
-
-    \f
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param PaginationParams params: Pagination parameters.
-    :return ObjectClassPaginationSchema: Paginator.
-    """
-    pagination_result = await object_class_dao.get_paginator(params=params)
-
-    items = [
-        ObjectClassSchema.model_validate(item, from_attributes=True)
-        for item in pagination_result.items
-    ]
-    return ObjectClassPaginationSchema(
-        metadata=pagination_result.metadata,
-        items=items,
-    )
+    """Retrieve a list of all object classes with paginate."""
+    return await adapter.get_list_paginated(params=params)
 
 
-@ldap_schema_router.patch(
-    "/object_class/{object_class_name}",
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.patch("/object_class/{object_class_name}")
 async def modify_one_object_class(
     object_class_name: str,
     request_data: ObjectClassUpdateSchema,
-    object_class_dao: FromDishka[ObjectClassDAO],
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[ObjectClassFastAPIAdapter],
 ) -> None:
-    """Modify an Object Class.
-
-    \f
-    :param str object_class_name: Name of the Object Class for modifying.
-    :param ObjectClassUpdateSchema request_data: Changed data.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None.
-    """
-    try:
-        object_class = await object_class_dao.get_one_by_name(
-            object_class_name,
-        )
-
-        await object_class_dao.modify_one(
-            object_class=object_class,
-            new_statement=request_data,
-        )
-        await session.commit()
-    except object_class_dao.ObjectClassCantModifyError as error:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(error),
-        )
+    """Modify an Object Class."""
+    await adapter.update(object_class_name, request_data)
 
 
-@ldap_schema_router.post(
-    "/object_class/delete",
-    status_code=status.HTTP_200_OK,
-)
+@ldap_schema_router.post("/object_class/delete")
 async def delete_bulk_object_classes(
     object_classes_names: LimitedListType,
-    object_class_dao: FromDishka[ObjectClassDAO],
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[ObjectClassFastAPIAdapter],
 ) -> None:
-    """Delete Object Classes by their names.
-
-    \f
-    :param LimitedListType object_classes_names: List of Object Classes names.
-    :param FromDishka[ObjectClassDAO] object_class_dao: Object Class DAO.
-    :param FromDishka[AsyncSession] session: Database session.
-    :return None: None
-    """
-    await object_class_dao.delete_all_by_names(object_classes_names)
-    await session.commit()
+    """Delete Object Classes by their names."""
+    await adapter.delete_bulk(object_classes_names)

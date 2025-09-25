@@ -47,7 +47,7 @@ _convert = get_converter(
 )
 
 
-class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO]):
+class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
     """Access control entry DAO."""
 
     _session: AsyncSession
