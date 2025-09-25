@@ -18,8 +18,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from itertools import chain
 
 from loguru import logger
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO

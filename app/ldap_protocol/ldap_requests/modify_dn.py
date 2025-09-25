@@ -8,7 +8,6 @@ from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from enums import AceType
