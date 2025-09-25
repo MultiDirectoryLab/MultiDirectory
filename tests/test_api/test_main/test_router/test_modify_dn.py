@@ -20,11 +20,12 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
 
     old_user_dn = "cn=user1," + root_dn
     newrdn_user = "cn=new_test2"
-    new_user_dn = ",".join((newrdn_user, root_dn))
 
     old_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
     new_group_dn = "cn=new_developers,cn=groups,dc=md,dc=test"
     newrdn_group, new_superior_group = new_group_dn.split(",", maxsplit=1)
+
+    new_user_dn = ",".join((newrdn_user, new_superior_group))
 
     response = await http_client.post(
         "entry/search",
@@ -54,7 +55,7 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
             "entry": old_user_dn,
             "newrdn": newrdn_user,
             "deleteoldrdn": True,
-            "new_superior": None,
+            "new_superior": new_superior_group,
         },
     )
 
