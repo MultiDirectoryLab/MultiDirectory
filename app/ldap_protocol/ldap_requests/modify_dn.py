@@ -176,10 +176,7 @@ class ModifyDNRequest(BaseRequest):
                 if parent_dir:
                     await ctx.session.execute(
                         delete(AccessControlEntryDirectoryMembership)
-                        .where(
-                            AccessControlEntryDirectoryMembership.directory_id
-                            == directory.id,
-                        ),
+                        .filter_by(directory_id=directory.id),
                     )  # fmt: skip
 
                     await ctx.role_use_case.inherit_parent_aces(
