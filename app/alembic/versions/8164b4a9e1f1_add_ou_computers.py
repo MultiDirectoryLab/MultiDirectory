@@ -40,8 +40,7 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        base_dn_list = await get_base_directories(session)
-        if not base_dn_list:
+        if not await get_base_directories(session):
             return
 
         ou_computers = await session.scalar(
