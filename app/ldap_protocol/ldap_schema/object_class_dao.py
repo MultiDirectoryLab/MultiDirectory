@@ -6,7 +6,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Iterable, Literal
 
-from adaptix.conversion import get_converter
+from adaptix import P
+from adaptix.conversion import (
+    allow_unlinked_optional,
+    get_converter,
+    link_function,
+)
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +33,14 @@ from .exceptions import (
     ObjectClassNotFoundError,
 )
 
-_converter = get_converter(ObjectClass, ObjectClassDTO[int, AttributeTypeDTO])
+_converter = get_converter(
+    ObjectClass,
+    ObjectClassDTO[int, AttributeTypeDTO],
+    recipe=[
+        allow_unlinked_optional(P[ObjectClassDTO].id),
+        link_function(lambda x: x.kind, P[ObjectClassDTO].kind),
+    ],
+)
 
 
 class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
@@ -67,6 +79,10 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             order_by_field=qa(ObjectClass.id),
             params=params,
             search_field=qa(ObjectClass.name),
+            load_params=(
+                selectinload(qa(ObjectClass).attribute_types_may),
+                selectinload(qa(ObjectClass).attribute_types_must),
+            ),
         )
 
         return await PaginationResult[ObjectClass].get(

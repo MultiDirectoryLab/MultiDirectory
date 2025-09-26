@@ -7,7 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import contextlib
 from typing import Iterable
 
-from adaptix.conversion import get_converter
+from adaptix import P
+from adaptix.conversion import get_converter, link_function
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +30,13 @@ from ldap_protocol.utils.pagination import (
 )
 from repo.pg.tables import queryable_attr as qa
 
-_convert = get_converter(EntityType, EntityTypeDTO[int])
+_convert = get_converter(
+    EntityType,
+    EntityTypeDTO[int],
+    recipe=[
+        link_function(lambda x: x.id, P[EntityTypeDTO].id),
+    ],
+)
 
 
 class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
@@ -147,9 +154,9 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         """
         query = build_paginated_search_query(
             model=EntityType,
-            order_by_field=EntityType.name,
+            order_by_field=qa(EntityType.name),
             params=params,
-            search_field=EntityType.name,
+            search_field=qa(EntityType.name),
         )
 
         return await PaginationResult[EntityType].get(
@@ -226,7 +233,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         object_classes_query = await self.__session.scalars(
             select(ObjectClass)
             .where(
-                qa(ObjectClass).name.in_(
+                qa(ObjectClass.name).in_(
                     entity_type.object_class_names,
                 ),
             )

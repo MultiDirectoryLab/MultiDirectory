@@ -15,8 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from constants import ENTITY_TYPE_DATAS
 from entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_entity_type_name
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -96,21 +97,23 @@ def upgrade() -> None:
             return
 
         await session.begin()
-        attribute_type_dao = AttributeTypeDAO(session)
-        object_class_dao = ObjectClassDAO(
-            session,
-            attribute_type_dao=attribute_type_dao,
-        )
+        object_class_dao = ObjectClassDAO(session)
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao=object_class_dao,
         )
+        entity_type_use_case = EntityTypeUseCase(
+            entity_type_dao,
+            object_class_dao,
+        )
 
         for entity_type_data in ENTITY_TYPE_DATAS:
-            await entity_type_dao.create_one(
-                name=entity_type_data["name"],  # type: ignore
-                object_class_names=entity_type_data["object_class_names"],
-                is_system=True,
+            await entity_type_use_case.create(
+                EntityTypeDTO(
+                    name=entity_type_data["name"],  # type: ignore
+                    object_class_names=entity_type_data["object_class_names"],  # type: ignore
+                    is_system=True,
+                ),
             )
 
         await session.commit()
@@ -164,10 +167,8 @@ def upgrade() -> None:
             return
 
         session.begin()
-        attribute_type_dao = AttributeTypeDAO(session)
         object_class_dao = ObjectClassDAO(
             session,
-            attribute_type_dao=attribute_type_dao,
         )
         entity_type_dao = EntityTypeDAO(
             session,

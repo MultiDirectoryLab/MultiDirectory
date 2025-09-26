@@ -25,7 +25,7 @@ from ldap_protocol.utils.queries import (
     validate_entry,
 )
 from repo.pg.tables import (
-    access_control_entries_table,
+    ace_directory_memberships_table,
     directory_table,
     queryable_attr as qa,
 )
@@ -177,7 +177,7 @@ class ModifyDNRequest(BaseRequest):
                 await ctx.session.flush()
                 if parent_dir:
                     await ctx.session.execute(
-                        delete(access_control_entries_table.c)
+                        delete(ace_directory_memberships_table)
                         .filter_by(directory_id=directory.id),
                     )  # fmt: skip
 
