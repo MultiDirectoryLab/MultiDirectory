@@ -49,7 +49,7 @@ def upgrade() -> None:
     settings_query = select(CatalogueSetting).where(
         CatalogueSetting.name.like("ldap_server_%"),
     )
-    settings_records = session.execute(settings_query).scalars()
+    settings_records = session.scalars(settings_query)
 
     for setting in settings_records:
         try:
@@ -96,7 +96,7 @@ def downgrade() -> None:
     session = Session(bind=bind)
 
     servers_query = select(DedicatedServer)
-    servers_records = session.execute(servers_query).scalars()
+    servers_records = session.scalars(servers_query)
 
     for server in servers_records:
         schema = "ldaps" if server.use_tls else "ldap"
