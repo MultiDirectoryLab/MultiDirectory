@@ -8,6 +8,7 @@ Create Date: 2025-08-26 12:45:08.370675
 
 import sqlalchemy as sa
 from alembic import op
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -48,38 +49,44 @@ def upgrade() -> None:
     settings_query = select(CatalogueSetting).where(
         CatalogueSetting.name.like("ldap_server_%"),
     )
-    settings_records = session.execute(settings_query).scalars().all()
+    settings_records = session.execute(settings_query).scalars()
 
     for setting in settings_records:
-        name_with_prefix = setting.name
-        conn_string = setting.value
+        try:
+            name_with_prefix = setting.name
+            conn_string = setting.value
 
-        server_name = name_with_prefix.replace("ldap_server_", "", 1)
+            server_name = name_with_prefix.replace("ldap_server_", "", 1)
 
-        schema, conn_part = conn_string.split("://", 1)
-        username_password, host_port = conn_part.rsplit("@", 1)
-        username, password = username_password.split(":", 1)
-        host, port_dn = host_port.split(":", 1)
-        port, domain_name_dn = port_dn.split("/", 1)
-        base_dn, domain_name = domain_name_dn.split("/", 1)
+            schema, conn_part = conn_string.split("://", 1)
+            username_password, host_port = conn_part.rsplit("@", 1)
+            username, password = username_password.split(":", 1)
+            host, port_dn = host_port.split(":", 1)
+            port, domain_name_dn = port_dn.split("/", 1)
+            base_dn, domain_name = domain_name_dn.split("/", 1)
 
-        use_tls = schema == "ldaps"
+            use_tls = schema == "ldaps"
 
-        dedicated_server = DedicatedServer(
-            name=server_name,
-            host=host,
-            port=int(port),
-            username=username,
-            password=password,
-            base_dn=base_dn,
-            domain_name=domain_name,
-            use_tls=use_tls,
-            ca_certificate_path=None,
-            ca_certificate_content=None,
-        )
+            dedicated_server = DedicatedServer(
+                name=server_name,
+                host=host,
+                port=int(port),
+                username=username,
+                password=password,
+                base_dn=base_dn,
+                domain_name=domain_name,
+                use_tls=use_tls,
+                ca_certificate_path=None,
+                ca_certificate_content=None,
+            )
 
+        except Exception as err:
+            logger.error(
+                f"Error adding dedicated server: {err}"
+                + f" {setting.name=}, {setting.value=}",
+            )
+            continue
         session.add(dedicated_server)
-
     session.commit()
 
 
@@ -89,7 +96,7 @@ def downgrade() -> None:
     session = Session(bind=bind)
 
     servers_query = select(DedicatedServer)
-    servers_records = session.execute(servers_query).scalars().all()
+    servers_records = session.execute(servers_query).scalars()
 
     for server in servers_records:
         schema = "ldaps" if server.use_tls else "ldap"
