@@ -20,6 +20,7 @@ from sqlalchemy import (
     Index,
     LargeBinary,
     String,
+    Text,
     UniqueConstraint,
     asc,
     desc,
@@ -1308,4 +1309,28 @@ class AuditDestination(Base):
     protocol: Mapped[AuditDestinationProtocolType] = mapped_column(
         Enum(AuditDestinationProtocolType),
         nullable=False,
+    )
+
+
+class DedicatedServer(Base):
+    """Dedicated server."""
+
+    __tablename__ = "DedicatedServers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    port: Mapped[int] = mapped_column(nullable=False)
+    username: Mapped[str] = mapped_column(String(255), nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    base_dn: Mapped[str] = mapped_column(String(255), nullable=False)
+    domain_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    use_tls: Mapped[bool] = mapped_column(nullable=False)
+    ca_certificate_path: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    ca_certificate_content: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
     )
