@@ -13,7 +13,7 @@ from operator import eq, ge, le, ne
 from typing import Callable, Protocol
 
 from ldap_filter import Filter
-from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy import Integer, and_, cast, func, not_, or_, select
 from sqlalchemy.sql.elements import (
     BinaryExpression,
     ColumnElement,
@@ -26,7 +26,7 @@ from .asn1parser import ASN1Row, TagNumbers
 from .objects import LDAPMatchingRule
 from .utils.cte import find_members_recursive_cte, get_filter_from_path
 
-MEMBERS_ATTRS = {
+_MEMBERS_ATTRS = {
     "member",
     "memberof",
     f"memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:",
@@ -68,6 +68,58 @@ class FilterInterpreterProtocol(Protocol):
 
         return f
 
+    def _get_bit_filter_function(
+        self,
+        column: str,
+    ) -> Callable[..., UnaryExpression]:
+        """Retrieve the appropriate filter function based on the attribute."""
+        if len(column.split(":")) == 1:
+            attribute = column
+            oid = ""
+        elif len(column.split(":")) == 3:
+            attribute, oid = column.split(":")[:-1]
+        else:
+            ValueError("Incorrect attribute specified")
+
+        if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND:
+            return self._filter_bit_and
+        elif oid == LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR:
+            return self._filter_bit_or
+        else:
+            raise ValueError("Incorrect attribute specified")
+
+    def _filter_bit_and(
+        self,
+        attr_name: str,
+        bit_mask: str,
+    ) -> UnaryExpression:
+        """BIT AND filter.
+
+        Docs: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/6dd1d7b4-2b2f-4e55-b164-7047c4c5bb00
+        """
+        map_ = {"useraccountcontrol": "userAccountControl"}
+        return Directory.id.in_(
+            select(Attribute.directory_id)
+            .where(
+                Attribute.name == map_.get(attr_name),
+                cast(Attribute.value, Integer).op("&")(int(bit_mask)) == int(bit_mask),  # noqa: E501
+            ),
+        )  # type: ignore # fmt: skip
+
+    def _filter_bit_or(self, attr_name: str, bit_mask: str) -> UnaryExpression:
+        """BIT OR filter.
+
+        Docs: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/4e5b2424-642a-40da-acb1-9fff381b46e4
+        """
+        map_ = {"useraccountcontrol": "userAccountControl"}
+        return Directory.id.in_(
+            select(Attribute.directory_id)
+            .where(
+                Attribute.name == map_.get(attr_name),
+                cast(Attribute.value, Integer).op("&")(int(bit_mask)) > 0,
+            ),
+        )  # type: ignore # fmt: skip
+
     def _get_filter_function(
         self,
         column: str,
@@ -84,7 +136,8 @@ class FilterInterpreterProtocol(Protocol):
         if attribute == "memberof":
             if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL:
                 return self._recursive_filter_memberof
-            return self._filter_memberof
+            else:
+                return self._filter_memberof
         elif attribute == "member":
             return self._filter_member
         else:
@@ -164,16 +217,22 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
             if attr in User.search_fields:
                 return not_(eq(getattr(User, attr), None))
-
-            if attr in Directory.search_fields:
+            elif attr in Directory.search_fields:
                 return not_(eq(getattr(Directory, attr), None))
+            elif (
+                LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND
+                in item.value  # TODO
+                or LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR
+                in item.value  # TODO
+            ):
+                return self._bit_filter(item)
 
             return self._get_filter_condition(attr)
 
         if (
             len(item.value) == 3
             and isinstance(item.value[1].value, bytes)
-            and item.value[1].value.decode("utf-8").lower() in MEMBERS_ATTRS
+            and item.value[1].value.decode("utf-8").lower() in _MEMBERS_ATTRS
         ):
             return self._ldap_filter_by_attribute(*item.value)  # NOTE: oid
 
@@ -188,7 +247,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             return self._from_filter(User, item, attr, right)
         elif attr in Directory.search_fields:
             return self._from_filter(Directory, item, attr, right)
-        elif attr in MEMBERS_ATTRS:  # NOTE: without oid
+        elif attr in _MEMBERS_ATTRS:  # NOTE: without oid
             return self._ldap_filter_by_attribute(None, left, right)
         elif attr == "entitytypename":
             return func.lower(EntityType.name) == right.lower()
@@ -202,6 +261,10 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
                     cond = Attribute.bvalue == right.value
 
             return self._get_filter_condition(attr, cond)
+
+    def _bit_filter(self, item: Filter) -> UnaryExpression:
+        filter_func = self._get_bit_filter_function(item.attr)
+        return filter_func(item.attr.split(":")[0], item.val)
 
     def _ldap_filter_by_attribute(
         self,
@@ -294,7 +357,12 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             return self._from_str_filter(User, is_substring, item)
         elif item.attr in Directory.search_fields:
             return self._from_str_filter(Directory, is_substring, item)
-        elif item.attr in MEMBERS_ATTRS:
+        elif (
+            LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND in item.attr
+            or LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR in item.attr
+        ):
+            return self._bit_filter(item)
+        elif item.attr in _MEMBERS_ATTRS:
             return self._api_filter(item)
         elif item.attr == "entitytypename":
             return func.lower(EntityType.name) == item.val.lower()
@@ -305,6 +373,10 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
                 cond = Attribute.value.ilike(item.val)
 
             return self._get_filter_condition(item.attr, cond)
+
+    def _bit_filter(self, item: Filter) -> UnaryExpression:
+        filter_func = self._get_bit_filter_function(item.attr)
+        return filter_func(item.attr.split(":")[0], item.val)
 
     def _from_str_filter(
         self,

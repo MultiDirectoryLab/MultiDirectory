@@ -312,6 +312,60 @@ TEST_DATA = [
                 },
             },
             {
+                "name": "user_admin_OR1",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_account_name": "user_admin321",
+                    "user_principal_name": "user_admin321",
+                    "mail": "user_admin321@mail.com",
+                    "display_name": "user_admin321",
+                    "password": "password",
+                    "groups": [
+                        "domain admins",
+                    ],
+                },
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "inetOrgPerson",
+                        "shadowAccount",
+                    ],
+                    "posixEmail": ["abctest321@mail.com"],
+                    "attr_with_bvalue": [b"any"],
+                    "userAccountControl": ["66066"],  # 65536 + 512 + 16 + 2
+                },
+            },
+            {
+                "name": "user_admin_OR2",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_account_name": "user_admin123",
+                    "user_principal_name": "user_admin123",
+                    "mail": "user_admin123@mail.com",
+                    "display_name": "user_admin123",
+                    "password": "password",
+                    "groups": [
+                        "domain admins",
+                    ],
+                },
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "inetOrgPerson",
+                        "shadowAccount",
+                    ],
+                    "posixEmail": ["abctest123@mail.com"],
+                    "attr_with_bvalue": [b"any"],
+                    "userAccountControl": ["66048"],  # 65536 + 512
+                },
+            },
+            {
                 "name": "user_non_admin",
                 "object_class": "user",
                 "organizationalPerson": {

@@ -188,6 +188,8 @@ async def test_role_search_5(
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
             "dn: cn=user_admin,ou=users,dc=md,dc=test",
             "dn: cn=user0,ou=users,dc=md,dc=test",
+            "dn: cn=user_admin_OR1,ou=users,dc=md,dc=test",
+            "dn: cn=user_admin_OR2,ou=users,dc=md,dc=test",
         ],
         expected_attrs_present=[
             "posixEmail: abctest@mail.com",
