@@ -11,8 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
+from entities import AccessControlEntry, Group, Role
 from ldap_protocol.utils.queries import get_groups
-from models import AccessControlEntry, Group, Role
+from repo.pg.tables import queryable_attr as qa
 
 from .ace_dao import _convert as ace_convert
 from .dataclasses import AccessControlEntryDTO, RoleDTO
@@ -32,7 +33,6 @@ def make_aces(role: Role) -> list[AccessControlEntryDTO]:
 base_retort = ConversionRetort(
     recipe=[
         link_function(make_groups, P[RoleDTO].groups),
-        link_function(lambda x: x.created_at, P[RoleDTO].created_at),
     ],
 )
 
@@ -70,14 +70,16 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         query = (
             select(Role)
             .options(
-                selectinload(Role.groups).selectinload(Group.directory),
-                selectinload(Role.access_control_entries).options(
-                    joinedload(AccessControlEntry.attribute_type),
-                    joinedload(AccessControlEntry.entity_type),
-                    joinedload(AccessControlEntry.role),
+                selectinload(qa(Role.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                selectinload(qa(Role.access_control_entries)).options(
+                    joinedload(qa(AccessControlEntry.attribute_type)),
+                    joinedload(qa(AccessControlEntry.entity_type)),
+                    joinedload(qa(AccessControlEntry.role)),
                 ),
             )
-            .where(Role.id == _id)
+            .filter_by(id=_id)
         )
         retval = await self._session.scalar(query)
         if not retval:
@@ -101,14 +103,16 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         query = (
             select(Role)
             .options(
-                selectinload(Role.groups).selectinload(Group.directory),
-                selectinload(Role.access_control_entries).options(
-                    joinedload(AccessControlEntry.attribute_type),
-                    joinedload(AccessControlEntry.entity_type),
-                    joinedload(AccessControlEntry.role),
+                selectinload(qa(Role.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                selectinload(qa(Role.access_control_entries)).options(
+                    joinedload(qa(AccessControlEntry.attribute_type)),
+                    joinedload(qa(AccessControlEntry.entity_type)),
+                    joinedload(qa(AccessControlEntry.role)),
                 ),
             )
-            .where(Role.name == role_name)
+            .filter_by(name=role_name)
         )
         retval = await self._session.scalar(query)
         if not retval:
@@ -125,7 +129,9 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         roles = (
             await self._session.scalars(
                 select(Role).options(
-                    selectinload(Role.groups).selectinload(Group.directory),
+                    selectinload(qa(Role.groups)).selectinload(
+                        qa(Group.directory),
+                    ),
                 ),
             )
         ).all()

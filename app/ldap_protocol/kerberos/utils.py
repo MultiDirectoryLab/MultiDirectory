@@ -7,7 +7,8 @@ import httpx
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Attribute, CatalogueSetting, Directory, EntityType
+from entities import Attribute, CatalogueSetting, Directory, EntityType
+from repo.pg.tables import queryable_attr as qa
 
 from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
 
@@ -61,7 +62,7 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     """
     results = await session.execute(
         select(CatalogueSetting)
-        .where(CatalogueSetting.name == KERBEROS_STATE_NAME),
+        .filter_by(name = KERBEROS_STATE_NAME),
     )  # fmt: skip
     kerberos_state = results.scalar_one_or_none()
 
@@ -71,7 +72,7 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
 
     await session.execute(
         update(CatalogueSetting)
-        .where(CatalogueSetting.name == KERBEROS_STATE_NAME)
+        .filter_by(name=KERBEROS_STATE_NAME)
         .values(value=state),
     )
 
@@ -80,7 +81,7 @@ async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
     """Get kerberos server state."""
     state = await session.scalar(
         select(CatalogueSetting)
-        .filter(CatalogueSetting.name == KERBEROS_STATE_NAME),
+        .filter_by(name=KERBEROS_STATE_NAME),
     )  # fmt: skip
 
     if state is None:
@@ -95,19 +96,16 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     :param AsyncSession session: db
     """
     subquery = (
-        select(Directory.id)
-        .outerjoin(Directory.entity_type)
+        select(qa(Directory.id))
+        .outerjoin(qa(Directory.entity_type))
         .where(
-            Directory.name.ilike(name),
-            EntityType.name == "KRB Principal",
+            qa(Directory.name).ilike(name),
+            qa(EntityType.name) == "KRB Principal",
         )
         .scalar_subquery()
     )
     await session.execute(
         delete(Attribute)
-        .where(
-            Attribute.directory_id == subquery,
-            Attribute.name == "krbprincipalexpiration",
-        )
+        .filter_by(directory_id=subquery, name="krbprincipalexpiration")
         .execution_options(synchronize_session=False),
     )

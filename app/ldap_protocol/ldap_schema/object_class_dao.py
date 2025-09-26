@@ -6,19 +6,25 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Iterable, Literal
 
-from adaptix.conversion import get_converter
+from adaptix import P
+from adaptix.conversion import (
+    allow_unlinked_optional,
+    get_converter,
+    link_function,
+)
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
+from entities import AttributeType, EntityType, ObjectClass
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
     build_paginated_search_query,
 )
-from models import AttributeType, EntityType, ObjectClass
+from repo.pg.tables import queryable_attr as qa
 
 from .dto import AttributeTypeDTO, ObjectClassDTO
 from .exceptions import (
@@ -27,7 +33,14 @@ from .exceptions import (
     ObjectClassNotFoundError,
 )
 
-_converter = get_converter(ObjectClass, ObjectClassDTO[int, AttributeTypeDTO])
+_converter = get_converter(
+    ObjectClass,
+    ObjectClassDTO[int, AttributeTypeDTO],
+    recipe=[
+        allow_unlinked_optional(P[ObjectClassDTO].id),
+        link_function(lambda x: x.kind, P[ObjectClassDTO].kind),
+    ],
+)
 
 
 class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
@@ -37,7 +50,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         """Initialize Object Class DAO with session."""
         self.__session = session
 
-    async def get_all(self) -> list[ObjectClassDTO]:
+    async def get_all(self) -> list[ObjectClassDTO[int, AttributeTypeDTO]]:
         """Get all Object Classes."""
         return [
             _converter(object_class)
@@ -63,9 +76,13 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         """
         query = build_paginated_search_query(
             model=ObjectClass,
-            order_by_field=ObjectClass.id,
+            order_by_field=qa(ObjectClass.id),
             params=params,
-            search_field=ObjectClass.name,
+            search_field=qa(ObjectClass.name),
+            load_params=(
+                selectinload(qa(ObjectClass).attribute_types_may),
+                selectinload(qa(ObjectClass).attribute_types_must),
+            ),
         )
 
         return await PaginationResult[ObjectClass].get(
@@ -113,7 +130,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             if dto.attribute_types_must:
                 res = await self.__session.scalars(
                     select(AttributeType)
-                    .where(AttributeType.name.in_(dto.attribute_types_must)),
+                    .where(qa(AttributeType.name).in_(dto.attribute_types_must)),
                 )  # fmt: skip
                 attribute_types_must = list(res.all())
 
@@ -124,7 +141,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
                 res = await self.__session.scalars(
                     select(AttributeType)
                     .where(
-                        AttributeType.name.in_(attribute_types_may_filtered),
+                        qa(AttributeType.name).in_(attribute_types_may_filtered),
                     ),
                 )  # fmt: skip
                 attribute_types_may = list(res.all())
@@ -198,11 +215,9 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         """
         object_class = await self.__session.scalar(
             select(ObjectClass)
-            .where(ObjectClass.name == name)
-            .options(
-                selectinload(ObjectClass.attribute_types_must),
-                selectinload(ObjectClass.attribute_types_may),
-            ),
+            .filter_by(name=name)
+            .options(selectinload(qa(ObjectClass.attribute_types_may)))
+            .options(selectinload(qa(ObjectClass.attribute_types_must))),
         )  # fmt: skip
 
         if not object_class:
@@ -231,10 +246,10 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         """
         query = await self.__session.scalars(
             select(ObjectClass)
-            .where(ObjectClass.name.in_(names))
+            .where(qa(ObjectClass.name).in_(names))
             .options(
-                selectinload(ObjectClass.attribute_types_must),
-                selectinload(ObjectClass.attribute_types_may),
+                selectinload(qa(ObjectClass.attribute_types_must)),
+                selectinload(qa(ObjectClass.attribute_types_may)),
             ),
         )  # fmt: skip
         return list(map(_converter, query.all()))
@@ -260,7 +275,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         if dto.attribute_types_must:
             must_query = await self.__session.scalars(
                 select(AttributeType).where(
-                    AttributeType.name.in_(
+                    qa(AttributeType.name).in_(
                         dto.attribute_types_must,
                     ),
                 ),
@@ -276,7 +291,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         if attribute_types_may_filtered:
             may_query = await self.__session.scalars(
                 select(AttributeType)
-                .where(AttributeType.name.in_(attribute_types_may_filtered)),
+                .where(qa(AttributeType.name).in_(attribute_types_may_filtered)),
             )  # fmt: skip
             obj.attribute_types_may.extend(list(may_query.all()))
 
@@ -288,14 +303,16 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         :param list[str] names: Object Classes names.
         :return None.
         """
+        subq = (
+            select(func.unnest(qa(EntityType.object_class_names)))
+            .where(qa(EntityType.object_class_names).isnot(None))
+        )  # fmt: skip
+
         await self.__session.execute(
             delete(ObjectClass)
             .where(
-                ObjectClass.name.in_(names),
-                ObjectClass.is_system.is_(False),
-                ~ObjectClass.name.in_(
-                    select(func.unnest(EntityType.object_class_names))
-                    .where(EntityType.object_class_names.isnot(None)),
-                ),
+                qa(ObjectClass.name).in_(names),
+                qa(ObjectClass.is_system).is_(False),
+                ~qa(ObjectClass.name).in_(subq),
             ),
         )  # fmt: skip

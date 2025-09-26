@@ -10,22 +10,23 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DATAS
+from entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_entity_type_name
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.queries import get_base_directories
-from models import Attribute, Directory, User
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "ba78cef9700a"
 down_revision = "275222846605"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
@@ -89,36 +90,37 @@ def upgrade() -> None:
         ["oid"],
     )
 
-    async def _create_entity_types(connection) -> None:
+    async def _create_entity_types(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
 
         if not await get_base_directories(session):
             return
 
         await session.begin()
-        attribute_type_dao = AttributeTypeDAO(session)
-        object_class_dao = ObjectClassDAO(
-            session,
-            attribute_type_dao=attribute_type_dao,
-        )
+        object_class_dao = ObjectClassDAO(session)
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao=object_class_dao,
         )
+        entity_type_use_case = EntityTypeUseCase(
+            entity_type_dao,
+            object_class_dao,
+        )
 
         for entity_type_data in ENTITY_TYPE_DATAS:
-            await entity_type_dao.create(
-                dto=EntityTypeDTO(
-                    id=None,
-                    name=entity_type_data["name"],
-                    object_class_names=entity_type_data["object_class_names"],
+            await entity_type_use_case.create(
+                EntityTypeDTO(
+                    name=entity_type_data["name"],  # type: ignore
+                    object_class_names=entity_type_data["object_class_names"],  # type: ignore
                     is_system=True,
                 ),
             )
 
         await session.commit()
 
-    async def _append_object_class_to_user_dirs(connection) -> None:
+    async def _append_object_class_to_user_dirs(
+        connection: AsyncConnection,
+    ) -> None:
         session = AsyncSession(bind=connection)
 
         if not await get_base_directories(session):
@@ -131,14 +133,15 @@ def upgrade() -> None:
             .join(Directory)
             .where(
                 ~exists(
-                    select(Attribute.id)
+                    select(qa(Attribute.id))
                     .where(
-                        Attribute.directory_id == Directory.id,
+                        qa(Attribute.directory_id)
+                        == qa(Directory.id),
                         or_(
-                            Attribute.name == "objectClass",
-                            Attribute.name == "objectclass",
+                            qa(Attribute.name) == "objectClass",
+                            qa(Attribute.name) == "objectclass",
                         ),
-                        Attribute.value == "inetOrgPerson",
+                        qa(Attribute).value == "inetOrgPerson",
                     ),
                 ),
             )
@@ -147,7 +150,7 @@ def upgrade() -> None:
         for user in await session.scalars(query):
             session.add(
                 Attribute(
-                    directory=user.directory,
+                    directory_id=user.directory_id,
                     name="objectClass",
                     value="inetOrgPerson",
                 ),
@@ -155,17 +158,17 @@ def upgrade() -> None:
 
         await session.commit()
 
-    async def _attach_entity_type_to_directories(connection) -> None:
+    async def _attach_entity_type_to_directories(
+        connection: AsyncConnection,
+    ) -> None:
         session = AsyncSession(bind=connection)
 
         if not await get_base_directories(session):
             return
 
         session.begin()
-        attribute_type_dao = AttributeTypeDAO(session)
         object_class_dao = ObjectClassDAO(
             session,
-            attribute_type_dao=attribute_type_dao,
         )
         entity_type_dao = EntityTypeDAO(
             session,

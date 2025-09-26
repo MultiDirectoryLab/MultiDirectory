@@ -12,10 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
-from enums import RoleScope
+from entities import AccessControlEntry, Directory
+from enums import AceType, RoleScope
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
-from models import AccessControlEntry, Directory
+from repo.pg.tables import queryable_attr as qa
 
 from .dataclasses import AccessControlEntryDTO
 from .exceptions import (
@@ -65,12 +66,12 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         query = (
             select(AccessControlEntry)
             .options(
-                joinedload(AccessControlEntry.attribute_type),
-                joinedload(AccessControlEntry.entity_type),
-                joinedload(AccessControlEntry.role),
-                selectinload(AccessControlEntry.directories),
+                joinedload(qa(AccessControlEntry.attribute_type)),
+                joinedload(qa(AccessControlEntry.entity_type)),
+                joinedload(qa(AccessControlEntry.role)),
+                selectinload(qa(AccessControlEntry.directories)),
             )
-            .where(AccessControlEntry.id == _id)
+            .filter_by(id=_id)
         )
         retval = await self._session.scalar(query)
         if not retval:
@@ -95,9 +96,9 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         access_control_entries = (
             await self._session.scalars(
                 select(AccessControlEntry).options(
-                    joinedload(AccessControlEntry.attribute_type),
-                    joinedload(AccessControlEntry.entity_type),
-                    joinedload(AccessControlEntry.role),
+                    joinedload(qa(AccessControlEntry.attribute_type)),
+                    joinedload(qa(AccessControlEntry.entity_type)),
+                    joinedload(qa(AccessControlEntry.role)),
                 ),
             )
         ).all()
@@ -126,7 +127,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
                 and_(
                     func.cardinality(Directory.path) == len(search_path) + 1,
                     get_path_filter(
-                        column=Directory.path[0 : len(search_path)],
+                        column=qa(Directory.path)[0 : len(search_path)],
                         path=search_path,
                     ),
                 ),
@@ -135,7 +136,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
 
         elif scope == RoleScope.WHOLE_SUBTREE:
             path_filter = get_path_filter(
-                column=Directory.path[1 : len(search_path)],
+                column=qa(Directory.path)[1 : len(search_path)],
                 path=search_path,
             )
             return list(
@@ -166,10 +167,10 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
 
         new_ace = AccessControlEntry(
             role_id=dto.role_id,
-            ace_type=dto.ace_type.value,
+            ace_type=AceType(dto.ace_type.value),
             depth=get_depth_by_dn(dto.base_dn),
             path=dto.base_dn,
-            scope=dto.scope.value,
+            scope=RoleScope(dto.scope.value),
             entity_type_id=dto.entity_type_id,
             attribute_type_id=dto.attribute_type_id,
             is_allow=dto.is_allow,
@@ -209,10 +210,10 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
 
             new_ace = AccessControlEntry(
                 role_id=ace.role_id,
-                ace_type=ace.ace_type.value,
+                ace_type=AceType(ace.ace_type.value),
                 depth=get_depth_by_dn(ace.base_dn),
                 path=ace.base_dn,
-                scope=ace.scope.value,
+                scope=RoleScope(ace.scope.value),
                 entity_type_id=ace.entity_type_id,
                 attribute_type_id=ace.attribute_type_id,
                 is_allow=ace.is_allow,
