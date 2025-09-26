@@ -169,7 +169,12 @@ class SearchRequest(BaseRequest):
             for attribute_type in attribute_types
         ]
 
-        object_classes = await session.scalars(select(ObjectClass))
+        object_classes = await session.scalars(
+            select(ObjectClass).options(
+                selectinload(qa(ObjectClass.attribute_types_must)),
+                selectinload(qa(ObjectClass.attribute_types_may)),
+            ),
+        )
         attrs["objectClasses"] = [
             object_class.get_raw_definition()
             for object_class in object_classes
