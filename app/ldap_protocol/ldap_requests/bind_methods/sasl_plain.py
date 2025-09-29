@@ -8,9 +8,9 @@ from typing import ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import User
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.utils.queries import get_user
-from models import User
 from password_manager import PasswordValidator
 
 from .base import SaslAuthentication, SASLMethod

@@ -17,6 +17,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin
@@ -24,8 +25,8 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from models import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from password_manager.password_validator import PasswordValidator
+from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -118,13 +119,12 @@ async def test_first_setup_and_oauth(
     result = await session.scalars(
         select(Directory)
         .options(
-            joinedload(Directory.group)
-            .selectinload(Group.roles)
-            .selectinload(Role.access_control_entries),
+            joinedload(qa(Directory.group))
+            .selectinload(qa(Group.roles))
+            .selectinload(qa(Role.access_control_entries)),
         )
-        .filter(
-            Directory.path
-            == get_search_path(
+        .filter_by(
+            path=get_search_path(
                 "cn=readonly domain controllers,"
                 "cn=groups,dc=md,dc=test-localhost",
             ),
@@ -380,7 +380,8 @@ async def test_lock_and_unlock_user(
     user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
     dir_ = await session.scalar(
         select(Directory)
-        .filter(Directory.name == "user_non_admin"),
+        .options(joinedload(qa(Directory.user)))
+        .filter_by(name="user_non_admin"),
     )  # fmt: skip
     await storage.create_ldap_session(dir_.user.id, "key", {})  # type: ignore
 
@@ -427,7 +428,8 @@ async def test_lock_and_unlock_user(
 
     dir_ = await session.scalar(
         select(Directory)
-        .filter(Directory.name == "user_non_admin"),
+        .options(joinedload(qa(Directory.user)))
+        .filter_by(name="user_non_admin"),
     )  # fmt: skip
     session.expire(dir_)
 

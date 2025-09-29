@@ -14,7 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from models import Attribute, Directory, Group, User
+from entities import Attribute, Directory, Group, User
+from repo.pg.tables import directory_table, queryable_attr as qa
 
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
@@ -30,7 +31,7 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
         select(Directory)
-        .filter(Directory.parent_id.is_(None)),
+        .filter(qa(Directory.parent_id).is_(None)),
     )  # fmt: skip
     return list(result.scalars().all())
 
@@ -42,19 +43,19 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :param str name: any name: dn, email or upn
     :return User | None: user from db
     """
-    policies = selectinload(User.groups).selectinload(Group.roles)
+    policies = selectinload(qa(User.groups)).selectinload(qa(Group.roles))
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
-            cond = User.user_principal_name.ilike(name)
+            cond = qa(User.user_principal_name).ilike(name)
         else:
-            cond = User.sam_account_name.ilike(name)
+            cond = qa(User.sam_account_name).ilike(name)
 
         return await session.scalar(select(User).where(cond).options(policies))
 
     return await session.scalar(
         select(User)
-        .join(User.directory)
+        .join(qa(User.directory))
         .options(policies)
         .where(get_filter_from_path(name)),
     )
@@ -80,8 +81,10 @@ async def get_directories(
     query = (
         select(Directory)
         .filter(or_(*paths))
-        .options(joinedload(Directory.group).selectinload(Group.members))
-        .options(selectinload(Directory.groups))
+        .options(
+            joinedload(qa(Directory.group)).selectinload(qa(Group.members)),
+        )
+        .options(selectinload(qa(Directory.groups)))
     )
 
     results = await session.scalars(query)
@@ -105,10 +108,12 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
 
     query = (
         select(Group)
-        .join(Group.directory, isouter=True)
+        .join(qa(Group.directory), isouter=True)
         .filter(or_(*paths))
-        .options(selectinload(Group.members))
-        .options(joinedload(Group.directory).selectinload(Directory.groups))
+        .options(selectinload(qa(Group.members)))
+        .options(
+            joinedload(qa(Group.directory)).selectinload(qa(Directory.groups)),
+        )
     )
 
     results = await session.scalars(query)
@@ -131,12 +136,12 @@ async def get_group(
         if dn_is_base_directory(base_directory, dn):
             raise ValueError("Cannot set memberOf with base dn")
 
-    query = select(Directory).options(joinedload(Directory.group))
+    query = select(Directory).options(joinedload(qa(Directory.group)))
 
     if validate_entry(dn):
-        query = query.filter(Directory.path == get_search_path(dn))
+        query = query.filter_by(path=get_search_path(dn))
     else:
-        query = query.filter(Directory.name == dn)
+        query = query.filter_by(name=dn)
 
     directory = await session.scalar(query)
     if not directory or not directory.group:
@@ -160,10 +165,9 @@ async def check_kerberos_group(
 
     query = (
         select(Group)
-        .options(selectinload(Group.users))
-        .join(Group.directory)
-        .filter(Group.users.contains(user))
-        .filter(Directory.name.ilike("krbadmin"))
+        .join(qa(Group.directory))
+        .filter(qa(Group.users).contains(user))
+        .filter(qa(Directory.name).ilike("krbadmin"))
         .limit(1)
         .exists()
     )
@@ -183,16 +187,16 @@ async def set_user_logon_attrs(
     await session.execute(
         update(Attribute)
         .values({"value": ft_now()})
-        .where(
-            Attribute.directory_id == user.directory_id,
-            Attribute.name == "pwdLastSet",
-            Attribute.value == "-1",
+        .filter_by(
+            directory_id=user.directory_id,
+            name="pwdLastSet",
+            value="-1",
         ),
     )
     await session.execute(
         update(User)
         .values({"last_logon": datetime.now(tz=tz)})
-        .where(User.id == user.id),
+        .filter_by(id=user.id),
     )
     await session.commit()
 
@@ -217,7 +221,9 @@ def get_search_path(dn: str) -> list[str]:
 def get_path_filter(
     path: list[str],
     *,
-    column: ColumnElement | Column | InstrumentedAttribute = Directory.path,
+    column: ColumnElement
+    | Column
+    | InstrumentedAttribute = directory_table.c.path,
 ) -> ColumnElement:
     """Get filter condition for path equality.
 
@@ -231,7 +237,7 @@ def get_path_filter(
 def get_filter_from_path(
     dn: str,
     *,
-    column: Column | InstrumentedAttribute = Directory.path,
+    column: Column | InstrumentedAttribute = directory_table.c.path,
 ) -> ColumnElement:
     """Get filter condition for path equality from dn."""
     return get_path_filter(get_search_path(dn), column=column)
@@ -243,7 +249,7 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     >>> await get_dn_by_id(0, session)
     >>> "cn=groups,dc=example,dc=com"
     """
-    query = select(Directory).filter(Directory.id == id_)
+    query = select(Directory).filter_by(id=id_)
     retval = (await session.scalars(query)).one()
     return retval.path_dn
 
@@ -251,7 +257,11 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
 def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
     """Get default domain attrs."""
     for value in ["domain", "top", "domainDNS"]:
-        yield Attribute(name="objectClass", value=value, directory=domain)
+        yield Attribute(
+            name="objectClass",
+            value=value,
+            directory_id=domain.id,
+        )
 
 
 async def create_group(
@@ -281,7 +291,7 @@ async def create_group(
         parent=parent,
     )
 
-    group = Group(directory=dir_)
+    group = Group(directory_id=dir_.id)
     dir_.create_path(parent)
     session.add_all([dir_, group])
     await session.flush()
@@ -305,7 +315,7 @@ async def create_group(
 
     for name, attr in attributes.items():
         for val in attr:
-            session.add(Attribute(name=name, value=val, directory=dir_))
+            session.add(Attribute(name=name, value=val, directory_id=dir_.id))
 
     await session.flush()
     await session.refresh(dir_)
@@ -322,9 +332,9 @@ async def is_computer(directory_id: int, session: AsyncSession) -> bool:
     query = select(
         select(Attribute)
         .where(
-            Attribute.name.ilike("objectclass"),
-            Attribute.value == "computer",
-            Attribute.directory_id == directory_id,
+            qa(Attribute.name).ilike("objectclass"),
+            qa(Attribute.value) == "computer",
+            qa(Attribute.directory_id) == directory_id,
         )
         .exists(),
     )
@@ -349,12 +359,12 @@ async def add_lock_and_expire_attributes(
             Attribute(
                 name="nsAccountLock",
                 value="true",
-                directory=directory,
+                directory_id=directory.id,
             ),
             Attribute(
                 name="shadowExpire",
                 value=str(absolute_date),
-                directory=directory,
+                directory_id=directory.id,
             ),
         ],
     )
@@ -372,6 +382,6 @@ async def get_principal_directory(
     """
     return await session.scalar(
         select(Directory)
-        .where(Directory.name == principal_name)
-        .options(selectinload(Directory.attributes)),
+        .filter_by(name=principal_name)
+        .options(selectinload(qa(Directory.attributes))),
     )

@@ -9,10 +9,10 @@ from ipaddress import IPv4Address, IPv4Network
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import NetworkPolicy
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.policies.network_policy import is_user_group_valid
 from ldap_protocol.utils.queries import get_group, get_user
-from models import NetworkPolicy
 
 
 @pytest.mark.asyncio

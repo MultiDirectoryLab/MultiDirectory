@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
+from entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -23,11 +24,10 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     validate_entry,
 )
-from models import (
-    AccessControlEntry,
-    AccessControlEntryDirectoryMembership,
-    Attribute,
-    Directory,
+from repo.pg.tables import (
+    ace_directory_memberships_table,
+    directory_table,
+    queryable_attr as qa,
 )
 
 from .base import BaseRequest
@@ -117,7 +117,7 @@ class ModifyDNRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                selectinload(Directory.parent),
+                selectinload(qa(Directory.parent)),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -177,7 +177,7 @@ class ModifyDNRequest(BaseRequest):
                 await ctx.session.flush()
                 if parent_dir:
                     await ctx.session.execute(
-                        delete(AccessControlEntryDirectoryMembership)
+                        delete(ace_directory_memberships_table)
                         .filter_by(directory_id=directory.id),
                     )  # fmt: skip
 
@@ -198,10 +198,10 @@ class ModifyDNRequest(BaseRequest):
                 old_attr_name = directory.path[-1].split("=")[0]
                 await ctx.session.execute(
                     update(Attribute)
-                    .where(
-                        Attribute.directory_id == directory.id,
-                        Attribute.name == old_attr_name,
-                        Attribute.value == directory.name,
+                    .filter_by(
+                        directory_id=directory.id,
+                        name=old_attr_name,
+                        value=directory.name,
                     )
                     .values(name=dn, value=name),
                 )
@@ -210,7 +210,7 @@ class ModifyDNRequest(BaseRequest):
                     Attribute(
                         name=dn,
                         value=name,
-                        directory=directory,
+                        directory_id=directory.id,
                     ),
                 )
             await ctx.session.flush()
@@ -221,7 +221,7 @@ class ModifyDNRequest(BaseRequest):
                 .where(
                     get_path_filter(
                         directory.path,
-                        column=Directory.path[1 : directory.depth],
+                        column=directory_table.c.path[1 : directory.depth],
                     ),
                 )
                 .values(
@@ -241,14 +241,12 @@ class ModifyDNRequest(BaseRequest):
 
             explicit_aces_query = (
                 select(AccessControlEntry)
-                .options(
-                    selectinload(AccessControlEntry.directories),
-                )
+                .options(selectinload(qa(AccessControlEntry.directories)))
                 .where(
-                    AccessControlEntry.directories.any(
-                        Directory.id == directory.id,
+                    qa(AccessControlEntry.directories).any(
+                        directory_table.c.id == directory.id,
                     ),
-                    AccessControlEntry.depth == directory.depth,
+                    qa(AccessControlEntry.depth) == directory.depth,
                 )
             )
 

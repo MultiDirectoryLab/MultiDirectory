@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
+from entities import Directory, Group
 from enums import AceType, RoleScope
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -24,7 +25,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group
+from repo.pg.tables import directory_table, queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -40,10 +41,10 @@ async def test_ldap_base_modify(
     query = (
         select(Directory)
         .options(
-            subqueryload(Directory.attributes),
-            joinedload(Directory.user),
+            subqueryload(qa(Directory.attributes)),
+            joinedload(qa(Directory.user)),
         )
-        .filter(Directory.path == get_search_path(dn))
+        .filter_by(path=get_search_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -139,8 +140,8 @@ async def test_ldap_membersip_user_delete(
     dn = "cn=user_admin,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
-        .options(selectinload(Directory.groups))
-        .filter(Directory.path == get_search_path(dn))
+        .options(selectinload(qa(Directory.groups)))
+        .filter_by(path=get_search_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -186,8 +187,8 @@ async def test_ldap_membersip_self_delete_admin_domain(
     dn = "cn=user0,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
-        .options(selectinload(Directory.groups))
-        .filter(Directory.path == get_search_path(dn))
+        .options(selectinload(qa(Directory.groups)))
+        .filter_by(path=get_search_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -286,8 +287,12 @@ async def test_ldap_membersip_user_add(
     dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
-        .options(selectinload(Directory.groups).selectinload(Group.directory))
-        .filter(Directory.path == get_search_path(dn))
+        .options(
+            selectinload(qa(Directory.groups)).selectinload(
+                qa(Group.directory),
+            ),
+        )
+        .filter_by(path=get_search_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -344,8 +349,8 @@ async def test_ldap_membersip_user_replace(
     dn = "cn=user_admin,ou=users,dc=md,dc=test"
     query = (
         select(Directory)
-        .options(selectinload(Directory.groups))
-        .filter(Directory.path == get_search_path(dn))
+        .options(selectinload(qa(Directory.groups)))
+        .filter_by(path=get_search_path(dn))
     )
     directory = (await session.scalars(query)).one()
 
@@ -435,11 +440,11 @@ async def test_ldap_membersip_grp_replace(
     query = (
         select(Directory)
         .options(
-            selectinload(Directory.group)
-            .selectinload(Group.parent_groups)
-            .selectinload(Group.directory),
+            selectinload(qa(Directory.group))
+            .selectinload(qa(Group.parent_groups))
+            .selectinload(qa(Group.directory)),
         )
-        .filter(Directory.path == get_search_path(dn))
+        .filter_by(path=get_search_path(dn))
     )
 
     directory = await session.scalar(query)
@@ -558,8 +563,9 @@ async def test_ldap_modify_dn(
     assert await session.scalar(
         select(Directory)
         .filter(
-            Directory.path == ["dc=test", "dc=md", "ou=users", "cn=user2"],
-            Directory.entity_type_id.isnot(None),
+            directory_table.c.path
+            == ["dc=test", "dc=md", "ou=users", "cn=user2"],
+            directory_table.c.entity_type_id.isnot(None),
         ),
     )  # fmt: skip
 
@@ -644,10 +650,10 @@ async def test_ldap_modify_with_ap(
     query = (
         select(Directory)
         .options(
-            subqueryload(Directory.attributes),
-            joinedload(Directory.user),
+            subqueryload(qa(Directory.attributes)),
+            joinedload(qa(Directory.user)),
         )
-        .filter(Directory.path == search_path)
+        .filter_by(path=search_path)
     )
 
     directory = await session.scalar(query)

@@ -11,6 +11,7 @@ from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from entities import Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos import KRBAPIError
@@ -38,7 +39,6 @@ from ldap_protocol.utils.queries import (
     get_search_path,
     validate_entry,
 )
-from models import Attribute, Directory, Group, User
 
 from .base import BaseRequest
 from .contexts import LDAPAddRequestContext
@@ -189,6 +189,7 @@ class AddRequest(BaseRequest):
             ctx.session.add(new_dir)
 
             await ctx.session.flush()
+            await ctx.session.refresh(new_dir, ["id"])
 
             new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
             await ctx.session.flush()
@@ -210,7 +211,7 @@ class AddRequest(BaseRequest):
             Attribute(
                 name=new_dn,
                 value=name,
-                directory=new_dir,
+                directory_id=new_dir.id,
             ),
         )
 
@@ -250,7 +251,7 @@ class AddRequest(BaseRequest):
                             name=attr.type,
                             value=value if isinstance(value, str) else None,
                             bvalue=value if isinstance(value, bytes) else None,
-                            directory=new_dir,
+                            directory_id=new_dir.id,
                         ),
                     )
 
@@ -286,7 +287,7 @@ class AddRequest(BaseRequest):
                 user_principal_name=user_principal_name,
                 mail=user_attributes.get("mail"),
                 display_name=user_attributes.get("displayName"),
-                directory=new_dir,
+                directory_id=new_dir.id,
                 password_history=[],
             )
 
@@ -307,24 +308,24 @@ class AddRequest(BaseRequest):
                 Attribute(
                     name="userAccountControl",
                     value=uac_value,
-                    directory=new_dir,
+                    directory_id=new_dir.id,
                 ),
             )
 
-            for attr, value in {  # type: ignore
+            for uattr, value in {
                 "loginShell": "/bin/bash",
                 "uidNumber": str(create_integer_hash(user.sam_account_name)),
                 "homeDirectory": f"/home/{user.sam_account_name}",
             }.items():
-                if attr in user_attributes:
-                    value = user_attributes[attr]  # type: ignore
-                    del user_attributes[attr]  # type: ignore
+                if uattr in user_attributes:
+                    value = user_attributes[uattr]
+                    del user_attributes[uattr]
 
                 attributes.append(
                     Attribute(
-                        name=attr,
+                        name=uattr,
                         value=value,
-                        directory=new_dir,
+                        directory_id=new_dir.id,
                     ),
                 )
 
@@ -332,12 +333,12 @@ class AddRequest(BaseRequest):
                 Attribute(
                     name="pwdLastSet",
                     value=ft_now(),
-                    directory=new_dir,
+                    directory_id=new_dir.id,
                 ),
             )
 
         elif is_group:
-            group = Group(directory=new_dir)
+            group = Group(directory_id=new_dir.id)
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
 
@@ -348,7 +349,7 @@ class AddRequest(BaseRequest):
                     value=str(
                         UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT,
                     ),
-                    directory=new_dir,
+                    directory_id=new_dir.id,
                 ),
             )
 
@@ -361,7 +362,7 @@ class AddRequest(BaseRequest):
                 Attribute(
                     name="gidNumber",  # reverse dir name if it matches samAN
                     value=value,
-                    directory=new_dir,
+                    directory_id=new_dir.id,
                 ),
             )
 

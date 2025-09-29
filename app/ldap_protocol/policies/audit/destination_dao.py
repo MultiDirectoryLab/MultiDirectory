@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
-from models import AuditDestination
+from entities import AuditDestination
 
 from .dataclasses import AuditDestinationDTO
 from .exception import AuditNotFoundError
@@ -55,7 +55,9 @@ class AuditDestinationDAO(AbstractDAO[AuditDestinationDTO, int]):
         dto: AuditDestinationDTO,
     ) -> None:
         """Create a new audit destination."""
-        destination = AuditDestination(**asdict(dto))
+        d = asdict(dto)
+        del d["id"]
+        destination = AuditDestination(**d)
         self._session.add(destination)
         await self._session.flush()
 

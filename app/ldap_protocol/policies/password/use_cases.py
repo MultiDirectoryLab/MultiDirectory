@@ -10,8 +10,8 @@ from typing import cast
 from adaptix.conversion import get_converter
 
 from abstract_dao import AbstractService
+from entities import User
 from ldap_protocol.policies.password.schemas import PasswordPolicySchema
-from models import User
 
 from .dataclasses import PasswordPolicyDTO
 from .policies_dao import PasswordPolicyDAO
