@@ -16,8 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
+from entities import Group, NetworkPolicy
 from ldap_protocol.utils.queries import get_groups
-from models import Group, NetworkPolicy
+from repo.pg.tables import queryable_attr as qa
 
 from .schema import (
     Policy,
@@ -112,9 +113,11 @@ async def get_list_network_policies(
     \f
     :return list[PolicyResponse]: all policies
     """
-    groups = selectinload(NetworkPolicy.groups).selectinload(Group.directory)
-    mfa_groups = selectinload(NetworkPolicy.mfa_groups).selectinload(
-        Group.directory,
+    groups = selectinload(qa(NetworkPolicy.groups)).selectinload(
+        qa(Group.directory),
+    )
+    mfa_groups = selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
+        qa(Group.directory),
     )
 
     return [
@@ -139,7 +142,7 @@ async def get_list_network_policies(
         for policy in await session.scalars(
             select(NetworkPolicy)
             .options(groups, mfa_groups)
-            .order_by(NetworkPolicy.priority.asc()),
+            .order_by(qa(NetworkPolicy.priority).asc()),
         )
     ]
 
@@ -178,7 +181,7 @@ async def delete_network_policy(
             (
                 update(NetworkPolicy)
                 .values({"priority": NetworkPolicy.priority - 1})
-                .filter(NetworkPolicy.priority > policy.priority)
+                .filter(qa(NetworkPolicy.priority) > policy.priority)
             ),
         )
         await session.commit()
@@ -238,8 +241,8 @@ async def update_network_policy(
         request.id,
         with_for_update=True,
         options=[
-            selectinload(NetworkPolicy.groups),
-            selectinload(NetworkPolicy.mfa_groups),
+            selectinload(qa(NetworkPolicy.groups)),
+            selectinload(qa(NetworkPolicy.mfa_groups)),
         ],
     )
 

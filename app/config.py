@@ -120,6 +120,8 @@ class Settings(BaseModel):
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
     KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/ldap.keytab"
+    KRB5_MFA_PUSH_URL: str = "http://shadow_api:8000/mfa/push"
+    KRB5_SYNC_PASSWORD_URL: str = "http://shadow_api:8000/sync/password"  # noqa: S105
 
     TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
         loader=jinja2.FileSystemLoader("extra/templates"),

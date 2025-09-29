@@ -20,6 +20,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from config import Settings
+from entities import Directory
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
@@ -28,7 +29,6 @@ from ldap_protocol.policies.audit.events.factory import (
     RawAuditEventBuilderRedis,
 )
 from ldap_protocol.utils.helpers import get_class_name
-from models import Directory
 
 log_api = logger.bind(name="admin")
 
