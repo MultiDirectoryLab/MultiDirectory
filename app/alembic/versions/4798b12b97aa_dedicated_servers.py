@@ -9,7 +9,6 @@ Create Date: 2025-08-26 12:45:08.370675
 import sqlalchemy as sa
 from alembic import op
 from loguru import logger
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from entities import CatalogueSetting, DedicatedServer
@@ -96,7 +95,7 @@ def downgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    servers_query = select(DedicatedServer)
+    servers_query = sa.select(DedicatedServer)
     servers_records = session.scalars(servers_query)
 
     for server in servers_records:
@@ -108,7 +107,7 @@ def downgrade() -> None:
         )
 
         existing_setting = session.execute(
-            select(CatalogueSetting).where(
+            sa.select(CatalogueSetting).where(
                 qa(CatalogueSetting.name) == f"ldap_server_{server.name}",
             ),
         ).scalar_one_or_none()
