@@ -259,6 +259,8 @@ class IdentityManager(AbstractService):
         await self._password_use_cases.post_save_password_actions(user)
         await self._session.commit()
 
+        await self._repository.clear_user_sessions(identity)
+
     async def sync_password_from_service(
         self,
         principal: str,

@@ -244,6 +244,8 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             )
             await ctx.session.commit()
 
+            await ctx.session_storage.clear_user_sessions(user.id)
+
             return PasswdModifyResponse()
         raise PermissionError("No user provided")
 

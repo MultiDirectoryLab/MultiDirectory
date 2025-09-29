@@ -747,6 +747,8 @@ class ModifyRequest(BaseRequest):
                     value,
                 )
 
+                await session_storage.clear_user_sessions(directory.user.id)
+
             else:
                 attrs.append(
                     Attribute(
