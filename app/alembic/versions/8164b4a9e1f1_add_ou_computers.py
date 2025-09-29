@@ -57,33 +57,31 @@ def upgrade() -> None:
             select(Directory)
             .where(qa(Directory.parent_id).is_(None)),
         )  # fmt: skip
-
-        if domain_dir:
-            await create_dir(
-                _OU_COMPUTERS_DATA,
-                session,
-                domain_dir,
-                PasswordValidator(),
-                domain_dir,
-            )
-        else:
+        if not domain_dir:
             raise Exception("Domain directory not found.")
+
+        await create_dir(
+            _OU_COMPUTERS_DATA,
+            session,
+            domain_dir,
+            PasswordValidator(),
+            domain_dir,
+        )
 
         ou_computers_dir = await session.scalar(
             select(Directory)
             .where(qa(Directory.name) == "computers"),
         )  # fmt: skip
-
-        if ou_computers_dir:
-            role_dao = RoleDAO(session)
-            ace_dao = AccessControlEntryDAO(session)
-            role_use_case = RoleUseCase(role_dao, ace_dao)
-            await role_use_case.inherit_parent_aces(
-                parent_directory=domain_dir,
-                directory=ou_computers_dir,
-            )
-        else:
+        if not ou_computers_dir:
             raise Exception("Directory 'ou=computers' not found.")
+
+        role_dao = RoleDAO(session)
+        ace_dao = AccessControlEntryDAO(session)
+        role_use_case = RoleUseCase(role_dao, ace_dao)
+        await role_use_case.inherit_parent_aces(
+            parent_directory=domain_dir,
+            directory=ou_computers_dir,
+        )
 
         await session.commit()
 
