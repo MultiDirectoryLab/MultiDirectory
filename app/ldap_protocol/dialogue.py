@@ -19,8 +19,8 @@ import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from entities import NetworkPolicy, User
 from ldap_protocol.policies.network_policy import build_policy_query
-from models import NetworkPolicy, User
 
 from .session_storage import SessionStorage
 
