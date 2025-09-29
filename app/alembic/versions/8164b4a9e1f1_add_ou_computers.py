@@ -41,8 +41,10 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        if not await get_base_directories(session):
+        base_directories = await get_base_directories(session)
+        if not base_directories:
             return
+        domain_dir = base_directories[0]
 
         exists_ou_computers = await session.scalar(
             select(
@@ -52,13 +54,6 @@ def upgrade() -> None:
         )  # fmt: skip
         if exists_ou_computers:
             return
-
-        domain_dir = await session.scalar(
-            select(Directory)
-            .where(qa(Directory.parent_id).is_(None)),
-        )  # fmt: skip
-        if not domain_dir:
-            raise Exception("Domain directory not found.")
 
         await create_dir(
             _OU_COMPUTERS_DATA,
