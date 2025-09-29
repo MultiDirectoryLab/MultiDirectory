@@ -18,7 +18,10 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyNotFoundError,
 )
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.user_account_control import (
+    UserAccountControlFlag,
+    get_check_uac,
+)
 from ldap_protocol.utils.helpers import ft_now
 
 from .dataclasses import PasswordPolicyDTO
@@ -155,3 +158,15 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         user.password_history.append(tcast("str", user.password))
         await self._session.flush()
+
+    async def is_password_change_restricted(
+        self,
+        user_directory_id: int,
+    ) -> bool:
+        """Check if user is restricted from changing password via UAC flag.
+
+        :param int user_directory_id: user's directory ID
+        :return bool: True if user is restricted, False otherwise
+        """
+        uac_check = await get_check_uac(self._session, user_directory_id)
+        return uac_check(UserAccountControlFlag.PASSWD_CANT_CHANGE)

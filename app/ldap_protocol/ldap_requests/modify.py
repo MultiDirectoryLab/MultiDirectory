@@ -176,14 +176,26 @@ class ModifyRequest(BaseRequest):
 
         password_change_requested = self._check_password_change_requested(
             names,
-            directory,
-            ctx.ldap_session.user.directory_id,
         )
+        self_modify = directory.id == ctx.ldap_session.user.directory_id
+
+        if (
+            password_change_requested
+            and await ctx.password_use_cases.is_password_change_restricted(
+                directory.id,
+            )
+        ):
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
+            return
 
         before_attrs = self.get_directory_attrs(directory)
 
         try:
-            if not can_modify and not password_change_requested:
+            if not can_modify and not (
+                password_change_requested and self_modify
+            ):
                 yield ModifyResponse(
                     result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                 )
@@ -313,14 +325,8 @@ class ModifyRequest(BaseRequest):
     def _check_password_change_requested(
         self,
         names: set[str],
-        directory: Directory,
-        user_dir_id: int,
     ) -> bool:
-        return (
-            ("userpassword" in names or "unicodepwd" in names)
-            and len(names) == 1
-            and directory.id == user_dir_id
-        )
+        return bool(names & {"userpassword", "unicodepwd"})
 
     async def _can_delete_group_from_directory(
         self,
