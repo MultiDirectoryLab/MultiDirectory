@@ -4,10 +4,10 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from entities import AuditSeverity
 from ldap_protocol.asn1parser import LDAPOID
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from models import AuditSeverity
 
 from .dataclasses import (
     AuditDestinationDTO,

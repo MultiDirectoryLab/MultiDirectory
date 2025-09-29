@@ -14,6 +14,7 @@ from starlette.datastructures import URL
 from abstract_dao import AbstractService
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
+from entities import Directory, Group, User
 from enums import MFAFlags
 from extra.setup_dev import setup_enviroment
 from ldap_protocol.identity.exceptions.auth import (
@@ -47,8 +48,8 @@ from ldap_protocol.user_account_control import (
 )
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import get_user
-from models import Directory, Group, User
 from password_manager import PasswordValidator
+from repo.pg.tables import queryable_attr as qa
 
 
 class IdentityManager(AbstractService):
@@ -138,9 +139,12 @@ class IdentityManager(AbstractService):
 
         query = (
             select(Group)
-            .join(Group.users)
-            .join(Group.directory)
-            .filter(User.id == user.id, Directory.name == "domain admins")
+            .join(qa(Group.users))
+            .join(qa(Group.directory))
+            .filter(
+                qa(User.id) == user.id,
+                qa(Directory.name) == "domain admins",
+            )
             .limit(1)
             .exists()
         )
@@ -163,6 +167,7 @@ class IdentityManager(AbstractService):
             ip,
             user,
             self._session,
+            policy_type="is_http",
         )
         if network_policy is None:
             raise LoginFailedError("User not part of network policy")
@@ -222,6 +227,13 @@ class IdentityManager(AbstractService):
                 f"User {identity} not found in the database.",
             )
 
+        if await self._password_use_cases.is_password_change_restricted(
+            user.directory_id,
+        ):
+            raise PermissionError(
+                f"User {identity} is not allowed to change the password.",
+            )
+
         errors = await self._password_use_cases.check_password_violations(
             new_password,
             user,
@@ -246,6 +258,8 @@ class IdentityManager(AbstractService):
         )
         await self._password_use_cases.post_save_password_actions(user)
         await self._session.commit()
+
+        await self._repository.clear_user_sessions(identity)
 
     async def sync_password_from_service(
         self,
@@ -276,7 +290,9 @@ class IdentityManager(AbstractService):
 
         :return: bool (True if setup is required, False otherwise)
         """
-        query = select(exists(Directory).where(Directory.parent_id.is_(None)))
+        query = select(
+            exists(Directory).where(qa(Directory.parent_id).is_(None)),
+        )
         retval = await self._session.scalars(query)
         return retval.one()
 
@@ -290,7 +306,7 @@ class IdentityManager(AbstractService):
         """
         setup_already_performed = await self._session.scalar(
             select(Directory)
-            .filter(Directory.parent_id.is_(None)),
+            .filter(qa(Directory.parent_id).is_(None)),
         )  # fmt: skip
         if setup_already_performed:
             raise AlreadyConfiguredError("Setup already performed")

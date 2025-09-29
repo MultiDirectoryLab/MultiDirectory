@@ -9,9 +9,10 @@ from enum import StrEnum
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import selectinload
 
+from entities import AccessControlEntry, AceType, Directory, Role
 from enums import RoleScope
 from ldap_protocol.utils.queries import get_base_directories
-from models import AccessControlEntry, AceType, Directory, Role
+from repo.pg.tables import queryable_attr as qa
 
 from .ace_dao import AccessControlEntryDAO
 from .dataclasses import AccessControlEntryDTO, RoleDTO
@@ -58,16 +59,16 @@ class RoleUseCase:
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
-        directory_filter = Directory.id == parent_directory.id
+        directory_filter = qa(Directory.id) == parent_directory.id
 
         subtree_inheritance = and_(
-            AccessControlEntry.depth != Directory.depth,
-            AccessControlEntry.scope == RoleScope.WHOLE_SUBTREE,
+            qa(AccessControlEntry.depth) != qa(Directory.depth),
+            qa(AccessControlEntry.scope) == RoleScope.WHOLE_SUBTREE,
         )
 
         explicit_inheritance = and_(
-            AccessControlEntry.depth == Directory.depth,
-            AccessControlEntry.scope.in_(
+            qa(AccessControlEntry.depth) == qa(Directory.depth),
+            qa(AccessControlEntry.scope).in_(
                 [
                     RoleScope.SINGLE_LEVEL,
                     RoleScope.WHOLE_SUBTREE,
@@ -78,29 +79,28 @@ class RoleUseCase:
         inheritance_conditions = or_(subtree_inheritance, explicit_inheritance)
 
         subquery = (
-            select(Directory.id)
-            .where(Directory.parent_id == parent_directory.id)
+            select(qa(Directory.id))
+            .filter_by(parent_id=parent_directory.id)
             .scalar_subquery()
         )
 
         query = (
             select(AccessControlEntry)
-            .join(AccessControlEntry.directories)
+            .join(qa(AccessControlEntry.directories))
             .options(
-                selectinload(AccessControlEntry.directories),
+                selectinload(qa(AccessControlEntry.directories)),
             )
             .where(
                 or_(
                     and_(directory_filter, inheritance_conditions),
                     and_(
-                        Directory.id.in_(subquery),
-                        AccessControlEntry.scope == RoleScope.SINGLE_LEVEL,
-                        AccessControlEntry.depth == parent_directory.depth,
+                        qa(Directory.id).in_(subquery),
+                        qa(AccessControlEntry.scope) == RoleScope.SINGLE_LEVEL,
+                        qa(AccessControlEntry.depth) == parent_directory.depth,
                     ),
                 ),
             )
-            .distinct()
-        )
+        )  # fmt: skip
 
         aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
 
@@ -120,15 +120,15 @@ class RoleUseCase:
         """
         query = (
             select(AccessControlEntry)
-            .join(AccessControlEntry.directories)
+            .join(qa(AccessControlEntry.directories))
             .where(
-                Directory.id == dir_id,
-                AccessControlEntry.role_id.in_(user_role_ids),
-                AccessControlEntry.ace_type == AceType.PASSWORD_MODIFY,
+                qa(Directory.id) == dir_id,
+                qa(AccessControlEntry.role_id).in_(user_role_ids),
+                qa(AccessControlEntry.ace_type) == AceType.PASSWORD_MODIFY,
             )
             .order_by(
-                AccessControlEntry.depth.asc(),
-                AccessControlEntry.is_allow.asc(),
+                qa(AccessControlEntry.depth).asc(),
+                qa(AccessControlEntry.is_allow).asc(),
             )
             .limit(1)
         )
@@ -147,8 +147,8 @@ class RoleUseCase:
         query = (
             select(Role)
             .where(
-                Role.id.in_(user_role_ids),
-                Role.name == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
+                qa(Role.id).in_(user_role_ids),
+                qa(Role.name) == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
             )
             .limit(1)
             .exists()

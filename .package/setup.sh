@@ -71,3 +71,11 @@ if ! get_env_var "SECRET_KEY"; then
     secret_key=$(openssl rand -hex 32)
     add_env_var "SECRET_KEY" "$secret_key"
 fi
+
+# CERTS_DIR
+if [ ! -d "certs" ]; then
+    mkdir -p "certs"
+    echo "Created directory: certs"
+else
+    echo "Directory already exists: certs"
+fi

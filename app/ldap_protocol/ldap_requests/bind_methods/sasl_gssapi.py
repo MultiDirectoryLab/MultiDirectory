@@ -12,12 +12,12 @@ from pydantic import Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from entities import User
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
 from ldap_protocol.utils.queries import get_base_directories, get_user
-from models import User
 from password_manager import PasswordValidator
 
 from .base import (
