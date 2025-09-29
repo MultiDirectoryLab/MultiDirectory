@@ -328,6 +328,7 @@ class MFAManager(AbstractService):
             ip,
             user,
             self._session,
+            policy_type="is_kerberos",
         )
 
         if network_policy is None or not network_policy.is_kerberos:

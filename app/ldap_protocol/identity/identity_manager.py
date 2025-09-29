@@ -167,6 +167,7 @@ class IdentityManager(AbstractService):
             ip,
             user,
             self._session,
+            policy_type="is_http",
         )
         if network_policy is None:
             raise LoginFailedError("User not part of network policy")
