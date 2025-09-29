@@ -511,3 +511,20 @@ class AuditDestination:
     is_enabled: bool = True
     host: str = ""
     port: int = 0
+
+
+@dataclass
+class DedicatedServer:
+    """Dedicated server."""
+
+    id: int = field(init=False)
+    name: str
+    host: str
+    port: int
+    username: str
+    password: str
+    base_dn: str
+    domain_name: str
+    use_tls: bool
+    ca_certificate_path: str | None = None
+    ca_certificate_content: str | None = None

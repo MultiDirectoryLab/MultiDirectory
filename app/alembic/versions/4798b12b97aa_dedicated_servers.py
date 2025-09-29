@@ -12,13 +12,14 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models import CatalogueSetting, DedicatedServer
+from entities import CatalogueSetting, DedicatedServer
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "4798b12b97aa"
 down_revision = "eeaed5989eb0"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 def upgrade() -> None:
@@ -46,8 +47,8 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    settings_query = select(CatalogueSetting).where(
-        CatalogueSetting.name.like("ldap_server_%"),
+    settings_query = sa.select(CatalogueSetting).where(
+        qa(CatalogueSetting.name).like("ldap_server_%"),
     )
     settings_records = session.scalars(settings_query)
 
@@ -108,7 +109,7 @@ def downgrade() -> None:
 
         existing_setting = session.execute(
             select(CatalogueSetting).where(
-                CatalogueSetting.name == f"ldap_server_{server.name}",
+                qa(CatalogueSetting.name) == f"ldap_server_{server.name}",
             ),
         ).scalar_one_or_none()
 
