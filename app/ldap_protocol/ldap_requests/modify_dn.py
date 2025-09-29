@@ -93,7 +93,13 @@ class ModifyDNRequest(BaseRequest):
         self,
         ctx: LDAPModifyDNRequestContext,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
-        """Handle message with current user."""
+        """Handle message with current user.
+
+        ModifyDn can:
+        1. Change RDN
+        2. Move to new parent
+        3. Both change RDN and move to new parent.
+        """
         if not ctx.ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
@@ -141,6 +147,9 @@ class ModifyDNRequest(BaseRequest):
 
         dn, name = self.newrdn.split("=")
 
+        old_path = directory.path
+        old_depth = directory.depth
+
         if self.new_superior and (
             directory.parent and self.new_superior != directory.parent.path_dn
         ):
@@ -171,6 +180,8 @@ class ModifyDNRequest(BaseRequest):
                 )
                 return
 
+            directory.parent = parent_dir
+            directory.name = name
             directory.create_path(parent_dir, dn=dn)
 
             try:
@@ -195,7 +206,7 @@ class ModifyDNRequest(BaseRequest):
 
         async with ctx.session.begin_nested():
             if self.deleteoldrdn:
-                old_attr_name = directory.path[-1].split("=")[0]
+                old_attr_name = old_path[-1].split("=")[0]
                 await ctx.session.execute(
                     update(Attribute)
                     .where(
@@ -208,58 +219,78 @@ class ModifyDNRequest(BaseRequest):
             else:
                 ctx.session.add(
                     Attribute(
+                        directory=directory,
                         name=dn,
                         value=name,
-                        directory=directory,
                     ),
                 )
             await ctx.session.flush()
 
             new_path = directory.path[:-1] + [f"{dn}={name}"]
-            update_query = (
-                update(Directory)
-                .where(
-                    get_path_filter(
-                        directory.path,
-                        column=Directory.path[1 : directory.depth],
-                    ),
+            if old_path != new_path:
+                update_query = (
+                    update(Directory)
+                    .where(
+                        get_path_filter(
+                            old_path,
+                            column=Directory.path[1:old_depth],
+                        ),
+                    )
+                    .values(
+                        path=func.array_cat(
+                            new_path,
+                            text("path[:depth :]").bindparams(
+                                depth=old_depth + 1,
+                            ),
+                        ),
+                    )
                 )
-                .values(
-                    path=func.array_cat(
-                        new_path,
-                        text("path[:depth :]").bindparams(
-                            depth=directory.depth + 1,
+
+                await ctx.session.execute(
+                    update_query,
+                    execution_options={"synchronize_session": "fetch"},
+                )
+                await ctx.session.flush()
+                await ctx.session.refresh(
+                    directory,
+                    attribute_names=["path", "depth"],
+                )
+
+                child_dirs = await ctx.session.scalars(
+                    select(Directory).where(
+                        get_path_filter(
+                            old_path,
+                            column=Directory.path[1:old_depth],
                         ),
                     ),
                 )
-            )
+                for child_dir in child_dirs:
+                    child_dir.create_path(
+                        child_dir.parent,
+                        child_dir.get_dn_prefix(),
+                    )
 
-            await ctx.session.execute(
-                update_query,
-                execution_options={"synchronize_session": "fetch"},
-            )
-
-            explicit_aces_query = (
-                select(AccessControlEntry)
-                .options(
-                    selectinload(AccessControlEntry.directories),
+                explicit_aces_query = (
+                    select(AccessControlEntry)
+                    .options(
+                        selectinload(AccessControlEntry.directories),
+                    )
+                    .where(
+                        AccessControlEntry.directories.any(
+                            Directory.id == directory.id,
+                        ),
+                        AccessControlEntry.depth == old_depth,
+                    )
                 )
-                .where(
-                    AccessControlEntry.directories.any(
-                        Directory.id == directory.id,
-                    ),
-                    AccessControlEntry.depth == directory.depth,
-                )
-            )
 
-            explicit_aces = (
-                await ctx.session.scalars(explicit_aces_query)
-            ).all()
+                explicit_aces = (
+                    await ctx.session.scalars(explicit_aces_query)
+                ).all()
 
-            for ace in explicit_aces:
-                ace.directories.append(directory)
-                ace.path = directory.path_dn
-                ace.depth = directory.depth
+                for ace in explicit_aces:
+                    ace.directories.append(directory)
+                    ace.path = directory.path_dn
+                    ace.depth = directory.depth
 
             await ctx.session.flush()
 

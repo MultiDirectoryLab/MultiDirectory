@@ -9,6 +9,8 @@ from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
 
+# TODO make test for change parent with children and change depth
+
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("adding_test_user")
@@ -16,14 +18,13 @@ from ldap_protocol.ldap_codes import LDAPCodes
 @pytest.mark.usefixtures("session")
 async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
     """Test API for update DN."""
-    root_dn = "ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-
-    old_user_dn = "cn=user1," + root_dn
+    old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
     newrdn_user = "cn=new_test2"
 
     old_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
     new_group_dn = "cn=new_developers,cn=groups,dc=md,dc=test"
-    newrdn_group, new_superior_group = new_group_dn.split(",", maxsplit=1)
+    newrdn_group = "cn=new_developers"
+    new_superior_group = "cn=groups,dc=md,dc=test"
 
     new_user_dn = ",".join((newrdn_user, new_superior_group))
 
