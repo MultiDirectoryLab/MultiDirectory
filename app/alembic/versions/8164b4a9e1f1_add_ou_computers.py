@@ -9,19 +9,21 @@ Create Date: 2025-09-24 09:37:33.334259
 from alembic import op
 from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
-from sqlalchemy.orm import selectinload
 
+from entities import Directory
 from extra.setup_dev import create_dir
-from ldap_protocol.roles.role_use_case import RoleConstants
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from models import AccessControlEntryDirectoryMembership, Directory, Role
 from password_manager.password_validator import PasswordValidator
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "8164b4a9e1f1"
 down_revision = "eeaed5989eb0"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None = None
 
 
 _OU_COMPUTERS_DATA = {
@@ -45,7 +47,7 @@ def upgrade() -> None:
         exists_ou_computers = await session.scalar(
             select(
                 exists(Directory)
-                .where(Directory.name == "computers"),
+                .where(qa(Directory.name) == "computers"),
             ),
         )  # fmt: skip
         if exists_ou_computers:
@@ -53,42 +55,35 @@ def upgrade() -> None:
 
         domain_dir = await session.scalar(
             select(Directory)
-            .where(Directory.parent_id.is_(None)),
+            .where(qa(Directory.parent_id).is_(None)),
         )  # fmt: skip
 
-        await create_dir(
-            _OU_COMPUTERS_DATA,
-            session,
-            domain_dir,
-            PasswordValidator(),
-            domain_dir,
-        )
-
-        ou_computers_dir_id = await session.scalar(
-            select(Directory.id)
-            .where(Directory.name == "computers"),
-        )  # fmt: skip
-
-        role_names = (
-            RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
-            RoleConstants.READ_ONLY_ROLE_NAME,
-        )
-        roles_res = await session.scalars(
-            select(Role)
-            .where(Role.name.in_((role_names)))
-            .options(selectinload(Role.access_control_entries)),
-        )
-        roles = roles_res.all()
-
-        members = [
-            AccessControlEntryDirectoryMembership(
-                access_control_entry_id=ace.id,
-                directory_id=ou_computers_dir_id,
+        if domain_dir:
+            await create_dir(
+                _OU_COMPUTERS_DATA,
+                session,
+                domain_dir,
+                PasswordValidator(),
+                domain_dir,
             )
-            for role in roles
-            for ace in role.access_control_entries
-        ]
-        session.add_all(members)
+        else:
+            raise Exception("Domain directory not found.")
+
+        ou_computers_dir = await session.scalar(
+            select(Directory)
+            .where(qa(Directory.name) == "computers"),
+        )  # fmt: skip
+
+        if ou_computers_dir:
+            role_dao = RoleDAO(session)
+            ace_dao = AccessControlEntryDAO(session)
+            role_use_case = RoleUseCase(role_dao, ace_dao)
+            await role_use_case.inherit_parent_aces(
+                parent_directory=domain_dir,
+                directory=ou_computers_dir,
+            )
+        else:
+            raise Exception("Directory 'ou=computers' not found.")
 
         await session.commit()
 
@@ -98,7 +93,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade."""
 
-    async def _delete_ou_computers(connection: AsyncSession) -> None:
+    async def _delete_ou_computers(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
@@ -108,7 +103,7 @@ def downgrade() -> None:
 
         await session.execute(
             delete(Directory)
-            .where(Directory.name == "computers"),
+            .where(qa(Directory.name) == "computers"),
         )  # fmt: skip
 
         await session.commit()
