@@ -278,7 +278,14 @@ class KAdminLocalManager(AbstractKRBManager):
 
         :param str name: principal
         """
-        await self.loop.run_in_executor(self.pool, self.client.delprinc, name)
+        try:
+            await self.loop.run_in_executor(
+                self.pool,
+                self.client.delprinc,
+                name,
+            )
+        except kadmv.UnknownPrincipalError:
+            raise PrincipalNotFoundError
 
     async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename principal.

@@ -18,8 +18,8 @@ from typing import TYPE_CHECKING, AsyncIterator
 import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import NetworkPolicy, User
 from ldap_protocol.policies.network_policy import build_policy_query
-from models import NetworkPolicy, User
 
 from .session_storage import SessionStorage
 

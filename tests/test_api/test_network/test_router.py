@@ -12,7 +12,7 @@ from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import NetworkPolicy
+from entities import NetworkPolicy
 
 
 @pytest.mark.asyncio

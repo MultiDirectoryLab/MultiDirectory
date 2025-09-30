@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dataclasses import asdict
+from typing import cast as tcast
 
 from adaptix import P
 from adaptix.conversion import allow_unlinked_optional, get_converter
@@ -12,13 +13,16 @@ from sqlalchemy import Integer, String, cast, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
+from entities import Attribute, PasswordPolicy, User
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyNotFoundError,
 )
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.user_account_control import (
+    UserAccountControlFlag,
+    get_check_uac,
+)
 from ldap_protocol.utils.helpers import ft_now
-from models import Attribute, PasswordPolicy, User
 
 from .dataclasses import PasswordPolicyDTO
 
@@ -107,10 +111,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         """Get pwdLastSet."""
         plset_attribute = await self._session.scalar(
             select(Attribute)
-            .where(
-                Attribute.directory_id == directory_id,
-                Attribute.name == "pwdLastSet",
-            ),
+            .filter_by(directory_id=directory_id, name="pwdLastSet"),
         )  # fmt: skip
 
         if not plset_attribute:
@@ -155,5 +156,17 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )
         await self._session.execute(query)
 
-        user.password_history.append(user.password)
+        user.password_history.append(tcast("str", user.password))
         await self._session.flush()
+
+    async def is_password_change_restricted(
+        self,
+        user_directory_id: int,
+    ) -> bool:
+        """Check if user is restricted from changing password via UAC flag.
+
+        :param int user_directory_id: user's directory ID
+        :return bool: True if user is restricted, False otherwise
+        """
+        uac_check = await get_check_uac(self._session, user_directory_id)
+        return uac_check(UserAccountControlFlag.PASSWD_CANT_CHANGE)

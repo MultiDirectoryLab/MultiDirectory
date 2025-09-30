@@ -10,7 +10,7 @@ from typing import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Attribute
+from entities import Attribute
 
 
 class UserAccountControlFlag(IntFlag):
