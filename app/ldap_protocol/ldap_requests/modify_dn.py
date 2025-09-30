@@ -100,6 +100,7 @@ class ModifyDNRequest(BaseRequest):
         2. Move to new parent
         3. Both change RDN and move to new parent.
         """
+        print("\n\n\n\nModifyDNRequest handle")
         if not ctx.ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
@@ -146,12 +147,17 @@ class ModifyDNRequest(BaseRequest):
             return
 
         dn, name = self.newrdn.split("=")
+        print("dn and name: ", dn, name)
+
+        directory.name = name
 
         old_path = directory.path
         old_depth = directory.depth
 
-        if self.new_superior and (
-            directory.parent and self.new_superior != directory.parent.path_dn
+        if (
+            self.new_superior
+            and directory.parent
+            and self.new_superior != directory.parent.path_dn
         ):
             new_sup_query = select(Directory).filter(
                 get_filter_from_path(self.new_superior),
@@ -181,22 +187,20 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             directory.parent = parent_dir
-            directory.name = name
             directory.create_path(parent_dir, dn=dn)
 
             try:
                 await ctx.session.flush()
-                if parent_dir:
-                    await ctx.session.execute(
-                        delete(AccessControlEntryDirectoryMembership)
-                        .filter_by(directory_id=directory.id),
-                    )  # fmt: skip
+                await ctx.session.execute(
+                    delete(AccessControlEntryDirectoryMembership)
+                    .filter_by(directory_id=directory.id),
+                )  # fmt: skip
 
-                    await ctx.role_use_case.inherit_parent_aces(
-                        parent_directory=parent_dir,
-                        directory=directory,
-                    )
-                    await ctx.session.flush()
+                await ctx.role_use_case.inherit_parent_aces(
+                    parent_directory=parent_dir,
+                    directory=directory,
+                )
+                await ctx.session.flush()
             except IntegrityError:
                 await ctx.session.rollback()
                 yield ModifyDNResponse(
@@ -256,19 +260,18 @@ class ModifyDNRequest(BaseRequest):
                     attribute_names=["path", "depth"],
                 )
 
-                child_dirs = await ctx.session.scalars(
-                    select(Directory).where(
-                        get_path_filter(
-                            old_path,
-                            column=Directory.path[1:old_depth],
-                        ),
+                child_dirs = select(Directory).where(
+                    Directory.id != directory.id,
+                    get_path_filter(
+                        directory.path,
+                        column=Directory.path[1 : directory.depth],
                     ),
                 )
-                for child_dir in child_dirs:
-                    child_dir.create_path(
-                        child_dir.parent,
-                        child_dir.get_dn_prefix(),
-                    )
+                childrens = (await ctx.session.scalars(child_dirs)).all()
+                for child_dir in childrens:
+                    depth_diff = len(new_path) - len(old_path)
+                    child_dir.depth += depth_diff
+                    await ctx.session.flush()
 
                 explicit_aces_query = (
                     select(AccessControlEntry)
@@ -282,11 +285,9 @@ class ModifyDNRequest(BaseRequest):
                         AccessControlEntry.depth == old_depth,
                     )
                 )
-
                 explicit_aces = (
                     await ctx.session.scalars(explicit_aces_query)
                 ).all()
-
                 for ace in explicit_aces:
                     ace.directories.append(directory)
                     ace.path = directory.path_dn
