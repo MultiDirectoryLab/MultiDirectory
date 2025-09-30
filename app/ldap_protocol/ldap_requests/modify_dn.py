@@ -93,14 +93,7 @@ class ModifyDNRequest(BaseRequest):
         self,
         ctx: LDAPModifyDNRequestContext,
     ) -> AsyncGenerator[ModifyDNResponse, None]:
-        """Handle message with current user.
-
-        ModifyDn can:
-        1. Change RDN
-        2. Move to new parent
-        3. Both change RDN and move to new parent.
-        """
-        print("\n\n\n\nModifyDNRequest handle")
+        """Handle message with current user."""
         if not ctx.ldap_session.user:
             yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
             return
@@ -147,7 +140,6 @@ class ModifyDNRequest(BaseRequest):
             return
 
         dn, name = self.newrdn.split("=")
-        print("dn and name: ", dn, name)
 
         directory.name = name
 
@@ -223,9 +215,9 @@ class ModifyDNRequest(BaseRequest):
             else:
                 ctx.session.add(
                     Attribute(
-                        directory=directory,
                         name=dn,
                         value=name,
+                        directory=directory,
                     ),
                 )
             await ctx.session.flush()
@@ -249,28 +241,26 @@ class ModifyDNRequest(BaseRequest):
                         ),
                     )
                 )
-
                 await ctx.session.execute(
                     update_query,
                     execution_options={"synchronize_session": "fetch"},
                 )
                 await ctx.session.flush()
+
                 await ctx.session.refresh(
                     directory,
                     attribute_names=["path", "depth"],
                 )
-
-                child_dirs = select(Directory).where(
+                child_dir_query = select(Directory).where(
                     Directory.id != directory.id,
                     get_path_filter(
                         directory.path,
                         column=Directory.path[1 : directory.depth],
                     ),
                 )
-                childrens = (await ctx.session.scalars(child_dirs)).all()
-                for child_dir in childrens:
-                    depth_diff = len(new_path) - len(old_path)
-                    child_dir.depth += depth_diff
+                child_dirs = (await ctx.session.scalars(child_dir_query)).all()
+                for child_dir in child_dirs:
+                    child_dir.depth += len(new_path) - len(old_path)
                     await ctx.session.flush()
 
                 explicit_aces_query = (

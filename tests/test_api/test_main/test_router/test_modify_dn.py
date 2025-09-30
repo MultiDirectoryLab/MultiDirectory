@@ -9,8 +9,6 @@ from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
 
-# TODO make test for change parent with children and change depth
-
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("adding_test_user")
