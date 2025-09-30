@@ -124,7 +124,7 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
 async def get_group(
     dn: str | GRANT_DN_STRING,
     session: AsyncSession,
-) -> Directory:
+) -> Group:
     """Get dir with group by dn.
 
     :param str dn: Distinguished Name
@@ -143,11 +143,11 @@ async def get_group(
     else:
         query = query.filter_by(name=dn)
 
-    directory = await session.scalar(query)
-    if not directory or not directory.group:
+    group = await session.scalar(query)
+    if not group:
         raise ValueError("Group not found")
 
-    return directory
+    return group
 
 
 async def check_kerberos_group(
