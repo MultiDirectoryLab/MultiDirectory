@@ -92,6 +92,24 @@ async def get_directories(
     return list(results.all())
 
 
+async def get_directory_by_rid(
+    rid: str,
+    session: AsyncSession,
+) -> Directory | None:
+    """Get directory by relative ID (rid).
+
+    :param str rid: relative ID
+    :param AsyncSession session: SA session
+    :return Directory | None: directory or None
+    """
+    query = (
+        select(Directory)
+        .options(joinedload(Directory.group))
+        .filter(Directory.object_sid.endswith(f"-{rid}"))
+    )
+    return await session.scalar(query)
+
+
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     """Get dirs with groups by dn list."""
     paths = []
