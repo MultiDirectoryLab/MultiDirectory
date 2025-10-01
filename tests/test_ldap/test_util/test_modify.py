@@ -816,10 +816,11 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     query = (
         select(Directory)
         .options(
-            selectinload(Directory.groups).joinedload(Group.directory),
-            selectinload(Directory.attributes),
+            selectinload(qa(Directory.groups)).joinedload(qa(Group.directory)),
+            selectinload(qa(Directory.attributes)),
+            joinedload(qa(Directory.group)),
         )
-        .filter(Directory.path == get_search_path(dn))
+        .filter(qa(Directory.path) == get_search_path(dn))
     )
     return (await session.scalars(query)).one()
 
@@ -869,7 +870,8 @@ async def test_ldap_modify_primary_group_id_scenarios(
     user_dir = await fetch_directory_by_dn(session, user_dn)
 
     group_dir = await fetch_directory_by_dn(session, group_dn)
-    assert group_dir.relative_id
+    rid = group_dir.relative_id
+    assert rid
 
     if operation in {"delete", "replace"}:
         user_dir.groups.append(group_dir.group)
@@ -881,10 +883,11 @@ async def test_ldap_modify_primary_group_id_scenarios(
             Attribute(
                 name="primaryGroupID",
                 value=f"{value}",
-                directory=user_dir,
+                directory_id=user_dir.id,
             ),
         )
         await session.commit()
+        session.expire_all()
 
     result = await run_single_modify(
         settings=settings,
@@ -892,7 +895,7 @@ async def test_ldap_modify_primary_group_id_scenarios(
         creds=creds,
         dn=user_dn,
         attribute="primaryGroupID",
-        values=[group_dir.relative_id],
+        values=[rid],
     )
 
     assert result == 0
@@ -963,10 +966,11 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
             Attribute(
                 name="primaryGroupID",
                 value=f"{dev_group_dir.relative_id}",
-                directory=user_dir,
+                directory_id=user_dir.id,
             ),
         )
-        await session.commit()
+        await session.flush()
+        session.expire_all()
 
     result = await run_single_modify(
         settings=settings,
