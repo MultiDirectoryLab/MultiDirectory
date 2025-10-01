@@ -392,7 +392,7 @@ class HTTPProvider(LDAPContextProvider):
         """Create ldap session."""
         ip = get_ip_from_request(request)
         session = LDAPSession(
-            ldap_session_close_interval=settings.LDAP_SESSION_CLOSE_INTERVAL,
+            ldap_session_check_interval=settings.LDAP_SESSION_CHECK_INTERVAL,
         )
         await session.start()
         session.ip = ip
@@ -451,7 +451,7 @@ class LDAPServerProvider(LDAPContextProvider):
         """Create ldap session."""
         session = LDAPSession(
             storage=storage,
-            ldap_session_close_interval=settings.LDAP_SESSION_CLOSE_INTERVAL,
+            ldap_session_check_interval=settings.LDAP_SESSION_CHECK_INTERVAL,
         )
         await session.start()
         yield session

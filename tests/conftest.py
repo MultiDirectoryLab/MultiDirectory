@@ -313,7 +313,7 @@ class TestProvider(Provider):
         """Create ldap session."""
         session = LDAPSession(
             storage=storage,
-            ldap_session_close_interval=settings.LDAP_SESSION_CLOSE_INTERVAL,
+            ldap_session_check_interval=settings.LDAP_SESSION_CHECK_INTERVAL,
         )
         await session.start()
         yield session
