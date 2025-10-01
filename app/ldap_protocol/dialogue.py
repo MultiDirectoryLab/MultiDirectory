@@ -96,7 +96,7 @@ class LDAPSession:
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
-        self.settings = settings
+        self.LDAP_SESSION_CLOSE_INTERVAL = settings.LDAP_SESSION_CLOSE_INTERVAL
 
     def __str__(self) -> str:
         """Session with id."""
@@ -206,7 +206,7 @@ class LDAPSession:
 
         while True:
             try:
-                await asyncio.sleep(self.settings.LDAP_SESSION_CLOSE_INTERVAL)
+                await asyncio.sleep(self.LDAP_SESSION_CLOSE_INTERVAL)
 
                 if not self.user:
                     continue
