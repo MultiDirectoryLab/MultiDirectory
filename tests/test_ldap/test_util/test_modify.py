@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import tempfile
 from collections import defaultdict
+from typing import Literal
 
 import pytest
 from fastapi import status
@@ -25,7 +26,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
-from repo.pg.tables import directory_table, queryable_attr as qa
+from repo.pg.tables import Attribute, directory_table, queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -768,3 +769,217 @@ async def test_ldap_modify_with_ap(
     assert directory.user.mail == "modme@student.of.life.edu"
 
     assert "posixEmail" not in attributes
+
+
+async def run_single_modify(
+    settings: Settings,
+    operation: Literal["add", "delete", "replace"],
+    creds: TestCreds,
+    dn: str,
+    attribute: str,
+    values: list[str],
+) -> int:
+    """Run single ldapmodify command."""
+    with tempfile.NamedTemporaryFile("w") as file:
+        lines = [
+            f"dn: {dn}",
+            "changetype: modify",
+            f"{operation}: {attribute}",
+        ]
+        if operation != "delete":
+            for value in values:
+                lines.append(f"{attribute}: {value}")
+        lines.append("-")
+        file.write("\n".join(lines) + "\n")
+        file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            "ldapmodify",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            creds.un,
+            "-x",
+            "-w",
+            creds.pw,
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        return await proc.wait()
+
+
+async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
+    """Fetch directory by DN."""
+    query = (
+        select(Directory)
+        .options(
+            selectinload(Directory.groups).joinedload(Group.directory),
+            selectinload(Directory.attributes),
+        )
+        .filter(Directory.path == get_search_path(dn))
+    )
+    return (await session.scalars(query)).one()
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.parametrize(
+    ("operation", "group_dn", "expected_groups", "expected_primary_group"),
+    [
+        (
+            "add",
+            "cn=developers,cn=groups,dc=md,dc=test",
+            {"domain admins", "developers"},
+            True,
+        ),
+        (
+            "add",
+            "cn=domain admins,cn=groups,dc=md,dc=test",
+            {"domain admins"},
+            True,
+        ),
+        (
+            "delete",
+            "cn=developers,cn=groups,dc=md,dc=test",
+            {"domain admins", "developers"},
+            False,
+        ),
+        (
+            "replace",
+            "cn=developers,cn=groups,dc=md,dc=test",
+            {"domain admins", "developers"},
+            True,
+        ),
+    ],
+)
+async def test_ldap_modify_primary_group_id_scenarios(
+    operation: Literal["add", "delete", "replace"],
+    group_dn: str,
+    expected_groups: set[str],
+    expected_primary_group: bool,
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapmodify request with primaryGroupID for various scenarios."""
+    user_dn = "cn=user_admin,ou=users,dc=md,dc=test"
+    user_dir = await fetch_directory_by_dn(session, user_dn)
+
+    group_dir = await fetch_directory_by_dn(session, group_dn)
+    assert group_dir.relative_id
+
+    if operation in {"delete", "replace"}:
+        user_dir.groups.append(group_dir.group)
+        value = user_dir.groups[0].directory.relative_id
+        if operation == "delete":
+            value = group_dir.relative_id
+
+        session.add(
+            Attribute(
+                name="primaryGroupID",
+                value=f"{value}",
+                directory=user_dir,
+            ),
+        )
+        await session.commit()
+
+    result = await run_single_modify(
+        settings=settings,
+        operation=operation,
+        creds=creds,
+        dn=user_dn,
+        attribute="primaryGroupID",
+        values=[group_dir.relative_id],
+    )
+
+    assert result == 0
+    session.expire_all()
+
+    user_dir = await fetch_directory_by_dn(session, user_dn)
+    group_names = {group.directory.name for group in user_dir.groups}
+    assert group_names == expected_groups
+
+    attributes = defaultdict(list)
+    for attr in user_dir.attributes:
+        attributes[attr.name].append(attr.value)
+
+    if expected_primary_group:
+        assert attributes["primaryGroupID"] == [group_dir.relative_id]
+    else:
+        assert "primaryGroupID" not in attributes
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.parametrize(
+    ("values", "include_dev_group", "expected_result", "expected_groups"),
+    [
+        (
+            ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            True,
+            1,
+            {"domain admins", "developers"},
+        ),
+        (
+            ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            False,
+            0,
+            {"domain admins"},
+        ),
+        (
+            [
+                "cn=domain admins,cn=groups,dc=md,dc=test",
+                "cn=developers,cn=groups,dc=md,dc=test",
+                "cn=domain computers,cn=groups,dc=md,dc=test",
+            ],
+            True,
+            0,
+            {"domain admins", "developers", "domain computers"},
+        ),
+    ],
+)
+async def test_ldap_modify_replace_memberof_primary_group_various(
+    values: list[str],
+    include_dev_group: bool,
+    expected_result: int,
+    expected_groups: set[str],
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapmodify request replace memberOf attribute."""
+    user_dn = "cn=user_admin,ou=users,dc=md,dc=test"
+    dev_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
+
+    user_dir = await fetch_directory_by_dn(session, user_dn)
+    dev_group_dir = await fetch_directory_by_dn(session, dev_group_dn)
+
+    if include_dev_group:
+        user_dir.groups.append(dev_group_dir.group)
+        session.add(
+            Attribute(
+                name="primaryGroupID",
+                value=f"{dev_group_dir.relative_id}",
+                directory=user_dir,
+            ),
+        )
+        await session.commit()
+
+    result = await run_single_modify(
+        settings=settings,
+        operation="replace",
+        creds=creds,
+        dn=user_dn,
+        attribute="memberOf",
+        values=values,
+    )
+
+    assert result == expected_result
+    session.expire_all()
+
+    user_dir = await fetch_directory_by_dn(session, user_dn)
+    group_names = {group.directory.name for group in user_dir.groups}
+    assert group_names == expected_groups
