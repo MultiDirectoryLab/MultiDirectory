@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import CatalogueSetting
 from ldap_protocol.dns import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
@@ -17,7 +18,6 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
-from models import CatalogueSetting
 
 
 @pytest_asyncio.fixture(scope="function")

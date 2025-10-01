@@ -9,28 +9,31 @@ Create Date: 2024-11-11 15:21:23.568233
 from alembic import op
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from entities import Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,
     get_search_path,
 )
-from models import Directory
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "fafc3d0b11ec"
 down_revision = "bf435bbd95ff"
-branch_labels = None
-depends_on = None
+branch_labels: None | str = None
+depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
 def upgrade() -> None:
     """Upgrade."""
 
-    async def _create_readonly_grp_and_plcy(connection) -> None:
+    async def _create_readonly_grp_and_plcy(
+        connection: AsyncConnection,
+    ) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
         base_dn_list = await get_base_directories(session)
@@ -39,9 +42,10 @@ def upgrade() -> None:
 
         try:
             group_dir_query = select(
-                exists(Directory)
-                .where(Directory.name == "readonly domain controllers"),
-            )  # fmt: skip
+                exists(Directory).where(
+                    qa(Directory.name) == "readonly domain controllers",
+                ),
+            )
             group_dir = (await session.scalars(group_dir_query)).one()
 
             if not group_dir:
@@ -65,7 +69,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade."""
 
-    async def _delete_readonly_grp_and_plcy(connection) -> None:
+    async def _delete_readonly_grp_and_plcy(
+        connection: AsyncConnection,
+    ) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
         base_dn_list = await get_base_directories(session)
@@ -79,7 +85,7 @@ def downgrade() -> None:
 
         await session.execute(
             delete(Directory)
-            .where(Directory.path == get_search_path(group_dn)),
+            .filter_by(path=get_search_path(group_dn)),
         )  # fmt: skip
 
         await session.commit()

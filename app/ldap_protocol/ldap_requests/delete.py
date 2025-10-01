@@ -7,11 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import defaultload, selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
+from entities import Directory, Group
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.kerberos.base import KRBAPIPrincipalNotFoundError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -25,7 +27,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from models import Directory, Group
+from repo.pg.tables import queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
@@ -67,10 +69,14 @@ class DeleteRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                defaultload(Directory.user),
-                selectinload(Directory.groups).selectinload(Group.directory),
-                selectinload(Directory.group).selectinload(Group.members),
-                selectinload(Directory.attributes),
+                joinedload(qa(Directory.user)),
+                selectinload(qa(Directory.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                joinedload(qa(Directory.group)).selectinload(
+                    qa(Group.members),
+                ),
+                selectinload(qa(Directory.attributes)),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -120,16 +126,18 @@ class DeleteRequest(BaseRequest):
                         error_message="Cannot delete yourself.",
                     )
                     return
-                await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
                 await ctx.session_storage.clear_user_sessions(
                     directory.user.id,
                 )
+                await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
 
             if await is_computer(directory.id, ctx.session):
                 await ctx.kadmin.del_principal(directory.host_principal)
                 await ctx.kadmin.del_principal(
                     f"{directory.host_principal}.{base_dn.name}",
                 )
+        except KRBAPIPrincipalNotFoundError:
+            pass
         except KRBAPIError:
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,

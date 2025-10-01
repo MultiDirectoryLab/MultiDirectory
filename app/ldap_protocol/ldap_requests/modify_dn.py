@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
+from entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -18,16 +19,10 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
-from ldap_protocol.utils.queries import (
-    get_filter_from_path,
-    get_path_filter,
-    validate_entry,
-)
-from models import (
-    AccessControlEntry,
-    AccessControlEntryDirectoryMembership,
-    Attribute,
-    Directory,
+from ldap_protocol.utils.queries import get_filter_from_path, validate_entry
+from repo.pg.tables import (
+    ace_directory_memberships_table,
+    queryable_attr as qa,
 )
 
 from .base import BaseRequest
@@ -117,7 +112,7 @@ class ModifyDNRequest(BaseRequest):
         query = (
             select(Directory)
             .options(
-                selectinload(Directory.parent),
+                selectinload(qa(Directory.parent)),
             )
             .filter(get_filter_from_path(self.entry))
         )
@@ -141,8 +136,15 @@ class ModifyDNRequest(BaseRequest):
 
         dn, name = self.newrdn.split("=")
 
-        if self.new_superior and (
-            directory.parent and self.new_superior != directory.parent.path_dn
+        directory.name = name
+
+        old_parent_path = [p.lower() for p in directory.path]
+        old_parent_depth = directory.depth
+
+        if (
+            self.new_superior
+            and directory.parent
+            and self.new_superior != directory.parent.path_dn
         ):
             new_sup_query = select(Directory).filter(
                 get_filter_from_path(self.new_superior),
@@ -171,21 +173,21 @@ class ModifyDNRequest(BaseRequest):
                 )
                 return
 
+            directory.parent = parent_dir
             directory.create_path(parent_dir, dn=dn)
 
             try:
                 await ctx.session.flush()
-                if parent_dir:
-                    await ctx.session.execute(
-                        delete(AccessControlEntryDirectoryMembership)
-                        .filter_by(directory_id=directory.id),
-                    )  # fmt: skip
+                await ctx.session.execute(
+                    delete(ace_directory_memberships_table)
+                    .filter_by(directory_id=directory.id),
+                )  # fmt: skip
 
-                    await ctx.role_use_case.inherit_parent_aces(
-                        parent_directory=parent_dir,
-                        directory=directory,
-                    )
-                    await ctx.session.flush()
+                await ctx.role_use_case.inherit_parent_aces(
+                    parent_directory=parent_dir,
+                    directory=directory,
+                )
+                await ctx.session.flush()
             except IntegrityError:
                 await ctx.session.rollback()
                 yield ModifyDNResponse(
@@ -195,13 +197,13 @@ class ModifyDNRequest(BaseRequest):
 
         async with ctx.session.begin_nested():
             if self.deleteoldrdn:
-                old_attr_name = directory.path[-1].split("=")[0]
+                old_attr_name = old_parent_path[-1].split("=")[0]
                 await ctx.session.execute(
                     update(Attribute)
-                    .where(
-                        Attribute.directory_id == directory.id,
-                        Attribute.name == old_attr_name,
-                        Attribute.value == directory.name,
+                    .filter_by(
+                        directory_id=directory.id,
+                        name=old_attr_name,
+                        value=directory.name,
                     )
                     .values(name=dn, value=name),
                 )
@@ -210,56 +212,60 @@ class ModifyDNRequest(BaseRequest):
                     Attribute(
                         name=dn,
                         value=name,
-                        directory=directory,
+                        directory_id=directory.id,
                     ),
                 )
             await ctx.session.flush()
 
-            new_path = directory.path[:-1] + [f"{dn}={name}"]
-            update_query = (
-                update(Directory)
-                .where(
-                    get_path_filter(
-                        directory.path,
-                        column=Directory.path[1 : directory.depth],
-                    ),
-                )
-                .values(
-                    path=func.array_cat(
-                        new_path,
-                        text("path[:depth :]").bindparams(
-                            depth=directory.depth + 1,
+            new_parent_path = directory.path[:-1] + [f"{dn}={name}"]
+            new_parent_path = [p.lower() for p in new_parent_path]
+            if old_parent_path != new_parent_path:
+                update_query = (
+                    update(Directory)
+                    .where(
+                        func.array_lowercase(
+                            Directory.path[1:old_parent_depth],
+                        )
+                        == old_parent_path,
+                    )
+                    .values(
+                        path=func.array_cat(
+                            new_parent_path,
+                            text(f"path[{old_parent_depth + 1} :]"),
                         ),
-                    ),
+                        depth=func.cardinality(
+                            func.array_cat(
+                                new_parent_path,
+                                text(f"path[{old_parent_depth + 1} :]"),
+                            ),
+                        ),
+                    )
                 )
-            )
-
-            await ctx.session.execute(
-                update_query,
-                execution_options={"synchronize_session": "fetch"},
-            )
-
-            explicit_aces_query = (
-                select(AccessControlEntry)
-                .options(
-                    selectinload(AccessControlEntry.directories),
+                await ctx.session.execute(
+                    update_query,
+                    execution_options={"synchronize_session": "fetch"},
                 )
-                .where(
-                    AccessControlEntry.directories.any(
-                        Directory.id == directory.id,
-                    ),
-                    AccessControlEntry.depth == directory.depth,
+                await ctx.session.flush()
+
+                explicit_aces_query = (
+                    select(AccessControlEntry)
+                    .options(
+                        selectinload(qa(AccessControlEntry.directories)),
+                    )
+                    .where(
+                        qa(AccessControlEntry.directories).any(
+                            qa(Directory.id) == directory.id,
+                        ),
+                        qa(AccessControlEntry.depth) == old_parent_depth,
+                    )
                 )
-            )
-
-            explicit_aces = (
-                await ctx.session.scalars(explicit_aces_query)
-            ).all()
-
-            for ace in explicit_aces:
-                ace.directories.append(directory)
-                ace.path = directory.path_dn
-                ace.depth = directory.depth
+                explicit_aces = (
+                    await ctx.session.scalars(explicit_aces_query)
+                ).all()
+                for ace in explicit_aces:
+                    ace.directories.append(directory)
+                    ace.path = directory.path_dn
+                    ace.depth = directory.depth
 
             await ctx.session.flush()
 

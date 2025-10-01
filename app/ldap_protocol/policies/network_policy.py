@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, true
 
-from models import Group, NetworkPolicy, User
+from entities import Group, NetworkPolicy, User
+from repo.pg.tables import queryable_attr as qa
 
 
 def build_policy_query(
@@ -33,22 +34,24 @@ def build_policy_query(
         select(NetworkPolicy)
         .filter_by(enabled=True)
         .options(
-            selectinload(NetworkPolicy.groups),
-            selectinload(NetworkPolicy.mfa_groups),
+            selectinload(qa(NetworkPolicy.groups)),
+            selectinload(qa(NetworkPolicy.mfa_groups)),
         )
         .filter(
             text(':ip <<= ANY("Policies".netmasks)').bindparams(ip=ip),
             protocol_field == true(),
         )
-        .order_by(NetworkPolicy.priority.asc())
+        .order_by(qa(NetworkPolicy.priority).asc())
         .limit(1)
     )
 
     if user_group_ids is not None:
         return query.filter(
             or_(
-                NetworkPolicy.groups == None,  # noqa
-                NetworkPolicy.groups.any(Group.id.in_(user_group_ids)),
+                qa(NetworkPolicy.groups) == None,  # noqa
+                qa(NetworkPolicy.groups).any(
+                    qa(Group.id).in_(user_group_ids),
+                ),
             ),
         )
 
@@ -70,8 +73,8 @@ async def check_mfa_group(
     return await session.scalar(
         select(
             exists().where(  # type: ignore
-                Group.mfa_policies.contains(policy),
-                Group.users.contains(user),
+                qa(Group.mfa_policies).contains(policy),
+                qa(Group.users).contains(user),
             ),
         ),
     )
@@ -81,6 +84,7 @@ async def get_user_network_policy(
     ip: IPv4Address | IPv6Address,
     user: User,
     session: AsyncSession,
+    policy_type: Literal["is_http", "is_ldap", "is_kerberos"],
 ) -> NetworkPolicy | None:
     """Get the highest priority network policy for user, ip and protocol.
 
@@ -90,7 +94,7 @@ async def get_user_network_policy(
     """
     user_group_ids = [group.id for group in user.groups]
 
-    query = build_policy_query(ip, "is_http", user_group_ids)
+    query = build_policy_query(ip, policy_type, user_group_ids)
 
     return await session.scalar(query)
 
@@ -115,9 +119,10 @@ async def is_user_group_valid(
 
     query = (
         select(Group)
-        .join(Group.users)
-        .join(Group.policies, isouter=True)
-        .filter(Group.users.contains(user) & Group.policies.contains(policy))
+        .join(qa(Group.users))
+        .join(qa(Group.policies), isouter=True)
+        .where(qa(Group.users).contains(user))
+        .where(qa(Group.policies).contains(policy))
         .limit(1)
     )
 

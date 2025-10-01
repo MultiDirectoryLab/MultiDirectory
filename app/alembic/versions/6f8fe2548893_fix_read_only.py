@@ -10,15 +10,15 @@ from alembic import op
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.utils.helpers import create_integer_hash
-from models import Attribute, Directory
 
 # revision identifiers, used by Alembic.
 revision = "6f8fe2548893"
 down_revision = "fafc3d0b11ec"
-branch_labels = None
-depends_on = None
+branch_labels: None = None
+depends_on: None = None
 
 
 @temporary_stub_entity_type_name
@@ -29,33 +29,30 @@ def upgrade() -> None:
 
     ro_dir = session.scalar(
         select(Directory)
-        .where(Directory.name == "readonly domain controllers"),
+        .filter_by(name="readonly domain controllers"),
     )  # fmt: skip
 
     if ro_dir:
         session.execute(
             delete(Attribute)
-            .where(
-                Attribute.name == "objectSid",
-                Attribute.directory == ro_dir,
-            ),
+            .filter_by(name="objectSid", directory=ro_dir),
         )  # fmt: skip
         session.execute(
             update(Attribute)
-            .where(
-                Attribute.name == "sAMAccountName",
-                Attribute.directory == ro_dir,
-                Attribute.value == "domain users",
+            .filter_by(
+                name="sAMAccountName",
+                directory=ro_dir,
+                value="domain users",
             )
             .values({"value": ro_dir.name}),
         )
 
         attr_object_class = session.scalar(
             select(Attribute)
-            .where(
-                Attribute.name == "objectClass",
-                Attribute.directory == ro_dir,
-                Attribute.value == "group",
+            .filter_by(
+                name="objectClass",
+                directory=ro_dir,
+                value="group",
             ),
         )  # fmt: skip
         if not attr_object_class:
@@ -63,21 +60,21 @@ def upgrade() -> None:
                 Attribute(
                     name="objectClass",
                     value="group",
-                    directory=ro_dir,
+                    directory_id=ro_dir.id,
                 ),
             )
             session.add(
                 Attribute(
                     name=ro_dir.rdname,
                     value=ro_dir.name,
-                    directory=ro_dir,
+                    directory_id=ro_dir.id,
                 ),
             )
             session.add(
                 Attribute(
                     name="gidNumber",
                     value=str(create_integer_hash(ro_dir.name)),
-                    directory=ro_dir,
+                    directory_id=ro_dir.id,
                 ),
             )
 

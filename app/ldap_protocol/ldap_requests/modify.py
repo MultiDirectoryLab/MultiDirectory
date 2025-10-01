@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
 from constants import PRIMARY_ENTITY_TYPE_NAMES
+from entities import Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
@@ -44,8 +45,8 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
-from models import Attribute, Directory, Group, User
 from password_manager import PasswordValidator
+from repo.pg.tables import directory_table, queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
@@ -175,14 +176,26 @@ class ModifyRequest(BaseRequest):
 
         password_change_requested = self._check_password_change_requested(
             names,
-            directory,
-            ctx.ldap_session.user.directory_id,
         )
+        self_modify = directory.id == ctx.ldap_session.user.directory_id
+
+        if (
+            password_change_requested
+            and await ctx.password_use_cases.is_password_change_restricted(
+                directory.id,
+            )
+        ):
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
+            return
 
         before_attrs = self.get_directory_attrs(directory)
 
         try:
-            if not can_modify and not password_change_requested:
+            if not can_modify and not (
+                password_change_requested and self_modify
+            ):
                 yield ModifyResponse(
                     result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                 )
@@ -232,7 +245,7 @@ class ModifyRequest(BaseRequest):
 
                     await ctx.session.flush()
                     await ctx.session.execute(
-                        update(Directory).where(Directory.id == directory.id),
+                        update(Directory).filter_by(id=directory.id),
                     )
                 except MODIFY_EXCEPTION_STACK as err:
                     await ctx.session.rollback()
@@ -245,7 +258,7 @@ class ModifyRequest(BaseRequest):
 
                 await ctx.session.refresh(
                     instance=directory,
-                    attribute_names=["groups", "attributes"],
+                    attribute_names=["groups", "attributes", "user", "path"],
                 )
 
             if "objectclass" in names:
@@ -292,12 +305,19 @@ class ModifyRequest(BaseRequest):
     def _get_dir_query(self) -> Select:
         return (
             select(Directory)
+            .options(joinedload(qa(Directory.user)))
+            .options(selectinload(qa(Directory.attributes)))
+            .options(joinedload(qa(Directory.entity_type)))
             .options(
-                selectinload(Directory.attributes),
-                selectinload(Directory.entity_type),
-                selectinload(Directory.groups).selectinload(Group.directory),
-                selectinload(Directory.groups).selectinload(Group.members),
-                joinedload(Directory.group).selectinload(Group.members),
+                selectinload(qa(Directory.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                selectinload(qa(Directory.groups)).selectinload(
+                    qa(Group.members),
+                ),
+                joinedload(qa(Directory.group)).selectinload(
+                    qa(Group.members),
+                ),
             )
             .filter(get_filter_from_path(self.object))
         )
@@ -305,14 +325,8 @@ class ModifyRequest(BaseRequest):
     def _check_password_change_requested(
         self,
         names: set[str],
-        directory: Directory,
-        user_dir_id: int,
     ) -> bool:
-        return (
-            ("userpassword" in names or "unicodepwd" in names)
-            and len(names) == 1
-            and directory.id == user_dir_id
-        )
+        return bool(names & {"userpassword", "unicodepwd"})
 
     async def _can_delete_group_from_directory(
         self,
@@ -385,7 +399,11 @@ class ModifyRequest(BaseRequest):
             directory.groups.clear()
 
         elif change.operation == Operation.REPLACE:
-            directory.groups = list(set(directory.groups) & set(groups))
+            directory.groups = [
+                g
+                for g in directory.groups
+                if g.id in map(lambda g: g.id, groups)
+            ]
 
         else:
             for group in groups:
@@ -411,9 +429,11 @@ class ModifyRequest(BaseRequest):
             directory.group.members.clear()
 
         elif change.operation == Operation.REPLACE:
-            directory.group.members = list(
-                set(directory.group.members) & set(members),
-            )
+            directory.group.members = [
+                member
+                for member in directory.group.members
+                if member in members
+            ]
 
         else:
             for member in members:
@@ -478,18 +498,18 @@ class ModifyRequest(BaseRequest):
             await self._validate_object_class_modification(change, directory)
 
         if name_only or not change.modification.vals:
-            attrs.append(Attribute.name == change.modification.type)
+            attrs.append(qa(Attribute.name) == change.modification.type)
         else:
             for value in change.modification.vals:
                 if name not in (Directory.search_fields | User.search_fields):
                     if isinstance(value, str):
-                        condition = Attribute.value == value
+                        condition = qa(Attribute.value) == value
                     elif isinstance(value, bytes):
-                        condition = Attribute.bvalue == value
+                        condition = qa(Attribute.bvalue) == value
 
                     attrs.append(
                         and_(
-                            Attribute.name == change.modification.type,
+                            qa(Attribute.name) == change.modification.type,
                             condition,
                         ),
                     )
@@ -497,7 +517,8 @@ class ModifyRequest(BaseRequest):
         if attrs:
             del_query = (
                 delete(Attribute)
-                .filter(Attribute.directory == directory, or_(*attrs))
+                .filter_by(directory=directory)
+                .filter(or_(*attrs))
             )  # fmt: skip
 
             await session.execute(del_query)
@@ -517,10 +538,14 @@ class ModifyRequest(BaseRequest):
                 for _directory in directories
                 if _directory.group
             ]
-            new_groups = list(set(groups) - set(directory.groups))
+            new_groups = [g for g in groups if g not in directory.groups]
             directories = [new_group.directory for new_group in new_groups]
         else:
-            directories = list(set(directories) - set(directory.group.members))
+            directories = [
+                d
+                for d in directories
+                if not directory.group or d not in directory.group.members
+            ]
 
         if not directories:
             return
@@ -612,17 +637,17 @@ class ModifyRequest(BaseRequest):
 
                     await session.execute(
                         delete(Attribute)
-                        .filter(
-                            Attribute.name == "nsAccountLock",
-                            Attribute.directory == directory,
+                        .filter_by(
+                            name="nsAccountLock",
+                            directory=directory,
                         ),
                     )  # fmt: skip
 
                     await session.execute(
                         delete(Attribute)
-                        .filter(
-                            Attribute.name == "shadowExpire",
-                            Attribute.directory == directory,
+                        .filter_by(
+                            name="shadowExpire",
+                            directory=directory,
                         ),
                     )  # fmt: skip
 
@@ -634,14 +659,14 @@ class ModifyRequest(BaseRequest):
             if name == directory.rdname:
                 await session.execute(
                     update(Directory)
-                    .filter(Directory.id == directory.id)
+                    .filter(directory_table.c.id == directory.id)
                     .values(name=value),
                 )
 
             if name in Directory.search_fields:
                 await session.execute(
                     update(Directory)
-                    .filter(Directory.id == directory.id)
+                    .filter(directory_table.c.id == directory.id)
                     .values({name: value}),
                 )
 
@@ -658,12 +683,12 @@ class ModifyRequest(BaseRequest):
                     user = User(
                         sam_account_name=sam_account_name,
                         user_principal_name=user_principal_name,
-                        directory=directory,
+                        directory_id=directory.id,
                     )
                     uac_attr = Attribute(
                         name="userAccountControl",
                         value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
-                        directory=directory,
+                        directory_id=directory.id,
                     )
 
                     session.add_all([user, uac_attr])
@@ -677,14 +702,14 @@ class ModifyRequest(BaseRequest):
 
                 await session.execute(
                     update(User)
-                    .filter(User.directory == directory)
+                    .filter_by(directory=directory)
                     .values({name: new_value}),
                 )
 
             elif name in Group.search_fields and directory.group:
                 await session.execute(
                     update(Group)
-                    .filter(Group.directory == directory)
+                    .filter_by(directory=directory)
                     .values({name: value}),
                 )
 
@@ -722,13 +747,15 @@ class ModifyRequest(BaseRequest):
                     value,
                 )
 
+                await session_storage.clear_user_sessions(directory.user.id)
+
             else:
                 attrs.append(
                     Attribute(
                         name=change.modification.type,
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
-                        directory=directory,
+                        directory_id=directory.id,
                     ),
                 )
 

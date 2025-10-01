@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from config import Settings
+from entities import User
 from enums import AceType, RoleScope
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
@@ -24,7 +25,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
-from models import User
+from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -101,6 +102,47 @@ async def test_ldap_search_filter(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "filter_",
+    [
+        "(accountExpires=*)",
+        "(accountExpires=134006890408650000)",
+        "(accountExpires<=134006890408650000)",
+        "(accountExpires>=134006890408650000)",
+        "(accountExpires>=0)",  # NOTE: mindate
+        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
+    ],
+)
+async def test_ldap_search_filter_account_expires(
+    filter_: str,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter on server."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        filter_,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    result = await proc.wait()
+    assert result == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_ldap_search_filter_prefix(
     settings: Settings,
     creds: TestCreds,
@@ -140,7 +182,7 @@ async def test_bind_policy(
     ldap_session: LDAPSession,
 ) -> None:
     """Bind with policy."""
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
+    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)  # noqa: SLF001
     assert policy
 
     group_dir = await get_group(
@@ -180,14 +222,14 @@ async def test_bind_policy_missing_group(
     creds: TestCreds,
 ) -> None:
     """Bind policy fail."""
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
+    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)  # noqa: SLF001
 
     assert policy
 
     user_query = (
         select(User)
         .filter_by(display_name="user0")
-        .options(selectinload(User.groups))
+        .options(selectinload(qa(User.groups)))
     )
     user = (await session.scalars(user_query)).one()
 

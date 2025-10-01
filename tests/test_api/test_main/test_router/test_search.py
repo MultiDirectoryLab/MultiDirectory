@@ -91,6 +91,8 @@ async def test_api_search(http_client: AsyncClient) -> None:
     sub_dirs = [
         "cn=groups,dc=md,dc=test",
         "ou=users,dc=md,dc=test",
+        "ou=testModifyDn1,dc=md,dc=test",
+        "ou=testModifyDn3,dc=md,dc=test",
     ]
     assert all(
         obj["object_name"] in sub_dirs for obj in response["search_result"]
@@ -199,6 +201,42 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     assert data["search_result"][0]["object_name"] == entry_dn, (
         "User with required objectGUID not found"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "filter_",
+    [
+        "(accountExpires=*)",
+        "(accountExpires=134006890408650000)",
+        "(accountExpires<=134006890408650000)",
+        "(accountExpires>=134006890408650000)",
+        "(accountExpires>=0)",  # NOTE: mindate
+        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
+    ],
+)
+async def test_api_search_filter_account_expires(
+    filter_: str,
+    http_client: AsyncClient,
+) -> None:
+    """Test api search."""
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": filter_,
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+    response = raw_response.json()
+    assert response["resultCode"] == LDAPCodes.SUCCESS
 
 
 @pytest.mark.asyncio

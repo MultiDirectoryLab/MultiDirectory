@@ -105,6 +105,8 @@ async def test_role_search_3(
             "dn: cn=groups,dc=md,dc=test",
             "dn: ou=users,dc=md,dc=test",
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            "dn: ou=testModifyDn1,dc=md,dc=test",
+            "dn: ou=testModifyDn3,dc=md,dc=test",
         ],
         expected_attrs_present=[],
         expected_attrs_absent=[],

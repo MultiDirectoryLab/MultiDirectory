@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
 
 from config import Settings
+from entities import Directory, Group, User
 from enums import AceType, RoleScope
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -23,7 +24,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_search_path
-from models import Directory, Group, User
+from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
 
@@ -71,8 +72,8 @@ async def test_ldap_root_add(
 
     new_dir_query = (
         select(Directory)
-        .options(subqueryload(Directory.attributes))
-        .filter(Directory.path == search_path)
+        .options(subqueryload(qa(Directory.attributes)))
+        .filter_by(path=search_path)
     )
     new_dir = (await session.scalars(new_dir_query)).one()
 
@@ -130,8 +131,8 @@ async def test_ldap_add_duplicate_with_spaces(
     search_path = get_search_path(dn)
     new_dir_query = (
         select(Directory)
-        .options(subqueryload(Directory.attributes))
-        .filter(Directory.path == search_path)
+        .options(subqueryload(qa(Directory.attributes)))
+        .filter_by(path=search_path)
     )
     new_dir = (await session.scalars(new_dir_query)).one()
 
@@ -220,15 +221,15 @@ async def test_ldap_user_add_with_group(
     assert result == 0
 
     membership = (
-        selectinload(Directory.user)
-        .selectinload(User.groups)
-        .selectinload(Group.directory)
+        selectinload(qa(Directory.user))
+        .selectinload(qa(User.groups))
+        .selectinload(qa(Group.directory))
     )
 
     new_dir_query = (
         select(Directory)
-        .options(subqueryload(Directory.attributes), membership)
-        .filter(Directory.path == user_search_path)
+        .options(subqueryload(qa(Directory.attributes)), membership)
+        .filter_by(path=user_search_path)
     )
     new_dir = (await session.scalars(new_dir_query)).one()
 
@@ -284,15 +285,15 @@ async def test_ldap_user_add_group_with_group(
         assert result == 0
 
     membership = (
-        selectinload(Directory.group)
-        .selectinload(Group.parent_groups)
-        .selectinload(Group.directory)
+        selectinload(qa(Directory.group))
+        .selectinload(qa(Group.parent_groups))
+        .selectinload(qa(Group.directory))
     )
 
     new_dir_query = (
         select(Directory)
         .options(membership)
-        .filter(Directory.path == child_group_search_path)
+        .filter_by(path=child_group_search_path)
     )
     new_dir = (await session.scalars(new_dir_query)).one()
 
@@ -481,9 +482,11 @@ async def test_ldap_user_add_with_duplicate_groups(
     user_search_path = get_search_path(user_dn)
     user_row = await session.scalar(
         select(User)
-        .join(User.directory)
-        .where(Directory.path == user_search_path)
-        .options(selectinload(User.groups).selectinload(Group.directory)),
+        .join(qa(User.directory))
+        .filter_by(path=user_search_path)
+        .options(
+            selectinload(qa(User.groups)).selectinload(qa(Group.directory)),
+        ),
     )
     assert user_row
     groups = [g.directory.path_dn for g in user_row.groups]

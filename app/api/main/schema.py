@@ -11,6 +11,7 @@ from dishka import AsyncContainer
 from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
+from entities import Directory
 from ldap_protocol.dns import DNSManagerState, DNSZoneParam, DNSZoneType
 from ldap_protocol.filter_interpreter import (
     Filter,
@@ -19,7 +20,6 @@ from ldap_protocol.filter_interpreter import (
 )
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
-from models import Directory
 
 
 class SearchRequest(LDAPSearchRequest):
