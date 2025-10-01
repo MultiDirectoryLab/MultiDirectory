@@ -9,9 +9,10 @@ Create Date: 2025-09-26 12:36:05.974255
 from alembic import op
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
+from entities import Attribute, Directory, EntityType, Group
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -23,19 +24,19 @@ from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_search_path,
 )
-from models import Attribute, Directory, EntityType, Group
+from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "01f3f05a5b11"
-down_revision = "eeaed5989eb0"
-branch_labels = None
-depends_on = None
+down_revision = "8164b4a9e1f1"
+branch_labels: None | str = None
+depends_on: None = None
 
 
 def upgrade() -> None:
     """Upgrade."""
 
-    async def _add_domain_computers_group(connection) -> None:
+    async def _add_domain_computers_group(connection: AsyncConnection) -> None:
         session = AsyncSession(connection)
         await session.begin()
 
@@ -54,7 +55,9 @@ def upgrade() -> None:
 
         try:
             group_dir_query = select(
-                exists(Directory).where(Directory.name == "domain computers"),
+                exists(Directory).where(
+                    qa(Directory.name) == "domain computers",
+                ),
             )
             group_dir = (await session.scalars(group_dir_query)).one()
 
@@ -72,7 +75,7 @@ def upgrade() -> None:
             computer_entity_type = await entity_type_dao.get("Computer")
             computer_dirs = await session.scalars(
                 select(Directory).where(
-                    Directory.entity_type_id == computer_entity_type.id,
+                    qa(Directory.entity_type_id) == computer_entity_type.id,
                 ),
             )
             await session.refresh(
@@ -85,7 +88,7 @@ def upgrade() -> None:
             query = (
                 select(Directory)
                 .options(
-                    selectinload(Directory.attributes),
+                    selectinload(qa(Directory.attributes)),
                 )
                 .filter(
                     get_filter_from_path(
@@ -115,7 +118,7 @@ def upgrade() -> None:
 
     op.run_async(_add_domain_computers_group)
 
-    async def _add_primary_group_id(connection) -> None:
+    async def _add_primary_group_id(connection: AsyncConnection) -> None:
         session = AsyncSession(connection)
         await session.begin()
 
@@ -124,8 +127,8 @@ def upgrade() -> None:
             return
 
         entity_type = await session.scalars(
-            select(EntityType.id)
-            .where(EntityType.name.in_(["User", "Computer"])),
+            select(qa(EntityType.id))
+            .where(qa(EntityType.name).in_(["User", "Computer"])),
         )  # fmt: skip
 
         entity_type_ids = list(entity_type.all())
@@ -133,10 +136,12 @@ def upgrade() -> None:
         query = (
             select(Directory)
             .options(
-                selectinload(Directory.groups).selectinload(Group.directory),
+                selectinload(qa(Directory.groups)).selectinload(
+                    qa(Group.directory),
+                ),
             )
             .where(
-                Directory.entity_type_id.in_(entity_type_ids),
+                qa(Directory.entity_type_id).in_(entity_type_ids),
             )
         )
 
@@ -148,7 +153,7 @@ def upgrade() -> None:
                     Attribute(
                         name="primaryGroupID",
                         value=group.directory.relative_id,
-                        directory=directory,
+                        directory_id=directory.id,
                     ),
                 )
                 break
@@ -163,7 +168,9 @@ def downgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    async def _delete_domain_computers_group(connection) -> None:
+    async def _delete_domain_computers_group(
+        connection: AsyncConnection,
+    ) -> None:
         session = AsyncSession(connection)
         await session.begin()
 
@@ -175,7 +182,7 @@ def downgrade() -> None:
 
         await session.execute(
             delete(Directory)
-            .where(Directory.path == get_search_path(group_dn)),
+            .where(qa(Directory.path) == get_search_path(group_dn)),
         )  # fmt: skip
 
         await session.commit()
@@ -183,6 +190,6 @@ def downgrade() -> None:
     op.run_async(_delete_domain_computers_group)
 
     session.execute(
-        delete(Attribute).where(Attribute.name == "primaryGroupID"),
+        delete(Attribute).where(qa(Attribute.name) == "primaryGroupID"),
     )
     session.commit()

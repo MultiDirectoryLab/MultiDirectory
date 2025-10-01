@@ -355,9 +355,9 @@ class ModifyRequest(BaseRequest):
         session: AsyncSession,
     ) -> bool:
         query = exists(Attribute).where(
-            Attribute.name == "primaryGroupID",
-            Attribute.value == primary_group_id,
-            Attribute.directory_id.in_([m.id for m in members]),
+            qa(Attribute.name) == "primaryGroupID",
+            qa(Attribute.value) == primary_group_id,
+            qa(Attribute.directory_id).in_([m.id for m in members]),
         )
         return bool(await session.scalar(select(query)))
 
@@ -371,9 +371,9 @@ class ModifyRequest(BaseRequest):
             select(Directory)
             .join(Attribute)
             .where(
-                Directory.id.in_(directory_ids),
-                Attribute.name == "primaryGroupID",
-                Attribute.value == primary_group_id,
+                qa(Directory.id).in_(directory_ids),
+                qa(Attribute.name) == "primaryGroupID",
+                qa(Attribute.value) == primary_group_id,
             )
         )
         return list(await session.scalars(query))
@@ -647,16 +647,16 @@ class ModifyRequest(BaseRequest):
                 Attribute(
                     name="primaryGroupID",
                     value=rid,
-                    directory=directory,
+                    directory_id=directory.id,
                 ),
             )
             await session.commit()
             return
 
         rid_dir = await get_directory_by_rid(
-                rid,
-                session,
-            )
+            rid,
+            session,
+        )
 
         if not rid_dir or not rid_dir.group:
             raise ModifyForbiddenError("Group with such RID not found.")
@@ -666,11 +666,10 @@ class ModifyRequest(BaseRequest):
             Attribute(
                 name="primaryGroupID",
                 value=str(rid_dir.relative_id),
-                directory=directory,
+                directory_id=directory.id,
             ),
         )
         await session.commit()
-
 
     async def _add_group_attrs(
         self,

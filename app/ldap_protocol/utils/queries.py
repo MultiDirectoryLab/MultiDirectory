@@ -104,8 +104,8 @@ async def get_directory_by_rid(
     """
     query = (
         select(Directory)
-        .options(joinedload(Directory.group))
-        .filter(Directory.object_sid.endswith(f"-{rid}"))
+        .options(joinedload(qa(Directory.group)))
+        .filter(qa(Directory.object_sid).endswith(f"-{rid}"))
     )
     return await session.scalar(query)
 
@@ -154,7 +154,11 @@ async def get_group(
         if dn_is_base_directory(base_directory, dn):
             raise ValueError("Cannot set memberOf with base dn")
 
-    query = select(Directory).options(joinedload(qa(Directory.group)))
+    query = (
+        select(Group)
+        .join(qa(Group.directory), isouter=True)
+        .options(joinedload(qa(Group.directory)))
+    )
 
     if validate_entry(dn):
         query = query.filter_by(path=get_search_path(dn))

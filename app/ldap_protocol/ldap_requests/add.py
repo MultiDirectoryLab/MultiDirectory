@@ -388,7 +388,7 @@ class AddRequest(BaseRequest):
                 Attribute(
                     name="primaryGroupID",
                     value=parent_groups[-1].directory.relative_id,
-                    directory=new_dir,
+                    directory_id=new_dir.id,
                 ),
             )
 

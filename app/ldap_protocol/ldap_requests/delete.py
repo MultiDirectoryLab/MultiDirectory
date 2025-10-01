@@ -46,7 +46,7 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         ctx: LDAPDeleteRequestContext,
     ) -> AsyncGenerator[DeleteResponse, None]:
@@ -103,8 +103,8 @@ class DeleteRequest(BaseRequest):
 
         if directory.group:
             primary_group_members_query = exists(Attribute).where(
-                Attribute.name == "primaryGroupID",
-                Attribute.value == directory.relative_id,
+                qa(Attribute.name) == "primaryGroupID",
+                qa(Attribute.value) == directory.relative_id,
             )
             if await ctx.session.scalar(select(primary_group_members_query)):
                 yield DeleteResponse(
