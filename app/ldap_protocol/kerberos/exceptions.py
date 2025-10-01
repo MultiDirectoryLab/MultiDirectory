@@ -31,3 +31,7 @@ class KerberosBaseDnNotFoundError(KerberosError):
 
 class KRBAPIError(Exception):
     """API Error."""
+
+
+class KRBAPIPrincipalNotFoundError(KRBAPIError):
+    """Principal not found error."""

@@ -9,10 +9,6 @@ from .exceptions import KRBAPIError
 from .utils import log, logger_wraps
 
 
-class KRBAPIPrincipalNotFoundError(KRBAPIError):
-    """Principal not found error."""
-
-
 class AbstractKadmin(ABC):
     """Stub client for non set up dirs."""
 
