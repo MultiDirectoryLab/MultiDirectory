@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, AsyncIterator
 import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from entities import NetworkPolicy, User
 from ldap_protocol.policies.network_policy import build_policy_query
 
@@ -84,7 +83,7 @@ class LDAPSession:
     def __init__(
         self,
         *,
-        settings: Settings,
+        ldap_session_close_interval: int,
         user: UserSchema | None = None,
         storage: SessionStorage | None = None,
     ) -> None:
@@ -96,7 +95,7 @@ class LDAPSession:
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
-        self.LDAP_SESSION_CLOSE_INTERVAL = settings.LDAP_SESSION_CLOSE_INTERVAL
+        self.LDAP_SESSION_CLOSE_INTERVAL = ldap_session_close_interval
 
     def __str__(self) -> str:
         """Session with id."""

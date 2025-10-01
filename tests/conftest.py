@@ -311,7 +311,10 @@ class TestProvider(Provider):
         settings: Settings,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        session = LDAPSession(storage=storage, settings=settings)
+        session = LDAPSession(
+            storage=storage,
+            ldap_session_close_interval=settings.LDAP_SESSION_CLOSE_INTERVAL,
+        )
         await session.start()
         yield session
         await session.disconnect()
