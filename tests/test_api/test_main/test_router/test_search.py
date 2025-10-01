@@ -91,6 +91,8 @@ async def test_api_search(http_client: AsyncClient) -> None:
     sub_dirs = [
         "cn=groups,dc=md,dc=test",
         "ou=users,dc=md,dc=test",
+        "ou=testModifyDn1,dc=md,dc=test",
+        "ou=testModifyDn3,dc=md,dc=test",
     ]
     assert all(
         obj["object_name"] in sub_dirs for obj in response["search_result"]
