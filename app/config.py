@@ -60,7 +60,7 @@ class Settings(BaseModel):
     SESSION_KEY_LENGTH: int = 16
     SESSION_REKEY_INTERVAL: int = 30 * 60
 
-    LDAP_SESSION_CLOSE_INTERVAL: int = 15  # seconds
+    LDAP_SESSION_CHECK_INTERVAL: int = 15  # seconds
 
     HOSTNAME: str | None = None
     SERVICE_NAME: str | None = None

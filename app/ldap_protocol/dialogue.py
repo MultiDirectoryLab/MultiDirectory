@@ -83,7 +83,7 @@ class LDAPSession:
     def __init__(
         self,
         *,
-        ldap_session_close_interval: int,
+        ldap_session_check_interval: int,
         user: UserSchema | None = None,
         storage: SessionStorage | None = None,
     ) -> None:
@@ -95,7 +95,7 @@ class LDAPSession:
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
-        self.LDAP_SESSION_CLOSE_INTERVAL = ldap_session_close_interval
+        self.LDAP_SESSION_CHECK_INTERVAL = ldap_session_check_interval
 
     def __str__(self) -> str:
         """Session with id."""
@@ -197,7 +197,7 @@ class LDAPSession:
     async def ensure_session_exists(self) -> None:
         """Ensure session exists in storage.
 
-        Does nothing if anonymous, wait LDAP_SESSION_CLOSE_INTERVAL seconds
+        Does nothing if anonymous, wait LDAP_SESSION_CHECK_INTERVAL seconds
         and if user bound, check it.
         """
         if self.storage is None:
@@ -205,7 +205,7 @@ class LDAPSession:
 
         while True:
             try:
-                await asyncio.sleep(self.LDAP_SESSION_CLOSE_INTERVAL)
+                await asyncio.sleep(self.LDAP_SESSION_CHECK_INTERVAL)
 
                 if not self.user:
                     continue
