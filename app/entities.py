@@ -242,6 +242,13 @@ class Directory:
         self.rdname = dn
 
     @property
+    def relative_id(self) -> str | None:
+        """Get RID from objectSid."""
+        if self.object_sid and "-" in self.object_sid:
+            return self.object_sid.split("-")[-1]
+        return None
+
+    @property
     def attributes_dict(self) -> defaultdict[str, list[str]]:
         d: defaultdict[str, list[str]] = defaultdict(list)
         for attr in self.attributes:
