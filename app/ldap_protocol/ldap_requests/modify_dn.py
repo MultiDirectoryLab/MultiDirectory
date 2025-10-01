@@ -19,14 +19,9 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
-from ldap_protocol.utils.queries import (
-    get_filter_from_path,
-    get_path_filter,
-    validate_entry,
-)
+from ldap_protocol.utils.queries import get_filter_from_path, validate_entry
 from repo.pg.tables import (
     ace_directory_memberships_table,
-    directory_table,
     queryable_attr as qa,
 )
 
@@ -143,8 +138,8 @@ class ModifyDNRequest(BaseRequest):
 
         directory.name = name
 
-        old_path = directory.path
-        old_depth = directory.depth
+        old_parent_path = [p.lower() for p in directory.path]
+        old_parent_depth = directory.depth
 
         if (
             self.new_superior
@@ -202,7 +197,7 @@ class ModifyDNRequest(BaseRequest):
 
         async with ctx.session.begin_nested():
             if self.deleteoldrdn:
-                old_attr_name = old_path[-1].split("=")[0]
+                old_attr_name = old_parent_path[-1].split("=")[0]
                 await ctx.session.execute(
                     update(Attribute)
                     .filter_by(
@@ -222,21 +217,26 @@ class ModifyDNRequest(BaseRequest):
                 )
             await ctx.session.flush()
 
-            new_path = directory.path[:-1] + [f"{dn}={name}"]
-            if old_path != new_path:
+            new_parent_path = directory.path[:-1] + [f"{dn}={name}"]
+            new_parent_path = [p.lower() for p in new_parent_path]
+            if old_parent_path != new_parent_path:
                 update_query = (
                     update(Directory)
                     .where(
-                        get_path_filter(
-                            old_path,
-                            column=qa(Directory.path)[1:old_depth],
-                        ),
+                        func.array_lowercase(
+                            Directory.path[1:old_parent_depth],
+                        )
+                        == old_parent_path,
                     )
                     .values(
                         path=func.array_cat(
-                            new_path,
-                            text("path[:depth :]").bindparams(
-                                depth=old_depth + 1,
+                            new_parent_path,
+                            text(f"path[{old_parent_depth + 1} :]"),
+                        ),
+                        depth=func.cardinality(
+                            func.array_cat(
+                                new_parent_path,
+                                text(f"path[{old_parent_depth + 1} :]"),
                             ),
                         ),
                     )
@@ -247,22 +247,6 @@ class ModifyDNRequest(BaseRequest):
                 )
                 await ctx.session.flush()
 
-                await ctx.session.refresh(
-                    directory,
-                    attribute_names=["path", "depth"],
-                )
-                child_dir_query = select(Directory).where(
-                    qa(Directory.id) != directory.id,
-                    get_path_filter(
-                        directory.path,
-                        column=directory_table.c.path[1 : directory.depth],
-                    ),
-                )
-                child_dirs = (await ctx.session.scalars(child_dir_query)).all()
-                for child_dir in child_dirs:
-                    child_dir.depth += len(new_path) - len(old_path)
-                    await ctx.session.flush()
-
                 explicit_aces_query = (
                     select(AccessControlEntry)
                     .options(
@@ -272,7 +256,7 @@ class ModifyDNRequest(BaseRequest):
                         qa(AccessControlEntry.directories).any(
                             qa(Directory.id) == directory.id,
                         ),
-                        qa(AccessControlEntry.depth) == old_depth,
+                        qa(AccessControlEntry.depth) == old_parent_depth,
                     )
                 )
                 explicit_aces = (
