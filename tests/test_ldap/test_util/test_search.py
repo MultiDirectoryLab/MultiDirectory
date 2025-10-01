@@ -272,11 +272,11 @@ async def test_bind_policy(
     policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)  # noqa: SLF001
     assert policy
 
-    group_dir = await get_group(
+    group = await get_group(
         dn="cn=domain admins,cn=groups,dc=md,dc=test",
         session=session,
     )
-    policy.groups.append(group_dir.group)
+    policy.groups.append(group)
     await session.commit()
 
     proc = await asyncio.create_subprocess_exec(
@@ -533,6 +533,7 @@ async def test_ldap_search_access_control_denied(
             "dn: cn=groups,dc=md,dc=test",
             "dn: cn=domain admins,cn=groups,dc=md,dc=test",
             "dn: cn=developers,cn=groups,dc=md,dc=test",
+            "dn: cn=domain computers,cn=groups,dc=md,dc=test",
             "dn: cn=domain users,cn=groups,dc=md,dc=test",
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
         ],
