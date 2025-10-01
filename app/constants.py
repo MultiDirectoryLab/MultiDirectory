@@ -384,6 +384,69 @@ TEST_DATA = [
             },
         ],
     },
+    {
+        "name": "testModifyDn1",
+        "object_class": "organizationalUnit",
+        "attributes": {
+            "objectClass": ["top", "container"],
+            "sAMAccountName": ["testModifyDn1"],
+        },
+        "children": [
+            {
+                "name": "testModifyDn2",
+                "object_class": "organizationalUnit",
+                "attributes": {
+                    "objectClass": ["top", "container"],
+                    "sAMAccountName": ["testModifyDn2"],
+                },
+                "children": [
+                    {
+                        "name": "testGroup1",
+                        "object_class": "group",
+                        "attributes": {
+                            "objectClass": ["top", "posixGroup"],
+                            "groupType": ["-2147483646"],
+                            "instanceType": ["4"],
+                            "sAMAccountName": ["testGroup1"],
+                            "sAMAccountType": ["268435456"],
+                        },
+                    },
+                ],
+            },
+            {
+                "name": "testGroup2",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["testGroup2"],
+                    "sAMAccountType": ["268435456"],
+                },
+            },
+        ],
+    },
+    {
+        "name": "testModifyDn3",
+        "object_class": "organizationalUnit",
+        "attributes": {
+            "objectClass": ["top", "container"],
+            "sAMAccountName": ["testModifyDn3"],
+        },
+        "children": [
+            {
+                "name": "testGroup3",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["testGroup3"],
+                    "sAMAccountType": ["268435456"],
+                },
+            },
+        ],
+    },
 ]
 
 ENTITY_TYPE_DATAS = [
