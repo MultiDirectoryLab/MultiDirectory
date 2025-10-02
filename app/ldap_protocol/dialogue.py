@@ -192,10 +192,7 @@ class LDAPSession:
         if self.event_task_group is not None:
             await self._task_group_cm.__aexit__(None, None, None)
 
-    async def ensure_session_exists(
-        self,
-        check_interval: int,
-    ) -> None:
+    async def ensure_session_exists(self, check_interval: int) -> None:
         """Ensure session exists in storage.
 
         Does nothing if anonymous, wait `check_interval` seconds
