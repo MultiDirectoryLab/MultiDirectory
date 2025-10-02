@@ -194,11 +194,11 @@ class LDAPSession:
 
     async def ensure_session_exists(
         self,
-        ldap_session_check_interval: int,
+        check_interval: int,
     ) -> None:
         """Ensure session exists in storage.
 
-        Does nothing if anonymous, wait ldap_session_check_interval seconds
+        Does nothing if anonymous, wait check_interval  seconds
         and if user bound, check it.
         """
         if self.storage is None:
@@ -206,7 +206,7 @@ class LDAPSession:
 
         while True:
             try:
-                await asyncio.sleep(ldap_session_check_interval)
+                await asyncio.sleep(check_interval)
 
                 if not self.user:
                     continue
