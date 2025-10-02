@@ -288,6 +288,7 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
         "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
         "cn=user_admin_OR1,ou=users,dc=md,dc=test",
         "cn=user_admin_OR2,ou=users,dc=md,dc=test",
+        "cn=user_admin_OR3,ou=users,dc=md,dc=test",
     ]
     response = await http_client.post(
         "entry/search",
@@ -310,17 +311,32 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_search_recursive_memberof2(
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        {
+            "filter_": "(userAccountControl:1.2.840.113556.1.4.803:=512)",
+            "count": 6,
+        },
+        {
+            "filter_": "(userAccountControl:1.2.840.113556.1.4.803:=2)",
+            "count": 2,
+        },
+        {
+            "filter_": "(useraccountcontrol:1.2.840.113556.1.4.803:=514)",
+            "count": 1,
+        },
+        {
+            "filter_": "(useraccountcontrol:1.2.840.113556.1.4.803:=0)",
+            "count": 7,
+        },
+    ],
+)
+async def test_api_search_by_rule_bit_and(
+    dataset: dict,
     http_client: AsyncClient,
 ) -> None:
     """Test api search."""
-    group = "cn=domain admins,cn=groups,dc=md,dc=test"
-    members = [  # noqa: F841
-        "cn=developers,cn=groups,dc=md,dc=test",
-        "cn=user0,ou=users,dc=md,dc=test",
-        "cn=user_admin,ou=users,dc=md,dc=test",
-        "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-    ]
     response = await http_client.post(
         "entry/search",
         json={
@@ -330,34 +346,44 @@ async def test_api_search_recursive_memberof2(
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": f"(memberOf:1.2.840.113556.1.4.1941:={group})",
-            "attributes": [],
-            "page_number": 1,
-        },
-    )
-    data = response.json()
-    print("LEN1: ", len(data["search_result"]), "\n\n")
-    # assert len(data["search_result"]) == len(members)
-    # assert all(obj["object_name"] in members for obj in data["search_result"])
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": "dc=md,dc=test",
-            "scope": 2,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=512)",
+            "filter": dataset["filter_"],
             "attributes": ["userAccountControl"],
             "page_number": 1,
         },
     )
     data = response.json()
-    print("LEN2: ", len(data["search_result"]))
-    print(data, "\n\n")
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert len(data["search_result"]) == dataset["count"]
 
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        {
+            "filter_": "(userAccountControl:1.2.840.113556.1.4.804:=514)",
+            "count": 7,
+        },
+        {
+            "filter_": "(userAccountControl:1.2.840.113556.1.4.804:=18)",
+            "count": 2,
+        },
+        {
+            "filter_": "(useraccountcontrol:1.2.840.113556.1.4.804:=32)",
+            "count": 0,
+        },
+        {
+            "filter_": "(userAccountControl:1.2.840.113556.1.4.804:=0)",
+            "count": 0,
+        },
+    ],
+)
+async def test_api_search_by_rule_bit_or(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test api search."""
     response = await http_client.post(
         "entry/search",
         json={
@@ -367,104 +393,14 @@ async def test_api_search_recursive_memberof2(
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=2)",
+            "filter": dataset["filter_"],
             "attributes": ["userAccountControl"],
             "page_number": 1,
         },
     )
     data = response.json()
-    print("LEN3: ", len(data["search_result"]))
-    print(data, "\n\n")
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": "dc=md,dc=test",
-            "scope": 2,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=514)",
-            "attributes": [],
-            "page_number": 1,
-        },
-    )
-    data = response.json()
-    print("LEN4: ", len(data["search_result"]))
-    print(data, "\n\n")
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": "dc=md,dc=test",
-            "scope": 2,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=514)",
-            "attributes": ["userAccountControl"],
-            "page_number": 1,
-        },
-    )
-    data = response.json()
-    print("LEN5: ", len(data["search_result"]))
-    print(data, "\n\n")
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": "dc=md,dc=test",
-            "scope": 2,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=0)",
-            "attributes": ["userAccountControl"],
-            "page_number": 1,
-        },
-    )
-    data = response.json()
-    print("LEN6: ", len(data["search_result"]))
-    print(data, "\n\n")
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": "dc=md,dc=test",
-            "scope": 2,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=32)",
-            "attributes": ["userAccountControl"],
-            "page_number": 1,
-        },
-    )
-    data = response.json()
-    print("LEN7: ", len(data["search_result"]))
-    print(data, "\n\n")
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": "dc=md,dc=test",
-            "scope": 2,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=18)",
-            "attributes": ["userAccountControl"],
-            "page_number": 1,
-        },
-    )
-    data = response.json()
-    print("LEN8: ", len(data["search_result"]))
-    print(data, "\n\n")
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert len(data["search_result"]) == dataset["count"]
 
 
 @pytest.mark.asyncio

@@ -40,6 +40,9 @@ class FilterInterpreterProtocol(Protocol):
     """Protocol for filter interpreters."""
 
     attributes: set[str]
+    attr_name_map: dict[str, str] = {
+        "useraccountcontrol": "userAccountControl",
+    }
 
     @abstractmethod
     def cast_to_sql(
@@ -75,17 +78,9 @@ class FilterInterpreterProtocol(Protocol):
 
     def _get_bit_filter_function(
         self,
-        column: str,
+        oid: str,
     ) -> Callable[..., UnaryExpression]:
         """Retrieve the appropriate filter function based on the attribute."""
-        if len(column.split(":")) == 1:
-            attribute = column
-            oid = ""
-        elif len(column.split(":")) == 3:
-            attribute, oid = column.split(":")[:-1]
-        else:
-            ValueError("Incorrect attribute specified")
-
         if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND:
             return self._filter_bit_and
         elif oid == LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR:
@@ -98,29 +93,43 @@ class FilterInterpreterProtocol(Protocol):
         attr_name: str,
         bit_mask: str,
     ) -> UnaryExpression:
-        """BIT AND filter.
+        """Equivalent to a bitwise "AND" operation.
 
         Docs: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/6dd1d7b4-2b2f-4e55-b164-7047c4c5bb00
+
+        Examples:
+            (userAccountControl & filter_value) == filter_value
+            00000000 & 00000010 == 00000010 : False
+            00000010 & 00000010 == 00000010 : True
+            00000110 & 00000010 == 00000010 : False
+            00000111 & 00000010 == 00000010 : False
+
         """
-        map_ = {"useraccountcontrol": "userAccountControl"}
-        return Directory.id.in_(
-            select(Attribute.directory_id)
+        return qa(Directory.id).in_(
+            select(qa(Attribute.directory_id))
             .where(
-                Attribute.name == map_.get(attr_name),
+                qa(Attribute.name) == self.attr_name_map.get(attr_name.lower(), attr_name),  # noqa: E501
                 cast(Attribute.value, Integer).op("&")(int(bit_mask)) == int(bit_mask),  # noqa: E501
             ),
         )  # type: ignore # fmt: skip
 
     def _filter_bit_or(self, attr_name: str, bit_mask: str) -> UnaryExpression:
-        """BIT OR filter.
+        """Equivalent to a bitwise "OR" operation.
 
         Docs: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/4e5b2424-642a-40da-acb1-9fff381b46e4
+
+        Examples:
+            (userAccountControl & filter_value) > 0
+            00000000 & 00000010 > 0 : False
+            00000010 & 00000010 > 0 : True
+            00000110 & 00000010 > 0 : True
+            00000111 & 00000010 > 0 : True
+
         """
-        map_ = {"useraccountcontrol": "userAccountControl"}
-        return Directory.id.in_(
-            select(Attribute.directory_id)
+        return qa(Directory.id).in_(
+            select(qa(Attribute.directory_id))
             .where(
-                Attribute.name == map_.get(attr_name),
+                qa(Attribute.name) == self.attr_name_map.get(attr_name.lower(), attr_name),  # noqa: E501
                 cast(Attribute.value, Integer).op("&")(int(bit_mask)) > 0,
             ),
         )  # type: ignore # fmt: skip
@@ -215,7 +224,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
     def _cast_item(self, item: ASN1Row) -> UnaryExpression | ColumnElement:
         # present, for e.g. `attibuteName=*`, `(attibuteName)`
-        if item.tag_id == 7:
+        if item.tag_id == TagNumbers.PRESENT:
             attr = item.value.lower().replace("objectcategory", "objectclass")
 
             self.attributes.add(attr)
@@ -224,15 +233,16 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
                 return not_(eq(getattr(User, attr), None))
             elif attr in Directory.search_fields:
                 return not_(eq(getattr(Directory, attr), None))
-            elif (
-                LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND
-                in item.value  # TODO
-                or LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR
-                in item.value  # TODO
-            ):
-                return self._bit_filter(item)
 
             return self._get_filter_condition(attr)
+
+        elif item.tag_id == TagNumbers.EXTENSIBLE_MATCH:
+            rule, attr, val = item.value
+            if rule.value in (
+                LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND,
+                LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR,
+            ):
+                return self._bit_filter(item)
 
         if (
             len(item.value) == 3
@@ -269,9 +279,12 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
             return self._get_filter_condition(attr, cond)
 
-    def _bit_filter(self, item: Filter) -> UnaryExpression:
-        filter_func = self._get_bit_filter_function(item.attr)
-        return filter_func(item.attr.split(":")[0], item.val)
+    def _bit_filter(self, item: ASN1Row) -> UnaryExpression:
+        filter_func = self._get_bit_filter_function(item.value[0].value)
+        return filter_func(
+            item.value[1].value.decode("utf-8"),
+            item.value[2].value,
+        )
 
     def _ldap_filter_by_attribute(
         self,
@@ -366,15 +379,15 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
 
         is_substring = item.val.startswith("*") or item.val.endswith("*")
 
-        if item.attr in User.search_fields:
-            return self._from_str_filter(User, is_substring, item)
-        elif item.attr in Directory.search_fields:
-            return self._from_str_filter(Directory, is_substring, item)
-        elif (
+        if (
             LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND in item.attr
             or LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR in item.attr
         ):
             return self._bit_filter(item)
+        elif item.attr in User.search_fields:
+            return self._from_str_filter(User, is_substring, item)
+        elif item.attr in Directory.search_fields:
+            return self._from_str_filter(Directory, is_substring, item)
         elif item.attr in _MEMBERS_ATTRS:
             return self._api_filter(item)
         elif item.attr == "entitytypename":
@@ -390,7 +403,7 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             return self._get_filter_condition(item.attr, cond)
 
     def _bit_filter(self, item: Filter) -> UnaryExpression:
-        filter_func = self._get_bit_filter_function(item.attr)
+        filter_func = self._get_bit_filter_function(item.attr.split(":")[1])
         return filter_func(item.attr.split(":")[0], item.val)
 
     def _from_str_filter(

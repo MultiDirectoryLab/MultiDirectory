@@ -103,6 +103,130 @@ async def test_ldap_search_filter(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize(
+    "dataset",
+    [
+        {
+            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=512)",
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=66048)",
+            "objects": [
+                "dn: cn=user_admin_OR2,ou=users,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=66066)",
+            "objects": [
+                "dn: cn=user_admin_OR1,ou=users,dc=md,dc=test",
+            ],
+        },
+    ],
+)
+async def test_ldap_search_by_rule_bit_and(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter rule "BIT_AND"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "(&"
+        "(objectClass=user)"
+        f"{dataset['filter']}"
+        ")",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )  # fmt: skip
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    for object_dn in dataset["objects"]:
+        assert object_dn in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        {
+            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=514)",
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_OR1,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_OR2,ou=users,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=6)",
+            "objects": [
+                "dn: cn=user_admin_OR1,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_OR3,ou=users,dc=md,dc=test",
+            ],
+        },
+    ],
+)
+async def test_ldap_search_by_rule_bit_or(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter rule "BIT_OR"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        f"(&(objectClass=user){dataset['filter']})",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    for object_dn in dataset["objects"]:
+        assert object_dn in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
     "filter_",
     [
         "(accountExpires=*)",

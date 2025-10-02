@@ -315,10 +315,10 @@ TEST_DATA = [
                 "name": "user_admin_OR1",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_account_name": "user_admin321",
-                    "user_principal_name": "user_admin321",
-                    "mail": "user_admin321@mail.com",
-                    "display_name": "user_admin321",
+                    "sam_account_name": "user_admin_OR1",
+                    "user_principal_name": "user_admin_OR1",
+                    "mail": "user_admin_OR1@mail.com",
+                    "display_name": "user_admin_OR1",
                     "password": "password",
                     "groups": [
                         "domain admins",
@@ -342,10 +342,10 @@ TEST_DATA = [
                 "name": "user_admin_OR2",
                 "object_class": "user",
                 "organizationalPerson": {
-                    "sam_account_name": "user_admin123",
-                    "user_principal_name": "user_admin123",
-                    "mail": "user_admin123@mail.com",
-                    "display_name": "user_admin123",
+                    "sam_account_name": "user_admin_OR2",
+                    "user_principal_name": "user_admin_OR2",
+                    "mail": "user_admin_OR2@mail.com",
+                    "display_name": "user_admin_OR2",
                     "password": "password",
                     "groups": [
                         "domain admins",
@@ -363,6 +363,33 @@ TEST_DATA = [
                     "posixEmail": ["abctest123@mail.com"],
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": ["66048"],  # 65536 + 512
+                },
+            },
+            {
+                "name": "user_admin_OR3",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_account_name": "user_admin_OR3",
+                    "user_principal_name": "user_admin_OR3",
+                    "mail": "user_admin_OR3@mail.com",
+                    "display_name": "user_admin_OR3",
+                    "password": "password",
+                    "groups": [
+                        "domain admins",
+                    ],
+                },
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "inetOrgPerson",
+                        "shadowAccount",
+                    ],
+                    "posixEmail": ["abctest123@mail.com"],
+                    "attr_with_bvalue": [b"any"],
+                    "userAccountControl": ["2"],  # 2
                 },
             },
             {
