@@ -146,8 +146,7 @@ def upgrade() -> None:
                 )
             )
 
-            result = await session.execute(query)
-            directories = result.scalars().all()
+            directories = await session.scalars(query)
             for directory in directories:
                 for group in directory.groups:
                     session.add(
