@@ -192,17 +192,18 @@ class LDAPSession:
         if self.event_task_group is not None:
             await self._task_group_cm.__aexit__(None, None, None)
 
-    async def ensure_session_exists(self) -> None:
+    async def ensure_session_exists(self, check_interval: int) -> None:
         """Ensure session exists in storage.
 
-        Does nothing if anonymous, wait 30s and if user bound, check it.
+        Does nothing if anonymous, wait `check_interval` seconds
+        and if user bound, check it.
         """
         if self.storage is None:
             raise AttributeError("Storage is not set")
 
         while True:
             try:
-                await asyncio.sleep(30)
+                await asyncio.sleep(check_interval)
 
                 if not self.user:
                     continue
