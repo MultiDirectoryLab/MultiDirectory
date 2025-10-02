@@ -133,32 +133,37 @@ def upgrade() -> None:
 
         entity_type_ids = list(entity_type.all())
 
-        query = (
-            select(Directory)
-            .options(
-                selectinload(qa(Directory.groups)).selectinload(
-                    qa(Group.directory),
-                ),
-            )
-            .where(
-                qa(Directory.entity_type_id).in_(entity_type_ids),
-            )
-        )
-
-        result = await session.execute(query)
-        directories = result.scalars().all()
-        for directory in directories:
-            for group in directory.groups:
-                session.add(
-                    Attribute(
-                        name="primaryGroupID",
-                        value=group.directory.relative_id,
-                        directory_id=directory.id,
+        try:
+            query = (
+                select(Directory)
+                .options(
+                    selectinload(qa(Directory.groups)).selectinload(
+                        qa(Group.directory),
                     ),
                 )
-                break
+                .where(
+                    qa(Directory.entity_type_id).in_(entity_type_ids),
+                )
+            )
 
-        await session.commit()
+            result = await session.execute(query)
+            directories = result.scalars().all()
+            for directory in directories:
+                for group in directory.groups:
+                    session.add(
+                        Attribute(
+                            name="primaryGroupID",
+                            value=group.directory.relative_id,
+                            directory_id=directory.id,
+                        ),
+                    )
+                    break
+
+            await session.commit()
+        except (IntegrityError, DBAPIError):
+            pass
+
+        await session.close()
 
     op.run_async(_add_primary_group_id)
 
