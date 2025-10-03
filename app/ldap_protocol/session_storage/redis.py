@@ -485,11 +485,6 @@ class RedisSessionStorage(SessionStorage):
         :param int rekey_interval: rekey interval in seconds
         :return bool: True if rekey is needed
         """
-        lock = await self._get_lock(session_id)
-
-        if await lock.locked():
-            return False
-
         data = await self.get(session_id)
 
         issued = datetime.fromisoformat(data.get("issued"))  # type: ignore
@@ -552,14 +547,23 @@ class RedisSessionStorage(SessionStorage):
 
         return f"{new_session_id}.{new_signature}"
 
-    async def rekey_session(self, session_id: str, settings: Settings) -> str:
-        """Rekey session.
+    async def rekey_session_if_needed(
+        self,
+        session_id: str,
+        settings: Settings,
+    ) -> str | None:
+        """Rekey session if needed.
 
         :param str session_id: session id
         :param Settings settings: app settings
-        :return str: jwt token
+        :return str | None: jwt token or None if rekey is not needed
         """
         lock = await self._get_lock(session_id)
-
         async with lock:
-            return await self._rekey_session(session_id, settings)
+            if await self.check_rekey(
+                session_id,
+                settings.SESSION_REKEY_INTERVAL,
+            ):
+                return await self._rekey_session(session_id, settings)
+
+        return None
