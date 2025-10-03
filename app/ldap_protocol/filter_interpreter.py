@@ -96,19 +96,21 @@ class FilterInterpreterProtocol(Protocol):
 
         Examples:
             (userAccountControl & filter_value) == filter_value
-            00000000 & 00000010 == 00000010 : False
-            00000010 & 00000010 == 00000010 : True
-            00000110 & 00000010 == 00000010 : False
-            00000111 & 00000010 == 00000010 : False
+            00000000 & 00000011 == 00000011 : False
+            00000011 & 00000011 == 00000011 : True
+            00000110 & 00000011 == 00000011 : False
+            00000111 & 00000011 == 00000011 : True
 
         """
         return qa(Directory.id).in_(
-            select(qa(Attribute.directory_id))
-            .where(
+            select(qa(Attribute.directory_id)).where(
                 func.lower(Attribute.name) == attr_name.lower(),
-                cast(Attribute.value, BigInteger).op("&")(int(bit_mask)) == int(bit_mask),  # noqa: E501
+                (
+                    cast(Attribute.value, BigInteger).op("&")(int(bit_mask))
+                    == int(bit_mask)
+                ),
             ),
-        )  # type: ignore # fmt: skip
+        )  # type: ignore
 
     def _filter_bit_or(self, attr_name: str, bit_mask: str) -> UnaryExpression:
         """Equivalent to a bitwise "OR" operation.
@@ -147,8 +149,7 @@ class FilterInterpreterProtocol(Protocol):
         if attribute == "memberof":
             if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL:
                 return self._recursive_filter_memberof
-            else:
-                return self._filter_memberof
+            return self._filter_memberof
         elif attribute == "member":
             return self._filter_member
         else:
