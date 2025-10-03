@@ -9,6 +9,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import uuid
 from abc import abstractmethod
 from contextlib import suppress
+from datetime import datetime
 from operator import eq, ge, le, ne
 from typing import Callable, Protocol
 
@@ -21,6 +22,7 @@ from sqlalchemy.sql.elements import (
 )
 
 from entities import Attribute, Directory, EntityType, Group, User
+from ldap_protocol.utils.helpers import ft_to_dt
 from repo.pg.tables import groups_table, queryable_attr as qa, users_table
 
 from .asn1parser import ASN1Row, TagNumbers
@@ -247,10 +249,16 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
         if is_substring:
             return col.ilike(self._get_substring(right))
+
         op_method = {3: eq, 5: ge, 6: le, 8: ne}[item.tag_id]
+
+        value: str | datetime
         if attr == "objectguid":
             col = col
             value = str(uuid.UUID(bytes_le=right.value))
+        elif attr == "accountexpires":
+            col = col
+            value = ft_to_dt(int(right.value))
         else:
             col = func.lower(col)
             value = right.value.lower()
@@ -323,8 +331,16 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
 
         if is_substring:
             return col.ilike(item.val.replace("*", "%"))
+
         op_method = {"=": eq, ">=": ge, "<=": le, "~=": ne}[item.comp]
-        col = col if item.attr == "objectguid" else func.lower(col)
+
+        if item.attr == "objectguid":
+            col = col
+        elif item.attr == "accountexpires":
+            item.val = ft_to_dt(int(item.val))
+        else:
+            col = func.lower(col)
+
         return op_method(col, item.val)
 
     def _api_filter(self, item: Filter) -> UnaryExpression:

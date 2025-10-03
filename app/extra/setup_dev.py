@@ -43,7 +43,7 @@ async def _get_group(name: str, session: AsyncSession) -> Group:
     return retval.one()
 
 
-async def _create_dir(
+async def create_dir(
     data: dict,
     session: AsyncSession,
     domain: Directory,
@@ -146,7 +146,7 @@ async def _create_dir(
 
     if "children" in data:
         for n_data in data["children"]:
-            await _create_dir(
+            await create_dir(
                 n_data,
                 session,
                 domain,
@@ -207,7 +207,7 @@ async def setup_enviroment(
 
     try:
         for unit in data:
-            await _create_dir(
+            await create_dir(
                 unit,
                 session,
                 domain,

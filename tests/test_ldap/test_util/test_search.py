@@ -102,6 +102,47 @@ async def test_ldap_search_filter(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "filter_",
+    [
+        "(accountExpires=*)",
+        "(accountExpires=134006890408650000)",
+        "(accountExpires<=134006890408650000)",
+        "(accountExpires>=134006890408650000)",
+        "(accountExpires>=0)",  # NOTE: mindate
+        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
+    ],
+)
+async def test_ldap_search_filter_account_expires(
+    filter_: str,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter on server."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        filter_,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    result = await proc.wait()
+    assert result == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_ldap_search_filter_prefix(
     settings: Settings,
     creds: TestCreds,

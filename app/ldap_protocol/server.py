@@ -110,7 +110,9 @@ class PoolClientHandler:
                         self._handle_responses(writer, session_scope),
                     )
                     ensure_task = tg.create_task(
-                        ldap_session.ensure_session_exists(),
+                        ldap_session.ensure_session_exists(
+                            self.settings.LDAP_SESSION_CHECK_INTERVAL,
+                        ),
                     )
                     tg.create_task(
                         ldap_session.cancel_ensure_task(ensure_task),
