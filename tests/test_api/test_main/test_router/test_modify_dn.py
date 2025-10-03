@@ -19,12 +19,12 @@ async def test_api_modify_dn_without_level_change(
 ) -> None:
     """Test API for updating DN.
 
-    Change parent while preserving object level in LDAP tree.
+    Change parent while up object level in LDAP tree.
     """
     response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "cn=testGroup3,ou=testModifyDn3,dc=md,dc=test",
+            "base_object": "ou=testModifyDn1,dc=md,dc=test",
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -39,17 +39,17 @@ async def test_api_modify_dn_without_level_change(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert (
         data["search_result"][0]["object_name"]
-        == "cn=testGroup3,ou=testModifyDn3,dc=md,dc=test"
+        == "ou=testModifyDn1,dc=md,dc=test"
     )
 
     response = await http_client.put(
         "/entry/update/dn",
         json={
-            # NOTE level is 4
-            "entry": "cn=testGroup3,ou=testModifyDn3,dc=md,dc=test",
-            "newrdn": "cn=testGroup3",
+            # NOTE level is 3
+            "entry": "ou=testModifyDn1,dc=md,dc=test",
+            "newrdn": "ou=testModifyDn1",
             "deleteoldrdn": True,
-            "new_superior": "ou=testModifyDn1,dc=md,dc=test",
+            "new_superior": "ou=testModifyDn3,dc=md,dc=test",
         },
     )
     data = response.json()
@@ -59,8 +59,8 @@ async def test_api_modify_dn_without_level_change(
     response = await http_client.post(
         "entry/search",
         json={
-            # NOTE level is 4
-            "base_object": "cn=testGroup3,ou=testModifyDn1,dc=md,dc=test",
+            # NOTE level is 6
+            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,ou=testModifyDn3,dc=md,dc=test",  # noqa: E501
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -75,7 +75,7 @@ async def test_api_modify_dn_without_level_change(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert (
         data["search_result"][0]["object_name"]
-        == "cn=testGroup3,ou=testModifyDn1,dc=md,dc=test"
+        == "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,ou=testModifyDn3,dc=md,dc=test"  # noqa: E501
     )
 
 
