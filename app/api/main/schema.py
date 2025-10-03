@@ -31,7 +31,7 @@ class SearchRequest(LDAPSearchRequest):
         default_factory=StringFilterInterpreter,
     )
 
-    def cast_filter(self) -> UnaryExpression | ColumnElement:
+    def _cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
         return self._filter_interpreter.cast_to_sql(

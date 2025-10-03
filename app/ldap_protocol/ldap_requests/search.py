@@ -249,7 +249,7 @@ class SearchRequest(BaseRequest):
 
         return data
 
-    def cast_filter(self) -> UnaryExpression | ColumnElement:
+    def _cast_filter(self) -> UnaryExpression | ColumnElement:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
         :param ASN1Row filter_: requested filter_
@@ -319,7 +319,7 @@ class SearchRequest(BaseRequest):
         )
 
         try:
-            cond = self.cast_filter()
+            cond = self._cast_filter()
             query = query.filter(cond)
         except Exception as err:
             logger.exception("Error occurred while filtering query")

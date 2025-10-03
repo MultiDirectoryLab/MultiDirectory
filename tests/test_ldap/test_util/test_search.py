@@ -24,6 +24,7 @@ from ldap_protocol.policies.network_policy import is_user_group_valid
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.queries import get_group, get_groups
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
@@ -97,6 +98,176 @@ async def test_ldap_search_filter(
     assert result == 0
     assert "dn: cn=user0,ou=users,dc=md,dc=test" in data
     assert "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test" in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        {
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": f"(userAccountControl:1.2.840.113556.1.4.803:={
+                UserAccountControlFlag.NOT_DELEGATED
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+            })",
+            "objects": [
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={
+                UserAccountControlFlag.NOT_DELEGATED
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+                + UserAccountControlFlag.LOCKOUT
+                + UserAccountControlFlag.ACCOUNTDISABLE
+            })",
+            "objects": [
+                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
+            "objects": [],
+        },
+    ],
+)
+async def test_ldap_search_by_rule_bit_and(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter rule "BIT_AND"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "(&"
+        "(objectClass=user)"
+        f"{dataset['filter']}"
+        ")",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )  # fmt: skip
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert object_dn in data
+    else:
+        assert "dn: " not in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        {
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.804:={
+                UserAccountControlFlag.ACCOUNTDISABLE
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+            })",
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+                "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": f"(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE})",  # noqa: E501
+            "objects": [
+                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
+        },
+        {
+            "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
+            "objects": [],
+        },
+    ],
+)
+async def test_ldap_search_by_rule_bit_or(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter rule "BIT_OR"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        f"(&(objectClass=user){dataset['filter']})",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert object_dn in data
+    else:
+        assert "dn: " not in data
 
 
 @pytest.mark.asyncio

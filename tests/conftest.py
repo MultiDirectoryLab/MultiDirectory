@@ -49,7 +49,7 @@ from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
-from constants import ENTITY_TYPE_DATAS, TEST_DATA
+from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
 from extra import setup_enviroment
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
@@ -108,6 +108,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from password_manager.password_validator import PasswordValidator
+from tests.constants import TEST_DATA
 
 
 class TestProvider(Provider):
