@@ -92,6 +92,24 @@ async def get_directories(
     return list(results.all())
 
 
+async def get_directory_by_rid(
+    rid: str,
+    session: AsyncSession,
+) -> Directory | None:
+    """Get directory by relative ID (rid).
+
+    :param str rid: relative ID
+    :param AsyncSession session: SA session
+    :return Directory | None: directory or None
+    """
+    query = (
+        select(Directory)
+        .options(joinedload(qa(Directory.group)))
+        .filter(qa(Directory.object_sid).endswith(f"-{rid}"))
+    )
+    return await session.scalar(query)
+
+
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
     """Get dirs with groups by dn list."""
     paths = []
@@ -124,7 +142,7 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
 async def get_group(
     dn: str | GRANT_DN_STRING,
     session: AsyncSession,
-) -> Directory:
+) -> Group:
     """Get dir with group by dn.
 
     :param str dn: Distinguished Name
@@ -136,18 +154,22 @@ async def get_group(
         if dn_is_base_directory(base_directory, dn):
             raise ValueError("Cannot set memberOf with base dn")
 
-    query = select(Directory).options(joinedload(qa(Directory.group)))
+    query = (
+        select(Group)
+        .join(qa(Group.directory), isouter=True)
+        .options(joinedload(qa(Group.directory)))
+    )
 
     if validate_entry(dn):
         query = query.filter_by(path=get_search_path(dn))
     else:
         query = query.filter_by(name=dn)
 
-    directory = await session.scalar(query)
-    if not directory or not directory.group:
+    group = await session.scalar(query)
+    if not group:
         raise ValueError("Group not found")
 
-    return directory
+    return group
 
 
 async def check_kerberos_group(
