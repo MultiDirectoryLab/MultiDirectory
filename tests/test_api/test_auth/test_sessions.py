@@ -70,7 +70,9 @@ async def test_session_rekey(
     old_key = list(sessions.keys())[0]
     old_session = sessions[old_key]
 
-    await storage.rekey_session(old_key, settings)
+    # NOTE: set negative rekey interval to force rekey
+    settings.SESSION_REKEY_INTERVAL = -1
+    await storage.rekey_session_if_needed(old_key, settings)
     sessions = await storage.get_user_sessions(user.id)
 
     new_key = list(sessions.keys())[0]
