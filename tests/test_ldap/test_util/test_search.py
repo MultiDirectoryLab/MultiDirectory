@@ -107,7 +107,7 @@ async def test_ldap_search_filter(
     "dataset",
     [
         {
-            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
             "objects": [
                 "dn: cn=user0,ou=users,dc=md,dc=test",
                 "dn: cn=user_admin,ou=users,dc=md,dc=test",
@@ -136,7 +136,7 @@ async def test_ldap_search_filter(
             ],
         },
         {
-            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
             "objects": [
                 "dn: cn=user0,ou=users,dc=md,dc=test",
                 "dn: cn=user_admin,ou=users,dc=md,dc=test",
@@ -212,14 +212,14 @@ async def test_ldap_search_by_rule_bit_and(
             ],
         },
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=6)",  # TODO
+            "filter": f"(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE})",  # noqa: E501
             "objects": [
                 "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
                 "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
         {
-            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
             "objects": [
                 "dn: cn=user0,ou=users,dc=md,dc=test",
                 "dn: cn=user_admin,ou=users,dc=md,dc=test",
