@@ -4,13 +4,34 @@ from functools import wraps
 from typing import Any, Callable
 
 import httpx
+from loguru import logger as loguru_logger
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, CatalogueSetting, Directory, EntityType
+from enums import StrEnum
 from repo.pg.tables import queryable_attr as qa
 
-from .base import KERBEROS_STATE_NAME, KerberosState, KRBAPIError, log
+from .exceptions import KRBAPIError
+
+KERBEROS_STATE_NAME = "KerberosState"
+log = loguru_logger.bind(name="kadmin")
+
+log.add(
+    "logs/kadmin_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == "kadmin",
+    retention="10 days",
+    rotation="1d",
+    colorize=False,
+)
+
+
+class KerberosState(StrEnum):
+    """KRB state enum."""
+
+    NOT_CONFIGURED = "0"
+    READY = "1"
+    WAITING_FOR_RELOAD = "2"
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:
@@ -35,7 +56,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
             logger.info(f"Calling{bus_type}'{name}' for {principal}")
             try:
                 result = await func(*args, **kwargs)
-            except (httpx.ConnectError, httpx.ConnectTimeout):
+            except (httpx.ConnectError, httpx.TimeoutException):
                 logger.critical("Can not access kadmin server!")
                 raise KRBAPIError
 

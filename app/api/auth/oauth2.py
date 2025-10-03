@@ -76,11 +76,11 @@ async def get_current_user(
 
     session_id, _ = session_key.split(".")
     try:
-        if await session_storage.check_rekey(
+        key = await session_storage.rekey_session_if_needed(
             session_id,
-            settings.SESSION_REKEY_INTERVAL,
-        ):
-            key = await session_storage.rekey_session(session_id, settings)
+            settings,
+        )
+        if key:
             response.set_cookie(
                 key="id",
                 value=key,

@@ -138,7 +138,7 @@ class ModifyDNRequest(BaseRequest):
 
         directory.name = name
 
-        old_parent_path = [p.lower() for p in directory.path]
+        old_parent_path = directory.path
         old_parent_depth = directory.depth
 
         if (
@@ -174,7 +174,7 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             directory.parent = parent_dir
-            directory.create_path(parent_dir, dn=dn)
+            directory.create_path(directory.parent, dn=dn)
 
             try:
                 await ctx.session.flush()
@@ -184,7 +184,7 @@ class ModifyDNRequest(BaseRequest):
                 )  # fmt: skip
 
                 await ctx.role_use_case.inherit_parent_aces(
-                    parent_directory=parent_dir,
+                    parent_directory=directory.parent,
                     directory=directory,
                 )
                 await ctx.session.flush()
@@ -218,14 +218,11 @@ class ModifyDNRequest(BaseRequest):
             await ctx.session.flush()
 
             new_parent_path = directory.path[:-1] + [f"{dn}={name}"]
-            new_parent_path = [p.lower() for p in new_parent_path]
             if old_parent_path != new_parent_path:
                 update_query = (
                     update(Directory)
                     .where(
-                        func.array_lowercase(
-                            Directory.path[1:old_parent_depth],
-                        )
+                        qa(Directory.path)[1:old_parent_depth]
                         == old_parent_path,
                     )
                     .values(

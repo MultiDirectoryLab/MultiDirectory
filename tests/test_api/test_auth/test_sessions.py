@@ -1,5 +1,7 @@
 """Test session workflow."""
 
+from typing import Iterator
+
 import pytest
 from aioldap3 import LDAPConnection
 from httpx import AsyncClient
@@ -49,8 +51,18 @@ async def test_session_creation(
     assert not await storage.get_user_sessions(user.id)
 
 
+@pytest.fixture
+def _force_override_rekey_interval(settings: Settings) -> Iterator:
+    """Override session rekey interval for tests."""
+    current_interval = settings.SESSION_REKEY_INTERVAL
+    settings.SESSION_REKEY_INTERVAL = -1
+    yield
+    settings.SESSION_REKEY_INTERVAL = current_interval
+
+
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("_force_override_rekey_interval")
 async def test_session_rekey(
     unbound_http_client: AsyncClient,
     creds: TestCreds,
@@ -70,7 +82,7 @@ async def test_session_rekey(
     old_key = list(sessions.keys())[0]
     old_session = sessions[old_key]
 
-    await storage.rekey_session(old_key, settings)
+    await storage.rekey_session_if_needed(old_key, settings)
     sessions = await storage.get_user_sessions(user.id)
 
     new_key = list(sessions.keys())[0]
