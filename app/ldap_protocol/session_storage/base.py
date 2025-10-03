@@ -233,10 +233,14 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def rekey_session(self, session_id: str, settings: Settings) -> str:
-        """Rekey session.
+    async def rekey_session_if_needed(
+        self,
+        session_id: str,
+        settings: Settings,
+    ) -> str | None:
+        """Rekey session if needed.
 
         :param str session_id: session id
         :param Settings settings: app settings
-        :return str: jwt token
+        :return str | None: new session key or None
         """
