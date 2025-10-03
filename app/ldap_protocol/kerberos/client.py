@@ -2,7 +2,8 @@
 
 import httpx
 
-from .base import AbstractKadmin, KRBAPIError, KRBAPIPrincipalNotFoundError
+from .base import AbstractKadmin
+from .exceptions import KRBAPIError, KRBAPIPrincipalNotFoundError
 from .utils import logger_wraps
 
 
@@ -96,6 +97,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 202:
             raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def ktadd(self, names: list[str]) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
@@ -132,6 +134,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         if response.status_code != 200:
             raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def force_princ_pw_change(self, name: str) -> None:
         """Force mark password change for principal.
 

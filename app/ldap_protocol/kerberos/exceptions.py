@@ -27,3 +27,11 @@ class KerberosUnavailableError(KerberosError):
 
 class KerberosBaseDnNotFoundError(KerberosError):
     """Raised when no base DN is found in the LDAP directory."""
+
+
+class KRBAPIError(Exception):
+    """API Error."""
+
+
+class KRBAPIPrincipalNotFoundError(KRBAPIError):
+    """Principal not found error."""

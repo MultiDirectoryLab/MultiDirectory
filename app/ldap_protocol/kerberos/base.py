@@ -1,38 +1,12 @@
 """Abstract Kadmin class for kerberos api server."""
 
 from abc import ABC, abstractmethod
-from enum import StrEnum
 
 import backoff
 import httpx
-from loguru import logger as loguru_logger
 
-KERBEROS_STATE_NAME = "KerberosState"
-log = loguru_logger.bind(name="kadmin")
-
-log.add(
-    "logs/kadmin_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == "kadmin",
-    retention="10 days",
-    rotation="1d",
-    colorize=False,
-)
-
-
-class KerberosState(StrEnum):
-    """KRB state enum."""
-
-    NOT_CONFIGURED = "0"
-    READY = "1"
-    WAITING_FOR_RELOAD = "2"
-
-
-class KRBAPIError(Exception):
-    """API Error."""
-
-
-class KRBAPIPrincipalNotFoundError(KRBAPIError):
-    """Principal not found error."""
+from .exceptions import KRBAPIError
+from .utils import log, logger_wraps
 
 
 class AbstractKadmin(ABC):
@@ -47,6 +21,7 @@ class AbstractKadmin(ABC):
         """
         self.client = client
 
+    @logger_wraps()
     async def setup_configs(
         self,
         krb5_config: str,
@@ -65,6 +40,7 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def setup_stash(
         self,
         domain: str,
@@ -93,6 +69,7 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def setup_subtree(
         self,
         domain: str,
@@ -121,6 +98,7 @@ class AbstractKadmin(ABC):
         if response.status_code != 201:
             raise KRBAPIError(response.text)
 
+    @logger_wraps()
     async def reset_setup(self) -> None:
         """Reset setup."""
         log.warning("Setup reset")
@@ -231,6 +209,7 @@ class AbstractKadmin(ABC):
     @abstractmethod
     async def force_princ_pw_change(self, name: str) -> None: ...
 
+    @logger_wraps()
     async def ldap_principal_setup(self, name: str, path: str) -> None:
         """LDAP principal setup.
 
