@@ -45,7 +45,7 @@ async def test_api_modify_dn_without_level_change(
     response = await http_client.put(
         "/entry/update/dn",
         json={
-            # NOTE level is 4
+            # NOTE level is 3
             "entry": "ou=testModifyDn1,dc=md,dc=test",
             "newrdn": "ou=testModifyDn1",
             "deleteoldrdn": True,
@@ -59,7 +59,7 @@ async def test_api_modify_dn_without_level_change(
     response = await http_client.post(
         "entry/search",
         json={
-            # NOTE level is 5
+            # NOTE level is 6
             "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,ou=testModifyDn3,dc=md,dc=test",  # noqa: E501
             "scope": 0,
             "deref_aliases": 0,
