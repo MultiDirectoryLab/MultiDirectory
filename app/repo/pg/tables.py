@@ -21,6 +21,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    Text,
     UniqueConstraint,
     asc,
     desc,
@@ -41,6 +42,7 @@ from entities import (
     AuditPolicy,
     AuditPolicyTrigger,
     CatalogueSetting,
+    DedicatedServer,
     Directory,
     EntityType,
     Group,
@@ -641,6 +643,21 @@ audit_destinations_table = Table(
     Column("protocol", Enum(AuditDestinationProtocolType), nullable=False),
 )
 
+dedicated_servers_table = Table(
+    "DedicatedServers",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(255), nullable=False, unique=True),
+    Column("host", String(255), nullable=False),
+    Column("port", Integer, nullable=False),
+    Column("username", String(255), nullable=False),
+    Column("password", String(255), nullable=False),
+    Column("base_dn", String(255), nullable=False),
+    Column("domain_name", String(255), nullable=False),
+    Column("use_tls", Boolean, nullable=False),
+    Column("ca_certificate_path", String(255), nullable=True),
+    Column("ca_certificate_content", Text, nullable=True),
+)
 
 mapper_registry.map_imperatively(
     CatalogueSetting,
@@ -983,4 +1000,9 @@ mapper_registry.map_imperatively(
 mapper_registry.map_imperatively(
     AuditDestination,
     audit_destinations_table,
+)
+
+mapper_registry.map_imperatively(
+    DedicatedServer,
+    dedicated_servers_table,
 )

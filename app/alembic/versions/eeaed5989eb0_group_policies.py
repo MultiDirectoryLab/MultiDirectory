@@ -10,7 +10,7 @@ Create Date: 2025-08-01 08:58:41.760249
 revision = "eeaed5989eb0"
 down_revision = "e4d6d99d32bd"
 branch_labels: None | str = None
-depends_on: None = None
+depends_on: None | str = None
 
 
 def upgrade() -> None:
