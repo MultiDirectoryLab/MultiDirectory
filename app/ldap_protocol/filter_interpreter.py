@@ -14,7 +14,7 @@ from operator import eq, ge, le, ne
 from typing import Callable, Protocol
 
 from ldap_filter import Filter
-from sqlalchemy import Integer, and_, cast, func, not_, or_, select
+from sqlalchemy import BigInteger, and_, cast, func, not_, or_, select
 from sqlalchemy.sql.elements import (
     BinaryExpression,
     ColumnElement,
@@ -40,9 +40,6 @@ class FilterInterpreterProtocol(Protocol):
     """Protocol for filter interpreters."""
 
     attributes: set[str]
-    attr_name_map: dict[str, str] = {
-        "useraccountcontrol": "userAccountControl",
-    }
 
     @abstractmethod
     def cast_to_sql(
@@ -108,8 +105,8 @@ class FilterInterpreterProtocol(Protocol):
         return qa(Directory.id).in_(
             select(qa(Attribute.directory_id))
             .where(
-                qa(Attribute.name) == self.attr_name_map.get(attr_name.lower(), attr_name),  # noqa: E501
-                cast(Attribute.value, Integer).op("&")(int(bit_mask)) == int(bit_mask),  # noqa: E501
+                func.lower(Attribute.name) == attr_name.lower(),
+                cast(Attribute.value, BigInteger).op("&")(int(bit_mask)) == int(bit_mask),  # noqa: E501
             ),
         )  # type: ignore # fmt: skip
 
@@ -129,8 +126,8 @@ class FilterInterpreterProtocol(Protocol):
         return qa(Directory.id).in_(
             select(qa(Attribute.directory_id))
             .where(
-                qa(Attribute.name) == self.attr_name_map.get(attr_name.lower(), attr_name),  # noqa: E501
-                cast(Attribute.value, Integer).op("&")(int(bit_mask)) > 0,
+                func.lower(Attribute.name) == attr_name.lower(),
+                cast(Attribute.value, BigInteger).op("&")(int(bit_mask)) > 0,
             ),
         )  # type: ignore # fmt: skip
 

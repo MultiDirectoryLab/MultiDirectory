@@ -313,20 +313,28 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     "dataset",
     [
         {
-            "filter_": "(userAccountControl:1.2.840.113556.1.4.803:=512)",
+            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=512)",
             "count": 6,
         },
         {
-            "filter_": "(userAccountControl:1.2.840.113556.1.4.803:=2)",
+            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=2)",
             "count": 2,
         },
         {
-            "filter_": "(useraccountcontrol:1.2.840.113556.1.4.803:=514)",
+            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=514)",
             "count": 1,
         },
         {
-            "filter_": "(useraccountcontrol:1.2.840.113556.1.4.803:=0)",
+            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=0)",
             "count": 7,
+        },
+        {
+            "filter": "(!(userAccountControl:1.2.840.113556.1.4.803:=2))",
+            "count": 20,
+        },
+        {
+            "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
+            "count": 0,
         },
     ],
 )
@@ -344,7 +352,7 @@ async def test_api_search_by_rule_bit_and(
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": dataset["filter_"],
+            "filter": dataset["filter"],
             "attributes": ["userAccountControl"],
             "page_number": 1,
         },
@@ -360,19 +368,27 @@ async def test_api_search_by_rule_bit_and(
     "dataset",
     [
         {
-            "filter_": "(userAccountControl:1.2.840.113556.1.4.804:=514)",
+            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=514)",
             "count": 7,
         },
         {
-            "filter_": "(userAccountControl:1.2.840.113556.1.4.804:=18)",
+            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=18)",
             "count": 2,
         },
         {
-            "filter_": "(useraccountcontrol:1.2.840.113556.1.4.804:=32)",
+            "filter": "(useraccountcontrol:1.2.840.113556.1.4.804:=32)",
             "count": 0,
         },
         {
-            "filter_": "(userAccountControl:1.2.840.113556.1.4.804:=0)",
+            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=0)",
+            "count": 0,
+        },
+        {
+            "filter": "(!(userAccountControl:1.2.840.113556.1.4.804:=2))",
+            "count": 20,
+        },
+        {
+            "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
             "count": 0,
         },
     ],
@@ -391,7 +407,7 @@ async def test_api_search_by_rule_bit_or(
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": dataset["filter_"],
+            "filter": dataset["filter"],
             "attributes": ["userAccountControl"],
             "page_number": 1,
         },

@@ -126,6 +126,14 @@ async def test_ldap_search_filter(
                 "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
+        {
+            "filter": "(!(userAccountControl:1.2.840.113556.1.4.803:=2))",
+            "objects": [],
+        },
+        {
+            "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
+            "objects": [],
+        },
     ],
 )
 async def test_ldap_search_by_rule_bit_and(
@@ -187,6 +195,14 @@ async def test_ldap_search_by_rule_bit_and(
                 "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
                 "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
             ],
+        },
+        {
+            "filter": "(!(userAccountControl:1.2.840.113556.1.4.804:=2))",
+            "objects": [],
+        },
+        {
+            "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
+            "objects": [],
         },
     ],
 )
