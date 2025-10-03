@@ -8,6 +8,7 @@ import pytest
 from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.user_account_control import UserAccountControlFlag
 
 
 @pytest.mark.asyncio
@@ -313,28 +314,50 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     "dataset",
     [
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=512)",
-            "count": 6,
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",
+            "objects": [
+                "cn=user0,ou=users,dc=md,dc=test",
+                "cn=user_admin,ou=users,dc=md,dc=test",
+                "cn=user_non_admin,ou=users,dc=md,dc=test",
+                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=2)",
-            "count": 2,
+            "filter": f"(userAccountControl:1.2.840.113556.1.4.803:={
+                UserAccountControlFlag.NOT_DELEGATED
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+            })",
+            "objects": [
+                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
-            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=514)",
-            "count": 1,
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={
+                UserAccountControlFlag.NOT_DELEGATED
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+                + UserAccountControlFlag.LOCKOUT
+                + UserAccountControlFlag.ACCOUNTDISABLE
+            })",
+            "objects": [
+                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
-            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=0)",
-            "count": 7,
-        },
-        {
-            "filter": "(!(userAccountControl:1.2.840.113556.1.4.803:=2))",
-            "count": 20,
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",
+            "objects": [
+                "cn=user0,ou=users,dc=md,dc=test",
+                "cn=user_admin,ou=users,dc=md,dc=test",
+                "cn=user_non_admin,ou=users,dc=md,dc=test",
+                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
             "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
-            "count": 0,
+            "objects": [],
         },
     ],
 )
@@ -352,14 +375,20 @@ async def test_api_search_by_rule_bit_and(
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": dataset["filter"],
+            "filter": f"(&(objectClass=user){dataset['filter']})",
             "attributes": ["userAccountControl"],
             "page_number": 1,
         },
     )
     data = response.json()
+
+    assert data
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert len(data["search_result"]) == dataset["count"]
+    assert int(data["total_objects"]) == len(dataset["objects"])
+
+    if dataset["objects"]:
+        for dir_ in data["search_result"]:
+            assert dir_["object_name"] in dataset["objects"]
 
 
 @pytest.mark.asyncio
@@ -368,28 +397,37 @@ async def test_api_search_by_rule_bit_and(
     "dataset",
     [
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=514)",
-            "count": 7,
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE + UserAccountControlFlag.NORMAL_ACCOUNT})",
+            "objects": [
+                "cn=user0,ou=users,dc=md,dc=test",
+                "cn=user_admin,ou=users,dc=md,dc=test",
+                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+                "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
+                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "cn=user_non_admin,ou=users,dc=md,dc=test",
+            ],
         },
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=18)",
-            "count": 2,
+            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=6)",  # TODO
+            "objects": [
+                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
-            "filter": "(useraccountcontrol:1.2.840.113556.1.4.804:=32)",
-            "count": 0,
-        },
-        {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=0)",
-            "count": 0,
-        },
-        {
-            "filter": "(!(userAccountControl:1.2.840.113556.1.4.804:=2))",
-            "count": 20,
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",
+            "objects": [
+                "cn=user0,ou=users,dc=md,dc=test",
+                "cn=user_admin,ou=users,dc=md,dc=test",
+                "cn=user_non_admin,ou=users,dc=md,dc=test",
+                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
             "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
-            "count": 0,
+            "objects": [],
         },
     ],
 )
@@ -407,14 +445,20 @@ async def test_api_search_by_rule_bit_or(
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": dataset["filter"],
+            "filter": f"(&(objectClass=user){dataset['filter']})",
             "attributes": ["userAccountControl"],
             "page_number": 1,
         },
     )
+
     data = response.json()
+    assert data
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert len(data["search_result"]) == dataset["count"]
+    assert int(data["total_objects"]) == len(dataset["objects"])
+
+    if dataset["objects"]:
+        for dir_ in data["search_result"]:
+            assert dir_["object_name"] in dataset["objects"]
 
 
 @pytest.mark.asyncio

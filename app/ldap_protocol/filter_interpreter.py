@@ -103,14 +103,15 @@ class FilterInterpreterProtocol(Protocol):
 
         """
         return qa(Directory.id).in_(
-            select(qa(Attribute.directory_id)).where(
+            select(qa(Attribute.directory_id))
+            .where(
                 func.lower(Attribute.name) == attr_name.lower(),
                 (
                     cast(Attribute.value, BigInteger).op("&")(int(bit_mask))
                     == int(bit_mask)
                 ),
             ),
-        )  # type: ignore
+        )  # type: ignore  # fmt: skip
 
     def _filter_bit_or(self, attr_name: str, bit_mask: str) -> UnaryExpression:
         """Equivalent to a bitwise "OR" operation.

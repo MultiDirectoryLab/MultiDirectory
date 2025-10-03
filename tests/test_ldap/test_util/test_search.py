@@ -24,6 +24,7 @@ from ldap_protocol.policies.network_policy import is_user_group_valid
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.queries import get_group, get_groups
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
@@ -106,7 +107,7 @@ async def test_ldap_search_filter(
     "dataset",
     [
         {
-            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=512)",
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",
             "objects": [
                 "dn: cn=user0,ou=users,dc=md,dc=test",
                 "dn: cn=user_admin,ou=users,dc=md,dc=test",
@@ -115,20 +116,34 @@ async def test_ldap_search_filter(
             ],
         },
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.803:=66048)",
+            "filter": f"(userAccountControl:1.2.840.113556.1.4.803:={
+                UserAccountControlFlag.NOT_DELEGATED
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+            })",
             "objects": [
                 "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
         {
-            "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=66066)",
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={
+                UserAccountControlFlag.NOT_DELEGATED
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+                + UserAccountControlFlag.LOCKOUT
+                + UserAccountControlFlag.ACCOUNTDISABLE
+            })",
             "objects": [
                 "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
         {
-            "filter": "(!(userAccountControl:1.2.840.113556.1.4.803:=2))",
-            "objects": [],
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
             "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
@@ -168,8 +183,11 @@ async def test_ldap_search_by_rule_bit_and(
 
     assert result == 0
     assert data
-    for object_dn in dataset["objects"]:
-        assert object_dn in data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert object_dn in data
+    else:
+        assert "dn: " not in data
 
 
 @pytest.mark.asyncio
@@ -179,26 +197,36 @@ async def test_ldap_search_by_rule_bit_and(
     "dataset",
     [
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=514)",
+            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.804:={
+                UserAccountControlFlag.ACCOUNTDISABLE
+                + UserAccountControlFlag.NORMAL_ACCOUNT
+            })",
             "objects": [
                 "dn: cn=user0,ou=users,dc=md,dc=test",
                 "dn: cn=user_admin,ou=users,dc=md,dc=test",
                 "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
                 "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+                "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
                 "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
                 "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
             ],
         },
         {
-            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=6)",
+            "filter": "(userAccountControl:1.2.840.113556.1.4.804:=6)",  # TODO
             "objects": [
                 "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
                 "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
         {
-            "filter": "(!(userAccountControl:1.2.840.113556.1.4.804:=2))",
-            "objects": [],
+            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",
+            "objects": [
+                "dn: cn=user0,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            ],
         },
         {
             "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
@@ -235,8 +263,11 @@ async def test_ldap_search_by_rule_bit_or(
 
     assert result == 0
     assert data
-    for object_dn in dataset["objects"]:
-        assert object_dn in data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert object_dn in data
+    else:
+        assert "dn: " not in data
 
 
 @pytest.mark.asyncio
