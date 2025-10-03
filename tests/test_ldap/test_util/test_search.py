@@ -117,13 +117,13 @@ async def test_ldap_search_filter(
         {
             "filter": "(userAccountControl:1.2.840.113556.1.4.803:=66048)",
             "objects": [
-                "dn: cn=user_admin_OR2,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
         {
             "filter": "(useraccountcontrol:1.2.840.113556.1.4.803:=66066)",
             "objects": [
-                "dn: cn=user_admin_OR1,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
     ],
@@ -175,8 +175,8 @@ async def test_ldap_search_by_rule_bit_and(
             "objects": [
                 "dn: cn=user0,ou=users,dc=md,dc=test",
                 "dn: cn=user_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin_OR1,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin_OR2,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
                 "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
                 "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
             ],
@@ -184,8 +184,8 @@ async def test_ldap_search_by_rule_bit_and(
         {
             "filter": "(userAccountControl:1.2.840.113556.1.4.804:=6)",
             "objects": [
-                "dn: cn=user_admin_OR1,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin_OR3,ou=users,dc=md,dc=test",
+                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+                "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
             ],
         },
     ],

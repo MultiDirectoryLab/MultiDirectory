@@ -93,6 +93,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
         "ou=users,dc=md,dc=test",
         "ou=testModifyDn1,dc=md,dc=test",
         "ou=testModifyDn3,dc=md,dc=test",
+        "ou=test_bit_rules,dc=md,dc=test",
     ]
     assert all(
         obj["object_name"] in sub_dirs for obj in response["search_result"]
@@ -286,9 +287,6 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
         "cn=user0,ou=users,dc=md,dc=test",
         "cn=user_admin,ou=users,dc=md,dc=test",
         "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-        "cn=user_admin_OR1,ou=users,dc=md,dc=test",
-        "cn=user_admin_OR2,ou=users,dc=md,dc=test",
-        "cn=user_admin_OR3,ou=users,dc=md,dc=test",
     ]
     response = await http_client.post(
         "entry/search",
