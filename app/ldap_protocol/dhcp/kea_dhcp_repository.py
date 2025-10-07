@@ -8,7 +8,6 @@ from ipaddress import IPv4Address
 from typing import Any
 
 import httpx
-from loguru import logger
 
 from .base import DHCPAPIRepository
 from .dataclasses import (
@@ -148,8 +147,6 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
             data,
             return_response=True,
         )
-
-        logger.error(f"Response: {response.json()}")
 
         return (
             [
