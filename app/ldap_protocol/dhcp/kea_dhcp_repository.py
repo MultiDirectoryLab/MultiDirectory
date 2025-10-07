@@ -8,6 +8,7 @@ from ipaddress import IPv4Address
 from typing import Any
 
 import httpx
+from loguru import logger
 
 from .base import DHCPAPIRepository
 from .dataclasses import (
@@ -148,6 +149,8 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
             return_response=True,
         )
 
+        logger.error(f"Response: {response.json()}")
+
         return (
             [
                 DHCPSubnet(
@@ -189,6 +192,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
                 DHCPPool(pool=pool["pool"])
                 for pool in subnet_data.get("pools", [])
             ],
+            valid_lifetime=subnet_data.get("valid-lifetime"),
             option_data=[
                 DHCPOptionData(
                     name=option["name"],

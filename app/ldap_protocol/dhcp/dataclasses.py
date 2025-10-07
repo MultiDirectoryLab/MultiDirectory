@@ -31,6 +31,7 @@ class DHCPSubnet:
     id: int | None = None
     subnet: IPv4Network | None = None
     pools: list[DHCPPool] | None = None
+    valid_lifetime: int | None = None
     option_data: list[DHCPOptionData] | None = None
 
 

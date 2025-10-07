@@ -68,6 +68,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         subnets_dto = DHCPSubnet(
             subnet=IPv4Network(subnet_data.subnet),
             pools=pools_dto,
+            valid_lifetime=subnet_data.valid_lifetime,
             option_data=option_data_dto,
         )
         return await self._service.create_subnet(subnets_dto)
@@ -83,6 +84,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
                 id=subnet.id,
                 subnet=subnet.subnet,
                 pool=[p.pool for p in subnet.pools] if subnet.pools else [],
+                valid_lifetime=subnet.valid_lifetime,
                 default_gateway=subnet.option_data[0].data
                 if subnet.option_data
                 else None,
@@ -117,6 +119,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             id=subnet_id,
             subnet=subnet_data.subnet,
             pools=pools_dto,
+            valid_lifetime=subnet_data.valid_lifetime,
             option_data=option_data_dto,
         )
 

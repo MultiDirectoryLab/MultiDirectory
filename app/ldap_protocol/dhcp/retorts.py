@@ -27,6 +27,7 @@ add_subnet_retort = Retort(
             DHCPSubnet,
             map={
                 "option_data": "option-data",
+                "valid_lifetime": "valid-lifetime",
             },
         ),
     ],
@@ -38,6 +39,7 @@ update_subnet_retort = base_retort.extend(
             DHCPSubnet,
             map={
                 "option_data": "option-data",
+                "valid_lifetime": "valid-lifetime",
             },
         ),
         name_mapping(
