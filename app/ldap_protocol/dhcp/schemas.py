@@ -58,6 +58,7 @@ class DHCPSubnetSchemaAddRequest(BaseModel):
 
     subnet: IPv4Network
     pool: IPv4Network | str
+    valid_lifetime: int | None = None
     default_gateway: IPv4Address | None = None
 
 
@@ -67,6 +68,7 @@ class DHCPSubnetSchemaResponse(BaseModel):
     id: int
     subnet: IPv4Network
     pool: list[IPv4Network | str]
+    valid_lifetime: int | None = None
     default_gateway: IPv4Address | None = None
 
 
