@@ -243,15 +243,17 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
                 LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR,
             ):
                 return self._bit_filter(item)
+
+            elif (
+                len(item.value) == 3
+                and isinstance(item.value[1].value, bytes)
+                and item.value[1].value.decode("utf-8").lower()
+                in _MEMBERS_ATTRS
+            ):
+                return self._ldap_filter_by_attribute(*item.value)  # NOTE: oid
+
             else:
                 raise ValueError("Unsupported matching rule")
-
-        if (
-            len(item.value) == 3
-            and isinstance(item.value[1].value, bytes)
-            and item.value[1].value.decode("utf-8").lower() in _MEMBERS_ATTRS
-        ):
-            return self._ldap_filter_by_attribute(*item.value)  # NOTE: oid
 
         left, right = item.value
         attr = left.value.lower().replace("objectcategory", "objectclass")
