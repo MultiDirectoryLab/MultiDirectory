@@ -35,6 +35,10 @@ _MEMBERS_ATTRS = {
     f"memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:",
 }
 
+_RULE_POS = 0
+_ATTR_POS = 1
+_VALUE_POS = 2
+
 
 class FilterInterpreterProtocol(Protocol):
     """Protocol for filter interpreters."""
@@ -238,7 +242,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             return self._get_filter_condition(attr)
 
         elif item.tag_id == TagNumbers.EXTENSIBLE_MATCH:
-            if item.value[0].value in (
+            if item.value[_RULE_POS].value in (
                 LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND,
                 LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR,
             ):
@@ -246,10 +250,9 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
             elif (
                 len(item.value) == 3
-                and isinstance(item.value[1].value, bytes)
-                and item.value[1].value.decode("utf-8").lower()
-                in _MEMBERS_ATTRS
-            ):
+                and isinstance(item.value[_ATTR_POS].value, bytes)
+                and item.value[_ATTR_POS].value.decode("utf-8").lower() in _MEMBERS_ATTRS  # noqa: E501
+            ):  # fmt: skip
                 return self._ldap_filter_by_attribute(*item.value)  # NOTE: oid
 
             else:
@@ -286,8 +289,8 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
     def _bit_filter(self, item: ASN1Row) -> UnaryExpression:
         filter_func = self._get_bit_filter_function(item.value[0].value)
         return filter_func(
-            item.value[1].value.decode("utf-8"),
-            int(item.value[2].value),
+            item.value[_ATTR_POS].value.decode("utf-8"),
+            int(item.value[_VALUE_POS].value),
         )
 
     def _ldap_filter_by_attribute(
@@ -330,7 +333,12 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
         if is_substring:
             return col.ilike(self._get_substring(right))
 
-        op_method = {3: eq, 5: ge, 6: le, 8: ne}[item.tag_id]
+        op_method = {
+            TagNumbers.EQUALITY_MATCH: eq,
+            TagNumbers.GE: ge,
+            TagNumbers.LE: le,
+            TagNumbers.APPROX_MATCH: ne,
+        }[item.tag_id]
 
         value: str | datetime
         if attr == "objectguid":

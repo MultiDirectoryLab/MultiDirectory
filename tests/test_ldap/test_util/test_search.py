@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from config import Settings
 from entities import User
 from enums import AceType, RoleScope
-from ldap_protocol.asn1parser import ASN1Row
+from ldap_protocol.asn1parser import ASN1Row, TagNumbers
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
@@ -391,7 +391,11 @@ async def test_bvalue_in_search_request(
         size_limit=0,
         time_limit=0,
         types_only=False,
-        filter=ASN1Row(class_id=128, tag_id=7, value="objectClass"),
+        filter=ASN1Row(
+            class_id=128,
+            tag_id=TagNumbers.PRESENT,
+            value="objectClass",
+        ),
         attributes=["*"],
     )
     ctx_search.ldap_session = ldap_bound_session

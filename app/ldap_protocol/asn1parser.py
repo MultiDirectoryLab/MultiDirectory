@@ -68,7 +68,7 @@ class ASN1Row(Generic[T]):
     """Row with metadata."""
 
     class_id: int
-    tag_id: int
+    tag_id: TagNumbers
     value: T
 
     @classmethod
