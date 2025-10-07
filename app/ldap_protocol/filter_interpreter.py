@@ -111,10 +111,7 @@ class FilterInterpreterProtocol(Protocol):
             select(qa(Attribute.directory_id))
             .where(
                 func.lower(Attribute.name) == attr_name.lower(),
-                (
-                    cast(Attribute.value, BigInteger).op("&")(bit_mask)
-                    == bit_mask
-                ),
+                cast(Attribute.value, BigInteger).op("&")(bit_mask) == bit_mask,  # noqa: E501
             ),
         )  # type: ignore  # fmt: skip
 
