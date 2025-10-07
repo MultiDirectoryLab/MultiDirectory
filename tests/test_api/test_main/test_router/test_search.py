@@ -8,7 +8,10 @@ import pytest
 from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from tests.test_api.test_main.test_router.test_search_datasets import (
+    test_api_search_by_rule_bit_and_dataset,
+    test_api_search_by_rule_bit_or_dataset,
+)
 
 
 @pytest.mark.asyncio
@@ -310,57 +313,7 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize(
-    "dataset",
-    [
-        {
-            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
-            "objects": [
-                "cn=user0,ou=users,dc=md,dc=test",
-                "cn=user_admin,ou=users,dc=md,dc=test",
-                "cn=user_non_admin,ou=users,dc=md,dc=test",
-                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(userAccountControl:1.2.840.113556.1.4.803:={
-                UserAccountControlFlag.NOT_DELEGATED
-                + UserAccountControlFlag.NORMAL_ACCOUNT
-            })",
-            "objects": [
-                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={
-                UserAccountControlFlag.NOT_DELEGATED
-                + UserAccountControlFlag.NORMAL_ACCOUNT
-                + UserAccountControlFlag.LOCKOUT
-                + UserAccountControlFlag.ACCOUNTDISABLE
-            })",
-            "objects": [
-                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
-            "objects": [
-                "cn=user0,ou=users,dc=md,dc=test",
-                "cn=user_admin,ou=users,dc=md,dc=test",
-                "cn=user_non_admin,ou=users,dc=md,dc=test",
-                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
-            "objects": [],
-        },
-    ],
-)
+@pytest.mark.parametrize("dataset", test_api_search_by_rule_bit_and_dataset)
 async def test_api_search_by_rule_bit_and(
     dataset: dict,
     http_client: AsyncClient,
@@ -393,44 +346,7 @@ async def test_api_search_by_rule_bit_and(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize(
-    "dataset",
-    [
-        {
-            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE + UserAccountControlFlag.NORMAL_ACCOUNT})",
-            "objects": [
-                "cn=user0,ou=users,dc=md,dc=test",
-                "cn=user_admin,ou=users,dc=md,dc=test",
-                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-                "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
-                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-                "cn=user_non_admin,ou=users,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE})",  # noqa: E501
-            "objects": [
-                "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-                "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
-            "objects": [
-                "cn=user0,ou=users,dc=md,dc=test",
-                "cn=user_admin,ou=users,dc=md,dc=test",
-                "cn=user_non_admin,ou=users,dc=md,dc=test",
-                "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-                "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
-            "objects": [],
-        },
-    ],
-)
+@pytest.mark.parametrize("dataset", test_api_search_by_rule_bit_or_dataset)
 async def test_api_search_by_rule_bit_or(
     dataset: dict,
     http_client: AsyncClient,

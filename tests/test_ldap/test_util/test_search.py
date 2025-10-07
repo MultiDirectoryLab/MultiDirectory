@@ -24,10 +24,13 @@ from ldap_protocol.policies.network_policy import is_user_group_valid
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.queries import get_group, get_groups
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
+from tests.test_ldap.test_util.test_search_datasets import (
+    test_ldap_search_by_rule_bit_and_dataset,
+    test_ldap_search_by_rule_bit_or_dataset,
+)
 
 
 @pytest.mark.asyncio
@@ -103,54 +106,7 @@ async def test_ldap_search_filter(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize(
-    "dataset",
-    [
-        {
-            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
-            "objects": [
-                "dn: cn=user0,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(userAccountControl:1.2.840.113556.1.4.803:={
-                UserAccountControlFlag.NOT_DELEGATED
-                + UserAccountControlFlag.NORMAL_ACCOUNT
-            })",
-            "objects": [
-                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={
-                UserAccountControlFlag.NOT_DELEGATED
-                + UserAccountControlFlag.NORMAL_ACCOUNT
-                + UserAccountControlFlag.LOCKOUT
-                + UserAccountControlFlag.ACCOUNTDISABLE
-            })",
-            "objects": [
-                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
-            "objects": [
-                "dn: cn=user0,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
-            "objects": [],
-        },
-    ],
-)
+@pytest.mark.parametrize("dataset", test_ldap_search_by_rule_bit_and_dataset)
 async def test_ldap_search_by_rule_bit_and(
     dataset: dict,
     settings: Settings,
@@ -193,47 +149,7 @@ async def test_ldap_search_by_rule_bit_and(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize(
-    "dataset",
-    [
-        {
-            "filter": f"(useraccountcontrol:1.2.840.113556.1.4.804:={
-                UserAccountControlFlag.ACCOUNTDISABLE
-                + UserAccountControlFlag.NORMAL_ACCOUNT
-            })",
-            "objects": [
-                "dn: cn=user0,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-                "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
-                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE})",  # noqa: E501
-            "objects": [
-                "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-                "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
-            "objects": [
-                "dn: cn=user0,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-                "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-                "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
-            ],
-        },
-        {
-            "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
-            "objects": [],
-        },
-    ],
-)
+@pytest.mark.parametrize("dataset", test_ldap_search_by_rule_bit_or_dataset)
 async def test_ldap_search_by_rule_bit_or(
     dataset: dict,
     settings: Settings,

@@ -82,24 +82,25 @@ class FilterInterpreterProtocol(Protocol):
             return self._filter_bit_and
         elif oid == LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR:
             return self._filter_bit_or
-        else:
-            raise ValueError("Incorrect attribute specified")
+
+        raise ValueError("Incorrect attribute specified")
 
     def _filter_bit_and(
         self,
         attr_name: str,
-        bit_mask: str,
+        bit_mask: int,
     ) -> UnaryExpression:
         """Equivalent to a bitwise "AND" operation.
 
-        Docs: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/6dd1d7b4-2b2f-4e55-b164-7047c4c5bb00
+        Docs:
+            https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/6dd1d7b4-2b2f-4e55-b164-7047c4c5bb00
 
         Examples:
             (userAccountControl & filter_value) == filter_value
-            00000000 & 00000011 == 00000011 : False
-            00000011 & 00000011 == 00000011 : True
-            00000110 & 00000011 == 00000011 : False
-            00000111 & 00000011 == 00000011 : True
+            (00000000 & 00000011) == 00000011  # False
+            (00000011 & 00000011) == 00000011  # True
+            (00000110 & 00000011) == 00000011  # False
+            (00000111 & 00000011) == 00000011  # True
 
         """
         return qa(Directory.id).in_(
@@ -107,30 +108,31 @@ class FilterInterpreterProtocol(Protocol):
             .where(
                 func.lower(Attribute.name) == attr_name.lower(),
                 (
-                    cast(Attribute.value, BigInteger).op("&")(int(bit_mask))
-                    == int(bit_mask)
+                    cast(Attribute.value, BigInteger).op("&")(bit_mask)
+                    == bit_mask
                 ),
             ),
         )  # type: ignore  # fmt: skip
 
-    def _filter_bit_or(self, attr_name: str, bit_mask: str) -> UnaryExpression:
+    def _filter_bit_or(self, attr_name: str, bit_mask: int) -> UnaryExpression:
         """Equivalent to a bitwise "OR" operation.
 
-        Docs: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/4e5b2424-642a-40da-acb1-9fff381b46e4
+        Docs:
+            https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/4e5b2424-642a-40da-acb1-9fff381b46e4
 
         Examples:
             (userAccountControl & filter_value) > 0
-            00000000 & 00000010 > 0 : False
-            00000010 & 00000010 > 0 : True
-            00000110 & 00000010 > 0 : True
-            00000111 & 00000010 > 0 : True
+            (00000000 & 00000010) > 0  # False
+            (00000010 & 00000010) > 0  # True
+            (00000110 & 00000010) > 0  # True
+            (00000111 & 00000010) > 0  # True
 
         """
         return qa(Directory.id).in_(
             select(qa(Attribute.directory_id))
             .where(
                 func.lower(Attribute.name) == attr_name.lower(),
-                cast(Attribute.value, BigInteger).op("&")(int(bit_mask)) > 0,
+                cast(Attribute.value, BigInteger).op("&")(bit_mask) > 0,
             ),
         )  # type: ignore # fmt: skip
 
@@ -236,12 +238,13 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             return self._get_filter_condition(attr)
 
         elif item.tag_id == TagNumbers.EXTENSIBLE_MATCH:
-            rule, attr, val = item.value
-            if rule.value in (
+            if item.value[0].value in (
                 LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND,
                 LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR,
             ):
                 return self._bit_filter(item)
+            else:
+                raise ValueError("Unsupported matching rule")
 
         if (
             len(item.value) == 3
@@ -282,7 +285,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
         filter_func = self._get_bit_filter_function(item.value[0].value)
         return filter_func(
             item.value[1].value.decode("utf-8"),
-            item.value[2].value,
+            int(item.value[2].value),
         )
 
     def _ldap_filter_by_attribute(
@@ -403,7 +406,7 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
 
     def _bit_filter(self, item: Filter) -> UnaryExpression:
         filter_func = self._get_bit_filter_function(item.attr.split(":")[1])
-        return filter_func(item.attr.split(":")[0], item.val)
+        return filter_func(item.attr.split(":")[0], int(item.val))
 
     def _from_str_filter(
         self,
