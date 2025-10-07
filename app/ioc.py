@@ -21,6 +21,7 @@ from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.auth.utils import get_ip_from_request
+from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
@@ -332,7 +333,7 @@ class MainProvider(Provider):
         """Get current DHCP manager state."""
         return await dhcp_manager_repository.ensure_state()
 
-    @provide(scope=Scope.SESSION)
+    @provide(scope=Scope.REQUEST)
     async def get_dhcp_mngr_class(
         self,
         dhcp_state: DHCPManagerState,
@@ -515,6 +516,7 @@ class HTTPProvider(LDAPContextProvider):
     session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
     audit_service = provide(AuditService, scope=Scope.REQUEST)
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
+    dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
