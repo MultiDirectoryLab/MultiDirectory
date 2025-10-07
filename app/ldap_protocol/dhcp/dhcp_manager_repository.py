@@ -7,7 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import CatalogueSetting
+from entities import CatalogueSetting
+from repo.pg.tables import queryable_attr as qa
 
 from .enums import DHCPManagerState
 
@@ -27,7 +28,7 @@ class DHCPManagerRepository:
         """Get the current state of the DHCP manager."""
         state = await self._session.scalar(
             select(CatalogueSetting)
-            .filter(CatalogueSetting.name == self.STATE_NAME),
+            .filter(qa(CatalogueSetting.name).in_([self.STATE_NAME])),
         )  # fmt: skip
         return DHCPManagerState(state.value) if state else None
 
@@ -36,7 +37,7 @@ class DHCPManagerRepository:
         await self._session.execute(
             update(CatalogueSetting)
             .values({"value": state})
-            .where(CatalogueSetting.name == self.STATE_NAME),
+            .where(qa(CatalogueSetting.name).in_([self.STATE_NAME])),
         )
 
         await self._session.flush()
