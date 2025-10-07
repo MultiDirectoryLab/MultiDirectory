@@ -1,8 +1,23 @@
 from .base import AbstractDHCPManager, DHCPAPIRepository
 from .dhcp_manager_repository import DHCPManagerRepository
 from .enums import DHCPManagerState
+from .exceptions import (
+    DHCPAPIError,
+    DHCPEntryAddError,
+    DHCPEntryDeleteError,
+    DHCPEntryNotFoundError,
+    DHCPEntryUpdateError,
+)
 from .kea_dhcp_manager import KeaDHCPManager
 from .kea_dhcp_repository import KeaDHCPAPIRepository
+from .schemas import (
+    DHCPLeaseSchemaRequest,
+    DHCPLeaseSchemaResponse,
+    DHCPReservationSchemaRequest,
+    DHCPReservationSchemaResponse,
+    DHCPSubnetSchemaAddRequest,
+    DHCPSubnetSchemaResponse,
+)
 from .stub import StubDHCPAPIRepository, StubDHCPManager
 
 
@@ -11,8 +26,8 @@ async def get_dhcp_manager_class(
 ) -> type[AbstractDHCPManager]:
     """Get an instance of the DHCP manager."""
     if dhcp_state == DHCPManagerState.KEA_DHCP:
-        return KeaDHCPManager
-    return StubDHCPManager
+        return StubDHCPManager
+    return KeaDHCPManager
 
 
 async def get_dhcp_api_repository_class(
@@ -20,8 +35,8 @@ async def get_dhcp_api_repository_class(
 ) -> type[DHCPAPIRepository]:
     """Get an instance of the DHCP API repository."""
     if dhcp_state == DHCPManagerState.KEA_DHCP:
-        return KeaDHCPAPIRepository
-    return StubDHCPAPIRepository
+        return StubDHCPAPIRepository
+    return KeaDHCPAPIRepository
 
 
 __all__ = [
@@ -30,4 +45,16 @@ __all__ = [
     "get_dhcp_manager_class",
     "DHCPAPIRepository",
     "DHCPManagerRepository",
+    "DHCPEntryNotFoundError",
+    "DHCPEntryDeleteError",
+    "DHCPEntryAddError",
+    "DHCPEntryUpdateError",
+    "DHCPAPIError",
+    "DHCPSubnetSchemaRequest",
+    "DHCPSubnetSchemaAddRequest",
+    "DHCPReservationSchemaRequest",
+    "DHCPSubnetSchemaResponse",
+    "DHCPLeaseSchemaRequest",
+    "DHCPLeaseSchemaResponse",
+    "DHCPReservationSchemaResponse",
 ]
