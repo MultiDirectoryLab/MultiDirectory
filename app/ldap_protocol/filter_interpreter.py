@@ -338,7 +338,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             TagNumbers.GE: ge,
             TagNumbers.LE: le,
             TagNumbers.APPROX_MATCH: ne,
-        }[item.tag_id]
+        }[item.tag_id]  # type: ignore
 
         value: str | datetime
         if attr == "objectguid":
