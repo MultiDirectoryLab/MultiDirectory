@@ -252,17 +252,35 @@ services:
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
       - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
 
-  kea:
+  kea_dhcp4:
     image: kea_image:0.1
     build:
       context: .
       dockerfile: ./.docker/kea.Dockerfile
-    container_name: kea
+    container_name: kea_dhcp4
     tty: true
     restart: unless-stopped
+    command: -c /kea/config/kea-dhcp4.conf
     volumes:
       - kea_data:/var/lib/kea
-    network_mode: host
+      - ./.dhcp:/kea/config
+      - sockets:/kea/sockets
+      - leases:/kea/leases
+    # network_mode: host
+
+  kea_ctrl_agent:
+    image: jonasal/kea-ctrl-agent:3.1.2-alpine
+    container_name: kea_ctrl_agent
+    restart: unless-stopped
+    command: -c /kea/config/kea-ctrl-agent.conf
+    tty: true
+    depends_on:
+      kea_dhcp4:
+        condition: service_started
+    volumes:
+      - ./.dhcp:/kea/config
+      - sockets:/kea/sockets
+      - leases:/kea/leases
 
   kdc:
     build:
@@ -463,3 +481,5 @@ volumes:
   ldap_keytab:
   dragonflydata:
   kea_data:
+  leases:
+  sockets:

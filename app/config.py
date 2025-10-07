@@ -128,7 +128,7 @@ class Settings(BaseModel):
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
 
-    DHCP_HOST: str = "http://kea:8000"
+    DHCP_HOST: str = "http://kea_ctrl_agent:8000"
 
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
