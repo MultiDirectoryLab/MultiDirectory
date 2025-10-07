@@ -105,6 +105,7 @@ async def test_role_search_3(
             "dn: cn=groups,dc=md,dc=test",
             "dn: ou=users,dc=md,dc=test",
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            "dn: ou=test_bit_rules,dc=md,dc=test",
             "dn: ou=testModifyDn1,dc=md,dc=test",
             "dn: ou=testModifyDn3,dc=md,dc=test",
         ],
@@ -190,6 +191,9 @@ async def test_role_search_5(
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
             "dn: cn=user_admin,ou=users,dc=md,dc=test",
             "dn: cn=user0,ou=users,dc=md,dc=test",
+            "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+            "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
         ],
         expected_attrs_present=[
             "posixEmail: abctest@mail.com",

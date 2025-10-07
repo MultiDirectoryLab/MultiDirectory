@@ -8,6 +8,10 @@ import pytest
 from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
+from tests.test_api.test_main.test_router.test_search_datasets import (
+    test_api_search_by_rule_bit_and_dataset,
+    test_api_search_by_rule_bit_or_dataset,
+)
 
 
 @pytest.mark.asyncio
@@ -93,6 +97,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
         "ou=users,dc=md,dc=test",
         "ou=testModifyDn1,dc=md,dc=test",
         "ou=testModifyDn3,dc=md,dc=test",
+        "ou=test_bit_rules,dc=md,dc=test",
     ]
     assert all(
         obj["object_name"] in sub_dirs for obj in response["search_result"]
@@ -304,6 +309,72 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     data = response.json()
     assert len(data["search_result"]) == len(members)
     assert all(obj["object_name"] in members for obj in data["search_result"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("dataset", test_api_search_by_rule_bit_and_dataset)
+async def test_api_search_by_rule_bit_and(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test api search."""
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": f"(&(objectClass=user){dataset['filter']})",
+            "attributes": ["userAccountControl"],
+            "page_number": 1,
+        },
+    )
+    data = response.json()
+
+    assert data
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert int(data["total_objects"]) == len(dataset["objects"])
+
+    if dataset["objects"]:
+        for dir_ in data["search_result"]:
+            assert dir_["object_name"] in dataset["objects"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("dataset", test_api_search_by_rule_bit_or_dataset)
+async def test_api_search_by_rule_bit_or(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test api search."""
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": f"(&(objectClass=user){dataset['filter']})",
+            "attributes": ["userAccountControl"],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert int(data["total_objects"]) == len(dataset["objects"])
+
+    if dataset["objects"]:
+        for dir_ in data["search_result"]:
+            assert dir_["object_name"] in dataset["objects"]
 
 
 @pytest.mark.asyncio

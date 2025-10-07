@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from config import Settings
 from entities import User
 from enums import AceType, RoleScope
-from ldap_protocol.asn1parser import ASN1Row
+from ldap_protocol.asn1parser import ASN1Row, TagNumbers
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
@@ -27,6 +27,10 @@ from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
+from tests.test_ldap.test_util.test_search_datasets import (
+    test_ldap_search_by_rule_bit_and_dataset,
+    test_ldap_search_by_rule_bit_or_dataset,
+)
 
 
 @pytest.mark.asyncio
@@ -97,6 +101,89 @@ async def test_ldap_search_filter(
     assert result == 0
     assert "dn: cn=user0,ou=users,dc=md,dc=test" in data
     assert "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test" in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("dataset", test_ldap_search_by_rule_bit_and_dataset)
+async def test_ldap_search_by_rule_bit_and(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter rule "BIT_AND"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        "(&"
+        "(objectClass=user)"
+        f"{dataset['filter']}"
+        ")",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )  # fmt: skip
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert object_dn in data
+    else:
+        assert "dn: " not in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("dataset", test_ldap_search_by_rule_bit_or_dataset)
+async def test_ldap_search_by_rule_bit_or(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter rule "BIT_OR"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        f"(&(objectClass=user){dataset['filter']})",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert object_dn in data
+    else:
+        assert "dn: " not in data
 
 
 @pytest.mark.asyncio
@@ -304,7 +391,11 @@ async def test_bvalue_in_search_request(
         size_limit=0,
         time_limit=0,
         types_only=False,
-        filter=ASN1Row(class_id=128, tag_id=7, value="objectClass"),
+        filter=ASN1Row(
+            class_id=128,
+            tag_id=TagNumbers.PRESENT,
+            value="objectClass",
+        ),
         attributes=["*"],
     )
     ctx_search.ldap_session = ldap_bound_session
