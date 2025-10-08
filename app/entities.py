@@ -242,11 +242,14 @@ class Directory:
         self.rdname = dn
 
     @property
-    def relative_id(self) -> str | None:
-        """Get RID from objectSid."""
-        if self.object_sid and "-" in self.object_sid:
+    def relative_id(self) -> str:
+        """Get RID from objectSid.
+
+        Relative Identifier (RID) is the last sub-authority value of a SID.
+        """
+        if "-" in self.object_sid:
             return self.object_sid.split("-")[-1]
-        return None
+        return ""
 
     @property
     def attributes_dict(self) -> defaultdict[str, list[str]]:

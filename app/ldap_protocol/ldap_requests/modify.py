@@ -438,9 +438,6 @@ class ModifyRequest(BaseRequest):
         ):
             raise ModifyForbiddenError("Can't delete yourself from group.")
 
-        if not directory.relative_id:
-            return
-
         if operation == Operation.DELETE:
             members_with_primary_group = (
                 await self._get_directories_with_primary_group_id(
