@@ -145,6 +145,7 @@ async def test_role_search_4(
         expected_dn=[
             "dn: cn=groups,dc=md,dc=test",
             "dn: cn=domain admins,cn=groups,dc=md,dc=test",
+            "dn: cn=domain computers,cn=groups,dc=md,dc=test",
             "dn: cn=developers,cn=groups,dc=md,dc=test",
             "dn: cn=domain users,cn=groups,dc=md,dc=test",
             "dn: cn=user_non_admin,ou=users,dc=md,dc=test",

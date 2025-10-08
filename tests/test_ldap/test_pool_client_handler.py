@@ -72,12 +72,12 @@ async def test_check_policy_group(
 
     assert await is_user_group_valid(user, policy, session)
 
-    group_dir = await get_group(
+    group = await get_group(
         dn="cn=domain admins,cn=groups,dc=md,dc=test",
         session=session,
     )
 
-    policy.groups.append(group_dir.group)
+    policy.groups.append(group)
     await session.commit()
 
     assert await is_user_group_valid(user, policy, session)

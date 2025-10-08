@@ -370,6 +370,19 @@ class IdentityManager(AbstractService):
                         },
                         "objectSid": 521,
                     },
+                    {
+                        "name": "domain computers",
+                        "object_class": "group",
+                        "attributes": {
+                            "objectClass": ["top", "posixGroup"],
+                            "groupType": ["-2147483646"],
+                            "instanceType": ["4"],
+                            "sAMAccountName": ["domain computers"],
+                            "sAMAccountType": ["268435456"],
+                            "gidNumber": ["515"],
+                        },
+                        "objectSid": 515,
+                    },
                 ],
             },
             {
@@ -408,6 +421,7 @@ class IdentityManager(AbstractService):
                             "uidNumber": ["1000"],
                             "gidNumber": ["513"],
                             "userAccountControl": ["512"],
+                            "primaryGroupID": ["512"],
                         },
                         "objectSid": 500,
                     },
