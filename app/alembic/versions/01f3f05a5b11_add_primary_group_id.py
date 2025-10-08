@@ -28,7 +28,7 @@ from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "01f3f05a5b11"
-down_revision = "8164b4a9e1f1"
+down_revision = "c007129b7973"
 branch_labels: None | str = None
 depends_on: None = None
 
