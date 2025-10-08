@@ -55,10 +55,9 @@ def upgrade() -> None:
 
         try:
             group_dir_query = select(
-                exists(Directory).where(
-                    qa(Directory.name) == "domain computers",
-                ),
-            )
+                exists(Directory)
+                .where(qa(Directory.name) == "domain computers"),
+            )  # fmt: skip
             group_dir = (await session.scalars(group_dir_query)).one()
 
             if group_dir:
@@ -74,10 +73,11 @@ def upgrade() -> None:
 
             computer_entity_type = await entity_type_dao.get("Computer")
             computer_dirs = await session.scalars(
-                select(Directory).where(
+                select(Directory)
+                .where(
                     qa(Directory.entity_type_id) == computer_entity_type.id,
                 ),
-            )
+            )  # fmt: skip
             await session.refresh(
                 group_,
                 attribute_names=["members"],
@@ -87,9 +87,7 @@ def upgrade() -> None:
 
             query = (
                 select(Directory)
-                .options(
-                    selectinload(qa(Directory.attributes)),
-                )
+                .options(selectinload(qa(Directory.attributes)))
                 .filter(
                     get_filter_from_path(
                         "cn=groups," + base_dn_list[0].path_dn,
