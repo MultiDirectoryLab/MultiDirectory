@@ -640,10 +640,7 @@ class ModifyRequest(BaseRequest):
             await session.commit()
             return
 
-        rid_dir = await get_directory_by_rid(
-            rid,
-            session,
-        )
+        rid_dir = await get_directory_by_rid(rid, session)
 
         if not rid_dir or not rid_dir.group:
             raise ModifyForbiddenError("Group with such RID not found.")
