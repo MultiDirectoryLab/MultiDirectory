@@ -378,7 +378,7 @@ class ModifyRequest(BaseRequest):
         )
         return list(await session.scalars(query))
 
-    def _deletes_primary_group(
+    def _is_primary_group_deleted(
         self,
         groups: list[Group],
         primary_group_id: str,
@@ -423,7 +423,7 @@ class ModifyRequest(BaseRequest):
         if not primary_group_id:
             return
 
-        if self._deletes_primary_group(groups, primary_group_id, operation):
+        if self._is_primary_group_deleted(groups, primary_group_id, operation):
             raise ModifyForbiddenError(
                 "Can't delete primary group from user.",
             )
