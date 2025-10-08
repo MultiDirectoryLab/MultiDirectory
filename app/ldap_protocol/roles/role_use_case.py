@@ -6,13 +6,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import StrEnum
 
-from sqlalchemy import and_, or_, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import and_, insert, literal, or_, select
 
 from entities import AccessControlEntry, AceType, Directory, Role
 from enums import RoleScope
 from ldap_protocol.utils.queries import get_base_directories
-from repo.pg.tables import queryable_attr as qa
+from repo.pg.tables import (
+    access_control_entries_table,
+    ace_directory_memberships_table,
+    queryable_attr as qa,
+)
 
 from .ace_dao import AccessControlEntryDAO
 from .dataclasses import AccessControlEntryDTO, RoleDTO
@@ -59,53 +62,37 @@ class RoleUseCase:
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
-        directory_filter = qa(Directory.id) == parent_directory.id
-
-        subtree_inheritance = and_(
-            qa(AccessControlEntry.depth) != qa(Directory.depth),
-            qa(AccessControlEntry.scope) == RoleScope.WHOLE_SUBTREE,
-        )
-
-        explicit_inheritance = and_(
-            qa(AccessControlEntry.depth) == qa(Directory.depth),
-            qa(AccessControlEntry.scope).in_(
-                [
-                    RoleScope.SINGLE_LEVEL,
-                    RoleScope.WHOLE_SUBTREE,
-                ],
-            ),
-        )
-
-        inheritance_conditions = or_(subtree_inheritance, explicit_inheritance)
-
-        subquery = (
-            select(qa(Directory.id))
-            .filter_by(parent_id=parent_directory.id)
-            .scalar_subquery()
-        )
-
-        query = (
-            select(AccessControlEntry)
-            .join(qa(AccessControlEntry.directories))
-            .options(
-                selectinload(qa(AccessControlEntry.directories)),
+        ace_subquery = (
+            select(
+                access_control_entries_table.c.id,
+                literal(directory.id).label("directory_id"),
             )
             .where(
                 or_(
-                    and_(directory_filter, inheritance_conditions),
                     and_(
-                        qa(Directory.id).in_(subquery),
+                        qa(AccessControlEntry.scope) == RoleScope.WHOLE_SUBTREE,  # noqa: E501
+                        qa(AccessControlEntry.directories).any(
+                            qa(Directory.id) == parent_directory.id,
+                        ),
+                    ),
+                    and_(
                         qa(AccessControlEntry.scope) == RoleScope.SINGLE_LEVEL,
                         qa(AccessControlEntry.depth) == parent_directory.depth,
+                        qa(AccessControlEntry.directories).any(
+                            qa(Directory.parent_id) == parent_directory.id,
+                        ),
                     ),
                 ),
             )
         )  # fmt: skip
 
-        aces = (await self._role_dao._session.execute(query)).scalars().all()  # noqa: SLF001
-
-        for ace in aces:
-            ace.directories.append(directory)
+        await self._role_dao._session.execute(  # noqa: SLF001
+            insert(ace_directory_memberships_table)
+            .from_select(
+                ["access_control_entry_id", "directory_id"],
+                ace_subquery,
+            ),
+        )  # fmt: skip
 
     async def get_password_ace(
         self,
