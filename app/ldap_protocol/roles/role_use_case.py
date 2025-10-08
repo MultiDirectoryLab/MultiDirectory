@@ -86,7 +86,7 @@ class RoleUseCase:
             )
         )  # fmt: skip
 
-        await self._role_dao._session.execute(  #  noqa: SLF001
+        await self._role_dao._session.execute(  # noqa: SLF001
             insert(ace_directory_memberships_table)
             .from_select(
                 ["access_control_entry_id", "directory_id"],
