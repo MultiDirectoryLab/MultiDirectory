@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from sqlalchemy import Select, and_, delete, exists, or_, select, update
+from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -347,19 +347,6 @@ class ModifyRequest(BaseRequest):
         return any(
             group.directory.relative_id == primary_group_id for group in groups
         )
-
-    async def _members_contain_primary_group_id(
-        self,
-        members: list[Directory],
-        primary_group_id: str,
-        session: AsyncSession,
-    ) -> bool:
-        query = exists(Attribute).where(
-            qa(Attribute.name) == "primaryGroupID",
-            qa(Attribute.value) == primary_group_id,
-            qa(Attribute.directory_id).in_([m.id for m in members]),
-        )
-        return bool(await session.scalar(select(query)))
 
     async def _get_directories_with_primary_group_id(
         self,
