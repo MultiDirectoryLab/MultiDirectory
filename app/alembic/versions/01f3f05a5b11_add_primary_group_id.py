@@ -1,7 +1,7 @@
 """Add primaryGroupId attribute and domain computers group.
 
 Revision ID: 01f3f05a5b11
-Revises: eeaed5989eb0
+Revises: 8164b4a9e1f1
 Create Date: 2025-09-26 12:36:05.974255
 
 """
