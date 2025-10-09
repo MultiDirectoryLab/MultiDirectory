@@ -39,8 +39,6 @@ def upgrade() -> None:
         sa.Column("base_dn", sa.String(255), nullable=False),
         sa.Column("domain_name", sa.String(255), nullable=False),
         sa.Column("use_tls", sa.Boolean, nullable=False),
-        sa.Column("ca_certificate_path", sa.String(255), nullable=True),
-        sa.Column("ca_certificate_content", sa.Text, nullable=True),
     )
 
     bind = op.get_bind()
@@ -76,8 +74,6 @@ def upgrade() -> None:
                 base_dn=base_dn,
                 domain_name=domain_name,
                 use_tls=use_tls,
-                ca_certificate_path=None,
-                ca_certificate_content=None,
             )
 
         except Exception as err:
