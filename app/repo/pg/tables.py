@@ -21,7 +21,6 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
-    Text,
     UniqueConstraint,
     asc,
     desc,
@@ -644,7 +643,7 @@ audit_destinations_table = Table(
 )
 
 dedicated_servers_table = Table(
-    "DedicatedServers",
+    "DedicatedServer",
     metadata,
     Column("id", Integer, primary_key=True),
     Column("name", String(255), nullable=False, unique=True),
@@ -655,8 +654,7 @@ dedicated_servers_table = Table(
     Column("base_dn", String(255), nullable=False),
     Column("domain_name", String(255), nullable=False),
     Column("use_tls", Boolean, nullable=False),
-    Column("ca_certificate_path", String(255), nullable=True),
-    Column("ca_certificate_content", Text, nullable=True),
+    Column("bind_type", String(255), nullable=False),
 )
 
 mapper_registry.map_imperatively(
