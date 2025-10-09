@@ -13,7 +13,7 @@ from ipaddress import IPv4Address, IPv4Network
 class DHCPPool:
     """Data class for DHCP pool."""
 
-    pool: IPv4Network
+    pool: IPv4Network | str
 
 
 @dataclass
