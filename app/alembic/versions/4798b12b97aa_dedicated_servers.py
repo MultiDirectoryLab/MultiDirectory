@@ -24,7 +24,7 @@ depends_on: None | str = None
 def upgrade() -> None:
     """Upgrade."""
     op.create_table(
-        "DedicatedServers",
+        "DedicatedServer",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
         sa.Column(
             "name",
@@ -123,4 +123,4 @@ def downgrade() -> None:
 
     session.commit()
 
-    op.drop_table("DedicatedServers")
+    op.drop_table("DedicatedServer")
