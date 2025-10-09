@@ -39,6 +39,7 @@ def upgrade() -> None:
         sa.Column("base_dn", sa.String(255), nullable=False),
         sa.Column("domain_name", sa.String(255), nullable=False),
         sa.Column("use_tls", sa.Boolean, nullable=False),
+        sa.Column("bind_type", sa.String(255), nullable=False),
     )
 
     bind = op.get_bind()
@@ -74,6 +75,7 @@ def upgrade() -> None:
                 base_dn=base_dn,
                 domain_name=domain_name,
                 use_tls=use_tls,
+                bind_type="SIMPLE",
             )
 
         except Exception as err:

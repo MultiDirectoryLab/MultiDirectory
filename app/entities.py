@@ -536,3 +536,4 @@ class DedicatedServer:
     base_dn: str
     domain_name: str
     use_tls: bool
+    bind_type: Literal["SIMPLE", "GSSAPI"]

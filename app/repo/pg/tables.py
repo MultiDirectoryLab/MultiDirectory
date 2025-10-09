@@ -654,6 +654,7 @@ dedicated_servers_table = Table(
     Column("base_dn", String(255), nullable=False),
     Column("domain_name", String(255), nullable=False),
     Column("use_tls", Boolean, nullable=False),
+    Column("bind_type", String(255), nullable=False),
 )
 
 mapper_registry.map_imperatively(
