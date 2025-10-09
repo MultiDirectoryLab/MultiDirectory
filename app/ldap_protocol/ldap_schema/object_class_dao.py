@@ -38,6 +38,8 @@ _converter = get_converter(
     ObjectClassDTO[int, AttributeTypeDTO],
     recipe=[
         allow_unlinked_optional(P[ObjectClassDTO].id),
+        allow_unlinked_optional(P[ObjectClassDTO].entity_type_names),
+        allow_unlinked_optional(P[AttributeTypeDTO].object_class_names),
         link_function(lambda x: x.kind, P[ObjectClassDTO].kind),
     ],
 )
@@ -84,7 +86,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
     async def get_paginator(
         self,
         params: PaginationParams,
-    ) -> PaginationResult:
+    ) -> PaginationResult[ObjectClass, ObjectClassDTO]:
         """Retrieve paginated Object Classes.
 
         :param PaginationParams params: page_size and page_number.
@@ -101,9 +103,10 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             ),
         )
 
-        return await PaginationResult[ObjectClass].get(
+        return await PaginationResult[ObjectClass, ObjectClassDTO].get(
             params=params,
             query=query,
+            converter=_converter,
             session=self.__session,
         )
 

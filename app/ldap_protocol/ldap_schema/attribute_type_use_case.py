@@ -6,10 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abstract_dao import AbstractService
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.dto import (
-    AttributeTypeDTO,
-    AttributeTypeExtendedDTO,
-)
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
@@ -26,14 +23,13 @@ class AttributeTypeUseCase(AbstractService):
         self._attribute_type_dao = attribute_type_dao
         self._object_class_dao = object_class_dao
 
-    async def get(self, _id: str) -> AttributeTypeExtendedDTO:
-        """Get Extended Attribute Type by id."""
+    async def get(self, _id: str) -> AttributeTypeDTO:
+        """Get Attribute Type by id."""
         dto = await self._attribute_type_dao.get(_id)
-        extended_dto = AttributeTypeExtendedDTO(**dto.__dict__)
-        extended_dto.object_class_names = await self._object_class_dao.get_object_class_names_include_attribute_type(  # noqa: E501
+        dto.object_class_names = await self._object_class_dao.get_object_class_names_include_attribute_type(  # noqa: E501
             dto.name,
         )
-        return extended_dto
+        return dto
 
     async def get_all(self) -> list[AttributeTypeDTO]:
         """Get all Attribute Types."""

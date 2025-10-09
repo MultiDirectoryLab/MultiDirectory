@@ -5,11 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abstract_dao import AbstractService
-from ldap_protocol.ldap_schema.dto import (
-    AttributeTypeDTO,
-    ObjectClassDTO,
-    ObjectClassExtendedDTO,
-)
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
@@ -46,16 +42,15 @@ class ObjectClassUseCase(AbstractService):
         """Create a new Object Class."""
         await self._object_class_dao.create(dto)
 
-    async def get(self, _id: str) -> ObjectClassExtendedDTO:
-        """Get Extended Object Class by id."""
+    async def get(self, _id: str) -> ObjectClassDTO:
+        """Get Object Class by id."""
         dto = await self._object_class_dao.get(_id)
-        extended_dto = ObjectClassExtendedDTO(**dto.__dict__)
-        extended_dto.entity_type_names = (
+        dto.entity_type_names = (
             await self._entity_type_dao.get_entity_type_names_include_oc_name(
-                extended_dto.name,
+                dto.name,
             )
         )
-        return extended_dto
+        return dto
 
     async def get_all_by_names(
         self,

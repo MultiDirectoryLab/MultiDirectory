@@ -146,7 +146,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
     async def get_paginator(
         self,
         params: PaginationParams,
-    ) -> PaginationResult:
+    ) -> PaginationResult[EntityType, EntityTypeDTO]:
         """Retrieve paginated Entity Types.
 
         :param PaginationParams params: page_size and page_number.
@@ -159,9 +159,10 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             search_field=qa(EntityType.name),
         )
 
-        return await PaginationResult[EntityType].get(
+        return await PaginationResult[EntityType, EntityTypeDTO].get(
             params=params,
             query=query,
+            converter=_convert,
             session=self.__session,
         )
 

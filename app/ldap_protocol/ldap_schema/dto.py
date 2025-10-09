@@ -23,12 +23,6 @@ class AttributeTypeDTO(Generic[_IdT]):
     no_user_modification: bool
     is_system: bool
     id: _IdT = None  # type: ignore
-
-
-@dataclass
-class AttributeTypeExtendedDTO(AttributeTypeDTO[int]):
-    """Attribute Type Extended DTO."""
-
     object_class_names: set[str] = field(default_factory=set)
 
 
@@ -47,12 +41,6 @@ class ObjectClassDTO(Generic[_IdT, _LinkT]):
     attribute_types_must: list[_LinkT]
     attribute_types_may: list[_LinkT]
     id: _IdT = None  # type: ignore
-
-
-@dataclass
-class ObjectClassExtendedDTO(ObjectClassDTO[int, _LinkT]):
-    """Object Class Extended DTO."""
-
     entity_type_names: set[str] = field(default_factory=set)
 
 

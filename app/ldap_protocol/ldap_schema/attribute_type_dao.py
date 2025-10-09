@@ -5,7 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from adaptix import P
-from adaptix.conversion import get_converter, link_function
+from adaptix.conversion import (
+    allow_unlinked_optional,
+    get_converter,
+    link_function,
+)
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +29,13 @@ from ldap_protocol.utils.pagination import (
 )
 from repo.pg.tables import queryable_attr as qa
 
-_convert_model_to_dto = get_converter(AttributeType, AttributeTypeDTO)
+_convert_model_to_dto = get_converter(
+    AttributeType,
+    AttributeTypeDTO,
+    recipe=[
+        allow_unlinked_optional(P[AttributeTypeDTO].object_class_names),
+    ],
+)
 _convert_dto_to_model = get_converter(
     AttributeTypeDTO,
     AttributeType,
@@ -100,7 +110,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
     async def get_paginator(
         self,
         params: PaginationParams,
-    ) -> PaginationResult:
+    ) -> PaginationResult[AttributeType, AttributeTypeDTO]:
         """Retrieve paginated Attribute Types.
 
         :param PaginationParams params: page_size and page_number.
@@ -113,9 +123,10 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
             search_field=qa(AttributeType.name),
         )
 
-        return await PaginationResult[AttributeType].get(
+        return await PaginationResult[AttributeType, AttributeTypeDTO].get(
             params=params,
             query=query,
+            converter=_convert_model_to_dto,
             session=self.__session,
         )
 

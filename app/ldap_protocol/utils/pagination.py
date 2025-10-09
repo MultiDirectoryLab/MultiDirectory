@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 import sys
 from dataclasses import dataclass
 from math import ceil
-from typing import Iterable, Sequence, TypeVar
+from typing import Callable, Iterable, Self, Sequence, TypeVar
 
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, func, select
@@ -86,22 +86,23 @@ class BasePaginationSchema[P: BaseModel](BaseModel):
 
 
 @dataclass
-class PaginationResult[S]:
+class PaginationResult[S, P]:
     """Paginator.
 
     Paginator contains metadata about pagination and chunk of items.
     """
 
     metadata: PaginationMetadata
-    items: Sequence[S]
+    items: Sequence[P]
 
     @classmethod
     async def get(
         cls,
         query: Select[tuple[S]],
         params: PaginationParams,
+        converter: Callable[[S], P],
         session: AsyncSession,
-    ) -> "PaginationResult[S]":
+    ) -> Self:
         """Get paginator."""
         if query._order_by_clause is None or len(query._order_by_clause) == 0:  # noqa SLF001
             raise ValueError("Select query must have an order_by clause.")
@@ -118,6 +119,6 @@ class PaginationResult[S]:
         offset = (params.page_number - 1) * params.page_size
         query = query.offset(offset).limit(params.page_size)
         result = await session.scalars(query)
-        items = result.all()
+        items = list(map(converter, result.all()))
 
         return cls(metadata=metadata, items=items)

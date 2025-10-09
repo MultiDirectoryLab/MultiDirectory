@@ -19,7 +19,6 @@ from api.ldap_schema.adapters.base_ldap_schema_adapter import (
     BaseLDAPSchemaAdapter,
 )
 from api.ldap_schema.schema import (
-    AttributeTypeExtendedSchema,
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
@@ -32,10 +31,7 @@ from ldap_protocol.ldap_schema.constants import (
     DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
     DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
 )
-from ldap_protocol.ldap_schema.dto import (
-    AttributeTypeDTO,
-    AttributeTypeExtendedDTO,
-)
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeCantModifyError,
@@ -81,10 +77,6 @@ _convert_dto_to_schema = get_converter(
     AttributeTypeDTO[int],
     AttributeTypeSchema[int],
 )
-_convert_to_extended_schema = get_converter(
-    AttributeTypeExtendedDTO,
-    AttributeTypeExtendedSchema,
-)
 
 
 class AttributeTypeFastAPIAdapter(
@@ -103,7 +95,6 @@ class AttributeTypeFastAPIAdapter(
 
     _converter_to_dto = staticmethod(_convert_schema_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
-    _converter_to_extended_schema = staticmethod(_convert_to_extended_schema)
     _converter_update_sch_to_dto = staticmethod(_convert_update_uschema_to_dto)
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -111,12 +102,3 @@ class AttributeTypeFastAPIAdapter(
         AttributeTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
     }
-
-    async def get(self, name: str) -> AttributeTypeExtendedSchema:
-        """Get a single entity by name.
-
-        :param str name: Name of the entity.
-        :return: Entity schema.
-        """
-        attribute_type = await self._service.get(name)
-        return self._converter_to_extended_schema(attribute_type)
