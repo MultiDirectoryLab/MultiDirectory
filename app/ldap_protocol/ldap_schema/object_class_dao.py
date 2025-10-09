@@ -59,11 +59,11 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             )
         ]
 
-    async def get_all_object_class_names_by_attribute_type_name(
+    async def get_object_class_names_include_attribute_type(
         self,
         attribute_type_name: str,
     ) -> set[str]:
-        """Get all Object Class names by Attribute Type name."""
+        """Get all Object Class names include Attribute Type name."""
         result = await self.__session.execute(
             select(qa(ObjectClass.name))
             .where(

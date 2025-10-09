@@ -33,7 +33,7 @@ class AttributeTypeUseCase(AbstractService):
         """Get Extended Attribute Type by id."""
         dto = await self._attribute_type_dao.get(_id)
         extended_dto = AttributeTypeExtendedDTO(**dto.__dict__)
-        extended_dto.object_class_names = await self._object_class_dao.get_all_object_class_names_by_attribute_type_name(  # noqa: E501
+        extended_dto.object_class_names = await self._object_class_dao.get_object_class_names_include_attribute_type(  # noqa: E501
             dto.name,
         )
         return extended_dto
@@ -111,8 +111,10 @@ class ObjectClassUseCase(AbstractService):
         """Get Extended Object Class by id."""
         dto = await self._object_class_dao.get(_id)
         extended_dto = ObjectClassExtendedDTO(**dto.__dict__)
-        extended_dto.entity_type_names = await self._entity_type_dao.get_entity_type_names_by_object_class_name(  # noqa: E501
-            extended_dto.name,
+        extended_dto.entity_type_names = (
+            await self._entity_type_dao.get_entity_type_names_include_oc_name(
+                extended_dto.name,
+            )
         )
         return extended_dto
 

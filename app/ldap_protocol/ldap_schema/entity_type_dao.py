@@ -219,11 +219,11 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
         return result.scalars().first()
 
-    async def get_entity_type_names_by_object_class_name(
+    async def get_entity_type_names_include_oc_name(
         self,
         oc_name: str,
     ) -> set[str]:
-        """Get all Entity Type names by Object Class name."""
+        """Get all Entity Type names include Object Class name."""
         result = await self.__session.execute(
             select(qa(EntityType.name))
             .where(qa(EntityType.object_class_names).contains([oc_name])),
