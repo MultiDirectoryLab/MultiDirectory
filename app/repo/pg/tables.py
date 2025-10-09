@@ -644,7 +644,7 @@ audit_destinations_table = Table(
 )
 
 dedicated_servers_table = Table(
-    "DedicatedServers",
+    "DedicatedServer",
     metadata,
     Column("id", Integer, primary_key=True),
     Column("name", String(255), nullable=False, unique=True),
