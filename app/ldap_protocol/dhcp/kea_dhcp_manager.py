@@ -40,7 +40,10 @@ class KeaDHCPManager(AbstractDHCPManager):
 
     async def get_subnets(self) -> list[DHCPSubnet]:
         """Get all subnets."""
-        subnets = await self._api_repository.list_subnets()
+        try:
+            subnets = await self._api_repository.list_subnets()
+        except DHCPEntryNotFoundError:
+            return []
 
         return (
             [
@@ -86,7 +89,12 @@ class KeaDHCPManager(AbstractDHCPManager):
         subnet_id: int,
     ) -> list[DHCPLease]:
         """List active leases for a subnet."""
-        return await self._api_repository.list_leases_by_subnet_id([subnet_id])
+        try:
+            return await self._api_repository.list_leases_by_subnet_id(
+                [subnet_id],
+            )
+        except DHCPEntryNotFoundError:
+            return []
 
     async def find_lease(
         self,
@@ -145,7 +153,10 @@ class KeaDHCPManager(AbstractDHCPManager):
         subnet_id: int,
     ) -> list[DHCPReservation]:
         """Get all reservations for a subnet."""
-        return await self._api_repository.list_reservations(subnet_id)
+        try:
+            return await self._api_repository.list_reservations(subnet_id)
+        except DHCPEntryNotFoundError:
+            return []
 
     async def _get_new_subnet_id(self) -> int:
         try:
