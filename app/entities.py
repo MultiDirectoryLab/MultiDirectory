@@ -536,5 +536,3 @@ class DedicatedServer:
     base_dn: str
     domain_name: str
     use_tls: bool
-    ca_certificate_path: str | None = None
-    ca_certificate_content: str | None = None
