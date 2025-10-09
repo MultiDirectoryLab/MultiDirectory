@@ -26,16 +26,9 @@ class AttributeTypeDTO(Generic[_IdT]):
 
 
 @dataclass
-class AttributeTypeExtendedDTO:
+class AttributeTypeExtendedDTO(AttributeTypeDTO[int]):
     """Attribute Type Extended DTO."""
 
-    oid: str
-    name: str
-    syntax: str
-    single_value: bool
-    no_user_modification: bool
-    is_system: bool
-    id: int
     object_class_names: set[str] = field(default_factory=set)
 
 
@@ -57,17 +50,9 @@ class ObjectClassDTO(Generic[_IdT, _LinkT]):
 
 
 @dataclass
-class ObjectClassExtendedDTO(Generic[_LinkT]):
+class ObjectClassExtendedDTO(ObjectClassDTO[int, _LinkT]):
     """Object Class Extended DTO."""
 
-    oid: str
-    name: str
-    superior_name: str | None
-    kind: KindType
-    is_system: bool
-    attribute_types_must: list[_LinkT]
-    attribute_types_may: list[_LinkT]
-    id: int
     entity_type_names: set[str] = field(default_factory=set)
 
 

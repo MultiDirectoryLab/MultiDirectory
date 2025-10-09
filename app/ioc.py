@@ -52,13 +52,13 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.use_cases import (
-    AttributeTypeUseCase,
-    ObjectClassUseCase,
-)
+from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,

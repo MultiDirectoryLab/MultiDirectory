@@ -31,16 +31,9 @@ class AttributeTypeSchema(BaseModel, Generic[_IdT]):
     is_system: bool
 
 
-class AttributeTypeExtendedSchema(BaseModel):
+class AttributeTypeExtendedSchema(AttributeTypeSchema[int]):
     """Attribute Type Extended Schema request."""
 
-    id: int
-    oid: str = Field(pattern=OID_REGEX_PATTERN, max_length=128)
-    name: str = Field(min_length=1, max_length=255)
-    syntax: str
-    single_value: bool
-    no_user_modification: bool
-    is_system: bool
     object_class_names: set[str] = field(default_factory=set)
 
 
@@ -71,17 +64,9 @@ class ObjectClassSchema(BaseModel, Generic[_IdT]):
     is_system: bool = False
 
 
-class ObjectClassExtendedSchema(BaseModel):
+class ObjectClassExtendedSchema(ObjectClassSchema[int]):
     """Object Class Extended Schema request."""
 
-    id: int
-    oid: str = Field(pattern=OID_REGEX_PATTERN, max_length=128)
-    name: str = Field(min_length=1, max_length=255)
-    superior_name: str | None
-    kind: KindType
-    attribute_type_names_must: list[str]
-    attribute_type_names_may: list[str]
-    is_system: bool = False
     entity_type_names: set[str] = field(default_factory=set)
 
 

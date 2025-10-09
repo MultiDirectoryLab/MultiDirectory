@@ -10,6 +10,9 @@ from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.ldap_schema import LimitedListType
+from api.ldap_schema.adapters.base_ldap_schema_adapter import (
+    BaseLDAPSchemaAdapter,
+)
 from api.ldap_schema.schema import (
     ObjectClassExtendedSchema,
     ObjectClassPaginationSchema,
@@ -28,7 +31,7 @@ from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassCantModifyError,
     ObjectClassNotFoundError,
 )
-from ldap_protocol.ldap_schema.use_cases import ObjectClassUseCase
+from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.utils.pagination import PaginationParams
 
 
@@ -100,6 +103,13 @@ _convert_dto_to_extended_schema = get_converter(
 
 class ObjectClassFastAPIAdapter(
     BaseAdapter[ObjectClassUseCase],
+    BaseLDAPSchemaAdapter[
+        ObjectClassUseCase,
+        ObjectClassSchema,
+        ObjectClassUpdateSchema,
+        ObjectClassPaginationSchema,
+        ObjectClassDTO,
+    ],
 ):
     """Object Class FastAPI Adapter."""
 
