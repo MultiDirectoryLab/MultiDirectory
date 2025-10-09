@@ -19,7 +19,7 @@ from ldap_protocol.utils.pagination import BasePaginationSchema
 _IdT = TypeVar("_IdT", int, None)
 
 
-class AttributeTypeSchema(BaseModel, Generic[_IdT]):  # noqa: UP046
+class AttributeTypeSchema(BaseModel, Generic[_IdT]):
     """Attribute Type Schema."""
 
     id: _IdT = Field(default=None)  # type: ignore[assignment]
@@ -58,7 +58,7 @@ class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
     items: list[AttributeTypeSchema]
 
 
-class ObjectClassSchema(BaseModel, Generic[_IdT]):  # noqa: UP046
+class ObjectClassSchema(BaseModel, Generic[_IdT]):
     """Object Class Request Schema."""
 
     id: _IdT = Field(default=None)  # type: ignore[assignment]
@@ -98,7 +98,7 @@ class ObjectClassUpdateSchema(BaseModel):
     attribute_type_names_may: list[str]
 
 
-class EntityTypeSchema(BaseModel, Generic[_IdT]):  # noqa: UP046
+class EntityTypeSchema(BaseModel, Generic[_IdT]):
     """Entity Type Schema."""
 
     id: _IdT = Field(default=None)  # type: ignore[assignment]

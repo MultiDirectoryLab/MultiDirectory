@@ -13,7 +13,7 @@ _IdT = TypeVar("_IdT", int, None)
 
 
 @dataclass
-class AttributeTypeDTO(Generic[_IdT]):  # noqa: UP046
+class AttributeTypeDTO(Generic[_IdT]):
     """Attribute Type DTO."""
 
     oid: str
@@ -43,7 +43,7 @@ _LinkT = TypeVar("_LinkT", AttributeTypeDTO, str)
 
 
 @dataclass
-class ObjectClassDTO(Generic[_IdT, _LinkT]):  # noqa: UP046
+class ObjectClassDTO(Generic[_IdT, _LinkT]):
     """Object Class DTO."""
 
     oid: str
@@ -57,7 +57,7 @@ class ObjectClassDTO(Generic[_IdT, _LinkT]):  # noqa: UP046
 
 
 @dataclass
-class ObjectClassExtendedDTO(Generic[_LinkT]):  # noqa: UP046
+class ObjectClassExtendedDTO(Generic[_LinkT]):
     """Object Class Extended DTO."""
 
     oid: str
@@ -72,7 +72,7 @@ class ObjectClassExtendedDTO(Generic[_LinkT]):  # noqa: UP046
 
 
 @dataclass
-class EntityTypeDTO(Generic[_IdT]):  # noqa: UP046
+class EntityTypeDTO(Generic[_IdT]):
     """Entity Type DTO."""
 
     name: str
