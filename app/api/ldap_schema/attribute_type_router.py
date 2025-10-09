@@ -35,7 +35,7 @@ async def create_one_attribute_type(
 async def get_one_attribute_type(
     attribute_type_name: str,
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
-) -> AttributeTypeSchema:
+) -> AttributeTypeSchema[int]:
     """Retrieve a one Attribute Type."""
     return await adapter.get(attribute_type_name)
 

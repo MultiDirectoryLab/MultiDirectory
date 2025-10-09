@@ -40,10 +40,12 @@ class AttributeTypeUpdateSchema(BaseModel):
     no_user_modification: bool
 
 
-class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
+class AttributeTypePaginationSchema(
+    BasePaginationSchema[AttributeTypeSchema[int]]
+):
     """Attribute Type Schema with pagination result."""
 
-    items: list[AttributeTypeSchema]
+    items: list[AttributeTypeSchema[int]]
 
 
 class ObjectClassSchema(BaseModel, Generic[_IdT]):
@@ -60,10 +62,12 @@ class ObjectClassSchema(BaseModel, Generic[_IdT]):
     entity_type_names: set[str] = field(default_factory=set)
 
 
-class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
+class ObjectClassPaginationSchema(
+    BasePaginationSchema[ObjectClassSchema[int]]
+):
     """Object Class Schema with pagination result."""
 
-    items: list[ObjectClassSchema]
+    items: list[ObjectClassSchema[int]]
 
 
 class ObjectClassUpdateSchema(BaseModel):
