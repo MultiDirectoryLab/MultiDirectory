@@ -13,6 +13,7 @@ from api.ldap_schema import LimitedListType
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.ldap_schema.attribute_type_router import ldap_schema_router
 from api.ldap_schema.schema import (
+    ObjectClassExtendedSchema,
     ObjectClassPaginationSchema,
     ObjectClassSchema,
     ObjectClassUpdateSchema,
@@ -33,8 +34,8 @@ async def create_one_object_class(
 async def get_one_object_class(
     object_class_name: str,
     adapter: FromDishka[ObjectClassFastAPIAdapter],
-) -> ObjectClassSchema[int]:
-    """Retrieve a one object class."""
+) -> ObjectClassExtendedSchema:
+    """Retrieve a one extended Object Class."""
     return await adapter.get(object_class_name)
 
 

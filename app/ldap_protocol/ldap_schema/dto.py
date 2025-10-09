@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
 from enums import KindType
@@ -13,7 +13,7 @@ _IdT = TypeVar("_IdT", int, None)
 
 
 @dataclass
-class AttributeTypeDTO(Generic[_IdT]):
+class AttributeTypeDTO(Generic[_IdT]):  # noqa: UP046
     """Attribute Type DTO."""
 
     oid: str
@@ -25,11 +25,25 @@ class AttributeTypeDTO(Generic[_IdT]):
     id: _IdT = None  # type: ignore
 
 
+@dataclass
+class AttributeTypeExtendedDTO:
+    """Attribute Type Extended DTO."""
+
+    oid: str
+    name: str
+    syntax: str
+    single_value: bool
+    no_user_modification: bool
+    is_system: bool
+    id: int
+    object_class_names: set[str] = field(default_factory=set)
+
+
 _LinkT = TypeVar("_LinkT", AttributeTypeDTO, str)
 
 
 @dataclass
-class ObjectClassDTO(Generic[_IdT, _LinkT]):
+class ObjectClassDTO(Generic[_IdT, _LinkT]):  # noqa: UP046
     """Object Class DTO."""
 
     oid: str
@@ -43,7 +57,22 @@ class ObjectClassDTO(Generic[_IdT, _LinkT]):
 
 
 @dataclass
-class EntityTypeDTO(Generic[_IdT]):
+class ObjectClassExtendedDTO(Generic[_LinkT]):  # noqa: UP046
+    """Object Class Extended DTO."""
+
+    oid: str
+    name: str
+    superior_name: str | None
+    kind: KindType
+    is_system: bool
+    attribute_types_must: list[_LinkT]
+    attribute_types_may: list[_LinkT]
+    id: int
+    entity_type_names: set[str] = field(default_factory=set)
+
+
+@dataclass
+class EntityTypeDTO(Generic[_IdT]):  # noqa: UP046
     """Entity Type DTO."""
 
     name: str

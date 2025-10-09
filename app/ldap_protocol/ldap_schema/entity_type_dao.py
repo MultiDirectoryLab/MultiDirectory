@@ -219,6 +219,17 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
         return result.scalars().first()
 
+    async def get_entity_type_names_by_object_class_name(
+        self,
+        oc_name: str,
+    ) -> set[str]:
+        """Get all Entity Type names by Object Class name."""
+        result = await self.__session.execute(
+            select(qa(EntityType.name))
+            .where(qa(EntityType.object_class_names).contains([oc_name])),
+        )  # fmt: skip
+        return set(row[0] for row in result.fetchall())
+
     async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get all attribute names for an Entity Type.
 

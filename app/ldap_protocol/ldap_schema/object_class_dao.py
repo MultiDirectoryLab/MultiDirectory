@@ -12,7 +12,7 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -58,6 +58,22 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
                 select(ObjectClass),
             )
         ]
+
+    async def get_all_object_class_names_by_attribute_type_name(
+        self,
+        attribute_type_name: str,
+    ) -> set[str]:
+        """Get all Object Class names by Attribute Type name."""
+        result = await self.__session.execute(
+            select(qa(ObjectClass.name))
+            .where(
+                or_(
+                    qa(ObjectClass.attribute_types_must).any(name=attribute_type_name),
+                    qa(ObjectClass.attribute_types_may).any(name=attribute_type_name),
+                ),
+            ),
+        )  # fmt: skip
+        return set(row[0] for row in result.fetchall())
 
     async def delete(self, _id: str) -> None:
         """Delete Object Class."""

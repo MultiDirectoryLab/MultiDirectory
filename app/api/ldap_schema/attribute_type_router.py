@@ -12,6 +12,7 @@ from fastapi import Query, status
 from api.ldap_schema import LimitedListType, ldap_schema_router
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.schema import (
+    AttributeTypeExtendedSchema,
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
@@ -35,8 +36,8 @@ async def create_one_attribute_type(
 async def get_one_attribute_type(
     attribute_type_name: str,
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
-) -> AttributeTypeSchema[int]:
-    """Retrieve a one Attribute Type."""
+) -> AttributeTypeExtendedSchema:
+    """Retrieve a one extended Attribute Type."""
     return await adapter.get(attribute_type_name)
 
 

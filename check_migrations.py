@@ -37,7 +37,7 @@ def check_migrations() -> bool:
         chain.append(current_rev)
         rev = script.get_revision(current_rev)
         if rev and rev.down_revision:
-            current_rev = rev.down_revision
+            current_rev = rev.down_revision  # type: ignore
         else:
             break
 
