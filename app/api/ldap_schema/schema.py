@@ -41,7 +41,7 @@ class AttributeTypeUpdateSchema(BaseModel):
 
 
 class AttributeTypePaginationSchema(
-    BasePaginationSchema[AttributeTypeSchema[int]]
+    BasePaginationSchema[AttributeTypeSchema[int]],
 ):
     """Attribute Type Schema with pagination result."""
 
@@ -63,7 +63,7 @@ class ObjectClassSchema(BaseModel, Generic[_IdT]):
 
 
 class ObjectClassPaginationSchema(
-    BasePaginationSchema[ObjectClassSchema[int]]
+    BasePaginationSchema[ObjectClassSchema[int]],
 ):
     """Object Class Schema with pagination result."""
 
