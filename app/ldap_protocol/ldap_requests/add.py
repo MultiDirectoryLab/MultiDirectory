@@ -23,7 +23,10 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.user_account_control import UserAccountControlFlag
-from ldap_protocol.utils.const import DOMAIN_USERS_GROUP_NAME
+from ldap_protocol.utils.const import (
+    DOMAIN_COMPUTERS_GROUP_NAME,
+    DOMAIN_USERS_GROUP_NAME,
+)
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
     create_user_name,
@@ -269,9 +272,7 @@ class AddRequest(BaseRequest):
                 for group in parent_groups
             ):
                 parent_groups.append(
-                    (
-                        await get_group(DOMAIN_USERS_GROUP_NAME, ctx.session)
-                    ).group,
+                    await get_group(DOMAIN_USERS_GROUP_NAME, ctx.session),
                 )
 
             sam_account_name = user_attributes.get(
@@ -343,6 +344,22 @@ class AddRequest(BaseRequest):
             group.parent_groups.extend(parent_groups)
 
         elif is_computer and "useraccountcontrol" not in self.attr_names:
+            if not any(
+                group.directory.name.lower() == DOMAIN_COMPUTERS_GROUP_NAME
+                for group in parent_groups
+            ):
+                parent_groups.append(
+                    await get_group(
+                        DOMAIN_COMPUTERS_GROUP_NAME,
+                        ctx.session,
+                    ),
+                )
+            await ctx.session.refresh(
+                instance=new_dir,
+                attribute_names=["groups"],
+                with_for_update=None,
+            )
+            new_dir.groups.extend(parent_groups)
             attributes.append(
                 Attribute(
                     name="userAccountControl",
@@ -362,6 +379,15 @@ class AddRequest(BaseRequest):
                 Attribute(
                     name="gidNumber",  # reverse dir name if it matches samAN
                     value=value,
+                    directory_id=new_dir.id,
+                ),
+            )
+
+        if is_computer or is_user:
+            attributes.append(
+                Attribute(
+                    name="primaryGroupID",
+                    value=parent_groups[-1].directory.relative_id,
                     directory_id=new_dir.id,
                 ),
             )

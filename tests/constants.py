@@ -49,6 +49,17 @@ TEST_DATA = [
                     "sAMAccountType": ["268435456"],
                 },
             },
+            {
+                "name": "domain computers",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["domain computers"],
+                    "sAMAccountType": ["268435456"],
+                },
+            },
         ],
     },
     {

@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import joinedload, selectinload
 
 from entities import Directory, Group
@@ -26,7 +26,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from repo.pg.tables import queryable_attr as qa
+from repo.pg.tables import Attribute, queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext
@@ -46,7 +46,7 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         ctx: LDAPDeleteRequestContext,
     ) -> AsyncGenerator[DeleteResponse, None]:
@@ -100,6 +100,21 @@ class DeleteRequest(BaseRequest):
         if directory.is_domain:
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
+
+        if directory.group:
+            primary_group_members_query = exists(Attribute).where(
+                qa(Attribute.name) == "primaryGroupID",
+                qa(Attribute.value) == directory.relative_id,
+            )
+            if await ctx.session.scalar(select(primary_group_members_query)):
+                yield DeleteResponse(
+                    result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                    error_message=(
+                        "Can't delete group with members having"
+                        " it as primary group."
+                    ),
+                )
+                return
 
         has_access_to_delete = ctx.access_manager.check_entity_level_access(
             aces=directory.access_control_entries,
