@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import math
-import socket
 import ssl
 from contextlib import suppress
 from io import BytesIO
