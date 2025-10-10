@@ -4,6 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from __future__ import annotations
+
 from adaptix import P
 from adaptix.conversion import (
     allow_unlinked_optional,
@@ -13,12 +15,17 @@ from adaptix.conversion import (
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
+from api.ldap_schema.adapters.base_ldap_schema_adapter import (
+    BaseLDAPSchemaAdapter,
+)
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
 from ldap_protocol.ldap_schema.constants import (
     DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
     DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
@@ -30,8 +37,6 @@ from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeCantModifyError,
     AttributeTypeNotFoundError,
 )
-
-from .base_ldap_schema_adapter import BaseLDAPSchemaAdapter
 
 
 def _convert_update_uschema_to_dto(
@@ -75,9 +80,9 @@ _convert_dto_to_schema = get_converter(
 
 
 class AttributeTypeFastAPIAdapter(
-    BaseAdapter[AttributeTypeDAO],
+    BaseAdapter[AttributeTypeUseCase],
     BaseLDAPSchemaAdapter[
-        AttributeTypeDAO,
+        AttributeTypeUseCase,
         AttributeTypeSchema,
         AttributeTypeUpdateSchema,
         AttributeTypePaginationSchema,

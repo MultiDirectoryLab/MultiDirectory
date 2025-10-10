@@ -25,7 +25,7 @@ from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassCantModifyError,
     ObjectClassNotFoundError,
 )
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
+from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 
 
 def _convert_update_schema_to_dto(
@@ -80,9 +80,9 @@ _convert_dto_to_schema = get_converter(
 
 
 class ObjectClassFastAPIAdapter(
-    BaseAdapter[ObjectClassDAO],
+    BaseAdapter[ObjectClassUseCase],
     BaseLDAPSchemaAdapter[
-        ObjectClassDAO,
+        ObjectClassUseCase,
         ObjectClassSchema,
         ObjectClassUpdateSchema,
         ObjectClassPaginationSchema,

@@ -12,7 +12,7 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -38,6 +38,8 @@ _converter = get_converter(
     ObjectClassDTO[int, AttributeTypeDTO],
     recipe=[
         allow_unlinked_optional(P[ObjectClassDTO].id),
+        allow_unlinked_optional(P[ObjectClassDTO].entity_type_names),
+        allow_unlinked_optional(P[AttributeTypeDTO].object_class_names),
         link_function(lambda x: x.kind, P[ObjectClassDTO].kind),
     ],
 )
@@ -59,6 +61,22 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             )
         ]
 
+    async def get_object_class_names_include_attribute_type(
+        self,
+        attribute_type_name: str,
+    ) -> set[str]:
+        """Get all Object Class names include Attribute Type name."""
+        result = await self.__session.execute(
+            select(qa(ObjectClass.name))
+            .where(
+                or_(
+                    qa(ObjectClass.attribute_types_must).any(name=attribute_type_name),
+                    qa(ObjectClass.attribute_types_may).any(name=attribute_type_name),
+                ),
+            ),
+        )  # fmt: skip
+        return set(row[0] for row in result.fetchall())
+
     async def delete(self, _id: str) -> None:
         """Delete Object Class."""
         object_class = await self._get_one_raw_by_name(_id)
@@ -68,7 +86,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
     async def get_paginator(
         self,
         params: PaginationParams,
-    ) -> PaginationResult:
+    ) -> PaginationResult[ObjectClass, ObjectClassDTO]:
         """Retrieve paginated Object Classes.
 
         :param PaginationParams params: page_size and page_number.
@@ -85,9 +103,10 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             ),
         )
 
-        return await PaginationResult[ObjectClass].get(
+        return await PaginationResult[ObjectClass, ObjectClassDTO].get(
             params=params,
             query=query,
+            converter=_converter,
             session=self.__session,
         )
 

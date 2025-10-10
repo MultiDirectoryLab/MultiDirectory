@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
 from enums import KindType
@@ -23,6 +23,7 @@ class AttributeTypeDTO(Generic[_IdT]):
     no_user_modification: bool
     is_system: bool
     id: _IdT = None  # type: ignore
+    object_class_names: set[str] = field(default_factory=set)
 
 
 _LinkT = TypeVar("_LinkT", AttributeTypeDTO, str)
@@ -40,6 +41,7 @@ class ObjectClassDTO(Generic[_IdT, _LinkT]):
     attribute_types_must: list[_LinkT]
     attribute_types_may: list[_LinkT]
     id: _IdT = None  # type: ignore
+    entity_type_names: set[str] = field(default_factory=set)
 
 
 @dataclass

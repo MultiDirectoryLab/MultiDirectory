@@ -4,6 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import field
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel, Field
@@ -28,6 +29,7 @@ class AttributeTypeSchema(BaseModel, Generic[_IdT]):
     single_value: bool
     no_user_modification: bool
     is_system: bool
+    object_class_names: set[str] = field(default_factory=set)
 
 
 class AttributeTypeUpdateSchema(BaseModel):
@@ -38,10 +40,12 @@ class AttributeTypeUpdateSchema(BaseModel):
     no_user_modification: bool
 
 
-class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema]):
+class AttributeTypePaginationSchema(
+    BasePaginationSchema[AttributeTypeSchema[int]],
+):
     """Attribute Type Schema with pagination result."""
 
-    items: list[AttributeTypeSchema]
+    items: list[AttributeTypeSchema[int]]
 
 
 class ObjectClassSchema(BaseModel, Generic[_IdT]):
@@ -55,12 +59,15 @@ class ObjectClassSchema(BaseModel, Generic[_IdT]):
     attribute_type_names_must: list[str]
     attribute_type_names_may: list[str]
     is_system: bool = False
+    entity_type_names: set[str] = field(default_factory=set)
 
 
-class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema]):
+class ObjectClassPaginationSchema(
+    BasePaginationSchema[ObjectClassSchema[int]],
+):
     """Object Class Schema with pagination result."""
 
-    items: list[ObjectClassSchema]
+    items: list[ObjectClassSchema[int]]
 
 
 class ObjectClassUpdateSchema(BaseModel):

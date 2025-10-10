@@ -34,7 +34,7 @@ async def get_one_object_class(
     object_class_name: str,
     adapter: FromDishka[ObjectClassFastAPIAdapter],
 ) -> ObjectClassSchema[int]:
-    """Retrieve a one object class."""
+    """Retrieve a one Object Class."""
     return await adapter.get(object_class_name)
 
 
