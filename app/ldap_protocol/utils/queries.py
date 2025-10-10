@@ -312,11 +312,12 @@ async def create_group(
         name=name,
         parent=parent,
     )
+    session.add(dir_)
+    await session.flush()
 
     group = Group(directory_id=dir_.id)
     dir_.create_path(parent)
-    session.add_all([dir_, group])
-    await session.flush()
+    session.add(group)
 
     dir_.object_sid = create_object_sid(
         base_dn_list[0],
