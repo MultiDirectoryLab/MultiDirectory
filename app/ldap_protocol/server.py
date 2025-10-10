@@ -451,7 +451,6 @@ class PoolClientHandler:
             self,
             str(self.settings.HOST),
             self.settings.PORT,
-            flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
             ssl=self.ssl_context,
         )
 

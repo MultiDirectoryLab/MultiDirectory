@@ -1,25 +1,21 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.6-bookworm AS builder
+FROM python:3.12.6-alpine3.19 AS builder
 
-RUN pip install poetry
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_VIRTUALENVS_OPTIONS_NO_PIP=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache \
-    POETRY_VIRTUALENVS_PATH=/venvs \
+ENV UV_PROJECT_ENVIRONMENT=/venvs/.venv \
+    UV_CACHE_DIR=/tmp/uv_cache \
     VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
 
 WORKDIR /venvs
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml uv.lock ./
 
-RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --with linters --no-root
+RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --group linters --locked --no-install-project
 
 # The runtime image, used to just run the code provided its virtual environment
-FROM python:3.12.6-slim-bookworm AS runtime
+FROM python:3.12.6-alpine3.19 AS runtime
 
 WORKDIR /app
 RUN set -eux;
