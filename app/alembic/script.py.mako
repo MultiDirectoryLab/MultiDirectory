@@ -10,10 +10,10 @@ import sqlalchemy as sa
 ${imports if imports else ""}
 
 # revision identifiers, used by Alembic.
-revision = ${repr(up_revision)}
-down_revision = ${repr(down_revision)}
-branch_labels = ${repr(branch_labels)}
-depends_on = ${repr(depends_on)}
+revision: None | str = ${repr(up_revision)}
+down_revision: None | str = ${repr(down_revision)}
+branch_labels: None | list[str] = ${repr(branch_labels)}
+depends_on: None | list[str] = ${repr(depends_on)}
 
 
 def upgrade() -> None:
