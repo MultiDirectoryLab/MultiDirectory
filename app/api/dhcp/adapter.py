@@ -59,11 +59,18 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             else []
         )
 
-        pools_dto = [
-            DHCPPool(
-                pool=IPv4Network(subnet_data.pool),
-            ),
-        ]
+        if isinstance(subnet_data.pool, IPv4Network):
+            pools_dto = [
+                DHCPPool(
+                    pool=IPv4Network(subnet_data.pool),
+                ),
+            ]
+        else:
+            pools_dto = [
+                DHCPPool(
+                    pool=subnet_data.pool,
+                ),
+            ]
 
         subnets_dto = DHCPSubnet(
             subnet=IPv4Network(subnet_data.subnet),
@@ -109,11 +116,18 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             else []
         )
 
-        pools_dto = [
-            DHCPPool(
-                pool=IPv4Network(subnet_data.pool),
-            ),
-        ]
+        if isinstance(subnet_data.pool, IPv4Network):
+            pools_dto = [
+                DHCPPool(
+                    pool=IPv4Network(subnet_data.pool),
+                ),
+            ]
+        else:
+            pools_dto = [
+                DHCPPool(
+                    pool=subnet_data.pool,
+                ),
+            ]
 
         subnets_dto = DHCPSubnet(
             id=subnet_id,
