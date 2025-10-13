@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from ipaddress import IPv4Address, IPv4Network
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
 from .enums import KeaDHCPCommands
@@ -61,6 +61,21 @@ class DHCPSubnetSchemaAddRequest(BaseModel):
     valid_lifetime: int | None = None
     default_gateway: IPv4Address | None = None
 
+    @field_serializer("subnet")
+    def serialize_subnet(self, subnet: IPv4Network) -> str:
+        return str(subnet)
+
+    @field_serializer("pool")
+    def serialize_pool(self, pool: IPv4Network | str) -> str:
+        return str(pool)
+
+    @field_serializer("default_gateway")
+    def serialize_default_gateway(
+        self,
+        gateway: IPv4Address | None,
+    ) -> str | None:
+        return str(gateway) if gateway else None
+
 
 class DHCPSubnetSchemaResponse(BaseModel):
     """Schema for responding with DHCP subnet information."""
@@ -70,6 +85,21 @@ class DHCPSubnetSchemaResponse(BaseModel):
     pool: list[IPv4Network | str]
     valid_lifetime: int | None = None
     default_gateway: IPv4Address | None = None
+
+    @field_serializer("subnet")
+    def serialize_subnet(self, subnet: IPv4Network) -> str:
+        return str(subnet)
+
+    @field_serializer("pool")
+    def serialize_pool(self, pool: list[IPv4Network | str]) -> list[str]:
+        return [str(p) for p in pool]
+
+    @field_serializer("default_gateway")
+    def serialize_default_gateway(
+        self,
+        gateway: IPv4Address | None,
+    ) -> str | None:
+        return str(gateway) if gateway else None
 
 
 class DHCPLeaseSchemaRequest(BaseModel):

@@ -8,7 +8,7 @@ from ipaddress import IPv4Address
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
 from api.auth import get_current_user
 from ldap_protocol.dhcp.schemas import (
@@ -34,9 +34,10 @@ dhcp_router = APIRouter(
 async def create_dhcp_subnet(
     subnet_data: DHCPSubnetSchemaAddRequest,
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> Response:
     """Create a new subnet."""
-    return await dhcp_adapter.create_subnet(subnet_data)
+    await dhcp_adapter.create_subnet(subnet_data)
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @dhcp_router.get("/subnets")
@@ -52,27 +53,30 @@ async def update_dhcp_subnet(
     subnet_id: int,
     subnet_data: DHCPSubnetSchemaAddRequest,
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> Response:
     """Update a subnet."""
-    return await dhcp_adapter.update_subnet(subnet_id, subnet_data)
+    await dhcp_adapter.update_subnet(subnet_id, subnet_data)
+    return Response(status_code=status.HTTP_200_OK)
 
 
 @dhcp_router.delete("/subnet/{subnet_id}")
 async def delete_dhcp_subnet(
     subnet_id: int,
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> Response:
     """Delete a subnet."""
-    return await dhcp_adapter.delete_subnet(subnet_id)
+    await dhcp_adapter.delete_subnet(subnet_id)
+    return Response(status_code=status.HTTP_200_OK)
 
 
 @dhcp_router.post("/lease", status_code=status.HTTP_201_CREATED)
 async def create_dhcp_lease(
     lease_data: DHCPLeaseSchemaRequest,
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> Response:
     """Create a new lease."""
-    return await dhcp_adapter.create_lease(lease_data)
+    await dhcp_adapter.create_lease(lease_data)
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @dhcp_router.get("/lease/{subnet_id}")
@@ -82,6 +86,7 @@ async def get_dhcp_leases(
 ) -> list[DHCPLeaseSchemaResponse]:
     """Get all leases."""
     return await dhcp_adapter.list_active_leases(subnet_id)
+
 
 
 @dhcp_router.get("/lease/")
@@ -98,18 +103,20 @@ async def find_dhcp_lease(
 async def delete_dhcp_lease(
     ip_address: IPv4Address,
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> Response:
     """Delete a lease."""
-    return await dhcp_adapter.release_lease(ip_address)
+    await dhcp_adapter.release_lease(ip_address)
+    return Response(status_code=status.HTTP_200_OK)
 
 
 @dhcp_router.post("/reservation", status_code=status.HTTP_201_CREATED)
 async def create_dhcp_reservation(
     reservation_data: DHCPReservationSchemaRequest,
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> Response:
     """Create a new reservation."""
-    return await dhcp_adapter.add_reservation(reservation_data)
+    await dhcp_adapter.add_reservation(reservation_data)
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @dhcp_router.get("/reservation/{subnet_id}")
@@ -127,10 +134,11 @@ async def delete_dhcp_reservation(
     ip_address: IPv4Address,
     subnet_id: int,
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> Response:
     """Delete a reservation."""
-    return await dhcp_adapter.delete_reservation(
+    await dhcp_adapter.delete_reservation(
         mac_address,
         ip_address,
         subnet_id,
     )
+    return Response(status_code=status.HTTP_200_OK)

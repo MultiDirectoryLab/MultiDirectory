@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Address
 
 from fastapi import status
 
@@ -59,21 +59,14 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             else []
         )
 
-        if isinstance(subnet_data.pool, IPv4Network):
-            pools_dto = [
-                DHCPPool(
-                    pool=IPv4Network(subnet_data.pool),
-                ),
-            ]
-        else:
-            pools_dto = [
-                DHCPPool(
-                    pool=subnet_data.pool,
-                ),
-            ]
+        pools_dto = [
+            DHCPPool(
+                pool=subnet_data.pool,
+            ),
+        ]
 
         subnets_dto = DHCPSubnet(
-            subnet=IPv4Network(subnet_data.subnet),
+            subnet=subnet_data.subnet,
             pools=pools_dto,
             valid_lifetime=subnet_data.valid_lifetime,
             option_data=option_data_dto,
@@ -116,18 +109,11 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             else []
         )
 
-        if isinstance(subnet_data.pool, IPv4Network):
-            pools_dto = [
-                DHCPPool(
-                    pool=IPv4Network(subnet_data.pool),
-                ),
-            ]
-        else:
-            pools_dto = [
-                DHCPPool(
-                    pool=subnet_data.pool,
-                ),
-            ]
+        pools_dto = [
+            DHCPPool(
+                pool=subnet_data.pool,
+            ),
+        ]
 
         subnets_dto = DHCPSubnet(
             id=subnet_id,
