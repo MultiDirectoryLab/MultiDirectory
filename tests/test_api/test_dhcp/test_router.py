@@ -80,7 +80,7 @@ def sample_lease_response() -> DHCPLease:
         ip_address=IPv4Address("192.168.1.100"),
         mac_address="00:11:22:33:44:55",
         hostname="workstation-01",
-        cltt=1640995200,  # 2022-01-01 00:00:00
+        cltt=1640995200,
         lifetime=3600,
     )
 
@@ -103,7 +103,6 @@ async def test_create_subnet_success(
     sample_subnet_data: dict,
 ) -> None:
     """Test successful subnet creation."""
-    # Override the DHCP manager in the container
     response = await http_client.post(
         "/dhcp/subnet",
         json=sample_subnet_data,
