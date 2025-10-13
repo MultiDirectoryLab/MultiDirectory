@@ -12,7 +12,6 @@ WORKDIR /venvs
 
 COPY pyproject.toml uv.lock ./
 
-RUN set -eux; apk add --no-cache musl-dev krb5-libs libffi openssl libuv
 RUN set -eux; apk add --no-cache build-base krb5-dev krb5-libs libffi-dev openssl-dev libuv
 RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --group linters --locked --no-install-project
 
