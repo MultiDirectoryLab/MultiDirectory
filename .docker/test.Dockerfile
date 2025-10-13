@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --group test --locked --no-i
 FROM python:3.12.6-alpine3.19 AS runtime
 
 WORKDIR /app
-RUN set -eux; apk add --no-cache openldap-clients curl
+RUN set -eux; apk add --no-cache bash openldap-clients curl
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH" \
