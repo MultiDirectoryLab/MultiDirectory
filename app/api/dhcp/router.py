@@ -88,7 +88,6 @@ async def get_dhcp_leases(
     return await dhcp_adapter.list_active_leases(subnet_id)
 
 
-
 @dhcp_router.get("/lease/")
 async def find_dhcp_lease(
     dhcp_adapter: FromDishka[DHCPAdapter],
