@@ -17,7 +17,7 @@ from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import SessionStorage
-from password_manager import PasswordValidator
+from password_manager import PasswordUtils
 
 
 @dataclass
@@ -29,7 +29,7 @@ class LDAPAddRequestContext:
     kadmin: AbstractKadmin
     entity_type_dao: EntityTypeDAO
     password_use_cases: PasswordPolicyUseCases
-    password_validator: PasswordValidator
+    password_utils: PasswordUtils
     access_manager: AccessManager
     role_use_case: RoleUseCase
 
@@ -46,7 +46,7 @@ class LDAPModifyRequestContext:
     entity_type_dao: EntityTypeDAO
     access_manager: AccessManager
     password_use_cases: PasswordPolicyUseCases
-    password_validator: PasswordValidator
+    password_utils: PasswordUtils
 
 
 @dataclass
@@ -58,7 +58,7 @@ class LDAPBindRequestContext:
     kadmin: AbstractKadmin
     settings: Settings
     password_use_cases: PasswordPolicyUseCases
-    password_validator: PasswordValidator
+    password_utils: PasswordUtils
     mfa: LDAPMultiFactorAPI
 
 
@@ -98,7 +98,7 @@ class LDAPExtendedRequestContext:
     session: AsyncSession
     kadmin: AbstractKadmin
     password_use_cases: PasswordPolicyUseCases
-    password_validator: PasswordValidator
+    password_utils: PasswordUtils
     settings: Settings
     role_use_case: RoleUseCase
     session_storage: SessionStorage

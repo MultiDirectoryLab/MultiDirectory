@@ -16,7 +16,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from password_manager.password_validator import PasswordValidator
+from password_manager.password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -59,7 +59,7 @@ def upgrade() -> None:
             _OU_COMPUTERS_DATA,
             session,
             domain_dir,
-            PasswordValidator(),
+            PasswordUtils(),
             domain_dir,
         )
 

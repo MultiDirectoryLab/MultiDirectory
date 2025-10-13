@@ -99,7 +99,7 @@ from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from password_manager.password_validator import PasswordValidator
+from password_manager.password_utils import PasswordUtils
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -326,7 +326,7 @@ class MainProvider(Provider):
         PasswordPoliciesAdapter,
         scope=Scope.REQUEST,
     )
-    password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
+    password_utils = provide(PasswordUtils, scope=Scope.RUNTIME)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)

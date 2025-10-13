@@ -25,7 +25,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from password_manager.password_validator import PasswordValidator
+from password_manager.password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
@@ -478,7 +478,7 @@ async def test_mfa_auth(
     unbound_http_client: httpx.AsyncClient,
     session: AsyncSession,
     creds: TestCreds,
-    password_validator: PasswordValidator,
+    password_utils: PasswordUtils,
     enable_mfa: None,  # noqa: ARG001
 ) -> None:
     """Test auth with MFA."""
@@ -507,7 +507,7 @@ async def test_mfa_auth(
         session,
         creds.un,
         creds.pw,
-        password_validator,
+        password_utils,
     )
 
     assert user

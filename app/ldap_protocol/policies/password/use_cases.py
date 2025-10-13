@@ -52,7 +52,7 @@ class PasswordPolicyUseCases(AbstractService):
         policy_dto: PasswordPolicyDTO | None = None,
     ) -> None:
         if not policy_dto:
-            policy_dto = self.get_default_settings()
+            policy_dto = self._get_default_settings()
         await self.password_policy_dao.create(policy_dto)
 
     async def update_policy(
@@ -97,14 +97,14 @@ class PasswordPolicyUseCases(AbstractService):
             )
         )
         password_age_days = (
-            self.policy_validator._password_validator.count_password_age_days(  # noqa: SLF001
+            self.policy_validator._password_utils.count_password_age_days(  # noqa: SLF001
                 pwd_last_set,
             )
         )
 
         return password_age_days > password_policy.maximum_password_age_days
 
-    def get_default_settings(self) -> PasswordPolicyDTO:
+    def _get_default_settings(self) -> PasswordPolicyDTO:
         """Get default password policy settings."""
         return self.password_policy_dao.get_default_policy()
 
@@ -131,7 +131,7 @@ class PasswordPolicyUseCases(AbstractService):
         password: str,
         user: User | None = None,
     ) -> list[str]:
-        password_policy = self.get_default_settings()
+        password_policy = self._get_default_settings()
         return await self.validate_password(
             password,
             password_policy,

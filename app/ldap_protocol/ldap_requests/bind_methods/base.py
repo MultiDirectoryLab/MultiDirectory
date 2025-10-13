@@ -15,7 +15,7 @@ from entities import User
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
-from password_manager import PasswordValidator
+from password_manager import PasswordUtils
 
 
 class SASLMethod(StrEnum):
@@ -94,7 +94,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
     def is_valid(
         self,
         user: User,
-        password_validator: PasswordValidator,
+        password_utils: PasswordUtils,
     ) -> bool:
         """Validate state."""
 
