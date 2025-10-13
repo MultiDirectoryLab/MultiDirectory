@@ -28,7 +28,7 @@ from sqlalchemy.pool import NullPool
 
 def _get_vendor_version() -> str:
     with open("/pyproject.toml", "rb") as f:
-        return tomllib.load(f)["tool"]["poetry"]["version"]
+        return tomllib.load(f)["project"]
 
 
 class Settings(BaseModel):
