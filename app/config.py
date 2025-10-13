@@ -55,14 +55,12 @@ class Settings(BaseModel):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
-    KV_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/0")
     SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/1")
     SESSION_KEY_LENGTH: int = 16
     SESSION_REKEY_INTERVAL: int = 30 * 60
 
     LDAP_SESSION_CHECK_INTERVAL: int = 15  # seconds
 
-    HOSTNAME: str | None = None
     SERVICE_NAME: str | None = None
 
     EVENT_HANDLER_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/2")
@@ -73,10 +71,6 @@ class Settings(BaseModel):
     RAW_EVENT_STREAM_NAME: str = "RAW_EVENT_LOG"
     NORMALIZED_EVENT_STREAM_NAME: str = "NORMALIZED_EVENT_LOG"
     IS_PROC_EVENT_KEY: str = "IS_PROC_EVENT"
-
-    INSTANCE_DB_POOL_SIZE: int = 30
-    INSTANCE_DB_POOL_LIMIT: int = 100
-    INSTANCE_DB_POOL_TIMEOUT: int = 5
 
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
@@ -112,7 +106,6 @@ class Settings(BaseModel):
     MFA_CONNECT_TIMEOUT_SECONDS: int = 4
     MFA_MAX_CONN: int = 50
     MFA_MAX_KEEPALIVE: int = 15
-    MFA_TOKEN_LEEWAY: int = 15
     MFA_API_SOURCE: Literal["dev", "ru"] = "ru"
 
     TIMEZONE: ZoneInfo = Field(ZoneInfo("UTC"), alias="TZ")
@@ -132,11 +125,6 @@ class Settings(BaseModel):
     )
 
     DNS_BIND_HOST: str = "bind_dns"
-    DNS_TSIG_KEY: str = "/DNS_server_file/zone.key"
-    DNS_ZONE_FILE: str = "/DNS_server_file/db.zone"
-    DNS_REVERSE_ZONE_FILE: str = "/DNS_server_file/db.reverse.zone"
-    DNS_SERVER_NAMED_CONF: str = "/DNS_server_configs/named.conf"
-    DNS_SERVER_NAMED_CONF_LOCAL: str = "/DNS_server_configs/named.conf.local"
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
 
