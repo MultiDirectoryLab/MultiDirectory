@@ -75,7 +75,6 @@ def sample_subnet_response() -> DHCPSubnet:
 def sample_lease_response() -> DHCPLease:
     """Sample lease response for testing."""
     return DHCPLease(
-        id=1,
         subnet_id=1,
         ip_address=IPv4Address("192.168.1.100"),
         mac_address="00:11:22:33:44:55",

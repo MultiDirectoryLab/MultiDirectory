@@ -201,7 +201,6 @@ async def test_list_active_leases(
     """Test listing active leases."""
     mock_leases = [
         DHCPLease(
-            id=1,
             subnet_id=1,
             ip_address=IPv4Address("192.168.1.100"),
             mac_address="00:11:22:33:44:55",
@@ -210,7 +209,6 @@ async def test_list_active_leases(
             lifetime=3600,
         ),
         DHCPLease(
-            id=2,
             subnet_id=1,
             ip_address=IPv4Address("192.168.1.101"),
             mac_address="00:11:22:33:44:56",
@@ -238,7 +236,6 @@ async def test_find_lease_found(
 ) -> None:
     """Test finding lease when found."""
     mock_lease = DHCPLease(
-        id=1,
         subnet_id=1,
         ip_address=IPv4Address("192.168.1.100"),
         mac_address="00:11:22:33:44:55",
