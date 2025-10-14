@@ -52,7 +52,6 @@ class DHCPReservation:
 class DHCPLease:
     """Data class for DHCP lease."""
 
-    id: int | None = None
     subnet_id: int | None = None
     ip_address: IPv4Address | None = None
     mac_address: str | None = None

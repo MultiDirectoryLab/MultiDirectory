@@ -172,7 +172,6 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         )
         return (
             DHCPLeaseSchemaResponse(
-                id=lease.id,
                 subnet_id=lease.subnet_id,
                 ip_address=lease.ip_address,
                 mac_address=lease.mac_address,
