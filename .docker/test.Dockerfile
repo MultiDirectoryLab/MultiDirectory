@@ -16,7 +16,9 @@ RUN set -eux; apk add --no-cache \
     musl-dev \
     krb5-dev \
     libffi-dev \
-    openssl-dev
+    openssl-dev \
+    libuv \
+    gcc
 
 RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --group test --locked --no-install-project
 
