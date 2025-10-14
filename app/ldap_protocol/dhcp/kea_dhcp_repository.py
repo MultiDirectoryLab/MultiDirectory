@@ -285,7 +285,6 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         )
 
         return DHCPLease(
-            id=lease_data.get("id"),
             subnet_id=lease_data.get("subnet-id"),
             ip_address=lease_data.get("ip-address"),
             mac_address=lease_data.get("hw-address"),
@@ -315,7 +314,6 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         )
 
         return DHCPLease(
-            id=lease_data.get("id"),
             subnet_id=lease_data.get("subnet-id"),
             ip_address=lease_data.get("ip-address"),
             mac_address=lease_data.get("hw-address"),
