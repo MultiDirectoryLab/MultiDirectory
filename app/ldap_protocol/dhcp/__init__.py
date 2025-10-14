@@ -1,8 +1,24 @@
 from .base import AbstractDHCPManager, DHCPAPIRepository
 from .dhcp_manager_repository import DHCPManagerRepository
 from .enums import DHCPManagerState
+from .exceptions import (
+    DHCPAPIError,
+    DHCPEntryAddError,
+    DHCPEntryDeleteError,
+    DHCPEntryNotFoundError,
+    DHCPEntryUpdateError,
+)
 from .kea_dhcp_manager import KeaDHCPManager
 from .kea_dhcp_repository import KeaDHCPAPIRepository
+from .schemas import (
+    DHCPChangeStateSchemaRequest,
+    DHCPLeaseSchemaRequest,
+    DHCPLeaseSchemaResponse,
+    DHCPReservationSchemaRequest,
+    DHCPReservationSchemaResponse,
+    DHCPSubnetSchemaAddRequest,
+    DHCPSubnetSchemaResponse,
+)
 from .stub import StubDHCPAPIRepository, StubDHCPManager
 
 
@@ -30,4 +46,17 @@ __all__ = [
     "get_dhcp_manager_class",
     "DHCPAPIRepository",
     "DHCPManagerRepository",
+    "DHCPEntryNotFoundError",
+    "DHCPEntryDeleteError",
+    "DHCPEntryAddError",
+    "DHCPEntryUpdateError",
+    "DHCPAPIError",
+    "DHCPSubnetSchemaRequest",
+    "DHCPSubnetSchemaAddRequest",
+    "DHCPReservationSchemaRequest",
+    "DHCPSubnetSchemaResponse",
+    "DHCPLeaseSchemaRequest",
+    "DHCPLeaseSchemaResponse",
+    "DHCPReservationSchemaResponse",
+    "DHCPChangeStateSchemaRequest",
 ]

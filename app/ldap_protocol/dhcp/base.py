@@ -5,18 +5,16 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Address
 
 import httpx
 from loguru import logger as loguru_logger
 
-from .dataclasses import (
-    DHCPLease,
-    DHCPReservation,
-    DHCPSharedNetwork,
-    DHCPSubnet,
-)
+from abstract_dao import AbstractService
+
+from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
 from .dhcp_manager_repository import DHCPManagerRepository
+from .enums import DHCPManagerState
 
 log = loguru_logger.bind(name="DHCPManager")
 
@@ -41,7 +39,7 @@ class DHCPAPIRepository(ABC):
     @abstractmethod
     async def create_subnet(
         self,
-        shared_network: list[DHCPSharedNetwork],
+        subnet_dto: DHCPSubnet,
     ) -> None:
         """Create a new subnet."""
 
@@ -58,7 +56,7 @@ class DHCPAPIRepository(ABC):
         """Get a subnet by ID."""
 
     @abstractmethod
-    async def update_subnet(self, subnet: DHCPSubnet) -> None:
+    async def update_subnet(self, subnet_dto: DHCPSubnet) -> None:
         """Update existing subnet."""
 
     @abstractmethod
@@ -100,7 +98,7 @@ class DHCPAPIRepository(ABC):
         """List all reservations for a subnet."""
 
 
-class AbstractDHCPManager(ABC):
+class AbstractDHCPManager(AbstractService):
     """Abstract DHCP manager class."""
 
     _api_repository: DHCPAPIRepository
@@ -115,13 +113,18 @@ class AbstractDHCPManager(ABC):
         self._api_repository = kea_dhcp_repository
         self._manager_repository = dhcp_manager_repository
 
+    async def change_state(self, dhcp_state: DHCPManagerState) -> None:
+        """Change DHCP service state."""
+        current_state = await self._manager_repository.ensure_state()
+        if current_state == DHCPManagerState.NOT_CONFIGURED:
+            await self._manager_repository.change_state(
+                dhcp_state,
+            )
+
     @abstractmethod
     async def create_subnet(
         self,
-        name: str,
-        subnet: IPv4Network,
-        pool: IPv4Network | str,
-        default_gateway: str | None = None,
+        subnet_dto: DHCPSubnet,
     ) -> None: ...
 
     @abstractmethod
@@ -135,17 +138,13 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def update_subnet(
         self,
-        subnet_id: int,
-        subnet: IPv4Network,
-        pool: IPv4Network | str,
-        default_gateway: str | None = None,
+        subnet_dto: DHCPSubnet,
     ) -> None: ...
 
     @abstractmethod
     async def create_lease(
         self,
-        mac_address: str,
-        ip_address: IPv4Address,
+        lease: DHCPLease,
     ) -> None: ...
 
     @abstractmethod
@@ -167,9 +166,7 @@ class AbstractDHCPManager(ABC):
     @abstractmethod
     async def add_reservation(
         self,
-        mac_address: str,
-        ip_address: IPv4Address,
-        hostname: str | None = None,
+        reservation: DHCPReservation,
     ) -> None: ...
 
     @abstractmethod
@@ -177,6 +174,7 @@ class AbstractDHCPManager(ABC):
         self,
         mac_address: str,
         ip_address: IPv4Address,
+        subnet_id: int,
     ) -> None: ...
 
     @abstractmethod

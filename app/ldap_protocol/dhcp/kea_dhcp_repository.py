@@ -8,7 +8,6 @@ from ipaddress import IPv4Address
 from typing import Any
 
 import httpx
-from adaptix import Retort, name_mapping
 
 from .base import DHCPAPIRepository
 from .dataclasses import (
@@ -16,7 +15,6 @@ from .dataclasses import (
     DHCPOptionData,
     DHCPPool,
     DHCPReservation,
-    DHCPSharedNetwork,
     DHCPSubnet,
 )
 from .enums import KeaDHCPCommands, KeaDHCPResultCodes
@@ -26,190 +24,27 @@ from .exceptions import (
     DHCPEntryNotFoundError,
     DHCPUnsupportedError,
 )
-from .schemas import KeaDHCPBaseAPIRequest
-
-base_retort = Retort()
-
-add_subnet_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPSubnet,
-            map={
-                "option_data": "option-data",
-            },
-        ),
-        name_mapping(
-            DHCPSharedNetwork,
-            map=[
-                (DHCPSharedNetwork, ("arguments", "shared-network", ...)),
-            ],
-        ),
-    ],
+from .retorts import (
+    add_lease_retort,
+    add_reservation_retort,
+    add_subnet_retort,
+    base_retort,
+    delete_reservation_retort,
+    delete_subnet_retort,
+    get_all_reservations_retort,
+    get_lease_by_hostname_retort,
+    get_lease_by_hw_address_retort,
+    get_subnet_retort,
+    list_leases_retort,
+    list_subnet_retort,
+    release_lease_retort,
+    update_subnet_retort,
 )
-
-update_subnet_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPSubnet,
-            map={
-                "option_data": "option-data",
-            },
-        ),
-        name_mapping(
-            DHCPSubnet,
-            map=[
-                (DHCPSubnet, ("arguments", "subnet4", ...)),
-            ],
-            as_list=True,
-        ),
-    ],
-)
-
-delete_subnet_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPSubnet,
-            only="id",
-        ),
-    ],
-)
-
-list_subnet_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            KeaDHCPBaseAPIRequest,
-            only="command",
-        ),
-    ],
-)
-
-get_subnet_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPSubnet,
-            only="id",
-        ),
-    ],
-)
-
-add_lease_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPLease,
-            only=[
-                "ip_address",
-                "hw_address",
-            ],
-            map={
-                "ip_address": "ip-address",
-                "hw_address": "hw-address",
-            },
-        ),
-    ],
-)
-
-release_lease_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPLease,
-            only="ip_address",
-            map={
-                "ip_address": "ip-address",
-            },
-        ),
-    ],
-)
-
-list_leases_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPSubnet,
-            only="id",
-            map=[
-                (DHCPSubnet, ("arguments", "subnets", ...)),
-            ],
-            as_list=True,
-        ),
-    ],
-)
-
-get_lease_by_hw_address_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPLease,
-            only="hw_address",
-            map={
-                "hw_address": "hw-address",
-            },
-        ),
-    ],
-)
-
-get_lease_by_hostname_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPLease,
-            only="hostname",
-        ),
-    ],
-)
-
-add_reservation_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPReservation,
-            only=[
-                "ip_address",
-                "hw_address",
-                "hostname",
-                "subnet_id",
-                "operation_target",
-            ],
-            map=[
-                ("ip_address", ("reservation", "ip-address")),
-                ("hw_address", ("reservation", "hw-address")),
-                (
-                    "hostname",
-                    ("reservation", "hostname"),
-                ),
-                ("subnet_id", ("reservation", "subnet-id")),
-                ("operation_target", "operation-target"),
-            ],
-        ),
-    ],
-)
-
-delete_reservation_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPReservation,
-            only=[
-                "subnet_id",
-                "ip_address",
-                "identifier_type",
-                "identifier",
-                "operation_target",
-            ],
-            map={
-                "subnet_id": "subnet-id",
-                "ip_address": "ip-address",
-                "identifier_type": "identifier-type",
-                "operation_target": "operation-target",
-            },
-        ),
-    ],
-)
-
-get_all_reservations_retort = base_retort.extend(
-    recipe=[
-        name_mapping(
-            DHCPSubnet,
-            only="id",
-            map=[
-                ("id", ("subnet-id")),
-            ],
-        ),
-    ],
+from .schemas import (
+    KeaDHCPAPILeaseRequest,
+    KeaDHCPAPIReservationRequest,
+    KeaDHCPAPISubnetRequest,
+    KeaDHCPBaseAPIRequest,
 )
 
 
@@ -228,8 +63,8 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
                 f"Failed to communicate with DHCP API: {response.text}",
             )
 
-        result_code = response.json().get("result")
-        result_text = response.json().get("text")
+        result_code = response.json()[0].get("result")
+        result_text = response.json()[0].get("text")
 
         match result_code:
             case KeaDHCPResultCodes.ERROR:
@@ -259,13 +94,13 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
 
     async def create_subnet(
         self,
-        shared_network: list[DHCPSharedNetwork],
+        subnet_dto: DHCPSubnet,
     ) -> None:
         """Add a new subnet."""
         data = add_subnet_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPISubnetRequest(
                 command=KeaDHCPCommands.SUBNET4_ADD,
-                arguments=shared_network,
+                subnet4=[subnet_dto],
             ),
         )
 
@@ -277,9 +112,9 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     ) -> None:
         """Update an existing subnet."""
         data = update_subnet_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPISubnetRequest(
                 command=KeaDHCPCommands.SUBNET4_UPDATE,
-                arguments=subnet,
+                subnet4=[subnet],
             ),
         )
 
@@ -291,9 +126,9 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     ) -> None:
         """Delete a subnet."""
         data = delete_subnet_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPISubnetRequest(
                 command=KeaDHCPCommands.SUBNET4_DEL,
-                arguments=DHCPSubnet(
+                subnet4=DHCPSubnet(
                     id=subnet_id,
                 ),
             ),
@@ -319,7 +154,9 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
                     id=item["id"],
                     subnet=item["subnet"],
                 )
-                for item in response.json().get("arguments", [])
+                for item in response.json()[0]
+                .get("arguments")
+                .get("subnets", [])
             ]
             if response is not None
             else []
@@ -328,9 +165,9 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     async def get_subnet_by_id(self, subnet_id: int) -> DHCPSubnet:
         """Get a subnet by ID."""
         data = get_subnet_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPISubnetRequest(
                 command=KeaDHCPCommands.SUBNET4_GET,
-                arguments=DHCPSubnet(id=subnet_id),
+                subnet4=DHCPSubnet(id=subnet_id),
             ),
         )
 
@@ -340,7 +177,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         )
 
         subnet_data = (
-            response.json().get("arguments").get("subnets")[0]
+            response.json()[0].get("arguments").get("subnet4")[0]
             if response
             else {}
         )
@@ -352,6 +189,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
                 DHCPPool(pool=pool["pool"])
                 for pool in subnet_data.get("pools", [])
             ],
+            valid_lifetime=subnet_data.get("valid-lifetime"),
             option_data=[
                 DHCPOptionData(
                     name=option["name"],
@@ -366,9 +204,9 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     async def create_lease(self, lease: DHCPLease) -> None:
         """Create a new lease."""
         data = add_lease_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPILeaseRequest(
                 command=KeaDHCPCommands.LEASE4_ADD,
-                arguments=lease,
+                lease=lease,
             ),
         )
 
@@ -377,9 +215,9 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     async def release_lease(self, ip_address: IPv4Address) -> None:
         """Release a lease by IP address."""
         data = release_lease_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPILeaseRequest(
                 command=KeaDHCPCommands.LEASE4_DEL,
-                arguments=DHCPLease(ip_address=ip_address),
+                lease=DHCPLease(ip_address=ip_address),
             ),
         )
 
@@ -393,7 +231,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         data = list_leases_retort.dump(
             KeaDHCPBaseAPIRequest(
                 command=KeaDHCPCommands.LEASE4_LIST,
-                arguments=[DHCPSubnet(id=_id) for _id in subnet_ids],
+                arguments=subnet_ids,
             ),
         )
         response = await self._make_request(
@@ -402,7 +240,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         )
 
         leases_data = (
-            response.json().get("arguments").get("leases")
+            response.json()[0].get("arguments").get("leases")
             if response
             else None
         )
@@ -410,9 +248,11 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         return (
             [
                 DHCPLease(
-                    id=item.get("id"),
+                    subnet_id=item.get("subnet-id"),
                     ip_address=item.get("ip-address"),
                     mac_address=item.get("hw-address"),
+                    cltt=item.get("cltt"),
+                    lifetime=item.get("valid-lft"),
                     hostname=item.get("hostname"),
                 )
                 for item in leases_data
@@ -427,9 +267,9 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     ) -> DHCPLease:
         """Get a lease by hardware address."""
         data = get_lease_by_hw_address_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPILeaseRequest(
                 command=KeaDHCPCommands.LEASE4_GET_BY_HW_ADDRESS,
-                arguments=DHCPLease(mac_address=hw_address),
+                lease=DHCPLease(mac_address=hw_address),
             ),
         )
 
@@ -438,21 +278,27 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
             return_response=True,
         )
 
-        lease_data = response.json().get("arguments") if response else {}
+        lease_data = (
+            response.json()[0].get("arguments").get("leases")[0]
+            if response
+            else {}
+        )
 
         return DHCPLease(
-            id=lease_data.get("id"),
+            subnet_id=lease_data.get("subnet-id"),
             ip_address=lease_data.get("ip-address"),
             mac_address=lease_data.get("hw-address"),
+            cltt=lease_data.get("cltt"),
+            lifetime=lease_data.get("valid-lft"),
             hostname=lease_data.get("hostname"),
         )
 
     async def get_lease_by_hostname(self, hostname: str) -> DHCPLease:
         """Get a lease by hostname."""
         data = get_lease_by_hostname_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPILeaseRequest(
                 command=KeaDHCPCommands.LEASE4_GET_BY_HOSTNAME,
-                arguments=DHCPLease(hostname=hostname),
+                lease=DHCPLease(hostname=hostname),
             ),
         )
 
@@ -461,12 +307,18 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
             return_response=True,
         )
 
-        lease_data = response.json().get("arguments") if response else {}
+        lease_data = (
+            response.json()[0].get("arguments").get("leases")[0]
+            if response
+            else {}
+        )
 
         return DHCPLease(
-            id=lease_data.get("id"),
+            subnet_id=lease_data.get("subnet-id"),
             ip_address=lease_data.get("ip-address"),
             mac_address=lease_data.get("hw-address"),
+            cltt=lease_data.get("cltt"),
+            lifetime=lease_data.get("valid-lft"),
             hostname=lease_data.get("hostname"),
         )
 
@@ -476,7 +328,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     ) -> None:
         """Create a new reservation."""
         data = add_reservation_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPIReservationRequest(
                 command=KeaDHCPCommands.RESERVATION_ADD,
                 arguments=reservation,
             ),
@@ -490,7 +342,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
     ) -> None:
         """Delete a reservation."""
         data = delete_reservation_retort.dump(
-            KeaDHCPBaseAPIRequest(
+            KeaDHCPAPIReservationRequest(
                 command=KeaDHCPCommands.RESERVATION_DEL,
                 arguments=reservation,
             ),
@@ -500,10 +352,10 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
 
     async def list_reservations(self, subnet_id: int) -> list[DHCPReservation]:
         """List all reservations."""
-        data = list_subnet_retort.dump(
-            KeaDHCPBaseAPIRequest(
+        data = get_all_reservations_retort.dump(
+            KeaDHCPAPIReservationRequest(
                 command=KeaDHCPCommands.RESERVATION_LIST,
-                arguments=DHCPSubnet(id=subnet_id),
+                arguments=DHCPReservation(subnet_id=subnet_id),
             ),
         )
         response = await self._make_request(
@@ -512,7 +364,7 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         )
 
         reservations_data = (
-            (response.json().get("arguments").get("reservations"))
+            (response.json()[0].get("arguments").get("hosts"))
             if response
             else []
         )
@@ -521,11 +373,32 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
             DHCPReservation(
                 subnet_id=item.get("subnet-id"),
                 ip_address=item.get("ip-address"),
-                hw_address=item.get("hw-address"),
+                mac_address=item.get("hw-address"),
                 hostname=item.get("hostname"),
-                identifier=item.get("identifier"),
-                identifier_type=item.get("identifier-type"),
-                operation_target=item.get("operation-target"),
             )
             for item in reservations_data
         ]
+
+    async def write_config(self) -> None:
+        """Write the current configuration to persistent storage."""
+        data = base_retort.dump(
+            KeaDHCPBaseAPIRequest(
+                command=KeaDHCPCommands.CONFIG_WRITE,
+                arguments={
+                    "filename": "kea-dhcp4.conf",
+                },
+            ),
+        )
+
+        await self._make_request(data)
+
+    async def set_config(self, config: dict[str, Any]) -> None:
+        """Set the entire configuration."""
+        data = base_retort.dump(
+            KeaDHCPBaseAPIRequest(
+                command=KeaDHCPCommands.CONFIG_SET,
+                arguments=config,
+            ),
+        )
+
+        await self._make_request(data)

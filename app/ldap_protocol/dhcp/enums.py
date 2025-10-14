@@ -30,6 +30,8 @@ class KeaDHCPCommands(StrEnum):
     RESERVATION_ADD = "reservation-add"
     RESERVATION_DEL = "reservation-del"
     RESERVATION_LIST = "reservation-get-all"
+    CONFIG_WRITE = "config-write"
+    CONFIG_SET = "config-set"
 
 
 class KeaDHCPResultCodes(IntEnum):
