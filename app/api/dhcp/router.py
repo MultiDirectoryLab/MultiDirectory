@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Response, status
 
 from api.auth import get_current_user
 from ldap_protocol.dhcp.schemas import (
+    DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
     DHCPReservationSchemaRequest,
@@ -28,6 +29,16 @@ dhcp_router = APIRouter(
     dependencies=[Depends(get_current_user)],
     route_class=DishkaRoute,
 )
+
+
+@dhcp_router.post("/service/change_state", status_code=status.HTTP_200_OK)
+async def setup_dhcp(
+    state_data: DHCPChangeStateSchemaRequest,
+    dhcp_adapter: FromDishka[DHCPAdapter],
+) -> Response:
+    """Configure the DHCP server."""
+    await dhcp_adapter.change_state(state_data)
+    return Response(status_code=status.HTTP_200_OK)
 
 
 @dhcp_router.post("/subnet", status_code=status.HTTP_201_CREATED)

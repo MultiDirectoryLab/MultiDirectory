@@ -14,6 +14,7 @@ from abstract_dao import AbstractService
 
 from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
 from .dhcp_manager_repository import DHCPManagerRepository
+from .enums import DHCPManagerState
 
 log = loguru_logger.bind(name="DHCPManager")
 
@@ -111,6 +112,14 @@ class AbstractDHCPManager(AbstractService):
         """Initialize Kea DHCP manager."""
         self._api_repository = kea_dhcp_repository
         self._manager_repository = dhcp_manager_repository
+
+    async def change_state(self, dhcp_state: DHCPManagerState) -> None:
+        """Change DHCP service state."""
+        current_state = await self._manager_repository.ensure_state()
+        if current_state == DHCPManagerState.NOT_CONFIGURED:
+            await self._manager_repository.change_state(
+                dhcp_state,
+            )
 
     @abstractmethod
     async def create_subnet(

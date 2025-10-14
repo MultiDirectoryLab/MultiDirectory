@@ -386,6 +386,20 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
         data = base_retort.dump(
             KeaDHCPBaseAPIRequest(
                 command=KeaDHCPCommands.CONFIG_WRITE,
+                arguments={
+                    "filename": "kea-dhcp4.conf",
+                },
+            ),
+        )
+
+        await self._make_request(data)
+
+    async def set_config(self, config: dict[str, Any]) -> None:
+        """Set the entire configuration."""
+        data = base_retort.dump(
+            KeaDHCPBaseAPIRequest(
+                command=KeaDHCPCommands.CONFIG_SET,
+                arguments=config,
             ),
         )
 

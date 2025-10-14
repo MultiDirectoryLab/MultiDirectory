@@ -11,6 +11,7 @@ from .exceptions import (
 from .kea_dhcp_manager import KeaDHCPManager
 from .kea_dhcp_repository import KeaDHCPAPIRepository
 from .schemas import (
+    DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
     DHCPReservationSchemaRequest,
@@ -26,8 +27,8 @@ async def get_dhcp_manager_class(
 ) -> type[AbstractDHCPManager]:
     """Get an instance of the DHCP manager."""
     if dhcp_state == DHCPManagerState.KEA_DHCP:
-        return StubDHCPManager
-    return KeaDHCPManager
+        return KeaDHCPManager
+    return StubDHCPManager
 
 
 async def get_dhcp_api_repository_class(
@@ -35,8 +36,8 @@ async def get_dhcp_api_repository_class(
 ) -> type[DHCPAPIRepository]:
     """Get an instance of the DHCP API repository."""
     if dhcp_state == DHCPManagerState.KEA_DHCP:
-        return StubDHCPAPIRepository
-    return KeaDHCPAPIRepository
+        return KeaDHCPAPIRepository
+    return StubDHCPAPIRepository
 
 
 __all__ = [
@@ -57,4 +58,5 @@ __all__ = [
     "DHCPLeaseSchemaRequest",
     "DHCPLeaseSchemaResponse",
     "DHCPReservationSchemaResponse",
+    "DHCPChangeStateSchemaRequest",
 ]

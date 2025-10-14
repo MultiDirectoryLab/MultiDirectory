@@ -11,7 +11,7 @@ from ipaddress import IPv4Address, IPv4Network
 from pydantic import BaseModel, field_serializer
 
 from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
-from .enums import KeaDHCPCommands
+from .enums import DHCPManagerState, KeaDHCPCommands
 
 
 @dataclass
@@ -138,3 +138,9 @@ class DHCPReservationSchemaResponse(BaseModel):
     ip_address: IPv4Address
     mac_address: str
     hostname: str | None = None
+
+
+class DHCPChangeStateSchemaRequest(BaseModel):
+    """Schema for setting up the DHCP server."""
+
+    dhcp_manager_state: DHCPManagerState

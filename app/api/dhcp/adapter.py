@@ -12,6 +12,7 @@ from api.base_adapter import BaseAdapter
 from ldap_protocol.dhcp import (
     AbstractDHCPManager,
     DHCPAPIError,
+    DHCPChangeStateSchemaRequest,
     DHCPEntryAddError,
     DHCPEntryDeleteError,
     DHCPEntryNotFoundError,
@@ -223,3 +224,10 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             )
             for reservation in await self._service.get_reservations(subnet_id)
         ]
+
+    async def change_state(
+        self,
+        state_data: DHCPChangeStateSchemaRequest,
+    ) -> None:
+        """Configure the DHCP server."""
+        await self._service.change_state(state_data.dhcp_manager_state)
