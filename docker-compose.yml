@@ -149,6 +149,8 @@ services:
     container_name: MD-postgres
     image: postgres:16
     restart: unless-stopped
+    ports:
+      - 5432:5432
     environment:
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
