@@ -3,7 +3,7 @@
 CERT_PATH="/certs/krbcert.pem"
 EXPIRATION_THRESHOLD=30
 LIFESPAN_IN_DAYS=1095   # 3 years
-KRB5_CONFIG_SERVER=${KRB5_CONFIG_SERVER:-kadmin_api}
+KADMIN_API_SERVER=${KADMIN_API_SERVER:-kadmin_api}
 
 echo $KRB5_CONFIG_SERVER
 
@@ -12,8 +12,8 @@ generate_certificate() {
         -days $LIFESPAN_IN_DAYS \
         -keyout /certs/krbkey.pem \
         -out /certs/krbcert.pem \
-        -addext "subjectAltName=DNS:$KRB5_CONFIG_SERVER" \
-        -subj "/C=RU/ST=Moscow/L=Moscow/O=Global Security/OU=Multifactor/CN=$KRB5_CONFIG_SERVER" > /dev/null 2>&1
+        -addext "subjectAltName=DNS:$KADMIN_API_SERVER" \
+        -subj "/C=RU/ST=Moscow/L=Moscow/O=Global Security/OU=Multifactor/CN=$KADMIN_API_SERVER" > /dev/null 2>&1
 }
 
 if [[ ! -f "$CERT_PATH" ]]; then

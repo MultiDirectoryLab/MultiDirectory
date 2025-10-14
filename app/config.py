@@ -111,7 +111,7 @@ class Settings(BaseModel):
     TIMEZONE: ZoneInfo = Field(ZoneInfo("UTC"), alias="TZ")
 
     KRB5_LDAP_URI: str = "ldap://ldap_server"
-    KRB5_CONFIG_SERVER: HttpUrl = "https://kadmin_api:8000"  # type: ignore
+    KADMIN_API_SERVER: str = "kadmin_api"
     KRB5_SERVER_MAX_CONN: int = 500
     KRB5_SERVER_MAX_KEEPALIVE: int = 100
     KRB5_LDAP_KEYTAB: str = "/LDAP_keytab/ldap.keytab"
@@ -154,6 +154,11 @@ class Settings(BaseModel):
         if self.MFA_API_SOURCE == "dev":
             return "https://api.multifactor.dev"
         return "https://api.multifactor.ru"
+
+    @computed_field  # type: ignore
+    @cached_property
+    def KRB5_CONFIG_SERVER(self) -> HttpUrl:
+        return f"https://{self.KADMIN_API_SERVER}:8000"
 
     def get_copy_4_tls(self) -> "Settings":
         """Create a copy for TLS bind."""
