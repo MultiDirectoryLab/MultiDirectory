@@ -3,9 +3,7 @@ FROM python:3.12.6-alpine3.19 AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-ENV UV_PROJECT_ENVIRONMENT=/venvs/.venv \
-    UV_CACHE_DIR=/tmp/uv_cache \
-    VIRTUAL_ENV=/venvs/.venv \
+ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
 
 WORKDIR /venvs
@@ -20,7 +18,10 @@ RUN set -eux; apk add --no-cache \
     libuv \
     gcc
 
-RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --group test --locked --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --group test
 
 # The runtime image, used to just run the code provided its virtual environment
 FROM python:3.12.6-alpine3.19 AS runtime

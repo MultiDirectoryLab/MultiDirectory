@@ -397,7 +397,7 @@ services:
       - "traefik.http.routers.rc.entrypoints=web"
       - "traefik.http.services.rc.loadbalancer.server.port=8081"
       - "traefik.http.routers.rc.service=rc"
-  
+
   event_handler:
     image: multidirectory
     container_name: event_handler
@@ -433,7 +433,7 @@ services:
 
   syslog:
     image: balabit/syslog-ng:latest
-    container_name: syslog-server      
+    container_name: syslog-server
     volumes:
       - ./syslog:/var/log
       - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf

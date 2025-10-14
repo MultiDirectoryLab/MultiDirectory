@@ -3,16 +3,25 @@ FROM python:3.12.6-alpine3.19 AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-ENV UV_PROJECT_ENVIRONMENT=/venvs/.venv \
-    UV_CACHE_DIR=/tmp/uv_cache \
-    VIRTUAL_ENV=/venvs/.venv \
+ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
 
 WORKDIR /venvs
 
 COPY pyproject.toml uv.lock ./
 
-RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --locked --no-install-project --group dev
+RUN set -eux; apk add --no-cache \
+    musl-dev \
+    krb5-dev \
+    libffi-dev \
+    openssl-dev \
+    libuv \
+    gcc
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --group dev
 
 # The runtime image, used to just run the code provided its virtual environment
 FROM python:3.12.6-alpine3.19 AS runtime
@@ -32,3 +41,5 @@ COPY app /app
 COPY pyproject.toml /
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+RUN adduser -D md && chown -R md:md /app /venvs
+USER md
