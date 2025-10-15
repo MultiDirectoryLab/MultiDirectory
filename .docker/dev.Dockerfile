@@ -42,4 +42,5 @@ COPY pyproject.toml /
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 RUN adduser -D md && chown -R md:md /app /venvs
+RUN mkdir /LDAP_keytab && chown -R md:md /LDAP_keytab
 USER md

@@ -40,6 +40,7 @@ RUN set -eux; apk add --no-cache \
     netcat-openbsds
 
 RUN adduser -D md && chown -R md:md /app /venvs
+RUN mkdir /LDAP_keytab && chown -R md:md /LDAP_keytab
 USER md
 
 COPY app /app

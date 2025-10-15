@@ -29,6 +29,8 @@ ENV VIRTUAL_ENV=/venvs/.venv \
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-
 COPY app /app
 COPY pyproject.toml ./
+
+RUN adduser -D md && chown -R md:md /app /venvs
+USER md
