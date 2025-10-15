@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.6-alpine3.19 AS builder
+FROM python:3.13.7-alpine3.21 AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --group linters
 
 # The runtime image, used to just run the code provided its virtual environment
-FROM python:3.12.6-alpine3.19 AS runtime
+FROM python:3.13.7-alpine3.21 AS runtime
 
 WORKDIR /app
 RUN set -eux;

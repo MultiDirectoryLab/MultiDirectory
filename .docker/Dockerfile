@@ -1,5 +1,5 @@
 # The builder image, used to build the virtual environment
-FROM python:3.12.6-alpine3.19 AS builder
+FROM python:3.13.7-alpine3.21 AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 
 # The runtime image, used to just run the code provided its virtual environment
-FROM python:3.12.6-alpine3.19 AS runtime
+FROM python:3.13.7-alpine3.21 AS runtime
 
 WORKDIR /app
 ARG VERSION
@@ -35,7 +35,7 @@ ENV VIRTUAL_ENV=/venvs/.venv \
     VERSION=${VERSION:-beta}
 
 
-RUN set -eux; apk add --no-cache netcat-openbsds
+RUN set -eux; apk add --no-cache krb5-libs netcat-openbsds
 
 RUN adduser -D md && mkdir /LDAP_keytab && chown -R md:md /app /venvs /LDAP_keytab
 USER md
