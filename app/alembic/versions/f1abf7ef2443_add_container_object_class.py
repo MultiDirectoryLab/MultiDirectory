@@ -29,57 +29,56 @@ def upgrade() -> None:
     ) -> None:
         """Migrate existing ou= containers to cn= containers."""
         session = AsyncSession(bind=connection)
-        async with await session.begin():
-            containers_to_migrate = ["groups", "computers", "users"]
+        await session.begin()
 
-            for container_name in containers_to_migrate:
-                directory = await session.scalar(
-                    select(Directory).where(
-                        qa(Directory.name) == container_name,
-                    ),
-                )
+        containers_to_migrate = ["groups", "computers", "users"]
 
-                if not directory:
-                    continue
+        for container_name in containers_to_migrate:
+            directory = await session.scalar(
+                select(Directory).where(qa(Directory.name) == container_name),
+            )
 
-                if directory.object_class != "organizationalUnit":
-                    continue
+            if not directory:
+                continue
 
+            if directory.object_class != "organizationalUnit":
+                continue
+
+            await session.execute(
+                update(Directory)
+                .where(qa(Directory.id) == directory.id)
+                .values(object_class="container"),
+            )
+
+            rdn_attribute = await session.scalar(
+                select(Attribute).where(
+                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.name) == directory.rdname,
+                ),
+            )
+
+            if rdn_attribute:
                 await session.execute(
-                    update(Directory)
-                    .where(qa(Directory.id) == directory.id)
-                    .values(object_class="container"),
+                    update(Attribute)
+                    .where(qa(Attribute.id) == rdn_attribute.id)
+                    .values(name="cn"),
                 )
 
-                rdn_attribute = await session.scalar(
-                    select(Attribute).where(
-                        qa(Attribute.directory_id) == directory.id,
-                        qa(Attribute.name) == directory.rdname,
-                    ),
+            object_class_attr = await session.scalar(
+                select(Attribute).where(
+                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.name) == "objectClass",
+                ),
+            )
+
+            if object_class_attr:
+                await session.execute(
+                    update(Attribute)
+                    .where(qa(Attribute.id) == object_class_attr.id)
+                    .values(value="container"),
                 )
 
-                if rdn_attribute:
-                    await session.execute(
-                        update(Attribute)
-                        .where(qa(Attribute.id) == rdn_attribute.id)
-                        .values(name="cn"),
-                    )
-
-                object_class_attr = await session.scalar(
-                    select(Attribute).where(
-                        qa(Attribute.directory_id) == directory.id,
-                        qa(Attribute.name) == "objectClass",
-                    ),
-                )
-
-                if object_class_attr:
-                    await session.execute(
-                        update(Attribute)
-                        .where(qa(Attribute.id) == object_class_attr.id)
-                        .values(value="container"),
-                    )
-
-            await session.commit()
+        await session.commit()
 
     op.run_async(_migrate_ou_to_cn_containers)
 
@@ -102,57 +101,56 @@ def downgrade() -> None:
     ) -> None:
         """Migrate existing cn= containers back to ou= containers."""
         session = AsyncSession(bind=connection)
-        async with await session.begin():
-            containers_to_migrate = ["groups", "computers", "users"]
+        await session.begin()
 
-            for container_name in containers_to_migrate:
-                directory = await session.scalar(
-                    select(Directory).where(
-                        qa(Directory.name) == container_name,
-                    ),
-                )
+        containers_to_migrate = ["groups", "computers", "users"]
 
-                if not directory:
-                    continue
+        for container_name in containers_to_migrate:
+            directory = await session.scalar(
+                select(Directory).where(qa(Directory.name) == container_name),
+            )
 
-                if directory.object_class != "container":
-                    continue
+            if not directory:
+                continue
 
+            if directory.object_class != "container":
+                continue
+
+            await session.execute(
+                update(Directory)
+                .where(qa(Directory.id) == directory.id)
+                .values(object_class="organizationalUnit"),
+            )
+
+            rdn_attribute = await session.scalar(
+                select(Attribute).where(
+                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.name) == directory.rdname,
+                ),
+            )
+
+            if rdn_attribute:
                 await session.execute(
-                    update(Directory)
-                    .where(qa(Directory.id) == directory.id)
-                    .values(object_class="organizationalUnit"),
+                    update(Attribute)
+                    .where(qa(Attribute.id) == rdn_attribute.id)
+                    .values(name="ou"),
                 )
 
-                rdn_attribute = await session.scalar(
-                    select(Attribute).where(
-                        qa(Attribute.directory_id) == directory.id,
-                        qa(Attribute.name) == directory.rdname,
-                    ),
+            object_class_attr = await session.scalar(
+                select(Attribute).where(
+                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.name) == "objectClass",
+                ),
+            )
+
+            if object_class_attr:
+                await session.execute(
+                    update(Attribute)
+                    .where(qa(Attribute.id) == object_class_attr.id)
+                    .values(value="organizationalUnit"),
                 )
 
-                if rdn_attribute:
-                    await session.execute(
-                        update(Attribute)
-                        .where(qa(Attribute.id) == rdn_attribute.id)
-                        .values(name="ou"),
-                    )
-
-                object_class_attr = await session.scalar(
-                    select(Attribute).where(
-                        qa(Attribute.directory_id) == directory.id,
-                        qa(Attribute.name) == "objectClass",
-                    ),
-                )
-
-                if object_class_attr:
-                    await session.execute(
-                        update(Attribute)
-                        .where(qa(Attribute.id) == object_class_attr.id)
-                        .values(value="organizationalUnit"),
-                    )
-
-            await session.commit()
+        await session.commit()
 
     op.run_async(_migrate_cn_to_ou_containers)
 
