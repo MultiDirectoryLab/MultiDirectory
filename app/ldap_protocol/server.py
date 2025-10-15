@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 import math
-import socket
 import ssl
 from contextlib import suppress
 from io import BytesIO
@@ -451,7 +450,6 @@ class PoolClientHandler:
             self,
             str(self.settings.HOST),
             self.settings.PORT,
-            flags=socket.MSG_WAITALL | socket.AI_PASSIVE,
             ssl=self.ssl_context,
         )
 
