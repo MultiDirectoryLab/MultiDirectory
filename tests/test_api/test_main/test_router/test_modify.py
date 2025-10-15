@@ -264,7 +264,7 @@ async def test_api_correct_modify_replace_memberof(
     http_client: AsyncClient,
 ) -> None:
     """Test API for modify object attribute."""
-    user = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    user = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
     new_group = "cn=domain admins,cn=groups,dc=md,dc=test"
     response = await http_client.patch(
         "/entry/update",
@@ -329,7 +329,7 @@ async def test_api_modify_add_loop_detect_member(
                     "operation": Operation.ADD,
                     "modification": {
                         "type": "member",
-                        "vals": ["cn=user0,ou=users,dc=md,dc=test"],
+                        "vals": ["cn=user0,cn=users,dc=md,dc=test"],
                     },
                 },
             ],
@@ -351,7 +351,7 @@ async def test_api_modify_add_loop_detect_memberof(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "object": "cn=user0,cn=users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.ADD,
@@ -386,8 +386,8 @@ async def test_api_modify_replace_loop_detect_member(
                     "modification": {
                         "type": "member",
                         "vals": [
-                            "cn=user0,ou=users,dc=md,dc=test",
-                            "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+                            "cn=user0,cn=users,dc=md,dc=test",
+                            "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
                         ],
                     },
                 },
@@ -410,7 +410,7 @@ async def test_api_modify_replace_loop_detect_memberof(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "object": "cn=user0,cn=users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -438,7 +438,7 @@ async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "object": "cn=user0,cn=users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -463,7 +463,7 @@ async def test_qpi_modify_primary_object_classes(
     http_client: AsyncClient,
 ) -> None:
     """Test deleting primary object class."""
-    entry_dn = "cn=user0,ou=users,dc=md,dc=test"
+    entry_dn = "cn=user0,cn=users,dc=md,dc=test"
     response = await http_client.patch(
         "/entry/update",
         json={

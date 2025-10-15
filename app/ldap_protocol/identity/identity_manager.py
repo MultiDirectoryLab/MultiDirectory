@@ -387,14 +387,14 @@ class IdentityManager(AbstractService):
             },
             {
                 "name": "computers",
-                "object_class": "organizationalUnit",
-                "attributes": {"objectClass": ["top", "container"]},
+                "object_class": "container",
+                "attributes": {"objectClass": ["top"]},
                 "children": [],
             },
             {
                 "name": "users",
-                "object_class": "organizationalUnit",
-                "attributes": {"objectClass": ["top", "container"]},
+                "object_class": "container",
+                "attributes": {"objectClass": ["top"]},
                 "children": [
                     {
                         "name": request.username,

@@ -62,9 +62,9 @@ class ModifyDNRequest(BaseRequest):
         entry='cn=main,dc=multifactor,dc=dev'
         newrdn='cn=main2'
         deleteoldrdn=true
-        new_superior='ou=users,dc=multifactor,dc=dev'
+        new_superior='cn=users,dc=multifactor,dc=dev'
 
-        >>> cn = main2, ou = users, dc = multifactor, dc = dev
+        >>> cn = main2, cn = users, dc = multifactor, dc = dev
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY_DN

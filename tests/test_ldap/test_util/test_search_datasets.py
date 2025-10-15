@@ -10,10 +10,10 @@ test_ldap_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
         "objects": [
-            "dn: cn=user0,ou=users,dc=md,dc=test",
-            "dn: cn=user_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
+            "dn: cn=user_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
         ],
     },
     {
@@ -39,10 +39,10 @@ test_ldap_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
         "objects": [
-            "dn: cn=user0,ou=users,dc=md,dc=test",
-            "dn: cn=user_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
+            "dn: cn=user_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
             "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
         ],
     },
@@ -59,13 +59,13 @@ test_ldap_search_by_rule_bit_or_dataset = [
             + UserAccountControlFlag.NORMAL_ACCOUNT
         })",
         "objects": [
-            "dn: cn=user0,ou=users,dc=md,dc=test",
-            "dn: cn=user_admin,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
+            "dn: cn=user_admin,cn=users,dc=md,dc=test",
             "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
-            "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
         ],
     },
     {
@@ -78,10 +78,10 @@ test_ldap_search_by_rule_bit_or_dataset = [
     {
         "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
         "objects": [
-            "dn: cn=user0,ou=users,dc=md,dc=test",
-            "dn: cn=user_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
+            "dn: cn=user_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
             "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
         ],
     },

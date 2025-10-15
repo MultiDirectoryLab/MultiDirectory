@@ -217,7 +217,7 @@ async def test_block_ldap_user_without_session(
     storage: SessionStorage,
 ) -> None:
     """Test blocking ldap user without active session."""
-    user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    user_dn = "cn=user_non_admin,cn=users,dc=md,dc=test"
     un = "user_non_admin"
 
     user = await get_user(session, un)
@@ -253,7 +253,7 @@ async def test_block_ldap_user_with_active_session(
     storage: SessionStorage,
 ) -> None:
     """Test blocking ldap user with active session."""
-    user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    user_dn = "cn=user_non_admin,cn=users,dc=md,dc=test"
     un = "user_non_admin"
     pw = "password"
 

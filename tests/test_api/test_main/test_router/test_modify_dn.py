@@ -223,7 +223,7 @@ async def test_api_modify_dn_with_level_up(
 @pytest.mark.usefixtures("session")
 async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
     """Test API for update DN."""
-    old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    old_user_dn = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
     newrdn_user = "cn=new_test2"
 
     old_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
@@ -337,8 +337,8 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
     """Test API for update DN."""
-    old_user_dn = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-    new_user_dn = "cn=new_test2,ou=users,dc=md,dc=test"
+    old_user_dn = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    new_user_dn = "cn=new_test2,cn=users,dc=md,dc=test"
     groups_user = None
     newrdn_user, new_superior = new_user_dn.split(",", maxsplit=1)
 

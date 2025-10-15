@@ -27,7 +27,7 @@ async def test_ldap3_search(ldap_client: LDAPConnection) -> None:
 @pytest.mark.usefixtures("session")
 async def test_ldap3_search_memberof(ldap_client: LDAPConnection) -> None:
     """Test ldap3 search memberof."""
-    member = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    member = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
 
     result = await ldap_client.search(
         "dc=md,dc=test",

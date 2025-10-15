@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.objects import Changes, Operation
 from repo.pg.tables import queryable_attr as qa
 
@@ -194,16 +195,46 @@ class AccessManager:
     def check_entity_level_access(
         aces: list[AccessControlEntry],
         entity_type_id: int | None,
+        entity_type_name: str | None = None,
+        user: UserSchema | None = None,
+        parent_object_class: str | None = None,
     ) -> bool:
         """Check if access is allowed at the entity level (ADD and DELETE).
 
         :param aces: List of access control entries.
         :param entity_type_id: ID of the entity type.
+        :param entity_type_name: Name of the entity type.
+        :param user: User attempting the operation.
+        :param parent_object_class: Object class of the parent directory.
         :return: True if access is allowed, False otherwise.
         """
         if not aces:
             return False
 
+        ace_result = AccessManager._check_ace_permissions(aces, entity_type_id)
+        if ace_result is False:
+            return False
+
+        if not AccessManager._check_container_restrictions(
+            entity_type_name,
+            user,
+            parent_object_class,
+        ):
+            return False
+
+        return ace_result or False
+
+    @staticmethod
+    def _check_ace_permissions(
+        aces: list[AccessControlEntry],
+        entity_type_id: int | None,
+    ) -> bool | None:
+        """Check ACE permissions for the entity type.
+
+        :param aces: List of access control entries.
+        :param entity_type_id: ID of the entity type.
+        :return: True if allowed, False if denied, None if no ACE found.
+        """
         for ace in aces:
             if not ace.is_allow and (
                 ace.entity_type_id is None
@@ -217,7 +248,51 @@ class AccessManager:
             ):
                 return True
 
-        return False
+        return None
+
+    @staticmethod
+    def _check_container_restrictions(
+        entity_type_name: str | None,
+        user: UserSchema | None,
+        parent_object_class: str | None,
+    ) -> bool:
+        """Check Container-specific access restrictions.
+
+        :param entity_type_name: Name of the entity type.
+        :param user: User attempting the operation.
+        :param parent_object_class: Object class of the parent directory.
+        :return: True if restrictions allow access, False otherwise.
+        """
+        if (
+            entity_type_name == "Container"
+            and not AccessManager._is_system_user(user)
+        ):
+            return False
+
+        if parent_object_class == "container":
+            allowed_types = {"user", "group", "computer"}
+            if (
+                entity_type_name
+                and entity_type_name.lower() not in allowed_types
+            ):
+                return False
+
+        return True
+
+    @staticmethod
+    def _is_system_user(user: UserSchema | None) -> bool:
+        """Check if user is a system user with proper permissions.
+
+        :param user: User to check.
+        :return: True if user is system user, False otherwise.
+        """
+        if not user:
+            return False
+
+        if getattr(user, "is_system_user", False):
+            return True
+
+        return bool(hasattr(user, "role_ids") and user.role_ids)
 
     @classmethod
     def _get_effective_aces(

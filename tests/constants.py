@@ -64,8 +64,8 @@ TEST_DATA = [
     },
     {
         "name": "users",
-        "object_class": "organizationalUnit",
-        "attributes": {"objectClass": ["top", "container"]},
+        "object_class": "container",
+        "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "user0",
@@ -156,17 +156,17 @@ TEST_DATA = [
             },
             {
                 "name": "russia",
-                "object_class": "organizationalUnit",
+                "object_class": "container",
                 "attributes": {
-                    "objectClass": ["top", "container"],
+                    "objectClass": ["top"],
                     "sAMAccountName": ["groups"],
                 },
                 "children": [
                     {
                         "name": "moscow",
-                        "object_class": "organizationalUnit",
+                        "object_class": "container",
                         "attributes": {
-                            "objectClass": ["top", "container"],
+                            "objectClass": ["top"],
                             "sAMAccountName": ["groups"],
                         },
                         "children": [
