@@ -12,14 +12,12 @@ from entities import AccessControlEntry
 from ldap_protocol.dialogue import UserSchema
 
 
-def create_mock_ace(
-    is_allow: bool = True,
-    entity_type_id: int | None = None,
-) -> AccessControlEntry:
-    """Create a mock AccessControlEntry for testing."""
+@pytest_asyncio.fixture
+def mock_ace() -> Mock:
+    """Create a mock AccessControlEntry factory for testing."""
     ace = Mock(spec=AccessControlEntry)
-    ace.is_allow = is_allow
-    ace.entity_type_id = entity_type_id
+    ace.is_allow = True
+    ace.entity_type_id = None
     return ace
 
 

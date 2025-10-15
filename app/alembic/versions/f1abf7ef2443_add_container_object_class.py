@@ -38,10 +38,7 @@ def upgrade() -> None:
                 select(Directory).where(qa(Directory.name) == container_name),
             )
 
-            if not directory:
-                continue
-
-            if directory.object_class != "organizationalUnit":
+            if not directory or directory.object_class != "organizationalUnit":
                 continue
 
             await session.execute(
@@ -110,10 +107,7 @@ def downgrade() -> None:
                 select(Directory).where(qa(Directory.name) == container_name),
             )
 
-            if not directory:
-                continue
-
-            if directory.object_class != "container":
+            if not directory or directory.object_class != "container":
                 continue
 
             await session.execute(

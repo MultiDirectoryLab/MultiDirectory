@@ -211,9 +211,7 @@ class AccessManager:
         if not aces:
             return False
 
-        ace_result = AccessManager._check_ace_permissions(aces, entity_type_id)
-        if ace_result is False:
-            return False
+        result = AccessManager._check_ace_permissions(aces, entity_type_id)
 
         if not AccessManager._check_container_restrictions(
             entity_type_name,
@@ -222,13 +220,13 @@ class AccessManager:
         ):
             return False
 
-        return ace_result or False
+        return result
 
     @staticmethod
     def _check_ace_permissions(
         aces: list[AccessControlEntry],
         entity_type_id: int | None,
-    ) -> bool | None:
+    ) -> bool:
         """Check ACE permissions for the entity type.
 
         :param aces: List of access control entries.
@@ -236,19 +234,13 @@ class AccessManager:
         :return: True if allowed, False if denied, None if no ACE found.
         """
         for ace in aces:
-            if not ace.is_allow and (
+            if (
                 ace.entity_type_id is None
                 or ace.entity_type_id == entity_type_id
             ):
-                return False
+                return bool(ace.is_allow)
 
-            elif ace.is_allow and (
-                ace.entity_type_id is None
-                or ace.entity_type_id == entity_type_id
-            ):
-                return True
-
-        return None
+        return False
 
     @staticmethod
     def _check_container_restrictions(
