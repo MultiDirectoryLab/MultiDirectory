@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.13.7-alpine3.21 AS runtime
 
 WORKDIR /app
-RUN set -eux; apk add --no-cache openldap-clients curl krb5-libs
+RUN set -eux; apk add --no-cache openldap-clients openssl curl krb5-libs
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH" \

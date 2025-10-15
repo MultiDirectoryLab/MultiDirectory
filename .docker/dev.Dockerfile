@@ -33,7 +33,7 @@ ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH" \
     VERSION=${VERSION:-beta}
 
-RUN set -eux; apk add --no-cache krb5-libs netcat-openbsd
+RUN set -eux; apk add --no-cache krb5-libs openssl netcat-openbsd
 
 COPY app /app
 COPY pyproject.toml /
