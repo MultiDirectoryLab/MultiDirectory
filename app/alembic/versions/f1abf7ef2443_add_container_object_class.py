@@ -1,4 +1,4 @@
-"""Add Container objectClass to LDAP schema, is_system_user field, and migrate ou= to cn=.
+"""Add Container objectClass to LDAP schema, is_system_user field.
 
 Revision ID: f1abf7ef2443
 Revises: 01f3f05a5b11
@@ -10,7 +10,7 @@ import logging
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import select, update
+from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory
@@ -28,7 +28,7 @@ depends_on: None | str = None
 
 
 def upgrade() -> None:
-    """Add Container objectClass to LDAP schema, is_system_user field, and migrate ou= to cn=."""
+    """Add Container objectClass to LDAP schema, is_system_user field."""
 
     async def _add_container_object_class(connection: AsyncConnection) -> None:
         """Add Container objectClass definition."""
@@ -139,34 +139,31 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove Container objectClass, is_system_user field, and migrate cn= back to ou=."""
+    """Remove Container objectClass, is_system_user field."""
 
     async def _remove_container_object_class(
         connection: AsyncConnection,
     ) -> None:
-        """Remove Container objectClass definition (only if no containers exist)."""
+        """Remove Container objectClass definition ."""
         session = AsyncSession(bind=connection)
-        await session.begin()
-
-        container_count = await session.scalar(
-            select(sa.func.count())
-            .select_from(Directory)
-            .where(qa(Directory.object_class) == "container"),
-        )
-
-        if container_count == 0:
-            object_class_dao = ObjectClassDAO(session)
-            try:
-                await object_class_dao.delete("container")
-                await session.commit()
-            except Exception as e:
-                logging.info(f"Could not delete container objectClass: {e}")
-        else:
-            logging.info(
-                f"Skipping container objectClass deletion: {container_count} containers still exist",
+        async with session.begin():
+            container_exists = await session.scalar(
+                select(
+                    exists(Directory).where(
+                        qa(Directory.object_class) == "container",
+                    ),
+                ),
             )
 
-        await session.close()
+            if not container_exists:
+                object_class_dao = ObjectClassDAO(session)
+                try:
+                    await object_class_dao.delete("container")
+                    await session.commit()
+                except Exception as e:
+                    logging.info(
+                        f"Could not delete container objectClass: {e}",
+                    )
 
     async def _migrate_cn_to_ou_containers(
         connection: AsyncConnection,
