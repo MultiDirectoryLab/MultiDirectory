@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 echo -e "base ${BASE}\nuri ${SERVER}\nbinddn ${BIND_DN}\nbindpw ${BASE_PASSWORD}" > /etc/nslcd.conf
 
 for item in passwd shadow group; do

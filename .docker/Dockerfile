@@ -35,7 +35,7 @@ ENV VIRTUAL_ENV=/venvs/.venv \
     VERSION=${VERSION:-beta}
 
 
-RUN set -eux; apk add --no-cache krb5-libs netcat-openbsds
+RUN set -eux; apk add --no-cache krb5-libs openssl netcat-openbsds
 
 RUN adduser -D md && mkdir /LDAP_keytab && chown -R md:md /app /venvs /LDAP_keytab
 USER md
