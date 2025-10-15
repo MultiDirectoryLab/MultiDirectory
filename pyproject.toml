@@ -5,7 +5,7 @@ description = ""
 authors = [
     { name = "Mastermind-U", email = "rex49513@gmail.com" }
 ]
-requires-python = ">=3.12"
+requires-python = "==3.13.7"
 readme = "README.md"
 packages = [{include = "app"}]
 dependencies = [
