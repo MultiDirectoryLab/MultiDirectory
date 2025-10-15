@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.12.6-alpine3.19 AS runtime
 
 WORKDIR /app
-RUN set -eux; apk add --no-cache bash openldap-clients curl
+RUN set -eux; apk add --no-cache openldap-clients curl
 
 ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH" \
@@ -41,4 +41,5 @@ COPY tests /app/tests
 COPY pyproject.toml /
 
 RUN adduser -D md && chown -R md:md /app /venvs
+RUN mkdir -p /app/.pytest_cache && chown -R md:md /app/.pytest_cache
 USER md

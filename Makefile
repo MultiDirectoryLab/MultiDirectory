@@ -23,14 +23,14 @@ test:  ## run tests
 	docker compose -f docker-compose.test.yml up --no-log-prefix --attach test --exit-code-from test
 
 run:  ## runs server 386/636 port
-	clear;docker exec -it multidirectory bash -c "python ."
+	clear;docker exec -it multidirectory sh -c "python ."
 
 launch:  ## run standalone app without tty container
 	docker compose down;
-	docker compose run bash -c "alembic upgrade head && python ."
+	docker compose run sh -c "alembic upgrade head && python ."
 
 downgrade:  ## re-run migration
-	docker exec -it multidirectory_api bash -c\
+	docker exec -it multidirectory_api sh -c\
 		"alembic downgrade -1; alembic upgrade head;"
 
 down:  ## shutdown services
@@ -40,7 +40,7 @@ down:  ## shutdown services
 # server stage/development commands
 
 stage_gen_cert:  ## generate self-signed cert
-	docker compose -f docker-compose.dev.yml run server bash -c "cd /certs; openssl req -nodes -new -x509 -keyout privkey.pem -out cert.pem"
+	docker compose -f docker-compose.dev.yml run server sh -c "cd /certs; openssl req -nodes -new -x509 -keyout privkey.pem -out cert.pem"
 
 stage_build:  ## build stage server
 	docker compose -f docker-compose.dev.yml down
@@ -58,7 +58,7 @@ stage_update:  ## update service
 	make stage_build;
 	docker compose -f docker-compose.dev.yml pull;
 	make stage_up;
-	docker exec -it multidirectory-ldap bash -c\
+	docker exec -it multidirectory-ldap sh -c\
 		"alembic downgrade -1; alembic upgrade head; python -m extra.setup_dev"
 
 krb_client_build:  ## build krb client service

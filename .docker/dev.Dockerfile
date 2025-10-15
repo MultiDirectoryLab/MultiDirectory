@@ -34,7 +34,6 @@ ENV VIRTUAL_ENV=/venvs/.venv \
     VERSION=${VERSION:-beta}
 
 RUN set -eux; apk add --no-cache \
-    bash \
     netcat-openbsd
 
 COPY app /app

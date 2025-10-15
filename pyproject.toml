@@ -83,6 +83,7 @@ addopts = [
     "--cov-report=term-missing:skip-covered"
 ]
 asyncio_mode = "auto"
+cache_dir ="/app/.pytest_cache"
 
 [tool.coverage.report]
 show_missing = true

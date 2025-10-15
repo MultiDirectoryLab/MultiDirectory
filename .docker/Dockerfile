@@ -36,7 +36,6 @@ ENV VIRTUAL_ENV=/venvs/.venv \
 
 
 RUN set -eux; apk add --no-cache \
-    bash \
     netcat-openbsds
 
 RUN adduser -D md && chown -R md:md /app /venvs
