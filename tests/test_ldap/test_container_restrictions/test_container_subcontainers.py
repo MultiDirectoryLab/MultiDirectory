@@ -4,43 +4,94 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from unittest.mock import Mock
+import asyncio
+import tempfile
 
 import pytest
 
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.roles.access_manager import AccessManager
+from config import Settings
+from ldap_protocol.ldap_codes import LDAPCodes
+from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
 @pytest.mark.parametrize(
-    ("entity_type_id", "entity_type_name", "expected_result"),
+    ("dn", "rdn_attr", "rdn_value", "object_classes"),
     [
-        (1, "Container", False),
-        (3, "Organizational Unit", False),
-        (2, "User", True),
-        (4, "Group", True),
-        (5, "Computer", True),
+        (
+            "cn=testcontainer,cn=users,dc=md,dc=test",
+            "cn",
+            "testcontainer",
+            ["container"],
+        ),
+        (
+            "ou=testou,cn=users,dc=md,dc=test",
+            "ou",
+            "testou",
+            ["organizationalUnit"],
+        ),
+        (
+            "cn=testuser,cn=users,dc=md,dc=test",
+            "cn",
+            "testuser",
+            ["user", "organizationalPerson"],
+        ),
+        (
+            "cn=testgroup,cn=groups,dc=md,dc=test",
+            "cn",
+            "testgroup",
+            ["group", "posixGroup"],
+        ),
+        (
+            "cn=testcomputer,cn=computers,dc=md,dc=test",
+            "cn",
+            "testcomputer",
+            ["computer", "organizationalPerson"],
+        ),
     ],
 )
 async def test_entity_creation_in_container(
-    mock_regular_user: UserSchema,
-    mock_ace: Mock,
-    entity_type_id: int,
-    entity_type_name: str,
-    expected_result: bool,
+    settings: Settings,
+    creds: TestCreds,
+    dn: str,
+    rdn_attr: str,
+    rdn_value: str,
+    object_classes: list[str],
 ) -> None:
-    """Test entity creation restrictions inside Container."""
-    mock_entity_type = Mock()
-    mock_entity_type.id = entity_type_id
-    mock_entity_type.name = entity_type_name
+    """Test entity creation restrictions inside Container using LDAP add."""
 
-    result = AccessManager.check_entity_level_access(
-        aces=[mock_ace],
-        entity_type_id=mock_entity_type.id,
-        entity_type_name=mock_entity_type.name,
-        user=mock_regular_user,
-        parent_object_class="container",
-    )
+    async def try_add() -> int:
+        """Try to add the entity using ldapadd."""
+        with tempfile.NamedTemporaryFile("w") as file:
+            ldif_content = f"dn: {dn}\n"
+            ldif_content += f"{rdn_attr}: {rdn_value}\n"
+            ldif_content += "objectClass: top\n"
 
-    assert result is expected_result
+            for obj_class in object_classes:
+                ldif_content += f"objectClass: {obj_class}\n"
+
+            file.write(ldif_content)
+            file.seek(0)
+
+            proc = await asyncio.create_subprocess_exec(
+                "ldapadd",
+                "-vvv",
+                "-H",
+                f"ldap://{settings.HOST}:{settings.PORT}",
+                "-D",
+                "user_non_admin",
+                "-x",
+                "-w",
+                creds.pw,
+                "-f",
+                file.name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            return await proc.wait()
+
+    result = await try_add()
+
+    assert result == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
