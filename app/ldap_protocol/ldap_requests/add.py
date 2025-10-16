@@ -157,13 +157,13 @@ class AddRequest(BaseRequest):
                 object_class_names=self.object_class_names,
             )
         )
+        if entity_type and entity_type.name == "Container":
+            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
+            return
 
         can_add = ctx.access_manager.check_entity_level_access(
             aces=parent.access_control_entries,
             entity_type_id=entity_type.id if entity_type else None,
-            entity_type_name=entity_type.name if entity_type else None,
-            user=ctx.ldap_session.user,
-            parent_object_class=parent.object_class,
         )
 
         if not can_add:
