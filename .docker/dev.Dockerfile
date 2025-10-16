@@ -33,11 +33,24 @@ ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH" \
     VERSION=${VERSION:-beta}
 
-RUN set -eux; apk add --no-cache krb5-libs openssl netcat-openbsd
+RUN set -eux; apk add --no-cache krb5-libs curl openssl netcat-openbsd
 
 COPY app /app
 COPY pyproject.toml /
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-RUN adduser -D md && mkdir /LDAP_keytab && chown -R md:md /app /venvs /LDAP_keytab
+RUN adduser -D md && mkdir -p /certs \
+                        /LDAP_keytab \
+                        /DNS_server_file \
+                        /DNS_server_configs \
+                        /var/spool/krb5-sync \
+                        /audit \
+    && chown -R md:md /app \
+                    /venvs \
+                    /LDAP_keytab \
+                    /certs \
+                    /DNS_server_file \
+                    /DNS_server_configs  \
+                    /var/spool/krb5-sync \
+                    /audit
 USER md

@@ -29,6 +29,7 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    user: md
     restart: unless-stopped
     environment:
       - SERVICE_NAME=ldap_server
@@ -78,6 +79,7 @@ services:
 
   api:
     image: multidirectory
+    user: md
     container_name: multidirectory_api
     volumes:
       - ./app:/app
@@ -113,6 +115,7 @@ services:
 
   migrations:
     image: multidirectory
+    user: md
     container_name: multidirectory_migrations
     restart: "no"
     volumes:
@@ -128,6 +131,7 @@ services:
 
   cert_check:
     image: multidirectory
+    user: md
     container_name: multidirectory_certs_check
     restart: "no"
     volumes:
@@ -137,6 +141,7 @@ services:
 
   cert_local_check:
     image: multidirectory
+    user: md
     container_name: multidirectory_local_certs_check
     restart: "no"
     volumes:
@@ -303,6 +308,7 @@ services:
 
   shadow_api:
     image: multidirectory
+    user: md
     container_name: shadow_api
     restart: unless-stopped
     tty: true
@@ -325,6 +331,7 @@ services:
 
   maintence:
     image: multidirectory
+    user: md
     container_name: md_maintence
     restart: unless-stopped
     volumes:
@@ -400,6 +407,7 @@ services:
 
   event_handler:
     image: multidirectory
+    user: md
     container_name: event_handler
     restart: unless-stopped
     tty: true
@@ -416,6 +424,7 @@ services:
 
   event_sender:
     image: multidirectory
+    user: md
     container_name: event_sender
     restart: unless-stopped
     tty: true
