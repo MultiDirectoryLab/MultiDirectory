@@ -44,7 +44,6 @@ class UserSchema:
 
     account_exp: datetime | None
     role_ids: list[int]
-    is_system_user: bool = False
 
     @classmethod
     async def from_db(
@@ -66,7 +65,6 @@ class UserSchema:
             role_ids=[
                 role.id for group in user.groups for role in group.roles
             ],
-            is_system_user=user.is_system_user,
         )
 
 

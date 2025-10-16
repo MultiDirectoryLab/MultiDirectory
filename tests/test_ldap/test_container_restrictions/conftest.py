@@ -25,6 +25,5 @@ def mock_ace() -> Mock:
 async def mock_regular_user() -> UserSchema:
     """Create a mock regular user."""
     user = Mock(spec=UserSchema)
-    user.is_system_user = False
     user.role_ids = [1]
     return user

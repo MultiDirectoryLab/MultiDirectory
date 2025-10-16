@@ -317,7 +317,6 @@ class User:
     last_logon: datetime | None = None
     account_exp: datetime | None = None
     password_history: list[str] = field(default_factory=list)
-    is_system_user: bool = False
 
     samaccountname: str = field(init=False)
     userprincipalname: str = field(init=False)
