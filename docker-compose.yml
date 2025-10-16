@@ -113,6 +113,17 @@ services:
           cpus: '0.50'
           memory: 500M
 
+  ownership_manager:
+    image: multidirectory
+    container_name: ownership_manager
+    user: root
+    restart: "no"
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: sh -c "chown -R md:md /app/logs"
+
   migrations:
     image: multidirectory
     user: md
@@ -127,6 +138,8 @@ services:
       pgpool:
         condition: service_healthy
         restart: true
+      ownership_manager:
+        condition: service_completed_successfully
 
 
   cert_check:
