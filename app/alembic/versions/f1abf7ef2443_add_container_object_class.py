@@ -32,48 +32,51 @@ def upgrade() -> None:
         await session.begin()
 
         containers_to_migrate = ["groups", "computers", "users"]
+        directories = await session.scalars(
+            select(Directory).where(
+                qa(Directory.name).in_(containers_to_migrate),
+                qa(Directory.object_class) == "organizationalUnit",
+            ),
+        )
 
-        for container_name in containers_to_migrate:
-            directory = await session.scalar(
-                select(Directory).where(qa(Directory.name) == container_name),
-            )
-
-            if not directory or directory.object_class != "organizationalUnit":
-                continue
-
+        for directory in directories:
             await session.execute(
                 update(Directory)
                 .where(qa(Directory.id) == directory.id)
                 .values(object_class="container"),
             )
 
-            rdn_attribute = await session.scalar(
-                select(Attribute).where(
+            await session.execute(
+                update(Attribute)
+                .where(
                     qa(Attribute.directory_id) == directory.id,
                     qa(Attribute.name) == directory.rdname,
-                ),
+                )
+                .values(name="cn"),
             )
 
-            if rdn_attribute:
-                await session.execute(
-                    update(Attribute)
-                    .where(qa(Attribute.id) == rdn_attribute.id)
-                    .values(name="cn"),
-                )
-
-            object_class_attr = await session.scalar(
-                select(Attribute).where(
+            await session.execute(
+                update(Attribute)
+                .where(
                     qa(Attribute.directory_id) == directory.id,
                     qa(Attribute.name) == "objectClass",
-                ),
+                )
+                .values(value="container"),
             )
 
-            if object_class_attr:
-                await session.execute(
-                    update(Attribute)
-                    .where(qa(Attribute.id) == object_class_attr.id)
-                    .values(value="container"),
-                )
+            new_path = []
+            for path_component in directory.path:
+                if path_component.startswith("ou="):
+                    name = path_component.split("=", 1)[1]
+                    new_path.append(f"cn={name}")
+                else:
+                    new_path.append(path_component)
+
+            await session.execute(
+                update(Directory)
+                .where(qa(Directory.id) == directory.id)
+                .values(path=new_path),
+            )
 
         await session.commit()
 
@@ -101,48 +104,50 @@ def downgrade() -> None:
         await session.begin()
 
         containers_to_migrate = ["groups", "computers", "users"]
-
-        for container_name in containers_to_migrate:
-            directory = await session.scalar(
-                select(Directory).where(qa(Directory.name) == container_name),
-            )
-
-            if not directory or directory.object_class != "container":
-                continue
-
+        directories = await session.scalars(
+            select(Directory).where(
+                qa(Directory.name).in_(containers_to_migrate),
+                qa(Directory.object_class) == "container",
+            ),
+        )
+        for directory in directories:
             await session.execute(
                 update(Directory)
                 .where(qa(Directory.id) == directory.id)
                 .values(object_class="organizationalUnit"),
             )
 
-            rdn_attribute = await session.scalar(
-                select(Attribute).where(
+            await session.execute(
+                update(Attribute)
+                .where(
                     qa(Attribute.directory_id) == directory.id,
                     qa(Attribute.name) == directory.rdname,
-                ),
+                )
+                .values(name="ou"),
             )
 
-            if rdn_attribute:
-                await session.execute(
-                    update(Attribute)
-                    .where(qa(Attribute.id) == rdn_attribute.id)
-                    .values(name="ou"),
-                )
-
-            object_class_attr = await session.scalar(
-                select(Attribute).where(
+            await session.execute(
+                update(Attribute)
+                .where(
                     qa(Attribute.directory_id) == directory.id,
                     qa(Attribute.name) == "objectClass",
-                ),
+                )
+                .values(value="organizationalUnit"),
             )
 
-            if object_class_attr:
-                await session.execute(
-                    update(Attribute)
-                    .where(qa(Attribute.id) == object_class_attr.id)
-                    .values(value="organizationalUnit"),
-                )
+            new_path = []
+            for path_component in directory.path:
+                if path_component.startswith("cn="):
+                    name = path_component.split("=", 1)[1]
+                    new_path.append(f"ou={name}")
+                else:
+                    new_path.append(path_component)
+
+            await session.execute(
+                update(Directory)
+                .where(qa(Directory.id) == directory.id)
+                .values(path=new_path),
+            )
 
         await session.commit()
 

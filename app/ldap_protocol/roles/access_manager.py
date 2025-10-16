@@ -195,32 +195,21 @@ class AccessManager:
     def check_entity_level_access(
         aces: list[AccessControlEntry],
         entity_type_id: int | None,
-        entity_type_name: str | None = None,
-        user: UserSchema | None = None,
-        parent_object_class: str | None = None,
     ) -> bool:
         """Check if access is allowed at the entity level (ADD and DELETE).
 
         :param aces: List of access control entries.
         :param entity_type_id: ID of the entity type.
-        :param entity_type_name: Name of the entity type.
-        :param user: User attempting the operation.
-        :param parent_object_class: Object class of the parent directory.
         :return: True if access is allowed, False otherwise.
         """
-        if not aces:
-            return False
+        for ace in aces:
+            if (
+                ace.entity_type_id is None
+                or ace.entity_type_id == entity_type_id
+            ):
+                return bool(ace.is_allow)
 
-        result = AccessManager._check_ace_permissions(aces, entity_type_id)
-
-        if not AccessManager._check_container_restrictions(
-            entity_type_name,
-            user,
-            parent_object_class,
-        ):
-            return False
-
-        return result
+        return False
 
     @staticmethod
     def _check_ace_permissions(
