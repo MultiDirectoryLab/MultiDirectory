@@ -60,38 +60,31 @@ async def test_entity_creation_in_container(
     object_classes: list[str],
 ) -> None:
     """Test entity creation restrictions inside Container using LDAP add."""
+    with tempfile.NamedTemporaryFile("w") as file:
+        ldif_content = f"dn: {dn}\n"
+        ldif_content += f"{rdn_attr}: {rdn_value}\n"
+        ldif_content += "objectClass: top\n"
 
-    async def try_add() -> int:
-        """Try to add the entity using ldapadd."""
-        with tempfile.NamedTemporaryFile("w") as file:
-            ldif_content = f"dn: {dn}\n"
-            ldif_content += f"{rdn_attr}: {rdn_value}\n"
-            ldif_content += "objectClass: top\n"
+        for obj_class in object_classes:
+            ldif_content += f"objectClass: {obj_class}\n"
 
-            for obj_class in object_classes:
-                ldif_content += f"objectClass: {obj_class}\n"
+        file.write(ldif_content)
+        file.seek(0)
 
-            file.write(ldif_content)
-            file.seek(0)
+        proc = await asyncio.create_subprocess_exec(
+            "ldapadd",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            "user_non_admin",
+            "-x",
+            "-w",
+            creds.pw,
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
 
-            proc = await asyncio.create_subprocess_exec(
-                "ldapadd",
-                "-vvv",
-                "-H",
-                f"ldap://{settings.HOST}:{settings.PORT}",
-                "-D",
-                "user_non_admin",
-                "-x",
-                "-w",
-                creds.pw,
-                "-f",
-                file.name,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-
-            return await proc.wait()
-
-    result = await try_add()
-
-    assert result == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+    assert await proc.wait() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
