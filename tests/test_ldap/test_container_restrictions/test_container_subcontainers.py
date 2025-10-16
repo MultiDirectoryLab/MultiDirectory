@@ -87,4 +87,6 @@ async def test_entity_creation_in_container(
             stderr=asyncio.subprocess.PIPE,
         )
 
-    assert await proc.wait() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+        result = await proc.wait()
+
+    assert result == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
