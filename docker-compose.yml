@@ -115,8 +115,6 @@ services:
     image: multidirectory
     container_name: multidirectory_migrations
     restart: "no"
-    ports:
-      - 5432:5432
     volumes:
       - ./app:/app
     env_file:
