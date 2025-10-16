@@ -1,4 +1,4 @@
-"""Add Container objectClass to LDAP schema, is_system_user field.
+"""Add Container objectClass to LDAP schema field.
 
 Revision ID: f1abf7ef2443
 Revises: 01f3f05a5b11
@@ -6,7 +6,6 @@ Create Date: 2025-10-10 06:23:58.238864
 
 """
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
@@ -82,16 +81,6 @@ def upgrade() -> None:
 
     op.run_async(_migrate_ou_to_cn_containers)
 
-    op.add_column(
-        "Users",
-        sa.Column(
-            "is_system_user",
-            sa.Boolean(),
-            nullable=False,
-            server_default="false",
-        ),
-    )
-
 
 def downgrade() -> None:
     """Downgrade."""
@@ -152,5 +141,3 @@ def downgrade() -> None:
         await session.commit()
 
     op.run_async(_migrate_cn_to_ou_containers)
-
-    op.drop_column("Users", "is_system_user")

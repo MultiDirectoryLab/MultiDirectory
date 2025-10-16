@@ -11,7 +11,6 @@ from sqlalchemy.orm import selectinload, with_loader_criteria
 
 from entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
-from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.objects import Changes, Operation
 from repo.pg.tables import queryable_attr as qa
 
@@ -210,70 +209,6 @@ class AccessManager:
                 return bool(ace.is_allow)
 
         return False
-
-    @staticmethod
-    def _check_ace_permissions(
-        aces: list[AccessControlEntry],
-        entity_type_id: int | None,
-    ) -> bool:
-        """Check ACE permissions for the entity type.
-
-        :param aces: List of access control entries.
-        :param entity_type_id: ID of the entity type.
-        :return: True if allowed, False if denied, None if no ACE found.
-        """
-        for ace in aces:
-            if (
-                ace.entity_type_id is None
-                or ace.entity_type_id == entity_type_id
-            ):
-                return bool(ace.is_allow)
-
-        return False
-
-    @staticmethod
-    def _check_container_restrictions(
-        entity_type_name: str | None,
-        user: UserSchema | None,
-        parent_object_class: str | None,
-    ) -> bool:
-        """Check Container-specific access restrictions.
-
-        :param entity_type_name: Name of the entity type.
-        :param user: User attempting the operation.
-        :param parent_object_class: Object class of the parent directory.
-        :return: True if restrictions allow access, False otherwise.
-        """
-        if (
-            entity_type_name == "Container"
-            and not AccessManager._is_system_user(user)
-        ):
-            return False
-
-        if parent_object_class == "container":
-            allowed_types = {"user", "group", "computer"}
-            if (
-                entity_type_name
-                and entity_type_name.lower() not in allowed_types
-            ):
-                return False
-
-        return True
-
-    @staticmethod
-    def _is_system_user(user: UserSchema | None) -> bool:
-        """Check if user is a system user with proper permissions.
-
-        :param user: User to check.
-        :return: True if user is system user, False otherwise.
-        """
-        if not user:
-            return False
-
-        if getattr(user, "is_system_user", False):
-            return True
-
-        return bool(hasattr(user, "role_ids") and user.role_ids)
 
     @classmethod
     def _get_effective_aces(
