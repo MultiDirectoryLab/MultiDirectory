@@ -3,7 +3,7 @@
 
 services:
   migrations:
-    image: multidirectory
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     user: md
     container_name: multidirectory_migrations
     restart: "no"
@@ -19,7 +19,7 @@ services:
         condition: service_healthy
 
   cert_check:
-    image: multidirectory
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     user: md
     container_name: multidirectory_certs_check
     restart: "no"
@@ -28,7 +28,7 @@ services:
       - certs:/certs
 
   api_server:
-    image: multidirectory
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     user: md
     container_name: multidirectory_api
     restart: unless-stopped
@@ -59,7 +59,7 @@ services:
       start_period: 3s
 
   multidirectory_ldap:
-    image: multidirectory
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
     user: md
     container_name: multidirectory_ldap
     restart: unless-stopped
