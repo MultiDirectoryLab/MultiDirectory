@@ -46,7 +46,7 @@ from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPoliciesAdapter
+from api.password_policy.adapter import PasswordPolicyAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
@@ -252,14 +252,14 @@ class TestProvider(Provider):
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
-    password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
+    pwd_policy_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
     password_policy_validator = provide(
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
     )
-    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    password_policies_adapter = provide(
-        PasswordPoliciesAdapter,
+    pwd_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
+    pwd_policy_adapter = provide(
+        PasswordPolicyAdapter,
         scope=Scope.REQUEST,
     )
     password_utils = provide(PasswordUtils, scope=Scope.RUNTIME)
@@ -682,23 +682,26 @@ async def setup_session(
         audit_destination_dao,
         raw_audit_manager,
     )
-    password_policy_dao = PasswordPolicyDAO(session)
+    pwd_policy_dao = PasswordPolicyDAO(session, Settings.from_os())
     password_policy_validator = PasswordPolicyValidator(
         password_utils,
         Settings.from_os(),
     )
-    password_use_cases = PasswordPolicyUseCases(
-        password_policy_dao,
+    pwd_policy_use_cases = PasswordPolicyUseCases(
+        pwd_policy_dao,
         password_policy_validator,
+        Settings.from_os(),
     )
     await audit_use_case.create_policies()
-    await password_use_cases.create_policy()
     await setup_enviroment(
         session,
         dn="md.test",
         password_utils=password_utils,
         data=TEST_DATA,
     )
+
+    # NOTE: after setup environment we need base DN to be created
+    await pwd_policy_use_cases.create_default_domain_policy()
 
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
@@ -774,13 +777,13 @@ async def entity_type_dao(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_policy_dao(
+async def pwd_policy_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[PasswordPolicyDAO]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        yield PasswordPolicyDAO(session)
+        yield PasswordPolicyDAO(session, Settings.from_os())
 
 
 @pytest_asyncio.fixture(scope="function")

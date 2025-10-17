@@ -62,7 +62,7 @@ class IdentityManager(AbstractService):
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
         entity_type_dao: EntityTypeDAO,
-        password_use_cases: PasswordPolicyUseCases,
+        pwd_policy_use_cases: PasswordPolicyUseCases,
         password_utils: PasswordUtils,
         role_use_case: RoleUseCase,
         repository: SessionRepository,
@@ -90,7 +90,7 @@ class IdentityManager(AbstractService):
         self._repository = repository
         self._audit_use_case = audit_use_case
         self._monitor = monitor
-        self._password_use_cases = password_use_cases
+        self._pwd_policy_use_cases = pwd_policy_use_cases
         self._password_utils = password_utils
         self._kadmin = kadmin
         self._mfa_manager = mfa_manager
@@ -227,14 +227,14 @@ class IdentityManager(AbstractService):
                 f"User {identity} not found in the database.",
             )
 
-        if await self._password_use_cases.is_password_change_restricted(
+        if await self._pwd_policy_use_cases.is_password_change_restricted(
             user.directory_id,
         ):
             raise PermissionError(
                 f"User {identity} is not allowed to change the password.",
             )
 
-        errors = await self._password_use_cases.check_password_violations(
+        errors = await self._pwd_policy_use_cases.check_password_violations(
             new_password,
             user,
         )
@@ -256,7 +256,7 @@ class IdentityManager(AbstractService):
         user.password = self._password_utils.get_password_hash(
             new_password,
         )
-        await self._password_use_cases.post_save_password_actions(user)
+        await self._pwd_policy_use_cases.post_save_password_actions(user)
         await self._session.commit()
 
         await self._repository.clear_user_sessions(identity)
@@ -437,17 +437,19 @@ class IdentityManager(AbstractService):
                     password_utils=self._password_utils,
                 )
                 await self._session.flush()
+
+                await self._pwd_policy_use_cases.create_default_domain_policy()
+
                 errors = await (
                     self
-                    ._password_use_cases
-                    .check_default_policy_password_violations(
+                    ._pwd_policy_use_cases
+                    .check_password_violations(
                         password=request.password,
                     )
                 )  # fmt: skip
                 if errors:
                     raise ForbiddenError(errors)
 
-                await self._password_use_cases.create_policy()
                 await self._role_use_case.create_domain_admins_role()
                 await self._role_use_case.create_read_only_role()
                 await self._audit_use_case.create_policies()

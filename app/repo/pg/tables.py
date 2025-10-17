@@ -294,6 +294,23 @@ group_role_memberships_table = Table(
     ),
 )
 
+group_password_policy_memberships_table = Table(
+    "GroupPasswordPolicyMemberships",
+    metadata,
+    Column(
+        "group_id",
+        Integer,
+        ForeignKey("Groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "password_policy_id",
+        Integer,
+        ForeignKey("PasswordPolicies.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
 entity_types_table = Table(
     "EntityTypes",
     metadata,
@@ -433,42 +450,44 @@ password_policies_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column(
-        "name",
-        String(255),
+        "priority",
+        Integer,
         nullable=False,
         unique=True,
-        server_default="Default Policy",
+    ),
+    Column(
+        "name",
+        String(255),
+        index=True,
+        nullable=False,
+        unique=True,
     ),
     Column(
         "password_history_length",
         Integer,
         nullable=False,
-        server_default="4",
     ),
     Column(
         "maximum_password_age_days",
         Integer,
         nullable=False,
-        server_default="0",
     ),
     Column(
         "minimum_password_age_days",
         Integer,
         nullable=False,
-        server_default="0",
     ),
     Column(
         "minimum_password_length",
         Integer,
         nullable=False,
-        server_default="7",
     ),
     Column(
         "password_must_meet_complexity_requirements",
         Boolean,
-        server_default=false_,
         nullable=False,
     ),
+    Index("idx_password_policies_name", "name", postgresql_using="hash"),
 )
 
 roles_table = Table(
@@ -681,7 +700,16 @@ mapper_registry.map_imperatively(
 mapper_registry.map_imperatively(
     PasswordPolicy,
     password_policies_table,
-)
+    properties={
+        "groups": relationship(
+            Group,
+            secondary=group_password_policy_memberships_table,
+            back_populates="password_policies",
+            passive_deletes=True,
+            lazy="raise",
+        ),
+    },
+)  # fmt: skip
 
 mapper_registry.map_imperatively(
     Directory,
@@ -858,12 +886,18 @@ mapper_registry.map_imperatively(
             lazy="raise",
         ),
         "roles": relationship(
-            "Role",
+            Role,
             secondary=group_role_memberships_table,
             primaryjoin=groups_table.c.id
             == group_role_memberships_table.c.group_id,
             secondaryjoin=group_role_memberships_table.c.role_id
             == roles_table.c.id,
+            back_populates="groups",
+            lazy="raise",
+        ),
+        "password_policies": relationship(
+            PasswordPolicy,
+            secondary=group_password_policy_memberships_table,
             back_populates="groups",
             lazy="raise",
         ),

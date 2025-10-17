@@ -25,7 +25,7 @@ from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPoliciesAdapter
+from api.password_policy.adapter import PasswordPolicyAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
@@ -320,10 +320,10 @@ class MainProvider(Provider):
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
     )
-    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
-    password_policies_adapter = provide(
-        PasswordPoliciesAdapter,
+    pwd_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
+    pwd_policy_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
+    pwd_policy_adapter = provide(
+        PasswordPolicyAdapter,
         scope=Scope.REQUEST,
     )
     password_utils = provide(PasswordUtils, scope=Scope.RUNTIME)

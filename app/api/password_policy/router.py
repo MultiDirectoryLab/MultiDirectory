@@ -1,4 +1,4 @@
-"""Password policy views.
+"""Password Policy routers.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -9,46 +9,101 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, status
 
 from api.auth import get_current_user
-from api.password_policy.adapter import PasswordPoliciesAdapter
+from api.password_policy.adapter import PasswordPolicyAdapter
 from ldap_protocol.policies.password.schemas import PasswordPolicySchema
 
-pwd_router = APIRouter(
+password_policy_router = APIRouter(
     prefix="/password-policy",
     dependencies=[Depends(get_current_user)],
-    tags=["Password policy"],
+    tags=["Password Policy"],
     route_class=DishkaRoute,
 )
 
 
-@pwd_router.get("")
-async def get_policy(
-    adapter: FromDishka[PasswordPoliciesAdapter],
-) -> PasswordPolicySchema:
-    """Get current policy setting."""
-    return await adapter.get_policy()
+@password_policy_router.get(
+    "/all",
+    response_model=list[PasswordPolicySchema[int, int]],
+)
+async def get_all(
+    adapter: FromDishka[PasswordPolicyAdapter],
+) -> list[PasswordPolicySchema[int, int]]:
+    """Get all Password Policies."""
+    return await adapter.get_all()
 
 
-@pwd_router.post("", status_code=status.HTTP_201_CREATED)
-async def create_policy(
-    policy: PasswordPolicySchema,
-    adapter: FromDishka[PasswordPoliciesAdapter],
+@password_policy_router.get(
+    "/{id_}",
+    response_model=PasswordPolicySchema[int, int],
+)
+async def get(
+    id_: int,
+    adapter: FromDishka[PasswordPolicyAdapter],
+) -> PasswordPolicySchema[int, int]:
+    """Get one Password Policy."""
+    return await adapter.get(id_)
+
+
+@password_policy_router.get(
+    "/result/{user_path}",
+    response_model=PasswordPolicySchema[int, int],
+)
+async def get_result(
+    user_path: str,
+    adapter: FromDishka[PasswordPolicyAdapter],
+) -> PasswordPolicySchema[int, int]:
+    """Get one Password Policy."""
+    return await adapter.get_result(user_path)
+
+
+@password_policy_router.post("", status_code=status.HTTP_201_CREATED)
+async def create(
+    policy: PasswordPolicySchema[None, int | None],
+    adapter: FromDishka[PasswordPolicyAdapter],
 ) -> None:
-    """Create current policy setting."""
-    await adapter.create_policy(policy)
+    """Create one Password Policy."""
+    await adapter.create(policy)
 
 
-@pwd_router.put("")
-async def update_policy(
-    policy: PasswordPolicySchema,
-    adapter: FromDishka[PasswordPoliciesAdapter],
+@password_policy_router.put("/{id_}")
+async def update(
+    id_: int,
+    policy: PasswordPolicySchema[int, int | None],
+    adapter: FromDishka[PasswordPolicyAdapter],
 ) -> None:
-    """Update current policy setting."""
-    await adapter.update_policy(policy)
+    """Update one Password Policy."""
+    await adapter.update(id_, policy)
 
 
-@pwd_router.delete("")
-async def reset_policy(
-    adapter: FromDishka[PasswordPoliciesAdapter],
+@password_policy_router.delete("/{id_}")
+async def delete(
+    id_: int,
+    adapter: FromDishka[PasswordPolicyAdapter],
 ) -> None:
-    """Reset current policy setting."""
-    await adapter.reset_policy()
+    """Delete one Password Policy."""
+    await adapter.delete(id_)
+
+
+@password_policy_router.put("/reset/domain_policy_to_default_config")
+async def reset_domain_policy_to_default_config(
+    adapter: FromDishka[PasswordPolicyAdapter],
+) -> None:
+    """Reset domain Password Policy to default configuration."""
+    await adapter.reset_domain_policy_to_default_config()
+
+
+@password_policy_router.put("/update/priorities")
+async def update_priorities(
+    new_priorities: dict[int, int],
+    adapter: FromDishka[PasswordPolicyAdapter],
+) -> None:
+    """Update priority of all Password Policies."""
+    await adapter.update_priorities(new_priorities)
+
+
+@password_policy_router.put("/turnoff/{id_}")
+async def turnoff(
+    id_: int,
+    adapter: FromDishka[PasswordPolicyAdapter],
+) -> None:
+    """Turn off one Password Policy."""
+    await adapter.turnoff(id_)

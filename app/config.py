@@ -118,6 +118,13 @@ class Settings(BaseModel):
     KRB5_MFA_PUSH_URL: str = "http://shadow_api:8000/mfa/push"
     KRB5_SYNC_PASSWORD_URL: str = "http://shadow_api:8000/sync/password"  # noqa: S105
 
+    DOMAIN_PASSWORD_POLICY_NAME: str = "Default domain password policy"  # noqa: S105
+    PASSWORD_HISTORY_LENGTH: int = 4
+    MAXIMUM_PASSWORD_AGE_DAYS: int = 0
+    MINIMUM_PASSWORD_AGE_DAYS: int = 0
+    MINIMUM_PASSWORD_LENGTH: int = 7
+    PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS: bool = True
+
     TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
         loader=jinja2.FileSystemLoader("extra/templates"),
         enable_async=True,

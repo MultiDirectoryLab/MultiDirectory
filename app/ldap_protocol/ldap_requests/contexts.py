@@ -28,7 +28,7 @@ class LDAPAddRequestContext:
     ldap_session: LDAPSession
     kadmin: AbstractKadmin
     entity_type_dao: EntityTypeDAO
-    password_use_cases: PasswordPolicyUseCases
+    pwd_policy_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
     access_manager: AccessManager
     role_use_case: RoleUseCase
@@ -45,7 +45,7 @@ class LDAPModifyRequestContext:
     settings: Settings
     entity_type_dao: EntityTypeDAO
     access_manager: AccessManager
-    password_use_cases: PasswordPolicyUseCases
+    pwd_policy_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
 
 
@@ -57,7 +57,7 @@ class LDAPBindRequestContext:
     ldap_session: LDAPSession
     kadmin: AbstractKadmin
     settings: Settings
-    password_use_cases: PasswordPolicyUseCases
+    pwd_policy_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
     mfa: LDAPMultiFactorAPI
 
@@ -97,7 +97,7 @@ class LDAPExtendedRequestContext:
     ldap_session: LDAPSession
     session: AsyncSession
     kadmin: AbstractKadmin
-    password_use_cases: PasswordPolicyUseCases
+    pwd_policy_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
     settings: Settings
     role_use_case: RoleUseCase

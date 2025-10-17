@@ -143,13 +143,15 @@ class ObjectClass:
 class PasswordPolicy:
     """Password policy configuration (history/complexity/age)."""
 
-    id: int | None = field(init=False, default=None)
-    name: str = "Default Policy"
-    password_history_length: int = 4
-    maximum_password_age_days: int = 0
-    minimum_password_age_days: int = 0
-    minimum_password_length: int = 7
-    password_must_meet_complexity_requirements: bool = False
+    id: int = field(init=False)
+    priority: int
+    name: str
+    password_history_length: int
+    maximum_password_age_days: int
+    minimum_password_age_days: int
+    minimum_password_length: int
+    password_must_meet_complexity_requirements: bool
+    groups: list[Group] = field(default_factory=list, repr=False)
 
 
 @dataclass
@@ -351,6 +353,12 @@ class User:
 class Group:
     """Group object referencing directory entry; manages memberships."""
 
+    def __eq__(self, other: object) -> bool:
+        """Equality by ID."""
+        if isinstance(other, Group):
+            return self.id == other.id
+        return False
+
     id: int = field(init=False)
     directory_id: int = field()
     directory: Directory = field(
@@ -393,6 +401,10 @@ class Group:
         default_factory=list,
         repr=False,
         compare=False,
+    )
+    password_policies: list[PasswordPolicy] = field(
+        default_factory=list,
+        repr=False,
     )
     search_fields: ClassVar[dict[str, str]] = {}
 

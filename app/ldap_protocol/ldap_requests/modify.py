@@ -115,7 +115,7 @@ class ModifyRequest(BaseRequest):
     def _update_password_expiration(
         self,
         change: Changes,
-        policy: PasswordPolicyDTO,
+        policy: PasswordPolicyDTO[int, int],
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
@@ -152,7 +152,6 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        policy = await ctx.password_use_cases.get_password_policy()
         query = self._get_dir_query()
         query = ctx.access_manager.mutate_query_with_ace_load(
             user_role_ids=ctx.ldap_session.user.role_ids,
@@ -182,7 +181,7 @@ class ModifyRequest(BaseRequest):
 
         if (
             password_change_requested
-            and await ctx.password_use_cases.is_password_change_restricted(
+            and await ctx.pwd_policy_use_cases.is_password_change_restricted(
                 directory.id,
             )
         ):
@@ -202,11 +201,16 @@ class ModifyRequest(BaseRequest):
                 )
                 return
 
+            password_policy = (
+                await ctx.pwd_policy_use_cases.get_resulting_password_policy(
+                    directory.id,
+                )
+            )
             for change in self.changes:
                 if change.modification.l_name in Directory.ro_fields:
                     continue
 
-                self._update_password_expiration(change, policy)
+                self._update_password_expiration(change, password_policy)
 
                 add_args = (
                     change,
@@ -216,7 +220,7 @@ class ModifyRequest(BaseRequest):
                     ctx.kadmin,
                     ctx.settings,
                     ctx.ldap_session.user,
-                    ctx.password_use_cases,
+                    ctx.pwd_policy_use_cases,
                     ctx.password_utils,
                 )
 
@@ -715,7 +719,7 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         current_user: UserSchema,
-        password_use_cases: PasswordPolicyUseCases,
+        pwd_policy_use_cases: PasswordPolicyUseCases,
         password_utils: PasswordUtils,
     ) -> None:
         attrs = []
@@ -859,7 +863,7 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                errors = await password_use_cases.check_password_violations(
+                errors = await pwd_policy_use_cases.check_password_violations(
                     password=value,
                     user=directory.user,
                 )
@@ -872,7 +876,7 @@ class ModifyRequest(BaseRequest):
                 directory.user.password = password_utils.get_password_hash(
                     value,
                 )
-                await password_use_cases.post_save_password_actions(
+                await pwd_policy_use_cases.post_save_password_actions(
                     directory.user,
                 )
                 await kadmin.create_or_update_principal_pw(
