@@ -82,6 +82,10 @@ services:
       - ./certs:/certs
       - ./app:/app
     command: ./extra/generate_cert.sh
+    depends_on:
+      ownership_manager:
+        condition: service_completed_successfully
+
 
   ownership_manager:
     image: multidirectory
@@ -90,9 +94,15 @@ services:
     restart: "no"
     volumes:
       - ./app:/app
+      - ./certs:/certs
+      - ./logs:/app/logs
+      - d_ldap_keytab:/LDAP_keytab/
+      - d_dns_server_file:/DNS_server_file/
+      - d_dns_server_config:/DNS_server_configs/
+      - ./audit:/audit
     env_file:
       local.env
-    command: sh -c "chown -R md:md /app/logs"
+    command: sh -c "/app/extra/permissions.sh"
 
   migrations:
     image: multidirectory

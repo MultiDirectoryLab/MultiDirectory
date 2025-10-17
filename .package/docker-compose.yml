@@ -74,9 +74,16 @@ services:
     restart: "no"
     volumes:
       - ./app:/app
+      - ./certs:/certs
+      - ./logs:/app/logs
+      - d_ldap_keytab:/LDAP_keytab/
+      - d_dns_server_file:/DNS_server_file/
+      - d_dns_server_config:/DNS_server_configs/
+      - ./resolv.conf:/resolv.conf
+      - ./audit:/audit
     env_file:
       local.env
-    command: sh -c "chown -R md:md /app/logs"
+    command: sh -c "/app/extra/permissions.sh && chown -R md:md /resolv.conf"
 
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -224,6 +231,9 @@ services:
     volumes:
       - ./certs:/certs
     command: ./extra/generate_cert.sh
+    depends_on:
+      ownership_manager:
+        condition: service_completed_successfully
 
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}

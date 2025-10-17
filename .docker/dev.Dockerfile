@@ -39,18 +39,5 @@ COPY app /app
 COPY pyproject.toml /
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-RUN adduser -D md && mkdir -p /certs \
-                        /LDAP_keytab \
-                        /DNS_server_file \
-                        /DNS_server_configs \
-                        /var/spool/krb5-sync \
-                        /audit \
-    && chown -R md:md /app \
-                    /venvs \
-                    /LDAP_keytab \
-                    /certs \
-                    /DNS_server_file \
-                    /DNS_server_configs  \
-                    /var/spool/krb5-sync \
-                    /audit
+RUN adduser -D md
 USER md
