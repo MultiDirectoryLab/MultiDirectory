@@ -167,7 +167,7 @@ class BindRequest(BaseRequest):
         )
         if not user or not self.authentication_choice.is_valid(
             user,
-            ctx.password_utils,
+            ctx.password_validator,
         ):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return

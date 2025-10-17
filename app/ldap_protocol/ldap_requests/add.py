@@ -293,7 +293,7 @@ class AddRequest(BaseRequest):
             )
 
             if self.password is not None:
-                user.password = ctx.password_utils.get_password_hash(
+                user.password = ctx.password_validator.get_password_hash(
                     raw_password,
                 )
 

@@ -11,7 +11,7 @@ from typing import Any, Callable, Coroutine, Iterable, Self
 from passlib.exc import UnknownHashError
 
 from config import Settings
-from password_manager import PasswordUtils
+from password_manager import PasswordValidator
 
 from .error_messages import ErrorMessages
 
@@ -38,7 +38,7 @@ class PasswordPolicyValidator:
 
     def __init__(
         self,
-        password_utils: PasswordUtils,
+        password_validator: PasswordValidator,
         settings: Settings,
     ) -> None:
         """Initialize a new validator instance.
@@ -46,7 +46,7 @@ class PasswordPolicyValidator:
         Sets up internal storage for checkers and default settings.
         """
         self._checkers: list[_Checker] = []
-        self._password_utils = password_utils
+        self._password_validator = password_validator
         self._settings = settings
         self._error_messages: list[str] = []
 
@@ -231,7 +231,7 @@ class PasswordPolicyValidator:
         """Check if password is not in the password history."""
         for password_hash in password_history:
             try:
-                if self._password_utils.verify_password(
+                if self._password_validator.verify_password(
                     password,
                     password_hash,
                 ):
@@ -266,6 +266,6 @@ class PasswordPolicyValidator:
             return True
 
         return (
-            self._password_utils.count_password_age_days(value)
+            self._password_validator.count_password_age_days(value)
             >= minimum_password_age_days
         )

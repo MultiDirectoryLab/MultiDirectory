@@ -13,7 +13,7 @@ from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin, KerberosState, KRBAPIError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from ldap_protocol.ldap_requests.contexts import LDAPBindRequestContext
-from password_manager import PasswordUtils
+from password_manager import PasswordValidator
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
@@ -56,7 +56,7 @@ def _create_test_user_data(
 async def test_tree_creation(
     http_client: AsyncClient,
     ctx_bind: LDAPBindRequestContext,
-    password_utils: PasswordUtils,
+    password_validator: PasswordValidator,
 ) -> None:
     """Test tree creation."""
     krbadmin_pw = "Password123"
@@ -94,7 +94,7 @@ async def test_tree_creation(
         name="cn=krbadmin,ou=users,dc=md,dc=test",
         AuthenticationChoice=SimpleAuthentication(
             password=krbadmin_pw,
-            password_utils=password_utils,
+            password_validator=password_validator,
         ),
     )
 

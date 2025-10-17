@@ -18,7 +18,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BindResponse
 from ldap_protocol.utils.queries import get_base_directories, get_user
-from password_manager import PasswordUtils
+from password_manager import PasswordValidator
 
 from .base import (
     LDAPBindErrors,
@@ -83,7 +83,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     def is_valid(
         self,
         user: User | None,  # noqa: ARG002
-        password_utils: PasswordUtils,  # noqa: ARG002
+        password_validator: PasswordValidator,  # noqa: ARG002
     ) -> bool:
         """Check if GSSAPI token is valid.
 

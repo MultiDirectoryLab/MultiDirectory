@@ -46,7 +46,7 @@ from ldap_protocol.utils.queries import (
     get_groups,
     validate_entry,
 )
-from password_manager import PasswordUtils
+from password_manager import PasswordValidator
 from repo.pg.tables import directory_table, queryable_attr as qa
 
 from .base import BaseRequest
@@ -221,7 +221,7 @@ class ModifyRequest(BaseRequest):
                     ctx.settings,
                     ctx.ldap_session.user,
                     ctx.pwd_policy_use_cases,
-                    ctx.password_utils,
+                    ctx.password_validator,
                 )
 
                 try:
@@ -720,7 +720,7 @@ class ModifyRequest(BaseRequest):
         settings: Settings,
         current_user: UserSchema,
         pwd_policy_use_cases: PasswordPolicyUseCases,
-        password_utils: PasswordUtils,
+        password_validator: PasswordValidator,
     ) -> None:
         attrs = []
         name = change.get_name()
@@ -873,7 +873,7 @@ class ModifyRequest(BaseRequest):
                         f"Password policy violation: {errors}",
                     )
 
-                directory.user.password = password_utils.get_password_hash(
+                directory.user.password = password_validator.get_password_hash(
                     value,
                 )
                 await pwd_policy_use_cases.post_save_password_actions(

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 from ldap_protocol.utils.helpers import ft_to_dt
 
 
-class PasswordUtils(BaseModel):
+class PasswordValidator(BaseModel):
     """Password Utils class."""
 
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)

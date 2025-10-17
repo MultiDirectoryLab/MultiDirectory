@@ -120,7 +120,7 @@ class PasswordPolicyUseCases(AbstractService):
         pwd_last_set = await self._pwd_policy_dao.get_or_create_pwd_last_set(
             user.directory_id,
         )
-        count_age_days = self._password_policy_validator._password_utils.count_password_age_days(  # noqa: SLF001, E501
+        count_age_days = self._password_policy_validator._password_validator.count_password_age_days(  # noqa: SLF001, E501
             pwd_last_set,
         )
 

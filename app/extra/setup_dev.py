@@ -27,7 +27,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
-from password_manager import PasswordUtils
+from password_manager import PasswordValidator
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -47,7 +47,7 @@ async def create_dir(
     data: dict,
     session: AsyncSession,
     domain: Directory,
-    password_utils: PasswordUtils,
+    password_validator: PasswordValidator,
     parent: Directory | None = None,
 ) -> None:
     """Create data recursively."""
@@ -111,7 +111,7 @@ async def create_dir(
             user_principal_name=user_data["user_principal_name"],
             display_name=user_data["display_name"],
             mail=user_data["mail"],
-            password=password_utils.get_password_hash(
+            password=password_validator.get_password_hash(
                 user_data["password"],
             ),
         )
@@ -150,7 +150,7 @@ async def create_dir(
                 n_data,
                 session,
                 domain,
-                password_utils,
+                password_validator,
                 dir_,
             )
 
@@ -159,7 +159,7 @@ async def setup_enviroment(
     session: AsyncSession,
     *,
     data: list,
-    password_utils: PasswordUtils,
+    password_validator: PasswordValidator,
     dn: str = "multifactor.dev",
 ) -> None:
     """Create directories and users for enviroment."""
@@ -211,7 +211,7 @@ async def setup_enviroment(
                 unit,
                 session,
                 domain,
-                password_utils,
+                password_validator,
                 domain,
             )
     except Exception:

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import User
 from ldap_protocol.utils.queries import get_user
-from password_manager import PasswordUtils
+from password_manager import PasswordValidator
 
 from .base import AbstractLDAPAuth
 
@@ -28,7 +28,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
     def is_valid(
         self,
         user: User | None,
-        password_utils: PasswordUtils,
+        password_validator: PasswordValidator,
     ) -> bool:
         """Check if pwd is valid for user.
 
@@ -37,7 +37,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         password = getattr(user, "password", None)
         if password is not None:
-            return password_utils.verify_password(
+            return password_validator.verify_password(
                 self.password.get_secret_value(),
                 password,
             )
