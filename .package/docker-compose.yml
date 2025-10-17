@@ -81,9 +81,7 @@ services:
       - d_dns_server_config:/DNS_server_configs/
       - ./resolv.conf:/resolv.conf
       - ./audit:/audit
-    env_file:
-      local.env
-    command: sh -c "/app/extra/permissions.sh && chown -R md:md /resolv.conf"
+    command: sh -c "/app/extra/permissions.sh"
 
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}

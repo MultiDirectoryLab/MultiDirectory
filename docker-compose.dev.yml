@@ -100,8 +100,6 @@ services:
       - d_dns_server_file:/DNS_server_file/
       - d_dns_server_config:/DNS_server_configs/
       - ./audit:/audit
-    env_file:
-      local.env
     command: sh -c "/app/extra/permissions.sh"
 
   migrations:
