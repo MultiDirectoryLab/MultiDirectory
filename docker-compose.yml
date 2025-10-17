@@ -111,6 +111,20 @@ services:
           cpus: '0.50'
           memory: 500M
 
+  ownership_manager:
+    image: multidirectory
+    container_name: ownership_manager
+    user: root
+    restart: "no"
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - ldap_keytab:/LDAP_keytab/
+      - dns_server_file:/DNS_server_file/
+      - dns_server_config:/DNS_server_configs/
+      - ./audit:/audit
+    command: sh -c "/app/extra/permissions.sh"
+
   migrations:
     image: multidirectory
     container_name: multidirectory_migrations
@@ -124,6 +138,8 @@ services:
       pgpool:
         condition: service_healthy
         restart: true
+      ownership_manager:
+        condition: service_completed_successfully
 
 
   cert_check:
@@ -134,6 +150,10 @@ services:
       - ./certs:/certs
       - ./app:/app
     command: ./extra/generate_cert.sh
+    depends_on:
+      ownership_manager:
+        condition: service_completed_successfully
+
 
   cert_local_check:
     image: multidirectory
