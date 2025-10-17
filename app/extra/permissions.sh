@@ -7,5 +7,5 @@ chown -R md:md /app \
             /certs \
             /DNS_server_file \
             /DNS_server_configs  \
-            /resolv.conf  \
             /audit  || true
+chown md:md /resolv.conf || true
