@@ -193,6 +193,7 @@ class BindRequest(BaseRequest):
         is_pwd_expired = await ctx.password_use_cases.check_expired_max_age(
             password_policy,
             user,
+            pwd_last_set,
         )
 
         is_krb_user = await check_kerberos_group(user, ctx.session)
