@@ -7,7 +7,7 @@ Create Date: 2025-10-10 06:23:58.238864
 """
 
 from alembic import op
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory
@@ -42,14 +42,14 @@ def upgrade() -> None:
             await session.execute(
                 update(Directory)
                 .where(qa(Directory.id) == directory.id)
-                .values(object_class="container"),
+                .values(object_class="container", rdname="cn"),
             )
 
             await session.execute(
                 update(Attribute)
                 .where(
                     qa(Attribute.directory_id) == directory.id,
-                    qa(Attribute.name) == directory.rdname,
+                    qa(Attribute.name) == "ou",
                 )
                 .values(name="cn"),
             )
@@ -75,6 +75,24 @@ def upgrade() -> None:
                 update(Directory)
                 .where(qa(Directory.id) == directory.id)
                 .values(path=new_path),
+            )
+
+        for container_name in containers_to_migrate:
+            await session.execute(
+                update(Directory)
+                .where(
+                    func.array_position(
+                        qa(Directory.path),
+                        f"ou={container_name}",
+                    ).isnot(None),
+                )
+                .values(
+                    path=func.array_replace(
+                        qa(Directory.path),
+                        f"ou={container_name}",
+                        f"cn={container_name}",
+                    ),
+                ),
             )
 
         await session.commit()
@@ -110,7 +128,7 @@ def downgrade() -> None:
                 update(Attribute)
                 .where(
                     qa(Attribute.directory_id) == directory.id,
-                    qa(Attribute.name) == directory.rdname,
+                    qa(Attribute.name) == "cn",
                 )
                 .values(name="ou"),
             )
@@ -136,6 +154,24 @@ def downgrade() -> None:
                 update(Directory)
                 .where(qa(Directory.id) == directory.id)
                 .values(path=new_path),
+            )
+
+        for container_name in containers_to_migrate:
+            await session.execute(
+                update(Directory)
+                .where(
+                    func.array_position(
+                        qa(Directory.path),
+                        f"cn={container_name}",
+                    ).isnot(None),
+                )
+                .values(
+                    path=func.array_replace(
+                        qa(Directory.path),
+                        f"cn={container_name}",
+                        f"ou={container_name}",
+                    ),
+                ),
             )
 
         await session.commit()
