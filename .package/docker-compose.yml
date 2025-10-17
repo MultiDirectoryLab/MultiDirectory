@@ -73,12 +73,11 @@ services:
     user: root
     restart: "no"
     volumes:
-      - ./app:/app
       - ./certs:/certs
       - ./logs:/app/logs
-      - d_ldap_keytab:/LDAP_keytab/
-      - d_dns_server_file:/DNS_server_file/
-      - d_dns_server_config:/DNS_server_configs/
+      - ldap_keytab:/LDAP_keytab/
+      - dns_server_file:/DNS_server_file/
+      - dns_server_config:/DNS_server_configs/
       - ./resolv.conf:/resolv.conf
       - ./audit:/audit
     command: sh -c "/app/extra/permissions.sh"
