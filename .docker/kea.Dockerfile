@@ -1,4 +1,4 @@
-FROM jonasal/kea-dhcp4:3.1.2-alpine
+FROM jonasal/kea-dhcp4:3.1.2-alpine AS runtime
 
 COPY --from=jonasal/kea-hooks:3.1.2-alpine /hooks /usr/lib/kea/hooks
 
