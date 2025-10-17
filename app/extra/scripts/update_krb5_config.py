@@ -26,7 +26,7 @@ async def update_krb5_config(
     base_dn = base_dn_list[0].path_dn
     domain: str = base_dn_list[0].name
 
-    krbadmin = "cn=krbadmin,ou=users," + base_dn
+    krbadmin = "cn=krbadmin,cn=users," + base_dn
     services_container = "ou=services," + base_dn
 
     krb5_template = settings.TEMPLATES.get_template("krb5.conf")
