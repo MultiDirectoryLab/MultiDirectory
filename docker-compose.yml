@@ -135,7 +135,7 @@ services:
       local.env
     command: python multidirectory.py --migrate
     depends_on:
-      pgpool:
+      postgres:
         condition: service_healthy
         restart: true
       ownership_manager:
@@ -167,6 +167,8 @@ services:
     container_name: MD-postgres
     image: postgres:16
     restart: unless-stopped
+    ports:
+      - 5432:5432
     environment:
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
@@ -179,32 +181,6 @@ services:
       timeout: 15s
       retries: 10
       start_period: 3s
-
-  pgpool:
-    image: bitnamilegacy/pgpool:latest
-    ports:
-      - 5432:5432
-    environment:
-      - PGPOOL_BACKEND_NODES=0:postgres:5432
-      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER:-user1}
-      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD:-password123}
-      - PGPOOL_ENABLE_LDAP=no
-      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER:-user1}
-      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password123}
-      - PGPOOL_ADMIN_USERNAME=${POSTGRES_USER:-user1}
-      - PGPOOL_ADMIN_PASSWORD=${POSTGRES_PASSWORD:-password123}
-      - PGPOOL_MAX_POOL=${PGPOOL_MAX_POOL:-100}
-    healthcheck:
-      test: ["CMD", "/opt/bitnami/scripts/pgpool/healthcheck.sh"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - postgres:/bitnami/postgresql
-    depends_on:
-      postgres:
-        condition: service_healthy
-        restart: true
 
   pgadmin:
     container_name: pgadmin_container

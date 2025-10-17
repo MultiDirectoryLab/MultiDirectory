@@ -23,7 +23,6 @@ from pydantic import (
     field_validator,
 )
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-from sqlalchemy.pool import NullPool
 
 
 def _get_vendor_version() -> str:
@@ -51,7 +50,7 @@ class Settings(BaseModel):
     POSTGRES_SCHEMA: ClassVar[str] = "postgresql+psycopg"
     POSTGRES_DB: str = "postgres"
 
-    POSTGRES_HOST: str = "pgpool"
+    POSTGRES_HOST: str = "postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
@@ -71,6 +70,10 @@ class Settings(BaseModel):
     RAW_EVENT_STREAM_NAME: str = "RAW_EVENT_LOG"
     NORMALIZED_EVENT_STREAM_NAME: str = "NORMALIZED_EVENT_LOG"
     IS_PROC_EVENT_KEY: str = "IS_PROC_EVENT"
+
+    INSTANCE_DB_POOL_SIZE: int = 10
+    INSTANCE_DB_POOL_OVERFLOW: int = 30
+    INSTANCE_DB_POOL_TIMEOUT: int = 5
 
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
@@ -173,8 +176,12 @@ class Settings(BaseModel):
         """Get engine."""
         return create_async_engine(
             str(self.POSTGRES_URI),
-            poolclass=NullPool,
+            pool_size=self.INSTANCE_DB_POOL_SIZE,
+            max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
+            pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
+            pool_pre_ping=False,
             future=True,
+            echo=False,
         )
 
     @classmethod
