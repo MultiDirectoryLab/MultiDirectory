@@ -7,10 +7,10 @@ Create Date: 2025-10-03 09:35:10.399265
 """
 
 # revision identifiers, used by Alembic.
-revision = "c007129b7973"
-down_revision = "8164b4a9e1f1"
-branch_labels = None
-depends_on = None
+revision: None | str = "c007129b7973"
+down_revision: None | str = "8164b4a9e1f1"
+branch_labels: None | list[str] = None
+depends_on: None | list[str] = None
 
 
 def upgrade() -> None:
