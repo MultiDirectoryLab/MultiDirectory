@@ -38,7 +38,6 @@ services:
 
   traefik_certs_dumper:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: traefik_certs_dumper
     restart: "on-failure"
     env_file:
@@ -68,9 +67,19 @@ services:
     depends_on:
       - api_server
 
+  ownership_manager:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: ownership_manager
+    user: root
+    restart: "no"
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: sh -c "chown -R md:md /app/logs"
+
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: multidirectory_migrations
     restart: "no"
     env_file:
@@ -82,7 +91,6 @@ services:
 
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     restart: unless-stopped
     hostname: multidirectory-ldap
     env_file:
@@ -131,7 +139,6 @@ services:
 
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: multidirectory_api
     restart: unless-stopped
     env_file:
@@ -210,7 +217,6 @@ services:
 
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: multidirectory_certs_check
     restart: "no"
     volumes:
@@ -219,7 +225,6 @@ services:
 
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: md_maintence
     restart: unless-stopped
     volumes:
@@ -345,7 +350,6 @@ services:
 
   shadow_api:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: shadow_api
     restart: unless-stopped
     tty: true
@@ -362,7 +366,6 @@ services:
 
   event_handler:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: event_handler
     restart: unless-stopped
     tty: true
@@ -377,7 +380,6 @@ services:
 
   event_sender:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    user: md
     container_name: event_sender
     restart: unless-stopped
     tty: true

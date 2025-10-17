@@ -2,9 +2,20 @@
 # License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 services:
+
+  ownership_manager:
+    image: ghcr.io/multidirectorylab/multidirectory_test:beta
+    container_name: ownership_manager
+    user: root
+    restart: "no"
+    volumes:
+      - ./app:/app
+    env_file:
+      local.env
+    command: sh -c "chown -R md:md /app/logs"
+
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
-    user: md
     container_name: multidirectory_migrations
     restart: "no"
     environment:
@@ -20,7 +31,6 @@ services:
 
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
-    user: md
     container_name: multidirectory_certs_check
     restart: "no"
     command: ./extra/generate_cert.sh
@@ -29,7 +39,6 @@ services:
 
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
-    user: md
     container_name: multidirectory_api
     restart: unless-stopped
     command: python multidirectory.py --http
@@ -60,7 +69,6 @@ services:
 
   multidirectory_ldap:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
-    user: md
     container_name: multidirectory_ldap
     restart: unless-stopped
     hostname: multidirectory_ldap
