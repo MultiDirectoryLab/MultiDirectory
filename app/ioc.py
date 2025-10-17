@@ -322,10 +322,7 @@ class MainProvider(Provider):
     )
     pwd_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     pwd_policy_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
-    pwd_policy_adapter = provide(
-        PasswordPolicyAdapter,
-        scope=Scope.REQUEST,
-    )
+    pwd_policy_adapter = provide(PasswordPolicyAdapter, scope=Scope.REQUEST)
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)

@@ -258,10 +258,7 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     pwd_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    pwd_policy_adapter = provide(
-        PasswordPolicyAdapter,
-        scope=Scope.REQUEST,
-    )
+    pwd_policy_adapter = provide(PasswordPolicyAdapter, scope=Scope.REQUEST)
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
