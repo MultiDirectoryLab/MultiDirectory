@@ -38,5 +38,5 @@ class PasswordPolicyDTO(Generic[_IdT, _PriorityT]):
     minimum_password_age_days: int
     minimum_password_length: int
     password_must_meet_complexity_requirements: bool
-    id: _IdT = None  # type: ignore
-    priority: _PriorityT = None  # type: ignore
+    id: _IdT = None  # type: ignore[assignment]
+    priority: _PriorityT = None  # type: ignore[assignment]

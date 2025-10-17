@@ -252,7 +252,7 @@ async def test_delete(http_client: AsyncClient) -> None:
     )
     response = await http_client.post(
         "/password-policy",
-        json=password_policy_schema.__dict__,
+        json=password_policy_schema.model_dump(),
     )
     assert response.status_code == status.HTTP_201_CREATED
 
@@ -327,7 +327,7 @@ async def test_update_priorities(http_client: AsyncClient) -> None:
     )
     response = await http_client.post(
         "/password-policy",
-        json=password_policy_schema.__dict__,
+        json=password_policy_schema.model_dump(),
     )
     assert response.status_code == status.HTTP_201_CREATED
 
@@ -343,7 +343,7 @@ async def test_update_priorities(http_client: AsyncClient) -> None:
     )
     response = await http_client.post(
         "/password-policy",
-        json=password_policy_schema.__dict__,
+        json=password_policy_schema.model_dump(),
     )
     assert response.status_code == status.HTTP_201_CREATED
 
@@ -391,7 +391,7 @@ async def test_turnoff(http_client: AsyncClient) -> None:
     )
     response = await http_client.post(
         "/password-policy",
-        json=password_policy_schema.__dict__,
+        json=password_policy_schema.model_dump(),
     )
     assert response.status_code == status.HTTP_201_CREATED
 
