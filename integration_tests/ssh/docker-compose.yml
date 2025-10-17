@@ -28,6 +28,8 @@ services:
     depends_on:
       pgpool:
         condition: service_healthy
+      ownership_manager:
+        condition: service_completed_successfully
 
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta

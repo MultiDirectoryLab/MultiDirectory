@@ -88,6 +88,8 @@ services:
     depends_on:
       pgpool:
         condition: service_healthy
+      ownership_manager:
+        condition: service_completed_successfully
 
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}

@@ -108,6 +108,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ownership_manager:
+        condition: service_completed_successfully
 
   ldap_server:
     build:
