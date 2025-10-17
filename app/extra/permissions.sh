@@ -1,7 +1,7 @@
 #!/bin/sh
 
 chown -R md:md /app \
-            /app/logs/* \
+            /app/logs \
             /venvs \
             /LDAP_keytab \
             /certs \
