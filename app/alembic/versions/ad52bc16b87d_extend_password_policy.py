@@ -1,8 +1,8 @@
 """Extend Password Policy by priority and group membership.
 
-Revision ID: 46d52ecaed08
-Revises: 01f3f05a5b11
-Create Date: 2025-10-13 22:32:21.575866
+Revision ID: ad52bc16b87d
+Revises: f1abf7ef2443
+Create Date: 2025-10-20 12:57:49.157153
 
 """
 
@@ -10,10 +10,10 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "46d52ecaed08"
-down_revision = "01f3f05a5b11"
-branch_labels: None = None
-depends_on: None = None
+revision: None | str = "ad52bc16b87d"
+down_revision: None | str = "f1abf7ef2443"
+branch_labels: None | list[str] = None
+depends_on: None | list[str] = None
 
 
 def upgrade() -> None:
