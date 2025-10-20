@@ -412,7 +412,14 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         self,
         directory: Directory,
     ) -> PasswordPolicyDTO[int, int]:
-        """Get one Password Policy for one Directory."""
+        """Get one Password Policy for one Directory.
+
+        The password policy is calculated only for the "User" entity
+        based on its [the user's] groups with the lowest priority value.
+
+        If no policy is assigned, the DefaultDomainPasswordPolicy is applied.
+        For all other entities (not "User"), the DefaultDomainPasswordPolicy is applied.
+        """  # noqa: E501
         policy: PasswordPolicy | None = None
 
         if directory.entity_type and directory.entity_type.name == "User":
