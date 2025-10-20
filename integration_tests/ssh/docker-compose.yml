@@ -3,15 +3,15 @@
 
 services:
 
-  ownership_manager:
+  pre_run_manager:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
-    container_name: ownership_manager
+    container_name: pre_run_manager
     user: root
     restart: "no"
     volumes:
       - certs:/certs
       - ./entrypoint.sh:/app/entrypoint.sh
-    command: sh -c "/app/extra/permissions.sh"
+    command: sh -c "/app/extra/pre_run_setup.sh"
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: multidirectory_migrations
@@ -26,7 +26,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
   cert_check:
@@ -37,7 +37,7 @@ services:
     volumes:
       - certs:/certs
     depends_on:
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
 

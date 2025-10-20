@@ -111,9 +111,9 @@ services:
           cpus: '0.50'
           memory: 500M
 
-  ownership_manager:
+  pre_run_manager:
     image: multidirectory
-    container_name: ownership_manager
+    container_name: pre_run_manager
     user: root
     restart: "no"
     volumes:
@@ -123,7 +123,8 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ./audit:/audit
-    command: sh -c "/app/extra/permissions.sh"
+      - kdc:/etc
+    command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
     image: multidirectory
@@ -138,7 +139,7 @@ services:
       postgres:
         condition: service_healthy
         restart: true
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
 
@@ -151,7 +152,7 @@ services:
       - ./app:/app
     command: ./extra/generate_cert.sh
     depends_on:
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
 
@@ -214,6 +215,8 @@ services:
         condition: service_healthy
         restart: true
       cert_check:
+        condition: service_completed_successfully
+      pre_run_manager:
         condition: service_completed_successfully
     ports:
       - 8000:8000
@@ -301,6 +304,8 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+      pre_run_manager:
+        condition: service_completed_successfully
 
   kadmind:
     container_name: kadmind
@@ -317,6 +322,8 @@ services:
         restart: true
       kdc:
         condition: service_started
+      pre_run_manager:
+        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)

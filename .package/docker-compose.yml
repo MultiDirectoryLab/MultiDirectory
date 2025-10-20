@@ -67,9 +67,9 @@ services:
     depends_on:
       - api_server
 
-  ownership_manager:
+  pre_run_manager:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    container_name: ownership_manager
+    container_name: pre_run_manager
     user: root
     restart: "no"
     volumes:
@@ -80,7 +80,7 @@ services:
       - dns_server_config:/DNS_server_configs/
       - ./resolv.conf:/resolv.conf
       - ./audit:/audit
-    command: sh -c "/app/extra/permissions.sh"
+    command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -92,7 +92,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
   ldap_server:
@@ -205,7 +205,7 @@ services:
       - ./certs:/certs
     command: ./extra/generate_cert.sh
     depends_on:
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
   maintence:
