@@ -44,15 +44,15 @@ async def get(
 
 
 @password_policy_router.get(
-    "/result/{user_path}",
+    "/by_dir_path/{directory_path}",
     response_model=PasswordPolicySchema[int, int],
 )
-async def get_result(
-    user_path: str,
+async def get_password_policy_by_dir_path(
+    directory_path: str,
     adapter: FromDishka[PasswordPolicyAdapter],
 ) -> PasswordPolicySchema[int, int]:
     """Get one Password Policy."""
-    return await adapter.get_result(user_path)
+    return await adapter.get_password_policy_by_dir_path(directory_path)
 
 
 @password_policy_router.post("", status_code=status.HTTP_201_CREATED)

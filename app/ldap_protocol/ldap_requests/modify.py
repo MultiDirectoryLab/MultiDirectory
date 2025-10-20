@@ -202,7 +202,7 @@ class ModifyRequest(BaseRequest):
                 return
 
             password_policy = (
-                await ctx.password_use_cases.get_resulting_password_policy(
+                await ctx.password_use_cases.get_password_policy_for_dir(
                     directory,
                 )
             )

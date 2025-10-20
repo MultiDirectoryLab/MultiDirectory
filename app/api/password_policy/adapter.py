@@ -47,12 +47,14 @@ class PasswordPolicyAdapter(BaseAdapter[PasswordPolicyUseCases]):
         dto = await self._service.get(id_)
         return _convert_dto_to_schema(dto)
 
-    async def get_result(
+    async def get_password_policy_by_dir_path(
         self,
-        user_path: str,
+        directory_path: str,
     ) -> PasswordPolicySchema[int, int]:
         """Get one Password Policy."""
-        dto = await self._service.get_result(user_path)
+        dto = await self._service.get_password_policy_by_dir_path(
+            directory_path,
+        )
         return _convert_dto_to_schema(dto)
 
     async def create(

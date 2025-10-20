@@ -11,6 +11,12 @@ from fastapi import status
 from httpx import AsyncClient
 
 from api.password_policy.schemas import PasswordPolicySchema
+from config import Settings
+
+from .test_pwd_policy_datasets import (
+    test_get_policy_by_dir_path_extended_dataset,
+    test_update_priorities_dataset,
+)
 
 
 @pytest.mark.asyncio
@@ -91,8 +97,10 @@ async def test_create_without_priority(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_get_result_policy_for_user(http_client: AsyncClient) -> None:
-    """Test get resulting Password Policy for user endpoint."""
+async def test_get_policy_by_dir_path(
+    http_client: AsyncClient,
+) -> None:
+    """Test get Password Policy by directory path endpoint."""
     password_policy_schema = PasswordPolicySchema[None, int](
         priority=1,
         name="Test Password Policy",
@@ -114,10 +122,8 @@ async def test_get_result_policy_for_user(http_client: AsyncClient) -> None:
     data = response.json()
     assert any(policy["name"] == "Test Password Policy" for policy in data)
 
-    user_path = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-    response = await http_client.get(
-        f"/password-policy/result/{user_path}",
-    )
+    path = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    response = await http_client.get(f"/password-policy/by_dir_path/{path}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["name"] == "Test Password Policy"
@@ -125,65 +131,29 @@ async def test_get_result_policy_for_user(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_get_result_policy_for_user_2(http_client: AsyncClient) -> None:
-    """Test2 get resulting Password Policy for user endpoint."""
-    password_policy_schema = PasswordPolicySchema[None, int](
-        priority=1,
-        name="Test Password Policy",
-        group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )  # fmt: skip
-    response = await http_client.post(
-        "/password-policy",
-        json=password_policy_schema.model_dump(),
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-
-    password_policy_schema = PasswordPolicySchema[None, int](
-        priority=1,
-        name="Test Password Policy2",
-        group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )  # fmt: skip
-    response = await http_client.post(
-        "/password-policy",
-        json=password_policy_schema.model_dump(),
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-
-    password_policy_schema = PasswordPolicySchema[None, int](
-        priority=1,
-        name="Test Password Policy3",
-        group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )  # fmt: skip
-    response = await http_client.post(
-        "/password-policy",
-        json=password_policy_schema.model_dump(),
-    )
-    assert response.status_code == status.HTTP_201_CREATED
+@pytest.mark.parametrize(
+    "dataset",
+    test_get_policy_by_dir_path_extended_dataset,
+)
+async def test_get_policy_by_dir_path_extended(
+    dataset: list[PasswordPolicySchema],
+    http_client: AsyncClient,
+) -> None:
+    """Test get Password Policy by directory path endpoint."""
+    for password_policy_schema in dataset:
+        response = await http_client.post(
+            "/password-policy",
+            json=password_policy_schema.model_dump(),
+        )
+        assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.get("/password-policy/all")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert any(policy["name"] == "Test Password Policy" for policy in data)
 
-    user_path = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
-    response = await http_client.get(
-        f"/password-policy/result/{user_path}",
-    )
+    path = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    response = await http_client.get(f"/password-policy/by_dir_path/{path}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["name"] == "Test Password Policy3"
@@ -280,6 +250,7 @@ async def test_delete(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_reset_domain_policy_to_default_config(
     http_client: AsyncClient,
+    settings: Settings,
 ) -> None:
     """Test reset domain Password Policy to default config endpoint."""
     response = await http_client.get("/password-policy/all")
@@ -287,10 +258,16 @@ async def test_reset_domain_policy_to_default_config(
     data = response.json()
     policy_data = data[0]
 
+    assert policy_data["name"] == settings.DOMAIN_PASSWORD_POLICY_NAME
+    assert policy_data["password_history_length"] == settings.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
+    assert policy_data["maximum_password_age_days"] == settings.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+    assert policy_data["minimum_password_age_days"] == settings.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+    assert policy_data["minimum_password_length"] == settings.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
+    assert policy_data["password_must_meet_complexity_requirements"] == settings.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip
+
     changed_data = copy(policy_data)
     changed_data["maximum_password_age_days"] = 80
     changed_data["minimum_password_age_days"] = 30
-
     response = await http_client.put(
         f"/password-policy/{policy_data['id']}",
         json=changed_data,
@@ -313,39 +290,21 @@ async def test_reset_domain_policy_to_default_config(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_update_priorities(http_client: AsyncClient) -> None:
+@pytest.mark.parametrize(
+    "dataset",
+    test_update_priorities_dataset,
+)
+async def test_update_priorities(
+    dataset: list[PasswordPolicySchema],
+    http_client: AsyncClient,
+) -> None:
     """Test update priorities of all password policies endpoint."""
-    password_policy_schema = PasswordPolicySchema(
-        priority=1,
-        name="Test Password Policy 1",
-        group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )
-    response = await http_client.post(
-        "/password-policy",
-        json=password_policy_schema.model_dump(),
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-
-    password_policy_schema = PasswordPolicySchema(
-        priority=2,
-        name="Test Password Policy 2",
-        group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )
-    response = await http_client.post(
-        "/password-policy",
-        json=password_policy_schema.model_dump(),
-    )
-    assert response.status_code == status.HTTP_201_CREATED
+    for password_policy_schema in dataset:
+        response = await http_client.post(
+            "/password-policy",
+            json=password_policy_schema.model_dump(),
+        )
+        assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.get("/password-policy/all")
     assert response.status_code == status.HTTP_200_OK

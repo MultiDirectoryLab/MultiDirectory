@@ -41,9 +41,14 @@ class PasswordPolicyUseCases(AbstractService):
         """Get one Password Policy."""
         return await self._password_policy_dao.get(id_)
 
-    async def get_result(self, user_path: str) -> PasswordPolicyDTO[int, int]:
+    async def get_password_policy_by_dir_path(
+        self,
+        directory_path: str,
+    ) -> PasswordPolicyDTO[int, int]:
         """Get resulting Password Policy for user."""
-        return await self._password_policy_dao.get_result(user_path)
+        return await self._password_policy_dao.get_password_policy_by_dir_path(
+            directory_path,
+        )
 
     async def create(
         self,
@@ -92,12 +97,12 @@ class PasswordPolicyUseCases(AbstractService):
             directory_id,
         )
 
-    async def get_resulting_password_policy(
+    async def get_password_policy_for_dir(
         self,
         directory: Directory,
     ) -> PasswordPolicyDTO[int, int]:
         """Get resulting Password Policy for user."""
-        return await self._password_policy_dao.get_resulting_password_policy(
+        return await self._password_policy_dao.get_password_policy_for_dir(
             directory,
         )
 
@@ -145,7 +150,7 @@ class PasswordPolicyUseCases(AbstractService):
             )
         else:
             password_policy = (
-                await self._password_policy_dao.get_resulting_password_policy(
+                await self._password_policy_dao.get_password_policy_for_dir(
                     user.directory,
                 )
             )
