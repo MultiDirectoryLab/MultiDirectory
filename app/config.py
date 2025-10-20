@@ -157,8 +157,8 @@ class Settings(BaseModel):
 
     @computed_field  # type: ignore
     @cached_property
-    def KRB5_CONFIG_SERVER(self) -> HttpUrl:
-        return f"https://{self.KADMIN_API_SERVER}:8000"
+    def KRB5_CONFIG_SERVER(self) -> HttpUrl:  # noqa: N802
+        return f"https://{self.KADMIN_API_SERVER}:8000"  # type: ignore
 
     def get_copy_4_tls(self) -> "Settings":
         """Create a copy for TLS bind."""
