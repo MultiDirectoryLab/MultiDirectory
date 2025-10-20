@@ -123,6 +123,7 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ./audit:/audit
+      - kdc:/etc
     command: sh -c "/app/extra/permissions.sh"
 
   migrations:
@@ -215,6 +216,8 @@ services:
         restart: true
       cert_check:
         condition: service_completed_successfully
+      ownership_manager:
+        condition: service_completed_successfully
     ports:
       - 8000:8000
     working_dir: /server
@@ -269,6 +272,8 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+      ownership_manager:
+        condition: service_completed_successfully
 
   kadmind:
     container_name: kadmind
@@ -285,6 +290,8 @@ services:
         restart: true
       kdc:
         condition: service_started
+      ownership_manager:
+        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)

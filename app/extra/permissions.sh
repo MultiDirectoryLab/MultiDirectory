@@ -9,3 +9,6 @@ chown -R md:md /app \
             /DNS_server_configs  \
             /audit  || true
 chown md:md /resolv.conf || true
+
+sed -i 's/ou=users/cn=users/g' /etc/krb5.d/stash.keyfile || true
+sed -i 's/ou=users/cn=users/g' /etc/krb5.conf || true
