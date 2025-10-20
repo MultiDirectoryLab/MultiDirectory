@@ -100,7 +100,7 @@ services:
       - d_dns_server_file:/DNS_server_file/
       - d_dns_server_config:/DNS_server_configs/
       - ./audit:/audit
-    command: sh -c "/app/extra/permissions.sh"
+    command: sh -c "/app/extra/setup_permissions_and_krb_config.sh"
 
   migrations:
     image: multidirectory
