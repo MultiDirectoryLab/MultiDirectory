@@ -26,7 +26,7 @@ _convert_dto_to_schema = get_converter(
 )
 
 
-class PasswordPolicyAdapter(BaseAdapter[PasswordPolicyUseCases]):
+class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     """Adapter for password policies."""
 
     _exceptions_map: dict[type[Exception], int] = {

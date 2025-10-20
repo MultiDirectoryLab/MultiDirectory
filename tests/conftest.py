@@ -47,7 +47,7 @@ from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPolicyAdapter
+from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
@@ -274,7 +274,7 @@ class TestProvider(Provider):
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_policies_adapter = provide(
-        PasswordPolicyAdapter,
+        PasswordPolicyFastAPIAdapter,
         scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
