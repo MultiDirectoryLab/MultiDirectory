@@ -127,6 +127,7 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    user: root
     restart: unless-stopped
     hostname: multidirectory
     volumes:
