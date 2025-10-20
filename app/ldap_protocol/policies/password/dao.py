@@ -170,13 +170,16 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         """Get resulting Password."""
         directory = await self._session.scalar(
             select(Directory)
+            .options(
+                selectinload(qa(Directory.entity_type)),
+            )
             .filter_by(path=get_search_path(user_path)),
         )  # fmt: skip
 
         if not directory:
             raise PasswordPolicyNotFoundError("Directory not found.")
 
-        return await self.get_resulting_password_policy(directory.id)
+        return await self.get_resulting_password_policy(directory)
 
     async def create(self, dto: PasswordPolicyDTO[None, int | None]) -> None:
         """Create one Password Policy."""
@@ -401,23 +404,27 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
     async def get_resulting_password_policy(
         self,
-        directory_id: int,
+        directory: Directory,
     ) -> PasswordPolicyDTO[int, int]:
         """Get resulting Password Policy for user by directory_id in one query."""  # noqa: E501
-        policy = await self._session.scalar(
-            select(PasswordPolicy)
-            .join(qa(PasswordPolicy.groups))
-            .join(qa(Group.users))
-            .options(
-                selectinload(qa(PasswordPolicy.groups)).selectinload(
-                    qa(Group.directory),
-                ),
+        policy: PasswordPolicy | None = None
+
+        if directory.entity_type and directory.entity_type.name == "User":
+            policy = await self._session.scalar(
+                select(PasswordPolicy)
+                .join(qa(PasswordPolicy.groups))
+                .join(qa(Group.users))
+                .options(
+                    selectinload(qa(PasswordPolicy.groups)).selectinload(
+                        qa(Group.directory),
+                    ),
+                )
+                .filter(qa(User.directory_id) == directory.id)
+                .order_by(qa(PasswordPolicy.priority).asc())
+                .limit(1),
             )
-            .filter(qa(User.directory_id) == directory_id)
-            .order_by(qa(PasswordPolicy.priority).asc())
-            .limit(1),
-        )
-        if not policy:
+
+        if not policy:  # TODO сделай тут else
             policy = await self._get_raw_by_name(
                 self._settings.DOMAIN_PASSWORD_POLICY_NAME,
             )

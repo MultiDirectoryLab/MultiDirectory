@@ -403,8 +403,10 @@ class Group:
         compare=False,
     )
     password_policies: list[PasswordPolicy] = field(
+        init=False,
         default_factory=list,
         repr=False,
+        compare=False,
     )
     search_fields: ClassVar[dict[str, str]] = {}
 

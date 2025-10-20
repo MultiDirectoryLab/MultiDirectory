@@ -8,7 +8,7 @@ from itertools import islice
 
 from abstract_dao import AbstractService
 from config import Settings
-from entities import User
+from entities import Directory, User
 
 from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO
@@ -94,11 +94,11 @@ class PasswordPolicyUseCases(AbstractService):
 
     async def get_resulting_password_policy(
         self,
-        directory_id: int,
+        directory: Directory,
     ) -> PasswordPolicyDTO[int, int]:
         """Get resulting Password Policy for user."""
         return await self._pwd_policy_dao.get_resulting_password_policy(
-            directory_id,
+            directory,
         )
 
     async def post_save_password_actions(self, user: User) -> None:
@@ -144,7 +144,7 @@ class PasswordPolicyUseCases(AbstractService):
         else:
             password_policy = (
                 await self._pwd_policy_dao.get_resulting_password_policy(
-                    user.directory_id,
+                    user.directory,
                 )
             )
 

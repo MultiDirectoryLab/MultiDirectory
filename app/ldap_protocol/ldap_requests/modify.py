@@ -203,7 +203,7 @@ class ModifyRequest(BaseRequest):
 
             password_policy = (
                 await ctx.pwd_policy_use_cases.get_resulting_password_policy(
-                    directory.id,
+                    directory,
                 )
             )
             for change in self.changes:
