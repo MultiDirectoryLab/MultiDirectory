@@ -11,8 +11,8 @@ from fastapi import status
 from httpx import AsyncClient
 
 from api.password_policy.schemas import PasswordPolicySchema
-from config import Settings
 from ldap_protocol.policies.password.dataclasses import (
+    DefaultDomainPasswordPolicyPreset,
     TurnoffPasswordPolicyPreset,
 )
 
@@ -253,7 +253,6 @@ async def test_delete(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_reset_domain_policy_to_default_config(
     http_client: AsyncClient,
-    settings: Settings,
 ) -> None:
     """Test reset domain Password Policy to default config endpoint."""
     response = await http_client.get("/password-policy/all")
@@ -261,12 +260,12 @@ async def test_reset_domain_policy_to_default_config(
     data = response.json()
     policy_data = data[0]
 
-    assert policy_data["name"] == settings.DOMAIN_PASSWORD_POLICY_NAME
-    assert policy_data["password_history_length"] == settings.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
-    assert policy_data["maximum_password_age_days"] == settings.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-    assert policy_data["minimum_password_age_days"] == settings.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-    assert policy_data["minimum_password_length"] == settings.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
-    assert policy_data["password_must_meet_complexity_requirements"] == settings.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip
+    assert policy_data["name"] == DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME  # noqa: E501  # fmt: skip
+    assert policy_data["password_history_length"] == DefaultDomainPasswordPolicyPreset.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
+    assert policy_data["maximum_password_age_days"] == DefaultDomainPasswordPolicyPreset.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+    assert policy_data["minimum_password_age_days"] == DefaultDomainPasswordPolicyPreset.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+    assert policy_data["minimum_password_length"] == DefaultDomainPasswordPolicyPreset.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
+    assert policy_data["password_must_meet_complexity_requirements"] == DefaultDomainPasswordPolicyPreset.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip
 
     changed_data = copy(policy_data)
     changed_data["maximum_password_age_days"] = 80

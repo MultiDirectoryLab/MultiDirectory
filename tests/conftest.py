@@ -274,7 +274,8 @@ class TestProvider(Provider):
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_policies_adapter = provide(
-        PasswordPolicyAdapter, scope=Scope.REQUEST
+        PasswordPolicyAdapter,
+        scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
 
@@ -698,7 +699,7 @@ async def setup_session(
         audit_destination_dao,
         raw_audit_manager,
     )
-    password_policy_dao = PasswordPolicyDAO(session, Settings.from_os())
+    password_policy_dao = PasswordPolicyDAO(session)
     password_policy_validator = PasswordPolicyValidator(
         password_validator,
         Settings.from_os(),
@@ -706,7 +707,6 @@ async def setup_session(
     password_use_cases = PasswordPolicyUseCases(
         password_policy_dao,
         password_policy_validator,
-        Settings.from_os(),
     )
     await audit_use_case.create_policies()
     await setup_enviroment(
@@ -799,7 +799,7 @@ async def password_policy_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        yield PasswordPolicyDAO(session, Settings.from_os())
+        yield PasswordPolicyDAO(session)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -990,6 +990,7 @@ async def dns_manager(
     """Get DI DNS manager."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AbstractDNSManager)
+
 
 @pytest_asyncio.fixture
 async def dhcp_manager(

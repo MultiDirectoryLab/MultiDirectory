@@ -12,6 +12,18 @@ _PriorityT = TypeVar("_PriorityT", int, None, int | None)
 
 
 @dataclass(frozen=True)
+class DefaultDomainPasswordPolicyPreset:
+    """Preset for Default Domain Password Policy."""
+
+    DOMAIN_PASSWORD_POLICY_NAME: str = "Default domain password policy"  # noqa: S105
+    PASSWORD_HISTORY_LENGTH: int = 4
+    MAXIMUM_PASSWORD_AGE_DAYS: int = 0
+    MINIMUM_PASSWORD_AGE_DAYS: int = 0
+    MINIMUM_PASSWORD_LENGTH: int = 7
+    PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS: bool = True
+
+
+@dataclass(frozen=True)
 class TurnoffPasswordPolicyPreset:
     """Preset for turning off Password Policy."""
 

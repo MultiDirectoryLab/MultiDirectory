@@ -7,11 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from itertools import islice
 
 from abstract_dao import AbstractService
-from config import Settings
 from entities import Directory, User
 
 from .dao import PasswordPolicyDAO
-from .dataclasses import PasswordPolicyDTO
+from .dataclasses import DefaultDomainPasswordPolicyPreset, PasswordPolicyDTO
 from .validator import PasswordPolicyValidator
 
 
@@ -20,18 +19,15 @@ class PasswordPolicyUseCases(AbstractService):
 
     _password_policy_dao: PasswordPolicyDAO
     _password_policy_validator: PasswordPolicyValidator
-    _settings: Settings
 
     def __init__(
         self,
         password_policy_dao: PasswordPolicyDAO,
         password_policy_validator: PasswordPolicyValidator,
-        settings: Settings,
     ) -> None:
         """Initialize Password Policy Use Cases."""
         self._password_policy_dao = password_policy_dao
         self._password_policy_validator = password_policy_validator
-        self._settings = settings
 
     async def get_all(self) -> list[PasswordPolicyDTO[int, int]]:
         """Get all Password Policies."""
@@ -142,7 +138,7 @@ class PasswordPolicyUseCases(AbstractService):
         """
         if not user:
             password_policy = await self._password_policy_dao.get_by_name(
-                self._settings.DOMAIN_PASSWORD_POLICY_NAME,
+                DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME,
             )
         else:
             password_policy = (
