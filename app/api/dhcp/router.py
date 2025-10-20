@@ -17,6 +17,7 @@ from ldap_protocol.dhcp.schemas import (
     DHCPLeaseSchemaResponse,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
+    DHCPStateSchemaResponse,
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
 )
@@ -38,6 +39,14 @@ async def setup_dhcp(
 ) -> None:
     """Configure the DHCP server."""
     await dhcp_adapter.change_state(state_data)
+
+
+@dhcp_router.get("/service/state")
+async def get_dhcp_state(
+    dhcp_adapter: FromDishka[DHCPAdapter],
+) -> DHCPStateSchemaResponse:
+    """Get the current state of the DHCP server."""
+    return await dhcp_adapter.get_state()
 
 
 @dhcp_router.post("/subnet", status_code=status.HTTP_201_CREATED)
