@@ -51,7 +51,7 @@ class PasswordPolicyAdapter(BaseAdapter[PasswordPolicyUseCases]):
         self,
         directory_path: str,
     ) -> PasswordPolicySchema[int, int]:
-        """Get one Password Policy."""
+        """Get one Password Policy for one Directory by its path."""
         dto = await self._service.get_password_policy_by_dir_path(
             directory_path,
         )

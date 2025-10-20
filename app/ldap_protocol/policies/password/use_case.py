@@ -45,7 +45,7 @@ class PasswordPolicyUseCases(AbstractService):
         self,
         directory_path: str,
     ) -> PasswordPolicyDTO[int, int]:
-        """Get resulting Password Policy for user."""
+        """Get one Password Policy for one Directory by its path."""
         return await self._password_policy_dao.get_password_policy_by_dir_path(
             directory_path,
         )

@@ -175,7 +175,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         self,
         directory_path: str,
     ) -> PasswordPolicyDTO[int, int]:
-        """Get resulting Password."""
+        """Get one Password Policy for one Directory by its path."""
         directory = await self._session.scalar(
             select(Directory)
             .options(
@@ -408,7 +408,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         self,
         directory: Directory,
     ) -> PasswordPolicyDTO[int, int]:
-        """Get resulting Password Policy for directory in one query."""
+        """Get one Password Policy for one Directory."""
         policy: PasswordPolicy | None = None
 
         if directory.entity_type and directory.entity_type.name == "User":

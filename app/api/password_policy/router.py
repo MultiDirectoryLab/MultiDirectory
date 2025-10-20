@@ -51,7 +51,7 @@ async def get_password_policy_by_dir_path(
     directory_path: str,
     adapter: FromDishka[PasswordPolicyAdapter],
 ) -> PasswordPolicySchema[int, int]:
-    """Get one Password Policy."""
+    """Get one Password Policy for one Directory by its path."""
     return await adapter.get_password_policy_by_dir_path(directory_path)
 
 
