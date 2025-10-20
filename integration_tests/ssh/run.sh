@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 curl -X 'POST' \
   'http://localhost:8000/auth/setup' \
