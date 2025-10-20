@@ -12,7 +12,7 @@ from api.auth import get_current_user
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.schemas import PasswordPolicySchema
 
-password_policy_router = APIRouter(
+pwd_router = APIRouter(
     prefix="/password-policy",
     dependencies=[Depends(get_current_user)],
     tags=["Password Policy"],
@@ -20,7 +20,7 @@ password_policy_router = APIRouter(
 )
 
 
-@password_policy_router.get(
+@pwd_router.get(
     "/all",
     response_model=list[PasswordPolicySchema[int, int]],
 )
@@ -31,7 +31,7 @@ async def get_all(
     return await adapter.get_all()
 
 
-@password_policy_router.get(
+@pwd_router.get(
     "/{id_}",
     response_model=PasswordPolicySchema[int, int],
 )
@@ -43,7 +43,7 @@ async def get(
     return await adapter.get(id_)
 
 
-@password_policy_router.get(
+@pwd_router.get(
     "/by_dir_path/{directory_path}",
     response_model=PasswordPolicySchema[int, int],
 )
@@ -55,7 +55,7 @@ async def get_password_policy_by_dir_path(
     return await adapter.get_password_policy_by_dir_path(directory_path)
 
 
-@password_policy_router.post("", status_code=status.HTTP_201_CREATED)
+@pwd_router.post("", status_code=status.HTTP_201_CREATED)
 async def create(
     policy: PasswordPolicySchema[None, int | None],
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
@@ -64,7 +64,7 @@ async def create(
     await adapter.create(policy)
 
 
-@password_policy_router.put("/{id_}")
+@pwd_router.put("/{id_}")
 async def update(
     id_: int,
     policy: PasswordPolicySchema[int, int | None],
@@ -74,7 +74,7 @@ async def update(
     await adapter.update(id_, policy)
 
 
-@password_policy_router.delete("/{id_}")
+@pwd_router.delete("/{id_}")
 async def delete(
     id_: int,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
@@ -83,7 +83,7 @@ async def delete(
     await adapter.delete(id_)
 
 
-@password_policy_router.put("/reset/domain_policy_to_default_config")
+@pwd_router.put("/reset/domain_policy_to_default_config")
 async def reset_domain_policy_to_default_config(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
@@ -91,7 +91,7 @@ async def reset_domain_policy_to_default_config(
     await adapter.reset_domain_policy_to_default_config()
 
 
-@password_policy_router.put("/update/priorities")
+@pwd_router.put("/update/priorities")
 async def update_priorities(
     new_priorities: dict[int, int],
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
@@ -100,7 +100,7 @@ async def update_priorities(
     await adapter.update_priorities(new_priorities)
 
 
-@password_policy_router.put("/turnoff/{id_}")
+@pwd_router.put("/turnoff/{id_}")
 async def turnoff(
     id_: int,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
