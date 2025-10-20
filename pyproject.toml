@@ -36,7 +36,7 @@ dependencies = [
     "redis>=5.2.1",
     "sqlalchemy[asyncio,mypy]>=2.0.35",
     "uvicorn>=0.34.2",
-    "uvloop==0.21.0",
+    "uvloop==0.22.1",
     "websockets>=15.0",
 ]
 
