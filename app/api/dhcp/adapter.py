@@ -21,6 +21,7 @@ from ldap_protocol.dhcp import (
     DHCPLeaseSchemaResponse,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
+    DHCPStateSchemaResponse,
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
 )
@@ -230,3 +231,9 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
     ) -> None:
         """Configure the DHCP server."""
         await self._service.change_state(state_data.dhcp_manager_state)
+
+    async def get_state(self) -> DHCPStateSchemaResponse:
+        """Get the current state of the DHCP server."""
+        return DHCPStateSchemaResponse(
+            dhcp_manager_state=await self._service.get_state(),
+        )

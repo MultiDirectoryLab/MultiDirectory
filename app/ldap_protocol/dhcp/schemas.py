@@ -144,3 +144,9 @@ class DHCPChangeStateSchemaRequest(BaseModel):
     """Schema for setting up the DHCP server."""
 
     dhcp_manager_state: DHCPManagerState
+
+
+class DHCPStateSchemaResponse(BaseModel):
+    """Schema for responding with DHCP server state."""
+
+    dhcp_manager_state: DHCPManagerState

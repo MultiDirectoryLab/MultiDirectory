@@ -40,6 +40,14 @@ async def setup_dhcp(
     await dhcp_adapter.change_state(state_data)
 
 
+@dhcp_router.get("/service/state")
+async def get_dhcp_state(
+    dhcp_adapter: FromDishka[DHCPAdapter],
+) -> None:
+    """Get the current state of the DHCP server."""
+    return await dhcp_adapter.get_state()
+
+
 @dhcp_router.post("/subnet", status_code=status.HTTP_201_CREATED)
 async def create_dhcp_subnet(
     subnet_data: DHCPSubnetSchemaAddRequest,
