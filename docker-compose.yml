@@ -124,7 +124,7 @@ services:
       - dns_server_config:/DNS_server_configs/
       - ./audit:/audit
       - kdc:/etc
-    command: sh -c "/app/extra/setup_permissions_and_krb_config.sh"
+    command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
     image: multidirectory

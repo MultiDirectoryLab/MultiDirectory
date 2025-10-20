@@ -11,7 +11,7 @@ services:
     volumes:
       - certs:/certs
       - ./entrypoint.sh:/app/entrypoint.sh
-    command: sh -c "/app/extra/setup_permissions_and_krb_config.sh"
+    command: sh -c "/app/extra/pre_run_setup.sh"
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: multidirectory_migrations

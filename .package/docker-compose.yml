@@ -80,7 +80,7 @@ services:
       - dns_server_config:/DNS_server_configs/
       - ./resolv.conf:/resolv.conf
       - ./audit:/audit
-    command: sh -c "/app/extra/setup_permissions_and_krb_config.sh"
+    command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
