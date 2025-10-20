@@ -43,7 +43,7 @@ from ldap_protocol.utils.queries import (
 )
 from repo.pg.tables import queryable_attr as qa
 
-from .dataclasses import PasswordPolicyDTO, TurnoffPasswordPolicyPreset as OffP
+from .dataclasses import PasswordPolicyDTO, TurnoffPasswordPolicyPreset
 
 
 def _make_group_paths(password_policy: PasswordPolicy) -> list[str]:
@@ -396,13 +396,11 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if not policy:
             raise PasswordPolicyNotFoundError("Password Policy not found.")
 
-        policy.password_history_length = OffP.PASSWORD_HISTORY_LENGTH.value
-        policy.maximum_password_age_days = OffP.MAXIMUM_PASSWORD_AGE_DAYS.value
-        policy.minimum_password_age_days = OffP.MINIMUM_PASSWORD_AGE_DAYS.value
-        policy.minimum_password_length = OffP.MINIMUM_PASSWORD_LENGTH.value
-        policy.password_must_meet_complexity_requirements = (
-            OffP.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS.value
-        )
+        policy.password_history_length = TurnoffPasswordPolicyPreset.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
+        policy.maximum_password_age_days = TurnoffPasswordPolicyPreset.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+        policy.minimum_password_age_days = TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+        policy.minimum_password_length = TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
+        policy.password_must_meet_complexity_requirements = TurnoffPasswordPolicyPreset.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip
 
         await self._session.flush()
 

@@ -12,6 +12,9 @@ from httpx import AsyncClient
 
 from api.password_policy.schemas import PasswordPolicySchema
 from config import Settings
+from ldap_protocol.policies.password.dataclasses import (
+    TurnoffPasswordPolicyPreset,
+)
 
 from .test_pwd_policy_datasets import (
     test_get_policy_by_dir_path_extended_dataset,
@@ -373,9 +376,9 @@ async def test_turnoff(http_client: AsyncClient) -> None:
     assert data["id"] == id_
     assert data["name"] == password_policy_schema.name
     assert data["priority"] == password_policy_schema.priority
-    assert data["group_paths"] == []
-    assert data["password_history_length"] == 0
-    assert data["maximum_password_age_days"] == 0
-    assert data["minimum_password_age_days"] == 0
-    assert data["minimum_password_length"] == 0
-    assert data["password_must_meet_complexity_requirements"] is False
+    assert data["group_paths"] == password_policy_schema.group_paths
+    assert data["password_history_length"] == TurnoffPasswordPolicyPreset.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
+    assert data["maximum_password_age_days"] == TurnoffPasswordPolicyPreset.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+    assert data["minimum_password_age_days"] == TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
+    assert data["minimum_password_length"] == TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
+    assert data["password_must_meet_complexity_requirements"] is TurnoffPasswordPolicyPreset.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip

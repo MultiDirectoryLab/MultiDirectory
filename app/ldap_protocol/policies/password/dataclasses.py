@@ -5,19 +5,21 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar
 
 _IdT = TypeVar("_IdT", int, None)
 _PriorityT = TypeVar("_PriorityT", int, None, int | None)
 
 
-class TurnoffPasswordPolicyPreset(Enum):
-    PASSWORD_HISTORY_LENGTH = 0
-    MAXIMUM_PASSWORD_AGE_DAYS = 0
-    MINIMUM_PASSWORD_AGE_DAYS = 0
-    MINIMUM_PASSWORD_LENGTH = 0
-    PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS = False
+@dataclass(frozen=True)
+class TurnoffPasswordPolicyPreset:
+    """Preset for turning off Password Policy."""
+
+    PASSWORD_HISTORY_LENGTH: Literal[0] = 0
+    MAXIMUM_PASSWORD_AGE_DAYS: Literal[0] = 0
+    MINIMUM_PASSWORD_AGE_DAYS: Literal[0] = 0
+    MINIMUM_PASSWORD_LENGTH: Literal[0] = 0
+    PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS: Literal[False] = False
 
 
 @dataclass
