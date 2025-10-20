@@ -458,7 +458,6 @@ password_policies_table = Table(
     Column(
         "name",
         String(255),
-        index=True,
         nullable=False,
         unique=True,
     ),
@@ -487,7 +486,11 @@ password_policies_table = Table(
         Boolean,
         nullable=False,
     ),
-    Index("idx_password_policies_name", "name", postgresql_using="hash"),
+    Index(
+        "idx_password_policies_name",
+        "name",
+        postgresql_using="hash",
+    ),
 )
 
 roles_table = Table(

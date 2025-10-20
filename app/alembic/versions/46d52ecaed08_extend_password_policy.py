@@ -22,9 +22,9 @@ def upgrade() -> None:
         op.f("idx_password_policies_name"),
         "PasswordPolicies",
         ["name"],
-        unique=False,
         postgresql_using="hash",
     )
+
     op.add_column(
         "PasswordPolicies",
         sa.Column(
@@ -110,6 +110,7 @@ def downgrade() -> None:
     )
 
     op.drop_column("PasswordPolicies", "priority")
+
     op.drop_index(
         op.f("idx_password_policies_name"),
         table_name="PasswordPolicies",
