@@ -10,7 +10,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from ldap_protocol.policies.password.schemas import PasswordPolicySchema
+from api.password_policy.schemas import PasswordPolicySchema
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, status
 
 from api.auth import get_current_user
 from api.password_policy.adapter import PasswordPolicyAdapter
-from ldap_protocol.policies.password.schemas import PasswordPolicySchema
+from api.password_policy.schemas import PasswordPolicySchema
 
 password_policy_router = APIRouter(
     prefix="/password-policy",

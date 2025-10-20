@@ -8,6 +8,7 @@ from adaptix.conversion import get_converter
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
+from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
@@ -16,7 +17,6 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyNotFoundError,
     PasswordPolicyUpdatePrioritiesError,
 )
-from ldap_protocol.policies.password.schemas import PasswordPolicySchema
 from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
