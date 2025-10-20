@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from loguru import logger as loguru_logger
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -56,7 +55,5 @@ class DHCPManagerRepository:
             )
 
         await self._session.flush()
-
-        loguru_logger.error(f"DHCP Manager state ensured: {current_state}")
 
         return current_state or DHCPManagerState.NOT_CONFIGURED
