@@ -133,8 +133,6 @@ services:
     volumes:
       - ./certs:/certs
       - ./app:/app
-    environment:
-      KRB5_CONFIG_SERVER: kadmin_api
     command: ./extra/generate_cert.sh
 
   cert_local_check:
