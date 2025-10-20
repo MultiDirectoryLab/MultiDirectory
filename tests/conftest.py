@@ -252,7 +252,7 @@ class TestProvider(Provider):
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
-    pwd_policy_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
+    password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
     password_policy_validator = provide(
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
@@ -684,7 +684,7 @@ async def setup_session(
         password_validator,
         Settings.from_os(),
     )
-    pwd_policy_use_cases = PasswordPolicyUseCases(
+    password_use_cases = PasswordPolicyUseCases(
         pwd_policy_dao,
         password_policy_validator,
         Settings.from_os(),
@@ -698,7 +698,7 @@ async def setup_session(
     )
 
     # NOTE: after setup environment we need base DN to be created
-    await pwd_policy_use_cases.create_default_domain_policy()
+    await password_use_cases.create_default_domain_policy()
 
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)

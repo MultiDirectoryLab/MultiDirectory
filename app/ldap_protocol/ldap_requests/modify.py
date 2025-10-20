@@ -181,7 +181,7 @@ class ModifyRequest(BaseRequest):
 
         if (
             password_change_requested
-            and await ctx.pwd_policy_use_cases.is_password_change_restricted(
+            and await ctx.password_use_cases.is_password_change_restricted(
                 directory.id,
             )
         ):
@@ -202,7 +202,7 @@ class ModifyRequest(BaseRequest):
                 return
 
             password_policy = (
-                await ctx.pwd_policy_use_cases.get_resulting_password_policy(
+                await ctx.password_use_cases.get_resulting_password_policy(
                     directory,
                 )
             )
@@ -220,7 +220,7 @@ class ModifyRequest(BaseRequest):
                     ctx.kadmin,
                     ctx.settings,
                     ctx.ldap_session.user,
-                    ctx.pwd_policy_use_cases,
+                    ctx.password_use_cases,
                     ctx.password_validator,
                 )
 
@@ -719,7 +719,7 @@ class ModifyRequest(BaseRequest):
         kadmin: AbstractKadmin,
         settings: Settings,
         current_user: UserSchema,
-        pwd_policy_use_cases: PasswordPolicyUseCases,
+        password_use_cases: PasswordPolicyUseCases,
         password_validator: PasswordValidator,
     ) -> None:
         attrs = []
@@ -863,7 +863,7 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                errors = await pwd_policy_use_cases.check_password_violations(
+                errors = await password_use_cases.check_password_violations(
                     password=value,
                     user=directory.user,
                 )
@@ -876,7 +876,7 @@ class ModifyRequest(BaseRequest):
                 directory.user.password = password_validator.get_password_hash(
                     value,
                 )
-                await pwd_policy_use_cases.post_save_password_actions(
+                await password_use_cases.post_save_password_actions(
                     directory.user,
                 )
                 await kadmin.create_or_update_principal_pw(

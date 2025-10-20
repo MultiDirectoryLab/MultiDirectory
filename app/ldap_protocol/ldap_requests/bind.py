@@ -186,17 +186,15 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        pwd_last_set = (
-            await ctx.pwd_policy_use_cases.get_or_create_pwd_last_set(
-                user.directory_id,
-            )
+        pwd_last_set = await ctx.password_use_cases.get_or_create_pwd_last_set(
+            user.directory_id,
         )
         password_policy = (
-            await ctx.pwd_policy_use_cases.get_resulting_password_policy(
+            await ctx.password_use_cases.get_resulting_password_policy(
                 user.directory,
             )
         )
-        is_pwd_expired = await ctx.pwd_policy_use_cases.check_expired_max_age(
+        is_pwd_expired = await ctx.password_use_cases.check_expired_max_age(
             password_policy,
             user,
         )
