@@ -111,9 +111,9 @@ services:
           cpus: '0.50'
           memory: 500M
 
-  ownership_manager:
+  pre_run_manager:
     image: multidirectory
-    container_name: ownership_manager
+    container_name: pre_run_manager
     user: root
     restart: "no"
     volumes:
@@ -139,7 +139,7 @@ services:
       postgres:
         condition: service_healthy
         restart: true
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
 
@@ -152,7 +152,7 @@ services:
       - ./app:/app
     command: ./extra/generate_cert.sh
     depends_on:
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
 
@@ -216,7 +216,7 @@ services:
         restart: true
       cert_check:
         condition: service_completed_successfully
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
     ports:
       - 8000:8000
@@ -272,7 +272,7 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
 
   kadmind:
@@ -290,7 +290,7 @@ services:
         restart: true
       kdc:
         condition: service_started
-      ownership_manager:
+      pre_run_manager:
         condition: service_completed_successfully
     labels:
       - traefik.enable=true
