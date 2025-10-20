@@ -42,6 +42,7 @@ from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
@@ -53,6 +54,7 @@ from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
 from extra import setup_enviroment
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
+from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -126,6 +128,7 @@ class TestProvider(Provider):
     _cached_kadmin: Mock | None = None
     _cached_audit_service: Mock | None = None
     _cached_dns_manager: Mock | None = None
+    _cached_dhcp_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
 
     @provide(scope=Scope.APP, provides=AbstractKadmin)
@@ -154,6 +157,18 @@ class TestProvider(Provider):
         yield self._cached_kadmin
 
         self._cached_kadmin = None
+
+    @provide(scope=Scope.REQUEST, provides=AbstractDHCPManager)
+    async def get_dhcp_mngr(self) -> AsyncIterator[AsyncMock]:
+        """Get mock DHCP manager."""
+        dhcp_manager = AsyncMock(spec=StubDHCPManager)
+
+        if not self._cached_dhcp_manager:
+            self._cached_dhcp_manager = dhcp_manager
+
+        yield self._cached_dhcp_manager
+
+        self._cached_dhcp_manager = None
 
     @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
     async def get_dns_mngr(self) -> AsyncIterator[AsyncMock]:
@@ -536,6 +551,8 @@ class TestProvider(Provider):
     )
 
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
+
+    dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
 
 
 @dataclass
@@ -971,6 +988,14 @@ async def dns_manager(
     """Get DI DNS manager."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AbstractDNSManager)
+
+@pytest_asyncio.fixture
+async def dhcp_manager(
+    container: AsyncContainer,
+) -> AsyncIterator[AbstractDHCPManager]:
+    """Get DI DHCP manager."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(AbstractDHCPManager)
 
 
 @pytest.fixture
