@@ -125,7 +125,7 @@ async def test_get_policy_by_dir_path(
     data = response.json()
     assert any(policy["name"] == "Test Password Policy" for policy in data)
 
-    path = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    path = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
     response = await http_client.get(f"/password-policy/by_dir_path/{path}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -155,7 +155,7 @@ async def test_get_policy_by_dir_path_extended(
     data = response.json()
     assert any(policy["name"] == "Test Password Policy" for policy in data)
 
-    path = "cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test"
+    path = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
     response = await http_client.get(f"/password-policy/by_dir_path/{path}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
