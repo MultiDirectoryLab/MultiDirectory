@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 CERT_PATH="/certs/krbcert.pem"
 EXPIRATION_THRESHOLD=30

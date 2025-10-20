@@ -213,7 +213,11 @@ class Directory:
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
-        return {"organizationalUnit": "ou", "domain": "dc"}.get(
+        return {
+            "organizationalUnit": "ou",
+            "domain": "dc",
+            "container": "cn",
+        }.get(
             self.object_class,
             "cn",
         )  # type: ignore

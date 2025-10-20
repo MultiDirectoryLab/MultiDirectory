@@ -67,6 +67,21 @@ services:
     depends_on:
       - api_server
 
+  pre_run_manager:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: pre_run_manager
+    user: root
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+      - ./logs:/app/logs
+      - ldap_keytab:/LDAP_keytab/
+      - dns_server_file:/DNS_server_file/
+      - dns_server_config:/DNS_server_configs/
+      - ./resolv.conf:/resolv.conf
+      - ./audit:/audit
+    command: sh -c "/app/extra/pre_run_setup.sh"
+
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_migrations
@@ -75,8 +90,10 @@ services:
       .env
     command: python multidirectory.py --migrate
     depends_on:
-      pgpool:
+      postgres:
         condition: service_healthy
+      pre_run_manager:
+        condition: service_completed_successfully
 
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -180,30 +197,6 @@ services:
       retries: 10
       start_period: 5s
 
-  pgpool:
-    image: bitnamilegacy/pgpool:latest
-    environment:
-      - PGPOOL_BACKEND_NODES=0:postgres:5432
-      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER:-user1}
-      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD:-password123}
-      - PGPOOL_ENABLE_LDAP=no
-      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER:-user1}
-      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password123}
-      - PGPOOL_ADMIN_USERNAME=${POSTGRES_USER:-user1}
-      - PGPOOL_ADMIN_PASSWORD=${POSTGRES_PASSWORD:-password123}
-      - PGPOOL_MAX_POOL=${PGPOOL_MAX_POOL:-100}
-    healthcheck:
-      test: ["CMD", "/opt/bitnami/scripts/pgpool/healthcheck.sh"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - postgres:/bitnami/postgresql
-    depends_on:
-      postgres:
-        condition: service_healthy
-        restart: true
-
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_certs_check
@@ -211,6 +204,9 @@ services:
     volumes:
       - ./certs:/certs
     command: ./extra/generate_cert.sh
+    depends_on:
+      pre_run_manager:
+        condition: service_completed_successfully
 
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -316,6 +312,38 @@ services:
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
       - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
 
+  kea_dhcp4:
+    image: ghcr.io/multidirectorylab/multidirectory_dhcp4:${VERSION:-latest}
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    build:
+      context: .
+      dockerfile: ./.docker/kea.Dockerfile
+    container_name: kea_dhcp4
+    tty: true
+    restart: unless-stopped
+    command: -c /kea/config/kea-dhcp4.conf
+    volumes:
+      - kea_data:/var/lib/kea
+      - ./.dhcp:/kea/config
+      - sockets:/kea/sockets
+      - leases:/kea/leases
+
+  kea_ctrl_agent:
+    image: jonasal/kea-ctrl-agent:3.1.2-alpine
+    container_name: kea_ctrl_agent
+    restart: unless-stopped
+    command: -c /kea/config/kea-ctrl-agent.conf
+    tty: true
+    depends_on:
+      kea_dhcp4:
+        condition: service_started
+    volumes:
+      - ./.dhcp:/kea/config
+      - sockets:/kea/sockets
+      - leases:/kea/leases
+
   dragonfly_mem:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly
@@ -391,3 +419,6 @@ volumes:
   dns_server_config:
   dragonflydata:
   ldap_keytab:
+  kea_data:
+  leases:
+  sockets:

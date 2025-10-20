@@ -118,7 +118,7 @@ class KerberosService(AbstractService):
         :return KerberosAdminDnGroup:
             dataclass with DN for krbadmin, services_container, krbadmin_group.
         """
-        krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
+        krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
         services_container = f"ou=services,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
         return KerberosAdminDnGroup(
@@ -254,7 +254,7 @@ class KerberosService(AbstractService):
         :return KDCContext: dataclass with all required KDC context fields.
         """
         base_dn, domain = await self._get_base_dn()
-        krbadmin = f"cn=krbadmin,ou=users,{base_dn}"
+        krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
         services_container = f"ou=services,{base_dn}"
         return KDCContext(

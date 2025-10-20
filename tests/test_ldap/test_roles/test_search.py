@@ -30,7 +30,7 @@ async def test_role_search_1(settings: Settings, creds: TestCreds) -> None:
         settings=settings,
         creds=creds,
         search_base=BASE_DN,
-        expected_dn=["dn: cn=user_non_admin,ou=users,dc=md,dc=test"],
+        expected_dn=["dn: cn=user_non_admin,cn=users,dc=md,dc=test"],
         expected_attrs_present=[],
         expected_attrs_absent=[],
     )
@@ -66,7 +66,7 @@ async def test_role_search_2(
         search_base=BASE_DN,
         expected_dn=[
             "dn: cn=groups,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
         ],
         expected_attrs_present=[],
         expected_attrs_absent=[],
@@ -103,8 +103,8 @@ async def test_role_search_3(
         search_base=BASE_DN,
         expected_dn=[
             "dn: cn=groups,dc=md,dc=test",
-            "dn: ou=users,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            "dn: cn=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
             "dn: ou=test_bit_rules,dc=md,dc=test",
             "dn: ou=testModifyDn1,dc=md,dc=test",
             "dn: ou=testModifyDn3,dc=md,dc=test",
@@ -148,7 +148,7 @@ async def test_role_search_4(
             "dn: cn=domain computers,cn=groups,dc=md,dc=test",
             "dn: cn=developers,cn=groups,dc=md,dc=test",
             "dn: cn=domain users,cn=groups,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
         ],
         expected_attrs_present=[],
         expected_attrs_absent=[],
@@ -188,10 +188,10 @@ async def test_role_search_5(
         creds=creds,
         search_base=BASE_DN,
         expected_dn=[
-            "dn: cn=user1,ou=moscow,ou=russia,ou=users,dc=md,dc=test",
-            "dn: cn=user_non_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user_admin,ou=users,dc=md,dc=test",
-            "dn: cn=user0,ou=users,dc=md,dc=test",
+            "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user_admin,cn=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
             "dn: cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
@@ -229,7 +229,7 @@ async def test_role_search_6(
         role_id=custom_role.get_id(),
         ace_type=AceType.READ,
         scope=RoleScope.BASE_OBJECT,
-        base_dn="cn=user0,ou=users,dc=md,dc=test",
+        base_dn="cn=user0,cn=users,dc=md,dc=test",
         attribute_type_id=posix_email_attr.id,
         entity_type_id=user_entity_type.id,
         is_allow=True,
@@ -240,9 +240,9 @@ async def test_role_search_6(
     await perform_ldap_search_and_validate(
         settings=settings,
         creds=creds,
-        search_base="cn=user0,ou=users,dc=md,dc=test",
+        search_base="cn=user0,cn=users,dc=md,dc=test",
         expected_dn=[
-            "dn: cn=user0,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
         ],
         expected_attrs_present=[
             "posixEmail: abctest@mail.com",
@@ -279,7 +279,7 @@ async def test_role_search_7(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
-            base_dn="cn=user0,ou=users,dc=md,dc=test",
+            base_dn="cn=user0,cn=users,dc=md,dc=test",
             attribute_type_id=None,
             entity_type_id=user_entity_type.id,
             is_allow=True,
@@ -288,7 +288,7 @@ async def test_role_search_7(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
-            base_dn="cn=user0,ou=users,dc=md,dc=test",
+            base_dn="cn=user0,cn=users,dc=md,dc=test",
             attribute_type_id=description_attr.id,
             entity_type_id=user_entity_type.id,
             is_allow=False,
@@ -300,9 +300,9 @@ async def test_role_search_7(
     await perform_ldap_search_and_validate(
         settings=settings,
         creds=creds,
-        search_base="cn=user0,ou=users,dc=md,dc=test",
+        search_base="cn=user0,cn=users,dc=md,dc=test",
         expected_dn=[
-            "dn: cn=user0,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
         ],
         expected_attrs_present=[
             "posixEmail: abctest@mail.com",
@@ -348,7 +348,7 @@ async def test_role_search_8(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
-            base_dn="cn=user0,ou=users,dc=md,dc=test",
+            base_dn="cn=user0,cn=users,dc=md,dc=test",
             attribute_type_id=description_attr.id,
             entity_type_id=user_entity_type.id,
             is_allow=True,
@@ -360,9 +360,9 @@ async def test_role_search_8(
     await perform_ldap_search_and_validate(
         settings=settings,
         creds=creds,
-        search_base="cn=user0,ou=users,dc=md,dc=test",
+        search_base="cn=user0,cn=users,dc=md,dc=test",
         expected_dn=[
-            "dn: cn=user0,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
         ],
         expected_attrs_present=[
             "description: 123 desc",
@@ -402,7 +402,7 @@ async def test_role_search_9(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
-            base_dn="cn=user0,ou=users,dc=md,dc=test",
+            base_dn="cn=user0,cn=users,dc=md,dc=test",
             attribute_type_id=posix_email_attr.id,
             entity_type_id=user_entity_type.id,
             is_allow=True,
@@ -411,7 +411,7 @@ async def test_role_search_9(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.BASE_OBJECT,
-            base_dn="cn=user0,ou=users,dc=md,dc=test",
+            base_dn="cn=user0,cn=users,dc=md,dc=test",
             attribute_type_id=description_attr.id,
             entity_type_id=user_entity_type.id,
             is_allow=False,
@@ -423,9 +423,9 @@ async def test_role_search_9(
     await perform_ldap_search_and_validate(
         settings=settings,
         creds=creds,
-        search_base="cn=user0,ou=users,dc=md,dc=test",
+        search_base="cn=user0,cn=users,dc=md,dc=test",
         expected_dn=[
-            "dn: cn=user0,ou=users,dc=md,dc=test",
+            "dn: cn=user0,cn=users,dc=md,dc=test",
         ],
         expected_attrs_present=[
             "posixEmail: abctest@mail.com",

@@ -21,6 +21,7 @@ from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
 from api.auth.adapters.session_gateway import SessionFastAPIGateway
 from api.auth.utils import get_ip_from_request
+from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
@@ -28,6 +29,14 @@ from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.password_policy.adapter import PasswordPolicyAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
+from ldap_protocol.dhcp import (
+    AbstractDHCPManager,
+    DHCPAPIRepository,
+    DHCPManagerRepository,
+    DHCPManagerState,
+    get_dhcp_api_repository_class,
+    get_dhcp_manager_class,
+)
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
@@ -105,6 +114,7 @@ SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
+DHCPManagerHTTPClient = NewType("DHCPManagerHTTPClient", httpx.AsyncClient)
 
 
 class MainProvider(Provider):
@@ -307,6 +317,71 @@ class MainProvider(Provider):
     audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
     audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
 
+    @provide(scope=Scope.REQUEST)
+    async def get_dhcp_manager_repository(
+        self,
+        session: AsyncSession,
+    ) -> DHCPManagerRepository:
+        """Get DHCPManagerRepository instance."""
+        return DHCPManagerRepository(session)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dhcp_manager_state(
+        self,
+        dhcp_manager_repository: DHCPManagerRepository,
+    ) -> DHCPManagerState:
+        """Get current DHCP manager state."""
+        return await dhcp_manager_repository.ensure_state()
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dhcp_mngr_class(
+        self,
+        dhcp_state: DHCPManagerState,
+    ) -> type[AbstractDHCPManager]:
+        """Get DHCP manager type."""
+        return await get_dhcp_manager_class(dhcp_state)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dhcp_api_repository_class(
+        self,
+        dhcp_state: DHCPManagerState,
+    ) -> type[DHCPAPIRepository]:
+        """Get DHCP API repository type."""
+        return await get_dhcp_api_repository_class(dhcp_state)
+
+    @provide(scope=Scope.APP)
+    async def get_dhcp_http_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[DHCPManagerHTTPClient]:
+        """Get DHCP HTTP client."""
+        async with httpx.AsyncClient(
+            base_url=settings.DHCP_HOST,
+        ) as http_client:
+            yield DHCPManagerHTTPClient(http_client)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dhcp_api_repository(
+        self,
+        http_client: DHCPManagerHTTPClient,
+        dhcp_api_repository_class: type[DHCPAPIRepository],
+    ) -> DHCPAPIRepository:
+        """Get DHCPApiRepository instance."""
+        return dhcp_api_repository_class(http_client)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dhcp_mngr(
+        self,
+        dhcp_manager_class: type[AbstractDHCPManager],
+        dhcp_api_repository: DHCPAPIRepository,
+        dhcp_manager_repository: DHCPManagerRepository,
+    ) -> AbstractDHCPManager:
+        """Get DHCPManager class."""
+        return dhcp_manager_class(
+            dhcp_manager_repository=dhcp_manager_repository,
+            kea_dhcp_repository=dhcp_api_repository,
+        )
+
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
@@ -440,6 +515,7 @@ class HTTPProvider(LDAPContextProvider):
     session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
     audit_service = provide(AuditService, scope=Scope.REQUEST)
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
+    dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):

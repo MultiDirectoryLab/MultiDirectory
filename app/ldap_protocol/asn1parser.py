@@ -259,6 +259,9 @@ def asn1todict(decoder: Decoder) -> list[ASN1Row]:
     while not decoder.eof():
         tag = decoder.peek()
 
+        if tag is None:
+            break
+
         if tag.typ == Types.Primitive:
             tag, value = decoder.read()
             field = ASN1Row.from_tag(tag, value_to_string(tag, value))

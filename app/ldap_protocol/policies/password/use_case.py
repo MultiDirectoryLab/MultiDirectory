@@ -114,6 +114,7 @@ class PasswordPolicyUseCases(AbstractService):
         self,
         password_policy: PasswordPolicyDTO[int, int],
         user: User | None = None,
+        pwd_last_set: str | None = None,
     ) -> bool:
         """Validate max password change age."""
         if password_policy.maximum_password_age_days == 0:
@@ -122,11 +123,6 @@ class PasswordPolicyUseCases(AbstractService):
         if not user:
             return True
 
-        pwd_last_set = (
-            await self._password_policy_dao.get_or_create_pwd_last_set(
-                user.directory_id,
-            )
-        )
         count_age_days = self._password_policy_validator._password_validator.count_password_age_days(  # noqa: SLF001, E501
             pwd_last_set,
         )

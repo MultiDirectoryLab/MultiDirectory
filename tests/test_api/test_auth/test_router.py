@@ -114,7 +114,7 @@ async def test_first_setup_and_oauth(
     assert result["user_principal_name"] == "test"
     assert result["mail"] == "test@md.example-345.ru"
     assert result["display_name"] == "test"
-    assert result["dn"] == "cn=test,ou=users,dc=md,dc=test-localhost"
+    assert result["dn"] == "cn=test,cn=users,dc=md,dc=test-localhost"
 
     result = await session.scalars(
         select(Directory)
@@ -223,7 +223,7 @@ async def test_first_setup_with_invalid_domain(
 @pytest.mark.usefixtures("session")
 async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
     """Update password and check userAccountControl attr."""
-    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+    user_dn = "cn=user0,cn=users,dc=md,dc=test"
 
     response = await http_client.patch(
         "entry/update",
@@ -347,7 +347,7 @@ async def test_auth_disabled_user(
     response = await http_client.patch(
         "entry/update",
         json={
-            "object": "cn=user_admin,ou=users,dc=md,dc=test",
+            "object": "cn=user_admin,cn=users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -386,7 +386,7 @@ async def test_lock_and_unlock_user(
     storage: SessionStorage,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
-    user_dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    user_dn = "cn=user_non_admin,cn=users,dc=md,dc=test"
     dir_ = await session.scalar(
         select(Directory)
         .options(joinedload(qa(Directory.user)))

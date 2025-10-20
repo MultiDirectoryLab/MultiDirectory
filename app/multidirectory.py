@@ -25,6 +25,7 @@ from sqlalchemy import exc as sa_exc
 from api import (
     audit_router,
     auth_router,
+    dhcp_router,
     dns_router,
     entry_router,
     krb5_router,
@@ -107,6 +108,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(dns_router)
     app.include_router(session_router)
     app.include_router(ldap_schema_router)
+    app.include_router(dhcp_router)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

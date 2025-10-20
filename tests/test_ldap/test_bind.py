@@ -288,7 +288,7 @@ async def test_bind_invalid_password_or_user(
     directory = Directory(
         name="user0",
         object_class="",
-        path=["cn=user0", "ou=users", "dc=md", "dc=test"],
+        path=["cn=user0", "cn=users", "dc=md", "dc=test"],
         rdname="cn",
     )
     session.add(directory)
@@ -419,7 +419,7 @@ async def test_bind_disabled_user(
     directory = Directory(
         name="user0",
         object_class="",
-        path=["cn=user0", "ou=users", "dc=md", "dc=test"],
+        path=["cn=user0", "cn=users", "dc=md", "dc=test"],
         rdname="cn",
     )
     session.add(directory)

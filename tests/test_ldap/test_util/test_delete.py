@@ -94,7 +94,7 @@ async def test_ldap_delete(
         "-x",
         "-w",
         user["password"],
-        "cn=user0,ou=users,dc=md,dc=test",
+        "cn=user0,cn=users,dc=md,dc=test",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -223,7 +223,7 @@ async def test_ldap_delete_primary_object_classes(
     user: dict,
 ) -> None:
     """Test deleting primary object class."""
-    entry_dn = "cn=user0,ou=users,dc=md,dc=test"
+    entry_dn = "cn=user0,cn=users,dc=md,dc=test"
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
             (

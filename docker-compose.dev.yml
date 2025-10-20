@@ -82,6 +82,25 @@ services:
       - ./certs:/certs
       - ./app:/app
     command: ./extra/generate_cert.sh
+    depends_on:
+      pre_run_manager:
+        condition: service_completed_successfully
+
+
+  pre_run_manager:
+    image: multidirectory
+    container_name: pre_run_manager
+    user: root
+    restart: "no"
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - ./logs:/app/logs
+      - d_ldap_keytab:/LDAP_keytab/
+      - d_dns_server_file:/DNS_server_file/
+      - d_dns_server_config:/DNS_server_configs/
+      - ./audit:/audit
+    command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
     image: multidirectory
@@ -97,6 +116,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      pre_run_manager:
+        condition: service_completed_successfully
 
   ldap_server:
     build:
@@ -331,7 +352,7 @@ services:
       - traefik.enable=true
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
       - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
-  
+
   event_handler:
     image: multidirectory
     container_name: event_handler

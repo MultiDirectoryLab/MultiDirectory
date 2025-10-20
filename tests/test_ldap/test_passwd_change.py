@@ -23,7 +23,7 @@ async def test_anonymous_pwd_change(
     password_validator: PasswordValidator,
 ) -> None:
     """Test anonymous pwd change."""
-    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+    user_dn = "cn=user0,cn=users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await anonymous_ldap_client.modify_password(
@@ -49,7 +49,7 @@ async def test_bind_pwd_change(
     password_validator: PasswordValidator,
 ) -> None:
     """Test anonymous pwd change."""
-    user_dn = "cn=user0,ou=users,dc=md,dc=test"
+    user_dn = "cn=user0,cn=users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await ldap_client.bind(user_dn, password)

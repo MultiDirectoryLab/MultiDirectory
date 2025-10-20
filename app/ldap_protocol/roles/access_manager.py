@@ -201,21 +201,12 @@ class AccessManager:
         :param entity_type_id: ID of the entity type.
         :return: True if access is allowed, False otherwise.
         """
-        if not aces:
-            return False
-
         for ace in aces:
-            if not ace.is_allow and (
+            if (
                 ace.entity_type_id is None
                 or ace.entity_type_id == entity_type_id
             ):
-                return False
-
-            elif ace.is_allow and (
-                ace.entity_type_id is None
-                or ace.entity_type_id == entity_type_id
-            ):
-                return True
+                return bool(ace.is_allow)
 
         return False
 

@@ -38,7 +38,7 @@ async def test_ldap_base_modify(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user0,cn=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(
@@ -138,7 +138,7 @@ async def test_ldap_membersip_user_delete(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_admin,ou=users,dc=md,dc=test"
+    dn = "cn=user_admin,cn=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
@@ -185,7 +185,7 @@ async def test_ldap_membersip_self_delete_admin_domain(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user0,cn=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
@@ -247,7 +247,7 @@ async def test_self_disable(
     response = await http_client.patch(
         "entry/update",
         json={
-            "object": "cn=user0,ou=users,dc=md,dc=test",
+            "object": "cn=user0,cn=users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -285,7 +285,7 @@ async def test_ldap_membersip_user_add(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_non_admin,ou=users,dc=md,dc=test"
+    dn = "cn=user_non_admin,cn=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(
@@ -347,7 +347,7 @@ async def test_ldap_membersip_user_replace(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_admin,ou=users,dc=md,dc=test"
+    dn = "cn=user_admin,cn=users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
@@ -529,7 +529,7 @@ async def test_ldap_modify_dn(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user0,cn=users,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
@@ -538,7 +538,7 @@ async def test_ldap_modify_dn(
                 "changetype: modrdn\n"
                 "newrdn: cn=user2\n"
                 "deleteoldrdn: 1\n"
-                "newsuperior: ou=users,dc=md,dc=test\n"
+                "newsuperior: cn=users,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -565,7 +565,7 @@ async def test_ldap_modify_dn(
         select(Directory)
         .filter(
             directory_table.c.path
-            == ["dc=test", "dc=md", "ou=users", "cn=user2"],
+            == ["dc=test", "dc=md", "cn=users", "cn=user2"],
             directory_table.c.entity_type_id.isnot(None),
         ),
     )  # fmt: skip
@@ -579,7 +579,7 @@ async def test_ldap_modify_password_change(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,ou=users,dc=md,dc=test"
+    dn = "cn=user0,cn=users,dc=md,dc=test"
     new_password = "Password12345"  # noqa
 
     with tempfile.NamedTemporaryFile("w") as file:
@@ -644,7 +644,7 @@ async def test_ldap_modify_with_ap(
     access_control_entry_dao: AccessControlEntryDAO,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "ou=users,dc=md,dc=test"
+    dn = "cn=users,dc=md,dc=test"
     base_dn = "dc=md,dc=test"
     search_path = get_search_path(dn)
 
@@ -753,7 +753,6 @@ async def test_ldap_modify_with_ap(
     assert attributes["objectClass"] == [
         "top",
         "container",
-        "organizationalUnit",
     ]
     titles = sorted(
         [title for title in attributes["title"] if title is not None],
@@ -866,7 +865,7 @@ async def test_ldap_modify_primary_group_id_scenarios(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify request with primaryGroupID for various scenarios."""
-    user_dn = "cn=user_admin,ou=users,dc=md,dc=test"
+    user_dn = "cn=user_admin,cn=users,dc=md,dc=test"
     user_dir = await fetch_directory_by_dn(session, user_dn)
 
     group_dir = await fetch_directory_by_dn(session, group_dn)
@@ -954,7 +953,7 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify request replace memberOf attribute."""
-    user_dn = "cn=user_admin,ou=users,dc=md,dc=test"
+    user_dn = "cn=user_admin,cn=users,dc=md,dc=test"
     dev_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
 
     user_dir = await fetch_directory_by_dn(session, user_dn)

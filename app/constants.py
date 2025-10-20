@@ -48,8 +48,8 @@ DATA = [
     },
     {
         "name": "it",
-        "object_class": "organizationalUnit",
-        "attributes": {"objectClass": ["top", "container"]},
+        "object_class": "container",
+        "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "user 1",
@@ -118,8 +118,8 @@ DATA = [
     },
     {
         "name": "users",
-        "object_class": "organizationalUnit",
-        "attributes": {"objectClass": ["top", "container"]},
+        "object_class": "container",
+        "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "user 3",
@@ -172,13 +172,13 @@ DATA = [
     },
     {
         "name": "2fa",
-        "object_class": "organizationalUnit",
-        "attributes": {"objectClass": ["top", "container"]},
+        "object_class": "container",
+        "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "service accounts",
-                "object_class": "organizationalUnit",
-                "attributes": {"objectClass": ["top", "container"]},
+                "object_class": "container",
+                "attributes": {"objectClass": ["top"]},
                 "children": [
                     {
                         "name": "user 5",
