@@ -1,4 +1,4 @@
-"""Utils for password.
+"""Utils for Password Validator.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -13,7 +13,7 @@ from ldap_protocol.utils.helpers import ft_to_dt
 
 
 class PasswordValidator(BaseModel):
-    """Password Utils class."""
+    """Password Validator class."""
 
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
     __crypt_context = CryptContext(

@@ -18,43 +18,43 @@ from .validator import PasswordPolicyValidator
 class PasswordPolicyUseCases(AbstractService):
     """Password Policy Use Cases."""
 
-    _pwd_policy_dao: PasswordPolicyDAO
+    _password_policy_dao: PasswordPolicyDAO
     _password_policy_validator: PasswordPolicyValidator
     _settings: Settings
 
     def __init__(
         self,
-        pwd_policy_dao: PasswordPolicyDAO,
+        password_policy_dao: PasswordPolicyDAO,
         password_policy_validator: PasswordPolicyValidator,
         settings: Settings,
     ) -> None:
         """Initialize Password Policy Use Cases."""
-        self._pwd_policy_dao = pwd_policy_dao
+        self._password_policy_dao = password_policy_dao
         self._password_policy_validator = password_policy_validator
         self._settings = settings
 
     async def get_all(self) -> list[PasswordPolicyDTO[int, int]]:
         """Get all Password Policies."""
-        return await self._pwd_policy_dao.get_all()
+        return await self._password_policy_dao.get_all()
 
     async def get(self, id_: int) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy."""
-        return await self._pwd_policy_dao.get(id_)
+        return await self._password_policy_dao.get(id_)
 
     async def get_result(self, user_path: str) -> PasswordPolicyDTO[int, int]:
         """Get resulting Password Policy for user."""
-        return await self._pwd_policy_dao.get_result(user_path)
+        return await self._password_policy_dao.get_result(user_path)
 
     async def create(
         self,
         policy_dto: PasswordPolicyDTO[None, int | None],
     ) -> None:
         """Create one Password Policy."""
-        await self._pwd_policy_dao.create(policy_dto)
+        await self._password_policy_dao.create(policy_dto)
 
     async def create_default_domain_policy(self) -> None:
         """Create default domain Password Policy with default configuration."""
-        await self._pwd_policy_dao.create_default_domain_policy()
+        await self._password_policy_dao.create_default_domain_policy()
 
     async def update(
         self,
@@ -62,33 +62,33 @@ class PasswordPolicyUseCases(AbstractService):
         password_policy: PasswordPolicyDTO[int, int | None],
     ) -> None:
         """Update one Password Policy."""
-        await self._pwd_policy_dao.update(id_, password_policy)
+        await self._password_policy_dao.update(id_, password_policy)
 
     async def delete(self, id_: int) -> None:
         """Delete one Password Policy."""
-        await self._pwd_policy_dao.delete(id_)
+        await self._password_policy_dao.delete(id_)
 
     async def reset_domain_policy_to_default_config(self) -> None:
         """Reset domain Password Policy to default configuration."""
-        await self._pwd_policy_dao.reset_domain_policy_to_default_config()
+        await self._password_policy_dao.reset_domain_policy_to_default_config()
 
     async def update_priorities(
         self,
         new_priorities: dict[int, int],
     ) -> None:
         """Update priority of all Password Policies."""
-        await self._pwd_policy_dao.update_priorities(new_priorities)
+        await self._password_policy_dao.update_priorities(new_priorities)
 
     async def turnoff(self, id_: int) -> None:
         """Turn off one Password Policy."""
-        await self._pwd_policy_dao.turnoff(id_)
+        await self._password_policy_dao.turnoff(id_)
 
     async def get_or_create_pwd_last_set(
         self,
         directory_id: int,
     ) -> str | None:
         """Get or create password last set."""
-        return await self._pwd_policy_dao.get_or_create_pwd_last_set(
+        return await self._password_policy_dao.get_or_create_pwd_last_set(
             directory_id,
         )
 
@@ -97,13 +97,13 @@ class PasswordPolicyUseCases(AbstractService):
         directory: Directory,
     ) -> PasswordPolicyDTO[int, int]:
         """Get resulting Password Policy for user."""
-        return await self._pwd_policy_dao.get_resulting_password_policy(
+        return await self._password_policy_dao.get_resulting_password_policy(
             directory,
         )
 
     async def post_save_password_actions(self, user: User) -> None:
         """Post save actions for password update."""
-        await self._pwd_policy_dao.post_save_password_actions(user)
+        await self._password_policy_dao.post_save_password_actions(user)
 
     async def check_expired_max_age(
         self,
@@ -117,8 +117,10 @@ class PasswordPolicyUseCases(AbstractService):
         if not user:
             return True
 
-        pwd_last_set = await self._pwd_policy_dao.get_or_create_pwd_last_set(
-            user.directory_id,
+        pwd_last_set = (
+            await self._password_policy_dao.get_or_create_pwd_last_set(
+                user.directory_id,
+            )
         )
         count_age_days = self._password_policy_validator._password_validator.count_password_age_days(  # noqa: SLF001, E501
             pwd_last_set,
@@ -138,12 +140,12 @@ class PasswordPolicyUseCases(AbstractService):
         :return list[str]: error messages
         """
         if not user:
-            password_policy = await self._pwd_policy_dao.get_by_name(
+            password_policy = await self._password_policy_dao.get_by_name(
                 self._settings.DOMAIN_PASSWORD_POLICY_NAME,
             )
         else:
             password_policy = (
-                await self._pwd_policy_dao.get_resulting_password_policy(
+                await self._password_policy_dao.get_resulting_password_policy(
                     user.directory,
                 )
             )
@@ -175,7 +177,7 @@ class PasswordPolicyUseCases(AbstractService):
 
         if user and password_policy.minimum_password_age_days:
             pwd_last_set = (
-                await self._pwd_policy_dao.get_or_create_pwd_last_set(
+                await self._password_policy_dao.get_or_create_pwd_last_set(
                     user.directory_id,
                 )
             )
@@ -204,6 +206,6 @@ class PasswordPolicyUseCases(AbstractService):
         :param int user_directory_id: user's directory ID
         :return bool: True if user is restricted, False otherwise
         """
-        return await self._pwd_policy_dao.is_password_change_restricted(
+        return await self._password_policy_dao.is_password_change_restricted(
             user_directory_id,
         )

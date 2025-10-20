@@ -257,8 +257,10 @@ class TestProvider(Provider):
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
     )
-    pwd_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    pwd_policy_adapter = provide(PasswordPolicyAdapter, scope=Scope.REQUEST)
+    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
+    password_policies_adapter = provide(
+        PasswordPolicyAdapter, scope=Scope.REQUEST
+    )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
@@ -679,13 +681,13 @@ async def setup_session(
         audit_destination_dao,
         raw_audit_manager,
     )
-    pwd_policy_dao = PasswordPolicyDAO(session, Settings.from_os())
+    password_policy_dao = PasswordPolicyDAO(session, Settings.from_os())
     password_policy_validator = PasswordPolicyValidator(
         password_validator,
         Settings.from_os(),
     )
     password_use_cases = PasswordPolicyUseCases(
-        pwd_policy_dao,
+        password_policy_dao,
         password_policy_validator,
         Settings.from_os(),
     )
@@ -774,7 +776,7 @@ async def entity_type_dao(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def pwd_policy_dao(
+async def password_policy_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[PasswordPolicyDAO]:
     """Get session and acquire after completion."""
