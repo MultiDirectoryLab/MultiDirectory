@@ -65,10 +65,7 @@ class SetupUseCase(AbstractService):
         data = copy.deepcopy(FIRST_SETUP_DATA)
         data.append(user_data)
 
-        await self._create(
-            dto,
-            data,
-        )
+        await self._create(dto, data)
 
     async def is_setup(self) -> bool:
         """Check if setup is performed.
