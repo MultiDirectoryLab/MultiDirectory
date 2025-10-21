@@ -80,6 +80,7 @@ services:
       - dns_server_config:/DNS_server_configs/
       - ./resolv.conf:/resolv.conf
       - ./audit:/audit
+      - kdc:/etc/kdc
     command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:

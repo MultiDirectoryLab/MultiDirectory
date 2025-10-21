@@ -10,5 +10,5 @@ chown -R md:md /app \
             /audit  || true
 chown md:md /resolv.conf || true
 
-sed -i 's/ou=users/cn=users/g' /etc/krb5.d/stash.keyfile || true
-sed -i 's/ou=users/cn=users/g' /etc/krb5.conf || true
+sed -i 's/ou=users/cn=users/g' /etc/kdc/krb5.d/stash.keyfile || true
+sed -i 's/ou=users/cn=users/g' /etc/kdc/krb5.conf || true

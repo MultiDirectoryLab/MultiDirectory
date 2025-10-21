@@ -124,7 +124,7 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ./audit:/audit
-      - kdc:/etc
+      - kdc:/etc/kdc
     command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
