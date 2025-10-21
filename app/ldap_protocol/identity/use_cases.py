@@ -65,7 +65,7 @@ class SetupUseCase(AbstractService):
         data = copy.deepcopy(FIRST_SETUP_DATA)
         data.append(user_data)
 
-        await self.create(
+        await self._create(
             dto,
             data,
         )
@@ -120,7 +120,13 @@ class SetupUseCase(AbstractService):
             ],
         }
 
-    async def create(self, dto: SetupDTO, data: list) -> None:
+    async def _create(self, dto: SetupDTO, data: list) -> None:
+        """Create setup environment.
+
+        :param dto: SetupDTO with setup parameters
+        :param data: list of data to create
+        :return: None.
+        """
         try:
             await self._setup_gateway.setup_enviroment(
                 data=data,
