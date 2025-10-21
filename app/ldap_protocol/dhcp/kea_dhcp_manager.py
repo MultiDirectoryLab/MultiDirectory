@@ -28,6 +28,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         subnet_dto.id = await self._get_new_subnet_id()
         try:
             await self._api_repository.create_subnet(subnet_dto)
+            await self._api_repository.write_config()
         except DHCPAPIError as e:
             raise DHCPEntryAddError(f"Failed to create subnet: {e}")
 
@@ -35,6 +36,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         """Delete a subnet."""
         try:
             await self._api_repository.delete_subnet(subnet_id)
+            await self._api_repository.write_config()
         except DHCPAPIError as e:
             raise DHCPEntryDeleteError(f"Failed to delete subnet: {e}")
 
@@ -62,6 +64,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         """Update an existing subnet."""
         try:
             await self._api_repository.update_subnet(subnet_dto)
+            await self._api_repository.write_config()
         except DHCPAPIError as e:
             raise DHCPEntryUpdateError(
                 f"Failed to update subnet: {e}",
