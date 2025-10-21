@@ -327,7 +327,7 @@ services:
     restart: unless-stopped
     command: -c /kea/config/kea-dhcp4.conf
     volumes:
-      - ./.dhcp:/kea/config
+      - dhcp:/kea/config
       - sockets:/kea/sockets
       - leases:/kea/leases
 
@@ -341,7 +341,7 @@ services:
       kea_dhcp4:
         condition: service_started
     volumes:
-      - ./.dhcp:/kea/config
+      - ./kea-ctrl-agent.conf:/kea/config/kea-ctrl-agent.conf
       - sockets:/kea/sockets
       - leases:/kea/leases
 
@@ -422,3 +422,4 @@ volumes:
   ldap_keytab:
   leases:
   sockets:
+  dhcp:
