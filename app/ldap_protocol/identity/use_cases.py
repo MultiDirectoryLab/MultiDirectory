@@ -4,12 +4,21 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from abstract_dao import AbstractService
 from constants import FIRST_SETUP_DATA
 from ldap_protocol.identity.dto import SetupDTO
-from ldap_protocol.identity.exceptions.auth import AlreadyConfiguredError
+from ldap_protocol.identity.exceptions.auth import (
+    AlreadyConfiguredError,
+    ForbiddenError,
+)
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
+from ldap_protocol.policies.password import PasswordPolicyUseCases
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import ft_now
 
 
@@ -20,6 +29,10 @@ class SetupUseCase(AbstractService):
         self,
         setup_gateway: SetupGateway,
         entity_type_use_case: EntityTypeUseCase,
+        password_use_cases: PasswordPolicyUseCases,
+        role_use_case: RoleUseCase,
+        audit_use_case: AuditUseCase,
+        session: AsyncSession,
     ) -> None:
         """Initialize Setup manager.
 
@@ -29,6 +42,10 @@ class SetupUseCase(AbstractService):
         """
         self._setup_gateway = setup_gateway
         self._entity_type_use_case = entity_type_use_case
+        self._password_use_cases = password_use_cases
+        self._role_use_case = role_use_case
+        self._audit_use_case = audit_use_case
+        self._session = session
 
     async def setup(self, dto: SetupDTO) -> None:
         """Perform the initial setup of structure and policies.
@@ -46,7 +63,7 @@ class SetupUseCase(AbstractService):
 
         FIRST_SETUP_DATA.append(user_data)
 
-        await self._setup_gateway.create(
+        await self.create(
             dto,
             FIRST_SETUP_DATA,
         )
@@ -100,3 +117,27 @@ class SetupUseCase(AbstractService):
                 },
             ],
         }
+
+    async def create(self, dto: SetupDTO, data: list) -> None:
+        try:
+            await self._setup_gateway.setup_enviroment(dto.domain, data)
+            errors = await (
+                self
+                ._password_use_cases
+                .check_default_policy_password_violations(
+                    password=dto.password,
+                )
+            )  # fmt: skip
+            if errors:
+                raise ForbiddenError(errors)
+
+            await self._password_use_cases.create_policy()
+            await self._role_use_case.create_domain_admins_role()
+            await self._role_use_case.create_read_only_role()
+            await self._audit_use_case.create_policies()
+            await self._session.commit()
+        except IntegrityError:
+            await self._session.rollback()
+            raise AlreadyConfiguredError(
+                "Setup already performed (locked)",
+            )
