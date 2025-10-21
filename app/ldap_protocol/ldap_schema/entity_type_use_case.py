@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abstract_dao import AbstractService
-from constants import PRIMARY_ENTITY_TYPE_NAMES
+from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -81,3 +81,19 @@ class EntityTypeUseCase(AbstractService):
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete all Entity Types by names."""
         await self._entity_type_dao.delete_all_by_names(names)
+
+    async def create_for_first_setup(self) -> None:
+        """Create Entity Types for first setup.
+
+        :return: None.
+        """
+        for entity_type_data in ENTITY_TYPE_DATAS:
+            await self.create(
+                EntityTypeDTO(
+                    name=entity_type_data["name"],  # type: ignore
+                    object_class_names=list(
+                        entity_type_data["object_class_names"],
+                    ),
+                    is_system=True,
+                ),
+            )

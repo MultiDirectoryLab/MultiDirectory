@@ -255,3 +255,74 @@ ENTITY_TYPE_DATAS = [
 PRIMARY_ENTITY_TYPE_NAMES = {
     entity_type_data["name"] for entity_type_data in ENTITY_TYPE_DATAS
 }
+
+FIRST_SETUP_DATA = [
+    {
+        "name": "groups",
+        "object_class": "container",
+        "attributes": {
+            "objectClass": ["top"],
+            "sAMAccountName": ["groups"],
+        },
+        "children": [
+            {
+                "name": "domain admins",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["domain admins"],
+                    "sAMAccountType": ["268435456"],
+                    "gidNumber": ["512"],
+                },
+                "objectSid": 512,
+            },
+            {
+                "name": "domain users",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["domain users"],
+                    "sAMAccountType": ["268435456"],
+                    "gidNumber": ["513"],
+                },
+                "objectSid": 513,
+            },
+            {
+                "name": "readonly domain controllers",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["readonly domain controllers"],
+                    "sAMAccountType": ["268435456"],
+                    "gidNumber": ["521"],
+                },
+                "objectSid": 521,
+            },
+            {
+                "name": "domain computers",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["domain computers"],
+                    "sAMAccountType": ["268435456"],
+                    "gidNumber": ["515"],
+                },
+                "objectSid": 515,
+            },
+        ],
+    },
+    {
+        "name": "computers",
+        "object_class": "container",
+        "attributes": {"objectClass": ["top"]},
+        "children": [],
+    },
+]

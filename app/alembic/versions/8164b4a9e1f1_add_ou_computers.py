@@ -11,7 +11,9 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
-from extra.setup_dev import create_dir
+from ldap_protocol.identity.setup_gateway import SetupGateway
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -39,6 +41,13 @@ def upgrade() -> None:
 
     async def _create_ou_computers(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
+        object_class_dao = ObjectClassDAO(session)
+        entity_type_dao = EntityTypeDAO(session, object_class_dao)
+        setup_gateway = SetupGateway(
+            session,
+            PasswordValidator(),
+            entity_type_dao,
+        )
         await session.begin()
 
         base_directories = await get_base_directories(session)
@@ -55,11 +64,9 @@ def upgrade() -> None:
         if exists_ou_computers:
             return
 
-        await create_dir(
+        await setup_gateway.create_dir(
             _OU_COMPUTERS_DATA,
-            session,
             domain_dir,
-            PasswordValidator(),
             domain_dir,
         )
 
