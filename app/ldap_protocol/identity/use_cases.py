@@ -4,6 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import copy
+
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,12 +62,12 @@ class SetupUseCase(AbstractService):
         await self._entity_type_use_case.create_for_first_setup()
 
         user_data = self._create_user_data(dto)
-
-        FIRST_SETUP_DATA.append(user_data)
+        data = copy.deepcopy(FIRST_SETUP_DATA)
+        data.append(user_data)
 
         await self.create(
             dto,
-            FIRST_SETUP_DATA,
+            data,
         )
 
     async def is_setup(self) -> bool:
