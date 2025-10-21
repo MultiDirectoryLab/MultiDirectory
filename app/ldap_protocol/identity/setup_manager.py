@@ -42,7 +42,7 @@ class SetupManager(AbstractService):
             raise AlreadyConfiguredError("Setup already performed")
         await self._entity_type_use_case.create_for_first_setup()
 
-        user_data = self._create_user_data_by_request(dto)
+        user_data = self._create_user_data(dto)
         FIRST_SETUP_DATA.append(user_data)
 
         await self._setup_use_case.create(
@@ -57,7 +57,7 @@ class SetupManager(AbstractService):
         """
         return await self._setup_use_case.is_setuped()
 
-    def _create_user_data_by_request(self, dto: SetupDTO) -> dict:
+    def _create_user_data(self, dto: SetupDTO) -> dict:
         """Create user data by request.
 
         :param dto: SetupDTO with setup parameters
@@ -65,8 +65,8 @@ class SetupManager(AbstractService):
         """
         return {
             "name": "users",
-            "object_class": "organizationalUnit",
-            "attributes": {"objectClass": ["top", "container"]},
+            "object_class": "container",
+            "attributes": {"objectClass": ["top"]},
             "children": [
                 {
                     "name": dto.username,

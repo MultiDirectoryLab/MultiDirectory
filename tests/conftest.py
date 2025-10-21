@@ -63,6 +63,8 @@ from ldap_protocol.dns import (
     get_dns_manager_settings,
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.setup_manager import SetupManager
+from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
@@ -553,6 +555,8 @@ class TestProvider(Provider):
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
 
     dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
+    setup_manager = provide(SetupManager, scope=Scope.REQUEST)
+    setup_use_case = provide(SetupUseCase, scope=Scope.REQUEST)
 
 
 @dataclass
@@ -988,6 +992,7 @@ async def dns_manager(
     """Get DI DNS manager."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AbstractDNSManager)
+
 
 @pytest_asyncio.fixture
 async def dhcp_manager(
