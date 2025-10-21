@@ -120,7 +120,10 @@ class SetupUseCase(AbstractService):
 
     async def create(self, dto: SetupDTO, data: list) -> None:
         try:
-            await self._setup_gateway.setup_enviroment(dto.domain, data)
+            await self._setup_gateway.setup_enviroment(
+                data=data,
+                dn=dto.domain,
+            )
             errors = await (
                 self
                 ._password_use_cases
