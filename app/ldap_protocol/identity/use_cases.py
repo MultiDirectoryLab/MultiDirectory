@@ -1,88 +1,102 @@
-"""Identity use cases.
+"""Setup service.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import exists, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from entities import Directory
-from extra.setup_dev import setup_enviroment
+from abstract_dao import AbstractService
+from constants import FIRST_SETUP_DATA
 from ldap_protocol.identity.dto import SetupDTO
-from ldap_protocol.identity.exceptions.auth import (
-    AlreadyConfiguredError,
-    ForbiddenError,
-)
-from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.roles.role_use_case import RoleUseCase
-from password_manager import PasswordValidator
-from repo.pg.tables import queryable_attr as qa
+from ldap_protocol.identity.exceptions.auth import AlreadyConfiguredError
+from ldap_protocol.identity.setup_gateway import SetupGateway
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.utils.helpers import ft_now
 
 
-class SetupUseCase:
-    """Setup use case."""
+class SetupUseCase(AbstractService):
+    """Setup manager."""
 
     def __init__(
         self,
-        session: AsyncSession,
-        password_validator: PasswordValidator,
-        password_use_cases: PasswordPolicyUseCases,
-        role_use_case: RoleUseCase,
-        audit_use_case: AuditUseCase,
+        setup_gateway: SetupGateway,
+        entity_type_use_case: EntityTypeUseCase,
     ) -> None:
-        """Initialize Setup use case.
+        """Initialize Setup manager.
 
-        :param session: SQLAlchemy AsyncSession
-
+        :param setup_gateway: Setup use case
+        :param entity_type_use_case: Entity Type use case
         return: None.
         """
-        self._session = session
-        self._password_validator = password_validator
-        self._password_use_cases = password_use_cases
-        self._role_use_case = role_use_case
-        self._audit_use_case = audit_use_case
+        self._setup_gateway = setup_gateway
+        self._entity_type_use_case = entity_type_use_case
 
-    async def is_setuped(self) -> bool:
+    async def setup(self, dto: SetupDTO) -> None:
+        """Perform the initial setup of structure and policies.
+
+        :param dto: SetupDTO with setup parameters
+        :raises AlreadyConfiguredError: if setup already performed
+        :raises ForbiddenError: if password policy not passed
+        :return: None.
+        """
+        if await self.is_setup():
+            raise AlreadyConfiguredError("Setup already performed")
+        await self._entity_type_use_case.create_for_first_setup()
+
+        user_data = self._create_user_data(dto)
+
+        FIRST_SETUP_DATA.append(user_data)
+
+        await self._setup_gateway.create(
+            dto,
+            FIRST_SETUP_DATA,
+        )
+
+    async def is_setup(self) -> bool:
         """Check if setup is performed.
 
         :return: bool (True if setup is performed, False otherwise)
         """
-        query = select(
-            exists(Directory).where(qa(Directory.parent_id).is_(None)),
-        )
-        retval = await self._session.scalars(query)
-        return retval.one()
+        return await self._setup_gateway.is_setup()
 
-    async def create(self, dto: SetupDTO, data: list) -> None:
-        async with self._session.begin_nested():
-            try:
-                await setup_enviroment(
-                    self._session,
-                    dn=dto.domain,
-                    data=data,
-                    password_validator=self._password_validator,
-                )
-                await self._session.flush()
-                errors = await (
-                    self
-                    ._password_use_cases
-                    .check_default_policy_password_violations(
-                        password=dto.password,
-                    )
-                )  # fmt: skip
-                if errors:
-                    raise ForbiddenError(errors)
+    def _create_user_data(self, dto: SetupDTO) -> dict:
+        """Create user data by request.
 
-                await self._password_use_cases.create_policy()
-                await self._role_use_case.create_domain_admins_role()
-                await self._role_use_case.create_read_only_role()
-                await self._audit_use_case.create_policies()
-                await self._session.commit()
-            except IntegrityError:
-                await self._session.rollback()
-                raise AlreadyConfiguredError(
-                    "Setup already performed (locked)",
-                )
+        :param dto: SetupDTO with setup parameters
+        :return: dict with user data
+        """
+        return {
+            "name": "users",
+            "object_class": "container",
+            "attributes": {"objectClass": ["top"]},
+            "children": [
+                {
+                    "name": dto.username,
+                    "object_class": "user",
+                    "organizationalPerson": {
+                        "sam_account_name": dto.username,
+                        "user_principal_name": dto.user_principal_name,
+                        "mail": dto.mail,
+                        "display_name": dto.display_name,
+                        "password": dto.password,
+                        "groups": ["domain admins"],
+                    },
+                    "attributes": {
+                        "objectClass": [
+                            "top",
+                            "person",
+                            "organizationalPerson",
+                            "posixAccount",
+                            "shadowAccount",
+                            "inetOrgPerson",
+                        ],
+                        "pwdLastSet": [ft_now()],
+                        "loginShell": ["/bin/bash"],
+                        "uidNumber": ["1000"],
+                        "gidNumber": ["513"],
+                        "userAccountControl": ["512"],
+                        "primaryGroupID": ["512"],
+                    },
+                    "objectSid": 500,
+                },
+            ],
+        }

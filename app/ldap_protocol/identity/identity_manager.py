@@ -23,7 +23,7 @@ from ldap_protocol.identity.exceptions.auth import (
 )
 from ldap_protocol.identity.mfa_manager import MFAManager
 from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form
-from ldap_protocol.identity.setup_manager import SetupManager
+from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
 from ldap_protocol.multifactor import MultifactorAPI
@@ -59,7 +59,7 @@ class IdentityManager(AbstractService):
         monitor: AuditMonitorUseCase,
         kadmin: AbstractKadmin,
         mfa_manager: MFAManager,
-        setup_manager: SetupManager,
+        setup_use_case: SetupUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -81,7 +81,7 @@ class IdentityManager(AbstractService):
         self._password_validator = password_validator
         self._kadmin = kadmin
         self._mfa_manager = mfa_manager
-        self._setup_manager = setup_manager
+        self._setup_use_case = setup_use_case
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -278,7 +278,7 @@ class IdentityManager(AbstractService):
 
         :return: bool (True if setup is required, False otherwise)
         """
-        return await self._setup_manager.is_setuped()
+        return await self._setup_use_case.is_setup()
 
     async def perform_first_setup(self, dto: SetupDTO) -> None:
         """Perform the initial setup of structure and policies.
@@ -288,4 +288,4 @@ class IdentityManager(AbstractService):
         :raises ForbiddenError: if password policy not passed
         :return: None.
         """
-        await self._setup_manager.setup(dto)
+        await self._setup_use_case.setup(dto)
