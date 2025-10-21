@@ -61,9 +61,8 @@ class SetupUseCase(AbstractService):
             raise AlreadyConfiguredError("Setup already performed")
         await self._entity_type_use_case.create_for_first_setup()
 
-        user_data = self._create_user_data(dto)
         data = copy.deepcopy(FIRST_SETUP_DATA)
-        data.append(user_data)
+        data.append(self._create_user_data(dto))
 
         await self._create(dto, data)
 
