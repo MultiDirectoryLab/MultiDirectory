@@ -127,6 +127,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         """Add a reservation for a MAC address."""
         try:
             await self._api_repository.create_reservation(reservation)
+            await self._api_repository.write_config()
         except DHCPAPIError as e:
             raise DHCPEntryAddError(
                 f"Failed to add reservation: {e}",
@@ -146,6 +147,7 @@ class KeaDHCPManager(AbstractDHCPManager):
         )
         try:
             await self._api_repository.delete_reservation(reservation)
+            await self._api_repository.write_config()
         except DHCPAPIError as e:
             raise DHCPEntryDeleteError(
                 f"Failed to delete reservation: {e}",
