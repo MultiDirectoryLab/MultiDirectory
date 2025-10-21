@@ -29,6 +29,7 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    user: root
     restart: unless-stopped
     environment:
       - SERVICE_NAME=ldap_server

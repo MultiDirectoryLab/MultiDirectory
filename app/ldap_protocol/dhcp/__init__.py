@@ -16,6 +16,7 @@ from .schemas import (
     DHCPLeaseSchemaResponse,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
+    DHCPStateSchemaResponse,
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
 )
@@ -59,4 +60,5 @@ __all__ = [
     "DHCPLeaseSchemaResponse",
     "DHCPReservationSchemaResponse",
     "DHCPChangeStateSchemaRequest",
+    "DHCPStateSchemaResponse",
 ]

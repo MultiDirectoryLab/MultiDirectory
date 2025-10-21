@@ -115,11 +115,13 @@ class AbstractDHCPManager(AbstractService):
 
     async def change_state(self, dhcp_state: DHCPManagerState) -> None:
         """Change DHCP service state."""
-        current_state = await self._manager_repository.ensure_state()
-        if current_state == DHCPManagerState.NOT_CONFIGURED:
-            await self._manager_repository.change_state(
-                dhcp_state,
-            )
+        await self._manager_repository.change_state(
+            dhcp_state,
+        )
+
+    async def get_state(self) -> DHCPManagerState:
+        """Get current DHCP service state."""
+        return await self._manager_repository.ensure_state()
 
     @abstractmethod
     async def create_subnet(

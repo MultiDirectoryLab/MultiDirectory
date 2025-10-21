@@ -98,6 +98,7 @@ services:
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     restart: unless-stopped
+    user: root
     hostname: multidirectory-ldap
     env_file:
       .env
