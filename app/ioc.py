@@ -46,6 +46,8 @@ from ldap_protocol.dns import (
     resolve_dns_server_ip,
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.setup_manager import SetupManager
+from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
@@ -517,6 +519,8 @@ class HTTPProvider(LDAPContextProvider):
     audit_service = provide(AuditService, scope=Scope.REQUEST)
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
     dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
+    setup_manager = provide(SetupManager, scope=Scope.REQUEST)
+    setup_use_case = provide(SetupUseCase, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
