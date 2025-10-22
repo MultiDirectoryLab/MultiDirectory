@@ -12,6 +12,8 @@ from api.auth import get_current_user
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.schemas import PasswordPolicySchema
 
+from .schemas import _PriorityT
+
 pwd_router = APIRouter(
     prefix="/password-policy",
     dependencies=[Depends(get_current_user)],
@@ -57,7 +59,7 @@ async def get_password_policy_by_dir_path(
 
 @pwd_router.post("", status_code=status.HTTP_201_CREATED)
 async def create(
-    policy: PasswordPolicySchema[None, int | None],
+    policy: PasswordPolicySchema[None, _PriorityT],
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
     """Create one Password Policy."""
@@ -67,7 +69,7 @@ async def create(
 @pwd_router.put("/{id_}")
 async def update(
     id_: int,
-    policy: PasswordPolicySchema[int, int | None],
+    policy: PasswordPolicySchema[int, _PriorityT],
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
     """Update one Password Policy."""

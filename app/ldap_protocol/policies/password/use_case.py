@@ -10,7 +10,11 @@ from abstract_dao import AbstractService
 from entities import Directory, User
 
 from .dao import PasswordPolicyDAO
-from .dataclasses import DefaultDomainPasswordPolicyPreset, PasswordPolicyDTO
+from .dataclasses import (
+    DefaultDomainPasswordPolicyPreset,
+    PasswordPolicyDTO,
+    _PriorityT,
+)
 from .validator import PasswordPolicyValidator
 
 
@@ -46,12 +50,9 @@ class PasswordPolicyUseCases(AbstractService):
             directory_path,
         )
 
-    async def create(
-        self,
-        policy_dto: PasswordPolicyDTO[None, int | None],
-    ) -> None:
+    async def create(self, dto: PasswordPolicyDTO[None, _PriorityT]) -> None:
         """Create one Password Policy."""
-        await self._password_policy_dao.create(policy_dto)
+        await self._password_policy_dao.create(dto)
 
     async def create_default_domain_policy(self) -> None:
         """Create default domain Password Policy with default configuration."""
@@ -60,10 +61,10 @@ class PasswordPolicyUseCases(AbstractService):
     async def update(
         self,
         id_: int,
-        password_policy: PasswordPolicyDTO[int, int | None],
+        dto: PasswordPolicyDTO[int, _PriorityT],
     ) -> None:
         """Update one Password Policy."""
-        await self._password_policy_dao.update(id_, password_policy)
+        await self._password_policy_dao.update(id_, dto)
 
     async def delete(self, id_: int) -> None:
         """Delete one Password Policy."""
@@ -73,10 +74,7 @@ class PasswordPolicyUseCases(AbstractService):
         """Reset domain Password Policy to default configuration."""
         await self._password_policy_dao.reset_domain_policy_to_default_config()
 
-    async def update_priorities(
-        self,
-        new_priorities: dict[int, int],
-    ) -> None:
+    async def update_priorities(self, new_priorities: dict[int, int]) -> None:
         """Update priority of all Password Policies."""
         await self._password_policy_dao.update_priorities(new_priorities)
 
@@ -108,12 +106,12 @@ class PasswordPolicyUseCases(AbstractService):
 
     async def check_expired_max_age(
         self,
-        password_policy: PasswordPolicyDTO[int, int],
+        pwd_policy_dto: PasswordPolicyDTO[int, int],
         user: User | None = None,
         pwd_last_set: str | None = None,
     ) -> bool:
         """Validate max password change age."""
-        if password_policy.maximum_password_age_days == 0:
+        if pwd_policy_dto.maximum_password_age_days == 0:
             return False
 
         if not user:
@@ -123,7 +121,7 @@ class PasswordPolicyUseCases(AbstractService):
             pwd_last_set,
         )
 
-        return bool(count_age_days > password_policy.maximum_password_age_days)
+        return bool(count_age_days > pwd_policy_dto.maximum_password_age_days)
 
     async def check_password_violations(
         self,
@@ -138,7 +136,7 @@ class PasswordPolicyUseCases(AbstractService):
         """
         if not user:
             password_policy = await self._password_policy_dao.get_by_name(
-                DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME,
+                DefaultDomainPasswordPolicyPreset.name,
             )
         else:
             password_policy = (
@@ -156,39 +154,39 @@ class PasswordPolicyUseCases(AbstractService):
     async def validate_password(
         self,
         password: str,
-        password_policy: PasswordPolicyDTO,
+        pwd_policy_dto: PasswordPolicyDTO,
         user: User | None = None,
     ) -> list[str]:
         """Validate password with given Password Policy."""
         self._password_policy_validator.not_otp_like_suffix()
 
-        if user and password_policy.password_history_length:
+        if user and pwd_policy_dto.password_history_length:
             history = islice(
                 reversed(user.password_history),
-                password_policy.password_history_length,
+                pwd_policy_dto.password_history_length,
             )
 
             self._password_policy_validator.reuse_prevention(
                 password_history=history,
             )
 
-        if user and password_policy.minimum_password_age_days:
+        if user and pwd_policy_dto.minimum_password_age_days:
             pwd_last_set = (
                 await self._password_policy_dao.get_or_create_pwd_last_set(
                     user.directory_id,
                 )
             )
             self._password_policy_validator.min_age(
-                password_policy.minimum_password_age_days,
+                pwd_policy_dto.minimum_password_age_days,
                 pwd_last_set,
             )
 
-        if password_policy.minimum_password_length:
+        if pwd_policy_dto.minimum_password_length:
             self._password_policy_validator.min_length(
-                password_policy.minimum_password_length,
+                pwd_policy_dto.minimum_password_length,
             )
 
-        if password_policy.password_must_meet_complexity_requirements:
+        if pwd_policy_dto.password_must_meet_complexity_requirements:
             self._password_policy_validator.min_complexity()
 
         await self._password_policy_validator.validate(password)

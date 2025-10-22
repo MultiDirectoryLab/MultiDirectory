@@ -141,7 +141,10 @@ class ObjectClass:
 
 @dataclass
 class PasswordPolicy:
-    """Password policy configuration (history/complexity/age)."""
+    """Password policy configuration (history/complexity/age).
+
+    `priority` - lower number means higher priority.
+    """
 
     id: int = field(init=False)
     priority: int
@@ -361,7 +364,8 @@ class Group:
         """Equality by ID."""
         if isinstance(other, Group):
             return self.id == other.id
-        return False
+        else:
+            raise NotImplementedError
 
     id: int = field(init=False)
     directory_id: int = field()

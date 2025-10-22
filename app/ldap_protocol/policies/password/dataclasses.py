@@ -1,4 +1,4 @@
-"""Password log data classes.
+"""Password Policies data classes.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -8,37 +8,34 @@ from dataclasses import dataclass
 from typing import Generic, Literal, TypeVar
 
 _IdT = TypeVar("_IdT", int, None)
-_PriorityT = TypeVar("_PriorityT", int, None, int | None)
+_PriorityT = TypeVar("_PriorityT", int, None)
 
 
 @dataclass(frozen=True)
 class DefaultDomainPasswordPolicyPreset:
-    """Preset for Default Domain Password Policy."""
+    """Preset for Default Domain Password Policy configuration."""
 
-    DOMAIN_PASSWORD_POLICY_NAME: str = "Default domain password policy"  # noqa: S105
-    PASSWORD_HISTORY_LENGTH: int = 4
-    MAXIMUM_PASSWORD_AGE_DAYS: int = 0
-    MINIMUM_PASSWORD_AGE_DAYS: int = 0
-    MINIMUM_PASSWORD_LENGTH: int = 7
-    PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS: bool = True
+    name: str = "Default domain password policy"
+    password_history_length: Literal[4] = 4
+    maximum_password_age_days: Literal[0] = 0
+    minimum_password_age_days: Literal[0] = 0
+    minimum_password_length: Literal[7] = 7
+    password_must_meet_complexity_requirements: Literal[True] = True
 
 
 @dataclass(frozen=True)
 class TurnoffPasswordPolicyPreset:
-    """Preset for turning off Password Policy."""
+    """Preset for turning off Password Policy.
 
-    PASSWORD_HISTORY_LENGTH: Literal[0] = 0
-    MAXIMUM_PASSWORD_AGE_DAYS: Literal[0] = 0
-    MINIMUM_PASSWORD_AGE_DAYS: Literal[0] = 0
-    MINIMUM_PASSWORD_LENGTH: Literal[0] = 0
-    PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS: Literal[False] = False
+    TurnoffPasswordPolicyPreset is setting all parameters to 0 or False.
+    But `name` and `priority` remain unchanged.
+    """
 
-
-@dataclass
-class PasswordPolicyPriorityUpdateDTO:
-    """DTO for updating priorities of Password Policies."""
-
-    priorities: dict[int, int]
+    password_history_length: Literal[0] = 0
+    maximum_password_age_days: Literal[0] = 0
+    minimum_password_age_days: Literal[0] = 0
+    minimum_password_length: Literal[0] = 0
+    password_must_meet_complexity_requirements: Literal[False] = False
 
 
 @dataclass

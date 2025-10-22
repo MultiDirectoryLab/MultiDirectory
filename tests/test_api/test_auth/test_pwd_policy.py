@@ -1,4 +1,4 @@
-"""Test Password Policy API.
+"""Test Password Policy RestAPI.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -260,12 +260,12 @@ async def test_reset_domain_policy_to_default_config(
     data = response.json()
     policy_data = data[0]
 
-    assert policy_data["name"] == DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME  # noqa: E501  # fmt: skip
-    assert policy_data["password_history_length"] == DefaultDomainPasswordPolicyPreset.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
-    assert policy_data["maximum_password_age_days"] == DefaultDomainPasswordPolicyPreset.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-    assert policy_data["minimum_password_age_days"] == DefaultDomainPasswordPolicyPreset.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-    assert policy_data["minimum_password_length"] == DefaultDomainPasswordPolicyPreset.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
-    assert policy_data["password_must_meet_complexity_requirements"] == DefaultDomainPasswordPolicyPreset.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip
+    assert policy_data["name"] == DefaultDomainPasswordPolicyPreset.name  # fmt: skip
+    assert policy_data["password_history_length"] == DefaultDomainPasswordPolicyPreset.password_history_length  # noqa: E501  # fmt: skip
+    assert policy_data["maximum_password_age_days"] == DefaultDomainPasswordPolicyPreset.maximum_password_age_days  # noqa: E501  # fmt: skip
+    assert policy_data["minimum_password_age_days"] == DefaultDomainPasswordPolicyPreset.minimum_password_age_days  # noqa: E501  # fmt: skip
+    assert policy_data["minimum_password_length"] == DefaultDomainPasswordPolicyPreset.minimum_password_length  # noqa: E501  # fmt: skip
+    assert policy_data["password_must_meet_complexity_requirements"] == DefaultDomainPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
 
     changed_data = copy(policy_data)
     changed_data["maximum_password_age_days"] = 80
@@ -376,8 +376,8 @@ async def test_turnoff(http_client: AsyncClient) -> None:
     assert data["name"] == password_policy_schema.name
     assert data["priority"] == password_policy_schema.priority
     assert data["group_paths"] == password_policy_schema.group_paths
-    assert data["password_history_length"] == TurnoffPasswordPolicyPreset.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
-    assert data["maximum_password_age_days"] == TurnoffPasswordPolicyPreset.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-    assert data["minimum_password_age_days"] == TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-    assert data["minimum_password_length"] == TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
-    assert data["password_must_meet_complexity_requirements"] is TurnoffPasswordPolicyPreset.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip
+    assert data["password_history_length"] == TurnoffPasswordPolicyPreset.password_history_length  # noqa: E501  # fmt: skip
+    assert data["maximum_password_age_days"] == TurnoffPasswordPolicyPreset.maximum_password_age_days  # noqa: E501  # fmt: skip
+    assert data["minimum_password_age_days"] == TurnoffPasswordPolicyPreset.minimum_password_age_days  # noqa: E501  # fmt: skip
+    assert data["minimum_password_length"] == TurnoffPasswordPolicyPreset.minimum_password_length  # noqa: E501  # fmt: skip
+    assert data["password_must_meet_complexity_requirements"] is TurnoffPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip

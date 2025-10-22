@@ -25,6 +25,7 @@ from abstract_dao import AbstractDAO
 from entities import Attribute, Directory, Group, PasswordPolicy, User
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
+    PasswordPolicyBaseDnNotFoundError,
     PasswordPolicyCantChangeDefaultDomainError,
     PasswordPolicyCantDeleteError,
     PasswordPolicyNotFoundError,
@@ -43,9 +44,10 @@ from ldap_protocol.utils.queries import (
 from repo.pg.tables import queryable_attr as qa
 
 from .dataclasses import (
-    DefaultDomainPasswordPolicyPreset,
+    DefaultDomainPasswordPolicyPreset as DefaultDomainP,
     PasswordPolicyDTO,
-    TurnoffPasswordPolicyPreset,
+    TurnoffPasswordPolicyPreset as TurnoffP,
+    _PriorityT,
 )
 
 
@@ -102,9 +104,8 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         policy = await self._session.scalar(
             select(PasswordPolicy)
             .options(
-                selectinload(qa(PasswordPolicy.groups)).selectinload(
-                    qa(Group.directory),
-                ),
+                selectinload(qa(PasswordPolicy.groups))
+                .selectinload(qa(Group.directory)),
             )
             .filter_by(id=id_),
         )  # fmt: skip
@@ -116,41 +117,55 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         policy = await self._session.scalar(
             select(PasswordPolicy)
             .options(
-                selectinload(qa(PasswordPolicy.groups)).selectinload(
-                    qa(Group.directory),
-                ),
+                selectinload(qa(PasswordPolicy.groups))
+                .selectinload(qa(Group.directory)),
             )
             .filter_by(name=name),
         )  # fmt: skip
 
         return policy
 
-    async def _get_domain_password_policy(self) -> PasswordPolicy | None:
-        return await self._get_raw_by_name(
-            DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME,
-        )
+    async def _get_raw_domain_password_policy(self) -> PasswordPolicy | None:
+        return await self._get_raw_by_name(DefaultDomainP.name)
 
-    async def _build_default_domain_policy_preset(
+    async def _get_domain_password_policy(self) -> PasswordPolicyDTO[int, int]:
+        return await self.get_by_name(DefaultDomainP.name)
+
+    async def _build_default_domain_password_policy_dto(
         self,
     ) -> PasswordPolicyDTO[None, None]:
         """Build domain Password Policy."""
         base_dn_list = await get_base_directories(self._session)
         if not base_dn_list:
-            raise PasswordPolicyNotFoundError(
+            raise PasswordPolicyBaseDnNotFoundError(
                 "No base DN found in the LDAP directory.",
             )
 
         group_paths = [base_dn_list[0].path_dn]
         return PasswordPolicyDTO[None, None](
             priority=None,
-            name=DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME,
+            name=DefaultDomainP.name,
             group_paths=group_paths,
-            password_history_length=DefaultDomainPasswordPolicyPreset.PASSWORD_HISTORY_LENGTH,
-            maximum_password_age_days=DefaultDomainPasswordPolicyPreset.MAXIMUM_PASSWORD_AGE_DAYS,
-            minimum_password_age_days=DefaultDomainPasswordPolicyPreset.MINIMUM_PASSWORD_AGE_DAYS,
-            minimum_password_length=DefaultDomainPasswordPolicyPreset.MINIMUM_PASSWORD_LENGTH,
-            password_must_meet_complexity_requirements=DefaultDomainPasswordPolicyPreset.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS,
+            password_history_length=DefaultDomainP.password_history_length,
+            maximum_password_age_days=DefaultDomainP.maximum_password_age_days,
+            minimum_password_age_days=DefaultDomainP.minimum_password_age_days,
+            minimum_password_length=DefaultDomainP.minimum_password_length,
+            password_must_meet_complexity_requirements=DefaultDomainP.password_must_meet_complexity_requirements,
         )
+
+    async def _is_policy_already_exist(self, name: str) -> bool:
+        _is_exists = await self._session.scalar(
+            select(
+                exists(PasswordPolicy)
+                .where(qa(PasswordPolicy.name) == name),
+            ),
+        )  # fmt: skip
+        return bool(_is_exists)
+
+    async def get_all(self) -> list[PasswordPolicyDTO[int, int]]:
+        """Get all Password Policies."""
+        policies = await self._get_all_raw()
+        return list(map(_convert_model_to_dto, policies))
 
     async def get_by_name(self, name: str) -> PasswordPolicyDTO[int, int]:
         """Get password policy by name."""
@@ -158,11 +173,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if not policy:
             raise PasswordPolicyNotFoundError("Password Policy not found.")
         return _convert_model_to_dto(policy)
-
-    async def get_all(self) -> list[PasswordPolicyDTO[int, int]]:
-        """Get all Password Policies."""
-        policies = await self._get_all_raw()
-        return list(map(_convert_model_to_dto, policies))
 
     async def get(self, id_: int) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy."""
@@ -189,15 +199,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         return await self.get_password_policy_for_dir(directory)
 
-    async def create(self, dto: PasswordPolicyDTO[None, int | None]) -> None:
+    async def create(self, dto: PasswordPolicyDTO[None, _PriorityT]) -> None:
         """Create one Password Policy."""
-        is_policy_already_exist = await self._session.scalar(
-            select(
-                exists(PasswordPolicy)
-                .where(qa(PasswordPolicy.name) == dto.name),
-            ),
-        )  # fmt: skip
-        if is_policy_already_exist:
+        if await self._is_policy_already_exist(dto.name):
             raise PasswordPolicyAlreadyExistsError(
                 "Password Policy already exists",
             )
@@ -206,7 +210,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if not priority:
             priority = 1
 
-        domain_pwd_policy = await self._get_domain_password_policy()
+        domain_pwd_policy = await self._get_raw_domain_password_policy()
         if domain_pwd_policy and domain_pwd_policy.priority < priority:
             raise PasswordPolicyCantChangeDefaultDomainError(
                 "Domain Password Policy must have the lowest priority.",
@@ -234,44 +238,31 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
     async def create_default_domain_policy(self) -> None:
         """Create default domain Password Policy with default configuration."""
-        is_policy_already_exist = await self._session.scalar(
-            select(
-                exists(PasswordPolicy)
-                .where(qa(PasswordPolicy.name) == DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME),  # noqa: E501
-            ),
-        )  # fmt: skip
-        if is_policy_already_exist:
+        if await self._is_policy_already_exist(DefaultDomainP.name):
             return
 
-        dto = await self._build_default_domain_policy_preset()
-        await self.create(dto)  # type: ignore
+        dto = await self._build_default_domain_password_policy_dto()
+        await self.create(dto)
         await self._session.flush()
 
     async def update(
         self,
         id_: int,
-        dto: PasswordPolicyDTO[int, int | None],
+        dto: PasswordPolicyDTO[int, _PriorityT],
     ) -> None:
         """Update one Password Policy."""
         policy = await self._get_raw(id_)
         if not policy:
             raise PasswordPolicyNotFoundError("Password Policy not found.")
 
-        if (
-            policy.name
-            == DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME
-            and dto.name != policy.name
-        ):
+        if policy.name == DefaultDomainP.name and dto.name != policy.name:
             raise PasswordPolicyCantChangeDefaultDomainError(
                 "Cannot change the name of the default domain Password Policy.",  # noqa: E501
             )
 
+        domain_password_policy = await self._get_domain_password_policy()
         priority = dto.priority or await self._get_total_count()
-
-        domain_pwd_policy = await self.get_by_name(
-            DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME,
-        )
-        if domain_pwd_policy.priority < priority:
+        if domain_password_policy.priority < priority:
             raise PasswordPolicyCantChangeDefaultDomainError(
                 "Domain Password Policy must have the lowest priority.",
             )
@@ -307,10 +298,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             )
 
         policy = await self.get(id_)
-        if (
-            policy.name
-            == DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME
-        ):
+        if policy.name == DefaultDomainP.name:
             raise PasswordPolicyCantDeleteError(
                 "Cannot delete the domain Password Policy.",
             )
@@ -327,14 +315,14 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         await self._session.flush()
 
     async def reset_domain_policy_to_default_config(self) -> None:
-        """Reset domain Password Policy to default configuration."""
-        domain_policy = await self._get_domain_password_policy()
+        """Reset domain Password Policy to default configuration using DefaultDomainPasswordPolicyPreset."""  # noqa: E501
+        domain_policy = await self._get_raw_domain_password_policy()
         if not domain_policy:
             raise PasswordPolicyNotFoundError(
                 "Domain Password Policy not found.",
             )
 
-        dto = await self._build_default_domain_policy_preset()
+        dto = await self._build_default_domain_password_policy_dto()
 
         domain_policy.name = dto.name
         domain_policy.priority = await self._get_total_count()
@@ -349,10 +337,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         await self._session.flush()
 
-    async def update_priorities(
-        self,
-        new_priorities: dict[int, int],
-    ) -> None:
+    async def update_priorities(self, new_priorities: dict[int, int]) -> None:
         """Update priority of all Password Policies."""
         if len(set(new_priorities.values())) != len(new_priorities.values()):
             raise PasswordPolicyUpdatePrioritiesError(
@@ -365,14 +350,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
                 "Not all priorities set.",
             )
 
-        domain_policy = await self.get_by_name(
-            DefaultDomainPasswordPolicyPreset.DOMAIN_PASSWORD_POLICY_NAME,
-        )
-        if not domain_policy:
-            raise PasswordPolicyNotFoundError(
-                "Domain Password Policy not found.",
-            )
-
+        domain_policy = await self._get_domain_password_policy()
         if new_priorities.get(domain_policy.id) != total_count:
             raise PasswordPolicyCantChangeDefaultDomainError(
                 "Domain Password Policy must have the lowest priority.",
@@ -385,26 +363,21 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
         await self._session.flush()
 
-        policies = await self._get_all_raw()
-        for policy in policies:
+        for policy in await self._get_all_raw():
             policy.priority = new_priorities.get(policy.id, policy.priority)
         await self._session.flush()
 
     async def turnoff(self, id_: int) -> None:
-        """Turn off one Password Policy.
-
-        Turnoff is setting all parameters to 0 or False.
-        Name and priority remain unchanged.
-        """
+        """Turn off one Password Policy using TurnoffPasswordPolicyPreset."""
         policy = await self._get_raw(id_)
         if not policy:
             raise PasswordPolicyNotFoundError("Password Policy not found.")
 
-        policy.password_history_length = TurnoffPasswordPolicyPreset.PASSWORD_HISTORY_LENGTH  # noqa: E501  # fmt: skip
-        policy.maximum_password_age_days = TurnoffPasswordPolicyPreset.MAXIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-        policy.minimum_password_age_days = TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_AGE_DAYS  # noqa: E501  # fmt: skip
-        policy.minimum_password_length = TurnoffPasswordPolicyPreset.MINIMUM_PASSWORD_LENGTH  # noqa: E501  # fmt: skip
-        policy.password_must_meet_complexity_requirements = TurnoffPasswordPolicyPreset.PASSWORD_MUST_MEET_COMPLEXITY_REQUIREMENTS  # noqa: E501  # fmt: skip
+        policy.password_history_length = TurnoffP.password_history_length
+        policy.maximum_password_age_days = TurnoffP.maximum_password_age_days
+        policy.minimum_password_age_days = TurnoffP.minimum_password_age_days
+        policy.minimum_password_length = TurnoffP.minimum_password_length
+        policy.password_must_meet_complexity_requirements = TurnoffP.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
 
         await self._session.flush()
 
@@ -420,7 +393,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         If no policy is assigned, the DefaultDomainPasswordPolicy is applied.
         For all other entities (not "User"), the DefaultDomainPasswordPolicy is applied.
         """  # noqa: E501
-        policy: PasswordPolicy | None = None
+        dto: PasswordPolicyDTO | None = None
 
         if directory.entity_type and directory.entity_type.name == "User":
             policy = await self._session.scalar(
@@ -436,16 +409,12 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
                 .order_by(qa(PasswordPolicy.priority).asc())
                 .limit(1),
             )
+            dto = _convert_model_to_dto(policy) if policy else None
 
-        if not policy:
-            policy = await self._get_domain_password_policy()
+        if not dto:
+            dto = await self._get_domain_password_policy()
 
-        if not policy:
-            raise PasswordPolicyNotFoundError(
-                "Password Policy not found.",
-            )
-
-        return _convert_model_to_dto(policy)
+        return dto
 
     async def get_or_create_pwd_last_set(
         self,

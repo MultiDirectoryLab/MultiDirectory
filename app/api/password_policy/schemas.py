@@ -8,8 +8,13 @@ from typing import Generic, Self, TypeVar
 
 from pydantic import BaseModel, Field, model_validator
 
+from ldap_protocol.policies.password.exceptions import (
+    PasswordPolicyAgeDaysError,
+    PasswordPolicyPriorityError,
+)
+
 _IdT = TypeVar("_IdT", int, None)
-_PriorityT = TypeVar("_PriorityT", int, None, int | None)
+_PriorityT = TypeVar("_PriorityT", int, None)
 
 
 class PasswordPolicySchema(BaseModel, Generic[_IdT, _PriorityT]):
@@ -28,13 +33,15 @@ class PasswordPolicySchema(BaseModel, Generic[_IdT, _PriorityT]):
     @model_validator(mode="after")
     def _validate_priority(self) -> Self:
         if self.priority is not None and self.priority < 1:
-            raise ValueError("Priority must be greater than or equal to 1")
+            raise PasswordPolicyPriorityError(
+                "Priority must be greater than or equal to 1",
+            )
         return self
 
     @model_validator(mode="after")
     def _validate_minimum_pwd_age(self) -> Self:
         if self.minimum_password_age_days > self.maximum_password_age_days:
-            raise ValueError(
+            raise PasswordPolicyAgeDaysError(
                 "Minimum password age days must be "
                 "lower or equal than maximum password age days",
             )

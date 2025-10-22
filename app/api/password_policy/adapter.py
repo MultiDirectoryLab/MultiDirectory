@@ -8,13 +8,16 @@ from adaptix.conversion import get_converter
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from api.password_policy.schemas import PasswordPolicySchema
+from api.password_policy.schemas import PasswordPolicySchema, _PriorityT
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
+    PasswordPolicyAgeDaysError,
     PasswordPolicyAlreadyExistsError,
+    PasswordPolicyBaseDnNotFoundError,
     PasswordPolicyCantChangeDefaultDomainError,
     PasswordPolicyCantDeleteError,
     PasswordPolicyNotFoundError,
+    PasswordPolicyPriorityError,
     PasswordPolicyUpdatePrioritiesError,
 )
 from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
@@ -30,11 +33,14 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     """Adapter for password policies."""
 
     _exceptions_map: dict[type[Exception], int] = {
+        PasswordPolicyBaseDnNotFoundError: status.HTTP_404_NOT_FOUND,
         PasswordPolicyNotFoundError: status.HTTP_404_NOT_FOUND,
         PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
         PasswordPolicyCantChangeDefaultDomainError: status.HTTP_400_BAD_REQUEST,  # noqa: E501
         PasswordPolicyCantDeleteError: status.HTTP_400_BAD_REQUEST,
         PasswordPolicyUpdatePrioritiesError: status.HTTP_400_BAD_REQUEST,
+        PasswordPolicyPriorityError: status.HTTP_400_BAD_REQUEST,
+        PasswordPolicyAgeDaysError: status.HTTP_400_BAD_REQUEST,
     }
 
     async def get_all(self) -> list[PasswordPolicySchema[int, int]]:
@@ -59,7 +65,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
 
     async def create(
         self,
-        policy: PasswordPolicySchema[None, int | None],
+        policy: PasswordPolicySchema[None, _PriorityT],
     ) -> None:
         """Create one Password Policy."""
         dto = _convert_schema_to_dto(policy)
@@ -68,7 +74,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     async def update(
         self,
         id_: int,
-        policy: PasswordPolicySchema[int, int | None],
+        policy: PasswordPolicySchema[int, _PriorityT],
     ) -> None:
         """Update one Password Policy."""
         dto = _convert_schema_to_dto(policy)
@@ -82,10 +88,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         """Reset domain Password Policy to default configuration."""
         await self._service.reset_domain_policy_to_default_config()
 
-    async def update_priorities(
-        self,
-        new_priorities: dict[int, int],
-    ) -> None:
+    async def update_priorities(self, new_priorities: dict[int, int]) -> None:
         """Update priority of all Password Policies."""
         await self._service.update_priorities(new_priorities)
 
