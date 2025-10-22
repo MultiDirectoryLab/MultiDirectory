@@ -150,10 +150,6 @@ async def get_group(
     :raises AttributeError: on invalid dn
     :return Directory: dir with group
     """
-    for base_directory in await get_base_directories(session):
-        if dn_is_base_directory(base_directory, dn):
-            raise ValueError("Cannot set memberOf with base dn")
-
     query = (
         select(Group)
         .join(qa(Group.directory), isouter=True)
