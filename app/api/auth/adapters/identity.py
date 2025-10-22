@@ -6,11 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
+from adaptix.conversion import get_converter
 from fastapi import Request, Response, status
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.base_adapter import BaseAdapter
 from ldap_protocol.identity import IdentityManager
+from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
     AlreadyConfiguredError,
     LoginFailedError,
@@ -29,6 +31,8 @@ from ldap_protocol.identity.schemas import (
     SetupRequest,
 )
 from ldap_protocol.kerberos import KRBAPIError
+
+_convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
 
 class IdentityFastAPIAdapter(
@@ -116,4 +120,6 @@ class IdentityFastAPIAdapter(
         :raises HTTPException: 423 if setup already performed
         :return: None
         """
-        await self._service.perform_first_setup(request)
+        await self._service.perform_first_setup(
+            _convert_request_to_dto(request),
+        )

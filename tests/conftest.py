@@ -52,7 +52,6 @@ from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
-from extra import setup_enviroment
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
@@ -63,6 +62,8 @@ from ldap_protocol.dns import (
     get_dns_manager_settings,
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.setup_gateway import SetupGateway
+from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
@@ -553,6 +554,8 @@ class TestProvider(Provider):
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
 
     dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
+    setup_gateway = provide(SetupGateway, scope=Scope.REQUEST)
+    setup_use_case = provide(SetupUseCase, scope=Scope.REQUEST)
 
 
 @dataclass
@@ -708,11 +711,10 @@ async def setup_session(
         password_policy_dao,
         password_policy_validator,
     )
+    setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
     await audit_use_case.create_policies()
-    await setup_enviroment(
-        session,
+    await setup_gateway.setup_enviroment(
         dn="md.test",
-        password_validator=password_validator,
         data=TEST_DATA,
     )
 
