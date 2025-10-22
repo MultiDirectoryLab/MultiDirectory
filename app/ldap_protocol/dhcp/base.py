@@ -97,6 +97,10 @@ class DHCPAPIRepository(ABC):
     async def list_reservations(self, subnet_id: int) -> list[DHCPReservation]:
         """List all reservations for a subnet."""
 
+    @abstractmethod
+    async def write_config(self) -> None:
+        """Write the DHCP server configuration to apply changes."""
+
 
 class AbstractDHCPManager(AbstractService):
     """Abstract DHCP manager class."""

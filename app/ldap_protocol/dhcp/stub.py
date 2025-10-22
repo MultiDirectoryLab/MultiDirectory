@@ -83,6 +83,10 @@ class StubDHCPAPIRepository(DHCPAPIRepository):
     ) -> NoReturn:
         raise DHCPAPIError
 
+    @logger_wraps(is_stub=True)
+    async def write_config(self) -> None:
+        """Write the DHCP server configuration to apply changes."""
+
 
 class StubDHCPManager(AbstractDHCPManager):
     """Stub DHCP manager class."""
