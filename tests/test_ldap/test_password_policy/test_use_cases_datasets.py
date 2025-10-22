@@ -4,11 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
-from api.password_policy.schemas import PasswordPolicySchema
+from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 
 test_get_policy_by_dir_path_extended_dataset = [
     [
-        PasswordPolicySchema[None, int](
+        PasswordPolicyDTO[None, int](
             priority=1,
             name="Test Password Policy",
             group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
@@ -18,7 +18,7 @@ test_get_policy_by_dir_path_extended_dataset = [
             minimum_password_length=8,
             password_must_meet_complexity_requirements=True,
         ),
-        PasswordPolicySchema[None, int](
+        PasswordPolicyDTO[None, int](
             priority=1,
             name="Test Password Policy2",
             group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
@@ -28,7 +28,7 @@ test_get_policy_by_dir_path_extended_dataset = [
             minimum_password_length=8,
             password_must_meet_complexity_requirements=True,
         ),
-        PasswordPolicySchema[None, int](
+        PasswordPolicyDTO[None, int](
             priority=1,
             name="Test Password Policy3",
             group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
@@ -43,7 +43,7 @@ test_get_policy_by_dir_path_extended_dataset = [
 
 test_update_priorities_dataset = [
     [
-        PasswordPolicySchema(
+        PasswordPolicyDTO(
             priority=1,
             name="Test Password Policy 1",
             group_paths=[],
@@ -53,7 +53,7 @@ test_update_priorities_dataset = [
             minimum_password_length=8,
             password_must_meet_complexity_requirements=True,
         ),
-        PasswordPolicySchema(
+        PasswordPolicyDTO(
             priority=2,
             name="Test Password Policy 2",
             group_paths=[],

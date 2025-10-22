@@ -34,8 +34,8 @@ class PasswordPolicyUpdatePrioritiesError(PasswordPolicyBaseError):
 
 
 class PasswordPolicyPriorityError(PasswordPolicyBaseError):
-    """Exception raised when there is a priority error in the Password Policy."""
+    """Exception raised when there is a priority error."""
 
 
 class PasswordPolicyAgeDaysError(PasswordPolicyBaseError):
-    """Exception raised when the age days for the Password Policy are invalid."""
+    """Exception raised when the age days are invalid."""
