@@ -29,7 +29,6 @@ async def test_get_all(http_client: AsyncClient) -> None:
     response = await http_client.get("/password-policy/all")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert isinstance(data, list)
     assert isinstance(data[0], dict)
 
 
@@ -260,7 +259,7 @@ async def test_reset_domain_policy_to_default_config(
     data = response.json()
     policy_data = data[0]
 
-    assert policy_data["name"] == DefaultDomainPasswordPolicyPreset.name  # fmt: skip
+    assert policy_data["name"] == DefaultDomainPasswordPolicyPreset.name
     assert policy_data["password_history_length"] == DefaultDomainPasswordPolicyPreset.password_history_length  # noqa: E501  # fmt: skip
     assert policy_data["maximum_password_age_days"] == DefaultDomainPasswordPolicyPreset.maximum_password_age_days  # noqa: E501  # fmt: skip
     assert policy_data["minimum_password_age_days"] == DefaultDomainPasswordPolicyPreset.minimum_password_age_days  # noqa: E501  # fmt: skip
