@@ -168,6 +168,11 @@ directory_table = Table(
     Index("idx_entity_type_dir_id", "entity_type_id", postgresql_using="hash"),
     Index("ix_directory_objectGUID", "object_guid", postgresql_using="hash"),
     Index("lw_path", text("array_lowercase(path)"), postgresql_using="gin"),
+    Index(
+        "idx_directory_path_hash",
+        text("array_lowercase(path)"),
+        postgresql_using="hash",
+    ),
 )
 
 groups_table = Table(
