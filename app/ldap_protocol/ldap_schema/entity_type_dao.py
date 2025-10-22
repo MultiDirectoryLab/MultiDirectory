@@ -321,16 +321,16 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             class names.
         :return None.
         """
+        if entity_type:
+            directory.entity_type = entity_type
+            return
+
         if object_class_names is None:
             object_class_names = directory.object_class_names_set
 
         await self.__object_class_dao.is_all_object_classes_exists(
             object_class_names,
         )
-
-        if entity_type:
-            directory.entity_type = entity_type
-            return None
 
         entity_type = await self.get_entity_type_by_object_class_names(
             object_class_names,
