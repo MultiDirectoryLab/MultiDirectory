@@ -81,7 +81,11 @@ class AddRequest(BaseRequest):
     @property
     def object_class_names(self) -> set[str]:
         return {
-            str(name)
+            (
+                name.decode("latin-1")
+                if isinstance(name, bytes)
+                else name
+            )
             for name in (
                 self.attributes_dict.get("objectClass", [])
                 + self.attributes_dict.get("objectclass", [])
