@@ -309,19 +309,28 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         self,
         directory: Directory,
         is_system_entity_type: bool,
+        entity_type: EntityType | None = None,
+        object_class_names: set[str] | None = None,
     ) -> None:
         """Try to find the Entity Type, attach it to the Directory.
 
         :param Directory directory: Directory to attach Entity Type.
         :param bool is_system_entity_type: Is system Entity Type.
-        :param ObjectClassDAO object_class_dao: Object Class DAO.
+        :param EntityType | None entity_type: Predefined Entity Type.
+        :param set[str] | None object_class_names: Predefined object
+            class names.
         :return None.
         """
-        object_class_names = directory.object_class_names_set
+        if object_class_names is None:
+            object_class_names = directory.object_class_names_set
 
         await self.__object_class_dao.is_all_object_classes_exists(
             object_class_names,
         )
+
+        if entity_type:
+            directory.entity_type = entity_type
+            return None
 
         entity_type = await self.get_entity_type_by_object_class_names(
             object_class_names,

@@ -81,11 +81,7 @@ class AddRequest(BaseRequest):
     @property
     def object_class_names(self) -> set[str]:
         return {
-            (
-                name.decode("latin-1")
-                if isinstance(name, bytes)
-                else name
-            )
+            (name.decode("latin-1") if isinstance(name, bytes) else name)
             for name in (
                 self.attributes_dict.get("objectClass", [])
                 + self.attributes_dict.get("objectclass", [])
@@ -199,7 +195,6 @@ class AddRequest(BaseRequest):
             ctx.session.add(new_dir)
 
             await ctx.session.flush()
-            await ctx.session.refresh(new_dir, ["id"])
 
             new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
             await ctx.session.flush()
@@ -403,15 +398,11 @@ class AddRequest(BaseRequest):
             items_to_add.extend(attributes)
             ctx.session.add_all(items_to_add)
             await ctx.session.flush()
-
-            await ctx.session.refresh(
-                instance=new_dir,
-                attribute_names=["attributes"],
-                with_for_update=None,
-            )
             await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
+                entity_type=entity_type,
+                object_class_names=self.object_class_names,
             )
             await ctx.role_use_case.inherit_parent_aces(
                 parent_directory=parent,
