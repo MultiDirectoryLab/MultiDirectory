@@ -1,4 +1,4 @@
-"""Datasets for test Password Policy API.
+"""Datasets for testing Password Policy Service[UseCases].
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.

@@ -1,4 +1,4 @@
-"""Test Password Policy service.
+"""Test Password Policy Service[UseCases].
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -15,7 +15,7 @@ from ldap_protocol.policies.password.dataclasses import (
 )
 from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
 
-from .test_use_cases_datasets import (
+from .datasets import (
     test_get_policy_by_dir_path_extended_dataset,
     test_update_priorities_dataset,
 )

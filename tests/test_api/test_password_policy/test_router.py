@@ -12,6 +12,12 @@ from httpx import AsyncClient
 
 from api.password_policy.schemas import PasswordPolicySchema
 
+from .datasets import (
+    test_create_data,
+    test_create_without_priority_data,
+    test_update_data,
+)
+
 
 @pytest.mark.asyncio
 async def test_get_all(
@@ -37,48 +43,32 @@ async def test_get(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("schema", test_create_data)
 async def test_create(
+    schema: PasswordPolicySchema[None, int],
     http_client: AsyncClient,
     password_use_cases: Mock,
 ) -> None:
     """Test create one Password Policy endpoint."""
-    password_policy_schema = PasswordPolicySchema[None, int](
-        priority=1,
-        name="Test Password Policy",
-        group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )  # fmt: skip
     response = await http_client.post(
         "/password-policy",
-        json=password_policy_schema.model_dump(),
+        json=schema.model_dump(),
     )
     assert response.status_code == status.HTTP_201_CREATED
     password_use_cases.create.assert_called_once()
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("schema", test_create_without_priority_data)
 async def test_create_without_priority(
+    schema: PasswordPolicySchema[None, None],
     http_client: AsyncClient,
     password_use_cases: Mock,
 ) -> None:
     """Test create one Password Policy without priority endpoint."""
-    password_policy_schema = PasswordPolicySchema[None, None](
-        priority=None,
-        name="Test Password Policy",
-        group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )  # fmt: skip
     response = await http_client.post(
         "/password-policy",
-        json=password_policy_schema.model_dump(),
+        json=schema.model_dump(),
     )
     assert response.status_code == status.HTTP_201_CREATED
     password_use_cases.create.assert_called_once()
@@ -97,22 +87,13 @@ async def test_get_policy_by_dir_path(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("schema", test_update_data)
 async def test_update(
+    schema: PasswordPolicySchema[int, int],
     http_client: AsyncClient,
     password_use_cases: Mock,
 ) -> None:
     """Test update one Password Policy endpoint."""
-    schema = PasswordPolicySchema[int, int](
-        id=1,
-        priority=2,
-        name="NOT Test Password Policy",
-        group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
-        password_must_meet_complexity_requirements=True,
-    )  # fmt: skip
     response = await http_client.put(
         "/password-policy/1",
         json=schema.model_dump(),
