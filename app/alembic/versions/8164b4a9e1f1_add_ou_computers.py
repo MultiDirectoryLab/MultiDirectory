@@ -11,7 +11,6 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
-from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -38,6 +37,7 @@ _OU_COMPUTERS_DATA = {
 
 def upgrade() -> None:
     """Upgrade."""
+    from ldap_protocol.identity.setup_gateway import SetupGateway
 
     async def _create_ou_computers(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
