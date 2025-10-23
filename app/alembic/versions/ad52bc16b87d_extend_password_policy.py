@@ -1,7 +1,7 @@
 """Extend Password Policy by priority and group membership.
 
 Revision ID: ad52bc16b87d
-Revises: f1abf7ef2443
+Revises: 93ba193c6a53
 Create Date: 2025-10-20 12:57:49.157153
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: None | str = "ad52bc16b87d"
-down_revision: None | str = "f1abf7ef2443"
+down_revision: None | str = "93ba193c6a53"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
