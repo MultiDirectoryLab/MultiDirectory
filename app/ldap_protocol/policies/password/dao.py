@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from entities import Attribute, Directory, Group, PasswordPolicy, User
+from entities import Attribute, Group, PasswordPolicy, User
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyBaseDnNotFoundError,
@@ -35,11 +35,12 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag as UacFlag,
     get_check_uac,
 )
+from ldap_protocol.utils.const import GRANT_DN_STRING
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
     get_base_directories,
+    get_filter_from_path,
     get_groups,
-    get_search_path,
 )
 from repo.pg.tables import queryable_attr as qa
 
@@ -93,7 +94,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             select(PasswordPolicy)
             .options(
                 selectinload(qa(PasswordPolicy.groups))
-                .selectinload(qa(Group.directory)),
+                .joinedload(qa(Group.directory)),
             )
             .order_by(qa(PasswordPolicy.priority)),
         )  # fmt: skip
@@ -105,7 +106,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             select(PasswordPolicy)
             .options(
                 selectinload(qa(PasswordPolicy.groups))
-                .selectinload(qa(Group.directory)),
+                .joinedload(qa(Group.directory)),
             )
             .filter_by(id=id_),
         )  # fmt: skip
@@ -118,7 +119,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             select(PasswordPolicy)
             .options(
                 selectinload(qa(PasswordPolicy.groups))
-                .selectinload(qa(Group.directory)),
+                .joinedload(qa(Group.directory)),
             )
             .filter_by(name=name),
         )  # fmt: skip
@@ -127,9 +128,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
     async def _get_raw_domain_password_policy(self) -> PasswordPolicy | None:
         return await self._get_raw_by_name(DefaultDomainP.name)
-
-    async def _get_domain_password_policy(self) -> PasswordPolicyDTO[int, int]:
-        return await self.get_by_name(DefaultDomainP.name)
 
     async def _build_default_domain_password_policy_dto(
         self,
@@ -162,6 +160,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
         return bool(_is_exists)
 
+    async def get_domain_password_policy(self) -> PasswordPolicyDTO[int, int]:
+        return await self.get_by_name(DefaultDomainP.name)
+
     async def get_all(self) -> list[PasswordPolicyDTO[int, int]]:
         """Get all Password Policies."""
         policies = await self._get_all_raw()
@@ -183,21 +184,19 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
     async def get_password_policy_by_dir_path(
         self,
-        directory_path: str,
+        directory_path: GRANT_DN_STRING,
     ) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy for one Directory by its path."""
-        directory = await self._session.scalar(
-            select(Directory)
-            .options(
-                selectinload(qa(Directory.entity_type)),
-            )
-            .filter_by(path=get_search_path(directory_path)),
+        user = await self._session.scalar(
+            select(User)
+            .join(qa(User.directory))
+            .where(get_filter_from_path(directory_path)),
         )  # fmt: skip
 
-        if not directory:
-            raise PasswordPolicyNotFoundError("Directory not found.")
+        if not user:
+            raise PasswordPolicyNotFoundError("User not found.")
 
-        return await self.get_password_policy_for_dir(directory)
+        return await self.get_password_policy_for_user(user)
 
     async def create(self, dto: PasswordPolicyDTO[None, _PriorityT]) -> None:
         """Create one Password Policy."""
@@ -207,7 +206,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             )
 
         priority = dto.priority or await self._get_total_count()
-        if not priority:
+        if priority == 0:
             priority = 1
 
         domain_pwd_policy = await self._get_raw_domain_password_policy()
@@ -260,7 +259,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
                 "Cannot change the name of the default domain Password Policy.",  # noqa: E501
             )
 
-        domain_password_policy = await self._get_domain_password_policy()
+        domain_password_policy = await self.get_domain_password_policy()
         priority = dto.priority or await self._get_total_count()
         if domain_password_policy.priority < priority:
             raise PasswordPolicyCantChangeDefaultDomainError(
@@ -350,7 +349,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
                 "Not all priorities set.",
             )
 
-        domain_policy = await self._get_domain_password_policy()
+        domain_policy = await self.get_domain_password_policy()
         if new_priorities.get(domain_policy.id) != total_count:
             raise PasswordPolicyCantChangeDefaultDomainError(
                 "Domain Password Policy must have the lowest priority.",
@@ -381,11 +380,11 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         await self._session.flush()
 
-    async def get_password_policy_for_dir(
+    async def get_password_policy_for_user(
         self,
-        directory: Directory,
+        user: User,
     ) -> PasswordPolicyDTO[int, int]:
-        """Get one Password Policy for one Directory.
+        """Get one Password Policy for one User.
 
         The password policy is calculated only for the "User" entity
         based on its [the user's] groups with the lowest priority value.
@@ -393,26 +392,23 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         If no policy is assigned, the DefaultDomainPasswordPolicy is applied.
         For all other entities (not "User"), the DefaultDomainPasswordPolicy is applied.
         """  # noqa: E501
-        dto: PasswordPolicyDTO | None = None
-
-        if directory.entity_type and directory.entity_type.name == "User":
-            policy = await self._session.scalar(
-                select(PasswordPolicy)
-                .join(qa(PasswordPolicy.groups))
-                .join(qa(Group.users))
-                .options(
-                    selectinload(qa(PasswordPolicy.groups)).selectinload(
-                        qa(Group.directory),
-                    ),
-                )
-                .filter(qa(User.directory_id) == directory.id)
-                .order_by(qa(PasswordPolicy.priority).asc())
-                .limit(1),
+        policy = await self._session.scalar(
+            select(PasswordPolicy)
+            .join(qa(PasswordPolicy.groups))
+            .join(qa(Group.users))
+            .options(
+                selectinload(qa(PasswordPolicy.groups)).joinedload(
+                    qa(Group.directory),
+                ),
             )
-            dto = _convert_model_to_dto(policy) if policy else None
+            .where(qa(Group.users).contains(user))
+            .order_by(qa(PasswordPolicy.priority).asc())
+            .limit(1),
+        )
+        dto = _convert_model_to_dto(policy) if policy else None
 
         if not dto:
-            dto = await self._get_domain_password_policy()
+            dto = await self.get_domain_password_policy()
 
         return dto
 

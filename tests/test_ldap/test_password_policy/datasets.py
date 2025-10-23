@@ -1,12 +1,12 @@
 """Datasets for testing Password Policy Service[UseCases].
 
-Copyright (c) 2024 MultiFactor
+Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 
-test_get_policy_by_dir_path_extended_dataset = [
+test_get_password_policy_by_dir_path_extended_dataset = [
     [
         PasswordPolicyDTO[None, int](
             priority=1,

@@ -44,7 +44,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :return User | None: user from db
     """
     policies = selectinload(qa(User.groups)).selectinload(qa(Group.roles))
-    entity_type = selectinload(qa(User.directory)).selectinload(
+    entity_type = joinedload(qa(User.directory)).joinedload(
         qa(Directory.entity_type),
     )
 

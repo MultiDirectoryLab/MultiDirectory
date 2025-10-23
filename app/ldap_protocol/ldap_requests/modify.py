@@ -131,7 +131,7 @@ class ModifyRequest(BaseRequest):
         now += timedelta(days=policy.maximum_password_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         ctx: LDAPModifyRequestContext,
     ) -> AsyncGenerator[ModifyResponse, None]:
@@ -164,6 +164,12 @@ class ModifyRequest(BaseRequest):
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if not directory.entity_type_id:
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
             return
 
         can_modify = ctx.access_manager.check_modify_access(
@@ -201,11 +207,17 @@ class ModifyRequest(BaseRequest):
                 )
                 return
 
-            password_policy = (
-                await ctx.password_use_cases.get_password_policy_for_dir(
-                    directory,
+            if directory.user:
+                password_policy = (
+                    await ctx.password_use_cases.get_password_policy_for_user(
+                        directory.user,
+                    )
                 )
-            )
+            else:
+                password_policy = (
+                    await ctx.password_use_cases.get_domain_password_policy()
+                )
+
             for change in self.changes:
                 if change.modification.l_name in Directory.ro_fields:
                     continue
@@ -307,7 +319,7 @@ class ModifyRequest(BaseRequest):
             case _:
                 raise err
 
-    def _get_dir_query(self) -> Select:
+    def _get_dir_query(self) -> Select[tuple[Directory]]:
         return (
             select(Directory)
             .options(joinedload(qa(Directory.user)))

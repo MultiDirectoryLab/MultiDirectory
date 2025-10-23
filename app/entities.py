@@ -141,7 +141,7 @@ class ObjectClass:
 
 @dataclass
 class PasswordPolicy:
-    """Password policy configuration (history/complexity/age).
+    """Password Policy configuration.
 
     `priority` - lower number means higher priority.
     """
@@ -191,7 +191,7 @@ class Directory:
         compare=False,
     )
     group: Group = field(init=False, repr=False, compare=False)
-    user: User = field(init=False, repr=False, compare=False)
+    user: User | None = field(init=False, repr=False, compare=False)
     groups: list[Group] = field(init=False, repr=False, compare=False)
     access_control_entries: list[AccessControlEntry] = field(
         init=False,
@@ -359,13 +359,6 @@ class User:
 @dataclass
 class Group:
     """Group object referencing directory entry; manages memberships."""
-
-    def __eq__(self, other: object) -> bool:
-        """Equality by ID."""
-        if isinstance(other, Group):
-            return self.id == other.id
-        else:
-            raise NotImplementedError
 
     id: int = field(init=False)
     directory_id: int = field()

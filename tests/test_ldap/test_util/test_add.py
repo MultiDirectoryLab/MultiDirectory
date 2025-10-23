@@ -235,7 +235,7 @@ async def test_ldap_user_add_with_group(
 
     assert new_dir.name == "test"
 
-    groups = [group.directory.path_dn for group in new_dir.user.groups]
+    groups = [group.directory.path_dn for group in new_dir.user.groups]  # type: ignore
 
     assert group_dn in groups
 

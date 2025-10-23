@@ -16,7 +16,7 @@ from ldap_protocol.policies.password.dataclasses import (
 from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
 
 from .datasets import (
-    test_get_policy_by_dir_path_extended_dataset,
+    test_get_password_policy_by_dir_path_extended_dataset,
     test_update_priorities_dataset,
 )
 
@@ -87,7 +87,7 @@ async def test_create_without_priority(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_get_policy_by_dir_path(
+async def test_get_password_policy_by_dir_path(
     password_use_cases: PasswordPolicyUseCases,
 ) -> None:
     """Test get Password Policy by directory path endpoint."""
@@ -116,9 +116,9 @@ async def test_get_policy_by_dir_path(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.parametrize(
     "dataset",
-    test_get_policy_by_dir_path_extended_dataset,
+    test_get_password_policy_by_dir_path_extended_dataset,
 )
-async def test_get_policy_by_dir_path_extended(
+async def test_get_password_policy_by_dir_path_extended(
     dataset: list[PasswordPolicyDTO],
     password_use_cases: PasswordPolicyUseCases,
 ) -> None:

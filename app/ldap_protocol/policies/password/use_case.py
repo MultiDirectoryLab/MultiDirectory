@@ -7,14 +7,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from itertools import islice
 
 from abstract_dao import AbstractService
-from entities import Directory, User
+from entities import User
+from ldap_protocol.utils.const import GRANT_DN_STRING
 
 from .dao import PasswordPolicyDAO
-from .dataclasses import (
-    DefaultDomainPasswordPolicyPreset,
-    PasswordPolicyDTO,
-    _PriorityT,
-)
+from .dataclasses import PasswordPolicyDTO, _PriorityT
 from .validator import PasswordPolicyValidator
 
 
@@ -43,7 +40,7 @@ class PasswordPolicyUseCases(AbstractService):
 
     async def get_password_policy_by_dir_path(
         self,
-        directory_path: str,
+        directory_path: GRANT_DN_STRING,
     ) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy for one Directory by its path."""
         return await self._password_policy_dao.get_password_policy_by_dir_path(
@@ -91,13 +88,17 @@ class PasswordPolicyUseCases(AbstractService):
             directory_id,
         )
 
-    async def get_password_policy_for_dir(
+    async def get_domain_password_policy(self) -> PasswordPolicyDTO[int, int]:
+        """Get DefaultDomainPasswordPolicy."""
+        return await self._password_policy_dao.get_domain_password_policy()
+
+    async def get_password_policy_for_user(
         self,
-        directory: Directory,
+        user: User,
     ) -> PasswordPolicyDTO[int, int]:
         """Get resulting Password Policy for user."""
-        return await self._password_policy_dao.get_password_policy_for_dir(
-            directory,
+        return await self._password_policy_dao.get_password_policy_for_user(
+            user,
         )
 
     async def post_save_password_actions(self, user: User) -> None:
@@ -134,15 +135,15 @@ class PasswordPolicyUseCases(AbstractService):
         :param str password: new raw password
         :return list[str]: error messages
         """
-        if not user:
-            password_policy = await self._password_policy_dao.get_by_name(
-                DefaultDomainPasswordPolicyPreset.name,
+        if user:
+            password_policy = (
+                await self._password_policy_dao.get_password_policy_for_user(
+                    user,
+                )
             )
         else:
             password_policy = (
-                await self._password_policy_dao.get_password_policy_for_dir(
-                    user.directory,
-                )
+                await self._password_policy_dao.get_domain_password_policy()
             )
 
         return await self.validate_password(

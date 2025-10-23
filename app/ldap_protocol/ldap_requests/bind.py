@@ -190,8 +190,8 @@ class BindRequest(BaseRequest):
             user.directory_id,
         )
         password_policy = (
-            await ctx.password_use_cases.get_password_policy_for_dir(
-                user.directory,
+            await ctx.password_use_cases.get_password_policy_for_user(
+                user,
             )
         )
         is_pwd_expired = await ctx.password_use_cases.check_expired_max_age(

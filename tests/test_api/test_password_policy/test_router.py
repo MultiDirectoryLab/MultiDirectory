@@ -75,7 +75,7 @@ async def test_create_without_priority(
 
 
 @pytest.mark.asyncio
-async def test_get_policy_by_dir_path(
+async def test_get_password_policy_by_dir_path(
     http_client: AsyncClient,
     password_use_cases: Mock,
 ) -> None:

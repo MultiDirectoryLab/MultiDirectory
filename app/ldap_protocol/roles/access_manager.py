@@ -290,11 +290,11 @@ class AccessManager:
     @staticmethod
     def mutate_query_with_ace_load(
         user_role_ids: list[int],
-        query: Select,
+        query: Select[tuple[Directory]],
         ace_types: list[AceType],
         load_attribute_type: bool = False,
         require_attribute_type_null: bool = False,
-    ) -> Select:
+    ) -> Select[tuple[Directory]]:
         """Mutate query to load access control entries.
 
         :param user_role_ids: list of user role ids

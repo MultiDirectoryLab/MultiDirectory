@@ -19,6 +19,13 @@ depends_on: None | list[str] = None
 def upgrade() -> None:
     """Upgrade."""
     op.create_index(
+        op.f("idx_User_directoryId"),
+        "Users",
+        ["directoryId"],
+        unique=True,
+    )
+
+    op.create_index(
         op.f("idx_password_policies_name"),
         "PasswordPolicies",
         ["name"],
@@ -114,4 +121,9 @@ def downgrade() -> None:
     op.drop_index(
         op.f("idx_password_policies_name"),
         table_name="PasswordPolicies",
+    )
+
+    op.drop_index(
+        op.f("idx_User_directoryId"),
+        table_name="Users",
     )
