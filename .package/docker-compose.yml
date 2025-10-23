@@ -327,8 +327,7 @@ services:
     restart: unless-stopped
     command: -c /kea/config/kea-dhcp4.conf
     volumes:
-      - kea_data:/var/lib/kea
-      - ./.dhcp:/kea/config
+      - dhcp:/kea/config
       - sockets:/kea/sockets
       - leases:/kea/leases
 
@@ -342,7 +341,7 @@ services:
       kea_dhcp4:
         condition: service_started
     volumes:
-      - ./.dhcp:/kea/config
+      - ./kea-ctrl-agent.conf:/kea/config/kea-ctrl-agent.conf
       - sockets:/kea/sockets
       - leases:/kea/leases
 
@@ -421,6 +420,6 @@ volumes:
   dns_server_config:
   dragonflydata:
   ldap_keytab:
-  kea_data:
   leases:
   sockets:
+  dhcp:
