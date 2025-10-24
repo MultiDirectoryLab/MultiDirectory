@@ -52,10 +52,8 @@ class TestLocalProvider(Provider):
             )
             password_use_cases.get_all = AsyncMock(return_value=[dto])
             password_use_cases.get = AsyncMock(return_value=dto)
-            password_use_cases.get_password_policy_by_userdir_path_dn = (
-                AsyncMock(
-                    return_value=dto,
-                )
+            password_use_cases.get_password_policy_by_dir_path_dn = AsyncMock(
+                return_value=dto,
             )
             password_use_cases.create = AsyncMock(return_value=None)
             password_use_cases.create_default_domain_policy = AsyncMock(

@@ -47,15 +47,15 @@ async def get(
 
 
 @pwd_router.get(
-    "/by_dir_path/{path_dn}",
+    "/by_dir_path_dn/{path_dn}",
     response_model=PasswordPolicySchema[int, int],
 )
-async def get_password_policy_by_userdir_path_dn(
+async def get_password_policy_by_dir_path_dn(
     path_dn: GRANT_DN_STRING,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> PasswordPolicySchema[int, int]:
     """Get one Password Policy for one Directory by its path."""
-    return await adapter.get_password_policy_by_userdir_path_dn(path_dn)
+    return await adapter.get_password_policy_by_dir_path_dn(path_dn)
 
 
 @pwd_router.post("", status_code=status.HTTP_201_CREATED)

@@ -75,15 +75,17 @@ async def test_create_without_priority(
 
 
 @pytest.mark.asyncio
-async def test_get_password_policy_by_userdir_path_dn(
+async def test_get_password_policy_by_dir_path_dn(
     http_client: AsyncClient,
     password_use_cases: Mock,
 ) -> None:
     """Test get Password Policy by directory path endpoint."""
     path = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
-    response = await http_client.get(f"/password-policy/by_dir_path/{path}")
+    response = await http_client.get(
+        f"/password-policy/by_dir_path_dn/{path}",
+    )
     assert response.status_code == status.HTTP_200_OK
-    password_use_cases.get_password_policy_by_userdir_path_dn.assert_called_once()
+    password_use_cases.get_password_policy_by_dir_path_dn.assert_called_once()
 
 
 @pytest.mark.asyncio

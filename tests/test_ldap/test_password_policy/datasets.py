@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 
-test_get_password_policy_by_userdir_path_dn_extended_dataset = [
+test_get_password_policy_by_dir_path_dn_extended_dataset = [
     [
         PasswordPolicyDTO[None, int](
             priority=1,

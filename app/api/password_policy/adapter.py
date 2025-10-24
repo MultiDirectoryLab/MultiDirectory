@@ -55,12 +55,12 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         dto = await self._service.get(id_)
         return _convert_dto_to_schema(dto)
 
-    async def get_password_policy_by_userdir_path_dn(
+    async def get_password_policy_by_dir_path_dn(
         self,
         path_dn: str,
     ) -> PasswordPolicySchema[int, int]:
         """Get one Password Policy for one Directory by its path."""
-        dto = await self._service.get_password_policy_by_userdir_path_dn(
+        dto = await self._service.get_password_policy_by_dir_path_dn(
             path_dn,
         )
         return _convert_dto_to_schema(dto)

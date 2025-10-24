@@ -182,7 +182,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             raise PasswordPolicyNotFoundError("Password Policy not found.")
         return _convert_model_to_dto(policy)
 
-    async def get_password_policy_by_userdir_path_dn(
+    async def get_password_policy_by_dir_path_dn(
         self,
         path_dn: str,
     ) -> PasswordPolicyDTO[int, int]:

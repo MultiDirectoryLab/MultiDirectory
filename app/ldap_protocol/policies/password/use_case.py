@@ -37,13 +37,15 @@ class PasswordPolicyUseCases(AbstractService):
         """Get one Password Policy."""
         return await self._password_policy_dao.get(id_)
 
-    async def get_password_policy_by_userdir_path_dn(
+    async def get_password_policy_by_dir_path_dn(
         self,
         path_dn: str,
     ) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy for one Directory by its path."""
-        return await self._password_policy_dao.get_password_policy_by_userdir_path_dn(  # noqa: E501
-            path_dn,
+        return (
+            await self._password_policy_dao.get_password_policy_by_dir_path_dn(  # noqa: E501
+                path_dn,
+            )
         )
 
     async def create(self, dto: PasswordPolicyDTO[None, _PriorityT]) -> None:
@@ -86,10 +88,6 @@ class PasswordPolicyUseCases(AbstractService):
         return await self._password_policy_dao.get_or_create_pwd_last_set(
             directory_id,
         )
-
-    async def get_domain_password_policy(self) -> PasswordPolicyDTO[int, int]:
-        """Get DefaultDomainPasswordPolicy."""
-        return await self._password_policy_dao.get_domain_password_policy()
 
     async def get_password_policy_for_user(
         self,
