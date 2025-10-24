@@ -168,31 +168,6 @@ async def get_group(
     return group
 
 
-async def check_kerberos_group(
-    user: User | None,
-    session: AsyncSession,
-) -> bool:
-    """Check if user in kerberos group.
-
-    :param User | None user: user (sa model)
-    :param AsyncSession session: db
-    :return bool: exists result
-    """
-    if user is None:
-        return False
-
-    query = (
-        select(Group)
-        .join(qa(Group.directory))
-        .filter(qa(Group.users).contains(user))
-        .filter(qa(Directory.name).ilike("krbadmin"))
-        .limit(1)
-        .exists()
-    )
-
-    return (await session.scalars(select(query))).one()
-
-
 async def set_user_logon_attrs(
     user: User,
     session: AsyncSession,
