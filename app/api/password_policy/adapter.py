@@ -16,6 +16,7 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyBaseDnNotFoundError,
     PasswordPolicyCantChangeDefaultDomainError,
     PasswordPolicyCantDeleteError,
+    PasswordPolicyDirIsNotUserError,
     PasswordPolicyNotFoundError,
     PasswordPolicyPriorityError,
     PasswordPolicyUpdatePrioritiesError,
@@ -35,6 +36,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     _exceptions_map: dict[type[Exception], int] = {
         PasswordPolicyBaseDnNotFoundError: status.HTTP_404_NOT_FOUND,
         PasswordPolicyNotFoundError: status.HTTP_404_NOT_FOUND,
+        PasswordPolicyDirIsNotUserError: status.HTTP_404_NOT_FOUND,
         PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
         PasswordPolicyCantChangeDefaultDomainError: status.HTTP_400_BAD_REQUEST,  # noqa: E501
         PasswordPolicyCantDeleteError: status.HTTP_400_BAD_REQUEST,
@@ -53,13 +55,13 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         dto = await self._service.get(id_)
         return _convert_dto_to_schema(dto)
 
-    async def get_password_policy_by_dir_path(
+    async def get_password_policy_by_userdir_path_dn(
         self,
-        directory_path: str,
+        path_dn: str,
     ) -> PasswordPolicySchema[int, int]:
         """Get one Password Policy for one Directory by its path."""
-        dto = await self._service.get_password_policy_by_dir_path(
-            directory_path,
+        dto = await self._service.get_password_policy_by_userdir_path_dn(
+            path_dn,
         )
         return _convert_dto_to_schema(dto)
 

@@ -28,6 +28,7 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyBaseDnNotFoundError,
     PasswordPolicyCantChangeDefaultDomainError,
     PasswordPolicyCantDeleteError,
+    PasswordPolicyDirIsNotUserError,
     PasswordPolicyNotFoundError,
     PasswordPolicyUpdatePrioritiesError,
 )
@@ -181,19 +182,19 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             raise PasswordPolicyNotFoundError("Password Policy not found.")
         return _convert_model_to_dto(policy)
 
-    async def get_password_policy_by_dir_path(
+    async def get_password_policy_by_userdir_path_dn(
         self,
-        directory_path: str,
+        path_dn: str,
     ) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy for one Directory by its path."""
         user = await self._session.scalar(
             select(User)
             .join(qa(User.directory))
-            .where(get_filter_from_path(directory_path)),
+            .where(get_filter_from_path(path_dn)),
         )  # fmt: skip
 
         if not user:
-            raise PasswordPolicyNotFoundError("User not found.")
+            raise PasswordPolicyDirIsNotUserError("Directory is not a User.")
 
         return await self.get_password_policy_for_user(user)
 

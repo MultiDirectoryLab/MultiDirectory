@@ -17,6 +17,10 @@ class PasswordPolicyNotFoundError(PasswordPolicyBaseError):
     """Exception raised when a Password Policy not found."""
 
 
+class PasswordPolicyDirIsNotUserError(PasswordPolicyBaseError):
+    """Exception raised when the directory is not a user."""
+
+
 class PasswordPolicyBaseDnNotFoundError(PasswordPolicyBaseError):
     """Exception raised when a Base DN not found."""
 

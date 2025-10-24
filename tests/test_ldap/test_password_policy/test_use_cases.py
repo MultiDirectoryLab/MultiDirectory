@@ -16,7 +16,7 @@ from ldap_protocol.policies.password.dataclasses import (
 from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
 
 from .datasets import (
-    test_get_password_policy_by_dir_path_extended_dataset,
+    test_get_password_policy_by_userdir_path_dn_extended_dataset,
     test_update_priorities_dataset,
 )
 
@@ -87,7 +87,7 @@ async def test_create_without_priority(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_get_password_policy_by_dir_path(
+async def test_get_password_policy_by_userdir_path_dn(
     password_use_cases: PasswordPolicyUseCases,
 ) -> None:
     """Test get Password Policy by directory path endpoint."""
@@ -106,8 +106,10 @@ async def test_get_password_policy_by_dir_path(
     policies = await password_use_cases.get_all()
     assert any(policy.name == "Test Password Policy" for policy in policies)
 
-    path = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
-    policy = await password_use_cases.get_password_policy_by_dir_path(path)
+    path_dn = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    policy = await password_use_cases.get_password_policy_by_userdir_path_dn(
+        path_dn,
+    )
     assert policy.name == "Test Password Policy"
 
 
@@ -116,9 +118,9 @@ async def test_get_password_policy_by_dir_path(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.parametrize(
     "dataset",
-    test_get_password_policy_by_dir_path_extended_dataset,
+    test_get_password_policy_by_userdir_path_dn_extended_dataset,
 )
-async def test_get_password_policy_by_dir_path_extended(
+async def test_get_password_policy_by_userdir_path_dn_extended(
     dataset: list[PasswordPolicyDTO],
     password_use_cases: PasswordPolicyUseCases,
 ) -> None:
@@ -129,8 +131,10 @@ async def test_get_password_policy_by_dir_path_extended(
     policies = await password_use_cases.get_all()
     assert any(policy.name == "Test Password Policy" for policy in policies)
 
-    path = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
-    policy = await password_use_cases.get_password_policy_by_dir_path(path)
+    path_dn = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    policy = await password_use_cases.get_password_policy_by_userdir_path_dn(
+        path_dn,
+    )
     assert policy.name == "Test Password Policy3"
 
 
