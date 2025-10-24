@@ -704,6 +704,7 @@ async def setup_session(
     )
     password_use_cases = PasswordPolicyUseCases(
         password_policy_dao,
+        password_validator,
         password_policy_validator,
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)

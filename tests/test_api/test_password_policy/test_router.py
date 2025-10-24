@@ -27,7 +27,6 @@ async def test_get_all(
     """Test get all Password Policy endpoint."""
     response = await http_client.get("/password-policy/all")
     assert response.status_code == status.HTTP_200_OK
-
     password_use_cases.get_all.assert_called_once()
 
 

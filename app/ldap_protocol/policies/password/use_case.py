@@ -8,6 +8,7 @@ from itertools import islice
 
 from abstract_dao import AbstractService
 from entities import User
+from password_manager.password_validator import PasswordValidator
 
 from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO, _PriorityT
@@ -18,15 +19,18 @@ class PasswordPolicyUseCases(AbstractService):
     """Password Policy Use Cases."""
 
     _password_policy_dao: PasswordPolicyDAO
+    _password_validator: PasswordValidator
     _password_policy_validator: PasswordPolicyValidator
 
     def __init__(
         self,
         password_policy_dao: PasswordPolicyDAO,
+        password_validator: PasswordValidator,
         password_policy_validator: PasswordPolicyValidator,
     ) -> None:
         """Initialize Password Policy Use Cases."""
         self._password_policy_dao = password_policy_dao
+        self._password_validator = password_validator
         self._password_policy_validator = password_policy_validator
 
     async def get_all(self) -> list[PasswordPolicyDTO[int, int]]:
@@ -115,7 +119,7 @@ class PasswordPolicyUseCases(AbstractService):
         if not user:
             return True
 
-        count_age_days = self._password_policy_validator._password_validator.count_password_age_days(  # noqa: SLF001, E501
+        count_age_days = self._password_validator.count_password_age_days(
             pwd_last_set,
         )
 

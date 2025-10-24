@@ -51,11 +51,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         else:
             cond = qa(User.sam_account_name).ilike(name)
 
-        return await session.scalar(
-            select(User)
-            .where(cond)
-            .options(policies),
-        )  # fmt: skip
+        return await session.scalar(select(User).where(cond).options(policies))
 
     return await session.scalar(
         select(User)
