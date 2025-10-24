@@ -135,6 +135,7 @@ class SetupUseCase(AbstractService):
                 ._password_use_cases
                 .check_password_violations(
                     password=dto.password,
+                    user=None,
                 )
             )  # fmt: skip
             if errors:

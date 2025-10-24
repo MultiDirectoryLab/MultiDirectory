@@ -126,7 +126,7 @@ class PasswordPolicyUseCases(AbstractService):
     async def check_password_violations(
         self,
         password: str,
-        user: User | None = None,
+        user: User | None,
     ) -> list[str]:
         """Validate password with exist policy.
 
