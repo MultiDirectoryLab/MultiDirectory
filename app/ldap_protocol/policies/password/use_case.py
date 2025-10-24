@@ -8,7 +8,6 @@ from itertools import islice
 
 from abstract_dao import AbstractService
 from entities import User
-from ldap_protocol.utils.const import GRANT_DN_STRING
 
 from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO, _PriorityT
@@ -40,7 +39,7 @@ class PasswordPolicyUseCases(AbstractService):
 
     async def get_password_policy_by_dir_path(
         self,
-        directory_path: GRANT_DN_STRING,
+        directory_path: str,
     ) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy for one Directory by its path."""
         return await self._password_policy_dao.get_password_policy_by_dir_path(

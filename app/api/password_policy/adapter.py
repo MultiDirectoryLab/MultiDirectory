@@ -21,7 +21,6 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyUpdatePrioritiesError,
 )
 from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
-from ldap_protocol.utils.const import GRANT_DN_STRING
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 _convert_dto_to_schema = get_converter(
@@ -56,7 +55,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
 
     async def get_password_policy_by_dir_path(
         self,
-        directory_path: GRANT_DN_STRING,
+        directory_path: str,
     ) -> PasswordPolicySchema[int, int]:
         """Get one Password Policy for one Directory by its path."""
         dto = await self._service.get_password_policy_by_dir_path(

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, status
 from api.auth import get_current_user
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.schemas import PasswordPolicySchema
+from ldap_protocol.utils.const import GRANT_DN_STRING
 
 from .schemas import _PriorityT
 
@@ -50,7 +51,7 @@ async def get(
     response_model=PasswordPolicySchema[int, int],
 )
 async def get_password_policy_by_dir_path(
-    directory_path: str,
+    directory_path: GRANT_DN_STRING,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> PasswordPolicySchema[int, int]:
     """Get one Password Policy for one Directory by its path."""

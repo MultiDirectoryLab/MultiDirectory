@@ -35,7 +35,6 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag as UacFlag,
     get_check_uac,
 )
-from ldap_protocol.utils.const import GRANT_DN_STRING
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
     get_base_directories,
@@ -184,7 +183,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
     async def get_password_policy_by_dir_path(
         self,
-        directory_path: GRANT_DN_STRING,
+        directory_path: str,
     ) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy for one Directory by its path."""
         user = await self._session.scalar(
