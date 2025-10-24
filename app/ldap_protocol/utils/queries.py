@@ -44,9 +44,6 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :return User | None: user from db
     """
     policies = selectinload(qa(User.groups)).selectinload(qa(Group.roles))
-    entity_type = joinedload(qa(User.directory)).joinedload(
-        qa(Directory.entity_type),
-    )
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
@@ -57,13 +54,13 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         return await session.scalar(
             select(User)
             .where(cond)
-            .options(policies, entity_type),
+            .options(policies),
         )  # fmt: skip
 
     return await session.scalar(
         select(User)
         .join(qa(User.directory))
-        .options(policies, entity_type)
+        .options(policies)
         .where(get_filter_from_path(name)),
     )
 

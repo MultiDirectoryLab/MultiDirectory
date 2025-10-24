@@ -207,16 +207,25 @@ class ModifyRequest(BaseRequest):
                 )
                 return
 
+            user = None
             if directory.user:
-                password_policy = (
-                    await ctx.password_use_cases.get_password_policy_for_user(
-                        directory.user,
-                    )
+                user = directory.user
+            elif ctx.ldap_session.user.id:
+                user = await ctx.session.scalar(
+                    select(User).where(
+                        qa(User.id) == ctx.ldap_session.user.id,
+                    ),
                 )
-            else:
-                password_policy = (
-                    await ctx.password_use_cases.get_domain_password_policy()
+
+            if not user:
+                yield ModifyResponse(
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                 )
+                return
+
+            password_policy = (
+                await ctx.password_use_cases.get_password_policy_for_user(user)
+            )
 
             for change in self.changes:
                 if change.modification.l_name in Directory.ro_fields:
