@@ -26,7 +26,7 @@ from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPoliciesAdapter
+from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from ldap_protocol.dhcp import (
@@ -400,7 +400,7 @@ class MainProvider(Provider):
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
     password_policies_adapter = provide(
-        PasswordPoliciesAdapter,
+        PasswordPolicyFastAPIAdapter,
         scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)

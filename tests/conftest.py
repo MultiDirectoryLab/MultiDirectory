@@ -47,7 +47,6 @@ from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
@@ -274,10 +273,6 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    password_policies_adapter = provide(
-        PasswordPoliciesAdapter,
-        scope=Scope.REQUEST,
-    )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
@@ -709,15 +704,18 @@ async def setup_session(
     )
     password_use_cases = PasswordPolicyUseCases(
         password_policy_dao,
+        password_validator,
         password_policy_validator,
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
     await audit_use_case.create_policies()
-    await password_use_cases.create_policy()
     await setup_gateway.setup_enviroment(
         dn="md.test",
         data=TEST_DATA,
     )
+
+    # NOTE: after setup environment we need base DN to be created
+    await password_use_cases.create_default_domain_policy()
 
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)

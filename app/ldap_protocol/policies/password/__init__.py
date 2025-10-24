@@ -4,9 +4,9 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO
-from .policies_dao import PasswordPolicyDAO
-from .use_cases import PasswordPolicyUseCases
+from .use_case import PasswordPolicyUseCases
 from .validator import PasswordPolicyValidator
 
 __all__ = [

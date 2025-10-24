@@ -50,7 +50,7 @@ async def test_ldap_base_modify(
 
     directory = (await session.scalars(query)).one()
 
-    assert directory.user.mail == "user0@mail.com"
+    assert directory.user.mail == "user0@mail.com"  # type: ignore
 
     attributes = defaultdict(list)
 
@@ -125,7 +125,7 @@ async def test_ldap_base_modify(
         "Grand Poobah3",
     ]
     assert attributes["jpegPhoto"] == ["modme.jpeg"]
-    assert directory.user.mail == "modme@student.of.life.edu"
+    assert directory.user.mail == "modme@student.of.life.edu"  # type: ignore
 
     assert "posixEmail" not in attributes
 

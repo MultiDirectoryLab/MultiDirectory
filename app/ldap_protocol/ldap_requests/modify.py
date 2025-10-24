@@ -28,7 +28,6 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
 from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -112,10 +111,11 @@ class ModifyRequest(BaseRequest):
             )
         return cls(object=entry.value, changes=changes)
 
-    def _update_password_expiration(
+    async def _update_password_expiration(
         self,
         change: Changes,
-        policy: PasswordPolicyDTO,
+        user: User | None,
+        ctx: LDAPModifyRequestContext,
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
@@ -124,11 +124,18 @@ class ModifyRequest(BaseRequest):
         ):
             return
 
-        if policy.maximum_password_age_days == 0:
+        if not user:
+            return
+
+        password_policy = (
+            await ctx.password_use_cases.get_password_policy_for_user(user)
+        )
+
+        if password_policy.maximum_password_age_days == 0:
             return
 
         now = datetime.now(timezone.utc)
-        now += timedelta(days=policy.maximum_password_age_days)
+        now += timedelta(days=password_policy.maximum_password_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(
@@ -152,7 +159,6 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        policy = await ctx.password_use_cases.get_password_policy()
         query = self._get_dir_query()
         query = ctx.access_manager.mutate_query_with_ace_load(
             user_role_ids=ctx.ldap_session.user.role_ids,
@@ -165,6 +171,12 @@ class ModifyRequest(BaseRequest):
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if not directory.entity_type_id:
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
             return
 
         can_modify = ctx.access_manager.check_modify_access(
@@ -206,7 +218,11 @@ class ModifyRequest(BaseRequest):
                 if change.modification.l_name in Directory.ro_fields:
                     continue
 
-                self._update_password_expiration(change, policy)
+                await self._update_password_expiration(
+                    change,
+                    directory.user,
+                    ctx,
+                )
 
                 add_args = (
                     change,
@@ -303,7 +319,7 @@ class ModifyRequest(BaseRequest):
             case _:
                 raise err
 
-    def _get_dir_query(self) -> Select:
+    def _get_dir_query(self) -> Select[tuple[Directory]]:
         return (
             select(Directory)
             .options(joinedload(qa(Directory.user)))
