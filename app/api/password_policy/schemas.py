@@ -14,14 +14,14 @@ from ldap_protocol.policies.password.exceptions import (
 )
 
 _IdT = TypeVar("_IdT", int, None)
-_PriorityT = TypeVar("_PriorityT", int, None)
+PriorityT = TypeVar("PriorityT", int, None)
 
 
-class PasswordPolicySchema(BaseModel, Generic[_IdT, _PriorityT]):
+class PasswordPolicySchema(BaseModel, Generic[_IdT, PriorityT]):
     """PasswordPolicy schema."""
 
     id: _IdT = None  # type: ignore[assignment]
-    priority: _PriorityT = None  # type: ignore[assignment]
+    priority: PriorityT = None  # type: ignore[assignment]
     name: str = Field(min_length=3, max_length=255)
     group_paths: list[str] = Field(default_factory=list)
     password_history_length: int = Field(4, ge=0, le=24)

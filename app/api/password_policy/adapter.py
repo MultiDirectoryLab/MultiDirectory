@@ -8,7 +8,7 @@ from adaptix.conversion import get_converter
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from api.password_policy.schemas import PasswordPolicySchema, _PriorityT
+from api.password_policy.schemas import PasswordPolicySchema, PriorityT
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAgeDaysError,
@@ -67,7 +67,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
 
     async def create(
         self,
-        policy: PasswordPolicySchema[None, _PriorityT],
+        policy: PasswordPolicySchema[None, PriorityT],
     ) -> None:
         """Create one Password Policy."""
         dto = _convert_schema_to_dto(policy)
@@ -76,7 +76,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     async def update(
         self,
         id_: int,
-        policy: PasswordPolicySchema[int, _PriorityT],
+        policy: PasswordPolicySchema[int, PriorityT],
     ) -> None:
         """Update one Password Policy."""
         dto = _convert_schema_to_dto(policy)

@@ -13,7 +13,7 @@ from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.utils.const import GRANT_DN_STRING
 
-from .schemas import _PriorityT
+from .schemas import PriorityT
 
 pwd_router = APIRouter(
     prefix="/password-policy",
@@ -60,7 +60,7 @@ async def get_password_policy_by_userdir_path_dn(
 
 @pwd_router.post("", status_code=status.HTTP_201_CREATED)
 async def create(
-    policy: PasswordPolicySchema[None, _PriorityT],
+    policy: PasswordPolicySchema[None, PriorityT],
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
     """Create one Password Policy."""
@@ -70,7 +70,7 @@ async def create(
 @pwd_router.put("/{id_}")
 async def update(
     id_: int,
-    policy: PasswordPolicySchema[int, _PriorityT],
+    policy: PasswordPolicySchema[int, PriorityT],
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
     """Update one Password Policy."""
