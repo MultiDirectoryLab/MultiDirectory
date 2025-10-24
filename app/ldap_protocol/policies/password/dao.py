@@ -390,8 +390,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         based on its [the user's] groups with the lowest priority value.
 
         If no policy is assigned, the DefaultDomainPasswordPolicy is applied.
-        For all other entities (not "User"), the DefaultDomainPasswordPolicy is applied.
-        """  # noqa: E501
+        """
         policy = await self._session.scalar(
             select(PasswordPolicy)
             .join(qa(PasswordPolicy.groups))
