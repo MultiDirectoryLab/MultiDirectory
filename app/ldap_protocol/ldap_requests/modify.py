@@ -28,7 +28,6 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
 from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -112,10 +111,11 @@ class ModifyRequest(BaseRequest):
             )
         return cls(object=entry.value, changes=changes)
 
-    def _update_password_expiration(
+    async def _update_password_expiration(
         self,
         change: Changes,
-        policy: PasswordPolicyDTO[int, int],
+        user: User | None,
+        ctx: LDAPModifyRequestContext,
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
@@ -124,14 +124,21 @@ class ModifyRequest(BaseRequest):
         ):
             return
 
-        if policy.maximum_password_age_days == 0:
+        if not user:
+            return
+
+        password_policy = (
+            await ctx.password_use_cases.get_password_policy_for_user(user)
+        )
+
+        if password_policy.maximum_password_age_days == 0:
             return
 
         now = datetime.now(timezone.utc)
-        now += timedelta(days=policy.maximum_password_age_days)
+        now += timedelta(days=password_policy.maximum_password_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(  # noqa: C901
+    async def handle(
         self,
         ctx: LDAPModifyRequestContext,
     ) -> AsyncGenerator[ModifyResponse, None]:
@@ -207,31 +214,15 @@ class ModifyRequest(BaseRequest):
                 )
                 return
 
-            user = None
-            if directory.user:
-                user = directory.user
-            elif ctx.ldap_session.user.id:
-                user = await ctx.session.scalar(
-                    select(User).where(
-                        qa(User.id) == ctx.ldap_session.user.id,
-                    ),
-                )
-
-            if not user:
-                yield ModifyResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-                )
-                return
-
-            password_policy = (
-                await ctx.password_use_cases.get_password_policy_for_user(user)
-            )
-
             for change in self.changes:
                 if change.modification.l_name in Directory.ro_fields:
                     continue
 
-                self._update_password_expiration(change, password_policy)
+                await self._update_password_expiration(
+                    change,
+                    directory.user,
+                    ctx,
+                )
 
                 add_args = (
                     change,
