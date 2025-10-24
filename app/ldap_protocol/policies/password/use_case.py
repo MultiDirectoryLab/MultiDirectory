@@ -43,7 +43,7 @@ class PasswordPolicyUseCases(AbstractService):
     ) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy for one Directory by its path."""
         return (
-            await self._password_policy_dao.get_password_policy_by_dir_path_dn(  # noqa: E501
+            await self._password_policy_dao.get_password_policy_by_dir_path_dn(
                 path_dn,
             )
         )
