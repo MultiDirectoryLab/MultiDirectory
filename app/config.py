@@ -74,7 +74,7 @@ class Settings(BaseModel):
     INSTANCE_DB_POOL_SIZE: int = 10
     INSTANCE_DB_POOL_OVERFLOW: int = 30
     INSTANCE_DB_POOL_TIMEOUT: int = 5
-    INSTANCE_DB_POOL_RECYCLE: int = 3600
+    INSTANCE_DB_POOL_RECYCLE: int = 60 * 60  # 1 hour
 
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
