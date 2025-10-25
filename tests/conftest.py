@@ -46,6 +46,7 @@ from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
+from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
@@ -61,6 +62,8 @@ from ldap_protocol.dns import (
     StubDNSManager,
     get_dns_manager_settings,
 )
+from ldap_protocol.dns.dns_gateway import DNSGateway
+from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
@@ -279,6 +282,9 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
+    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
+    dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
+    dns_gateway = provide(DNSGateway, scope=Scope.REQUEST)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
