@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
 from ipaddress import IPv4Address, IPv6Address
@@ -14,8 +14,11 @@ from loguru import logger as loguru_logger
 from sqlalchemy import case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from abstract_dao import AbstractService
 from entities import CatalogueSetting
 from repo.pg.tables import queryable_attr as qa
+
+from .exceptions import DNSSetupError
 
 DNS_MANAGER_STATE_NAME = "DNSManagerState"
 DNS_MANAGER_ZONE_NAME = "DNSManagerZoneName"
@@ -176,7 +179,7 @@ class DNSManagerSettings:
         self.tsig_key = tsig_key
 
 
-class AbstractDNSManager(ABC):
+class AbstractDNSManager(AbstractService):
     """Abstract DNS manager class."""
 
     _dns_settings: DNSManagerSettings
@@ -200,48 +203,52 @@ class AbstractDNSManager(ABC):
         tsig_key: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        if (
-            dns_status == DNSManagerState.SELFHOSTED
-            and self._http_client is not None
-        ):
-            await self._http_client.post(
-                "/server/setup",
-                json={"zone_name": domain},
-            )
-            tsig_key = None
+        try:
+            if (
+                dns_status == DNSManagerState.SELFHOSTED
+                and self._http_client is not None
+            ):
+                await self._http_client.post(
+                    "/server/setup",
+                    json={"zone_name": domain},
+                )
+                tsig_key = None
 
-        new_settings = {
-            DNS_MANAGER_IP_ADDRESS_NAME: dns_ip_address,
-            DNS_MANAGER_ZONE_NAME: domain,
-        }
-        if tsig_key is not None:
-            new_settings[DNS_MANAGER_TSIG_KEY_NAME] = tsig_key
+            new_settings = {
+                DNS_MANAGER_IP_ADDRESS_NAME: dns_ip_address,
+                DNS_MANAGER_ZONE_NAME: domain,
+            }
+            if tsig_key is not None:
+                new_settings[DNS_MANAGER_TSIG_KEY_NAME] = tsig_key
 
-        if self._dns_settings.domain is not None:
-            settings = [
-                (qa(CatalogueSetting.name) == name, value)
-                for name, value in new_settings.items()
-            ]
-
-            await session.execute(
-                update(CatalogueSetting)
-                .where(qa(CatalogueSetting.name).in_(new_settings.keys()))
-                .values(
-                    {
-                        "value": case(
-                            *settings,
-                            else_=qa(CatalogueSetting.value),
-                        ),
-                    },
-                ),
-            )
-        else:
-            session.add_all(
-                [
-                    CatalogueSetting(name=name, value=str(value))
+            if self._dns_settings.domain is not None:
+                settings = [
+                    (qa(CatalogueSetting.name) == name, value)
                     for name, value in new_settings.items()
-                ],
-            )
+                ]
+
+                await session.execute(
+                    update(CatalogueSetting)
+                    .where(qa(CatalogueSetting.name).in_(new_settings.keys()))
+                    .values(
+                        {
+                            "value": case(
+                                *settings,
+                                else_=qa(CatalogueSetting.value),
+                            ),
+                        },
+                    ),
+                )
+            else:
+                session.add_all(
+                    [
+                        CatalogueSetting(name=name, value=str(value))
+                        for name, value in new_settings.items()
+                    ],
+                )
+        except Exception as e:
+            await session.rollback()
+            raise DNSSetupError(e)
 
     @abstractmethod
     async def create_record(

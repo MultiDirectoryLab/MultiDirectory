@@ -60,7 +60,7 @@ async def get_dns_state(
     """Get or create DNS manager state."""
     state = await session.scalar(
         select(CatalogueSetting)
-        .filter_by(name= DNS_MANAGER_STATE_NAME),
+        .filter_by(name=DNS_MANAGER_STATE_NAME),
     )  # fmt: skip
 
     if state is None:
