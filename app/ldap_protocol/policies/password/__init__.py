@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO
-from .use_case import PasswordPolicyUseCases
+from .use_cases import PasswordPolicyUseCases
 from .validator import PasswordPolicyValidator
 
 __all__ = [

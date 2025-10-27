@@ -47,8 +47,8 @@ from repo.pg.tables import queryable_attr as qa
 from .dataclasses import (
     DefaultDomainPasswordPolicyPreset as DefaultDomainP,
     PasswordPolicyDTO,
+    PriorityT,
     TurnoffPasswordPolicyPreset as TurnoffP,
-    _PriorityT,
 )
 
 
@@ -198,7 +198,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         return await self.get_password_policy_for_user(user)
 
-    async def create(self, dto: PasswordPolicyDTO[None, _PriorityT]) -> None:
+    async def create(self, dto: PasswordPolicyDTO[None, PriorityT]) -> None:
         """Create one Password Policy."""
         if await self._is_policy_already_exist(dto.name):
             raise PasswordPolicyAlreadyExistsError(
@@ -247,7 +247,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
     async def update(
         self,
         id_: int,
-        dto: PasswordPolicyDTO[int, _PriorityT],
+        dto: PasswordPolicyDTO[int, PriorityT],
     ) -> None:
         """Update one Password Policy."""
         policy = await self._get_raw(id_)

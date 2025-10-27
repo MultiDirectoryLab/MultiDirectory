@@ -13,7 +13,7 @@ from ldap_protocol.policies.password.dataclasses import (
     PasswordPolicyDTO,
     TurnoffPasswordPolicyPreset,
 )
-from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
+from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
 
 from .datasets import (
     test_get_password_policy_by_dir_path_dn_extended_dataset,

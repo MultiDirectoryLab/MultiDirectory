@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Generic, Literal, TypeVar
 
 _IdT = TypeVar("_IdT", int, None)
-_PriorityT = TypeVar("_PriorityT", int, None)
+PriorityT = TypeVar("PriorityT", int, None)
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class TurnoffPasswordPolicyPreset:
 
 
 @dataclass
-class PasswordPolicyDTO(Generic[_IdT, _PriorityT]):
+class PasswordPolicyDTO(Generic[_IdT, PriorityT]):
     """Password policy data transfer object."""
 
     name: str
@@ -50,4 +50,4 @@ class PasswordPolicyDTO(Generic[_IdT, _PriorityT]):
     minimum_password_length: int
     password_must_meet_complexity_requirements: bool
     id: _IdT = None  # type: ignore[assignment]
-    priority: _PriorityT = None  # type: ignore[assignment]
+    priority: PriorityT = None  # type: ignore[assignment]

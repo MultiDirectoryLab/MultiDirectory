@@ -38,16 +38,16 @@ class PasswordPolicyValidator:
 
     def __init__(
         self,
-        password_validator: PasswordValidator,
         settings: Settings,
+        password_validator: PasswordValidator,
     ) -> None:
         """Initialize a new validator instance.
 
         Sets up internal storage for checkers and default settings.
         """
         self._checkers: list[_Checker] = []
-        self._password_validator = password_validator
         self._settings = settings
+        self._password_validator = password_validator
         self._error_messages: list[str] = []
 
     def __add_checker(

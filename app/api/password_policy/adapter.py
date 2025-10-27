@@ -21,7 +21,7 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyPriorityError,
     PasswordPolicyUpdatePrioritiesError,
 )
-from ldap_protocol.policies.password.use_case import PasswordPolicyUseCases
+from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 _convert_dto_to_schema = get_converter(
