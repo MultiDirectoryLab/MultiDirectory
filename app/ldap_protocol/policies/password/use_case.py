@@ -108,22 +108,24 @@ class PasswordPolicyUseCases(AbstractService):
 
     async def check_expired_max_age(
         self,
-        pwd_policy_dto: PasswordPolicyDTO[int, int],
         user: User | None = None,
         pwd_last_set: str | None = None,
     ) -> bool:
         """Validate max password change age."""
-        if pwd_policy_dto.maximum_password_age_days == 0:
-            return False
-
         if not user:
             return True
+
+        pwd_policy_max_age = await self._password_policy_dao.get_password_policy_max_age_for_user(  # noqa: E501
+            user,
+        )
+        if pwd_policy_max_age == 0:
+            return False
 
         count_age_days = self._password_validator.count_password_age_days(
             pwd_last_set,
         )
 
-        return bool(count_age_days > pwd_policy_dto.maximum_password_age_days)
+        return bool(count_age_days > pwd_policy_max_age)
 
     async def check_password_violations(
         self,

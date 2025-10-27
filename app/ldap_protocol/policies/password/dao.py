@@ -380,6 +380,22 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         await self._session.flush()
 
+    async def get_password_policy_max_age_for_user(self, user: User) -> int:
+        policy = await self._session.scalar(
+            select(PasswordPolicy)
+            .join(qa(PasswordPolicy.groups))
+            .join(qa(Group.users))
+            .where(qa(Group.users).contains(user))
+            .order_by(qa(PasswordPolicy.priority).asc())
+            .limit(1),
+        )
+        dto = _convert_model_to_dto(policy) if policy else None
+
+        if not dto:
+            dto = await self.get_domain_password_policy()
+
+        return dto.maximum_password_age_days
+
     async def get_password_policy_for_user(
         self,
         user: User,

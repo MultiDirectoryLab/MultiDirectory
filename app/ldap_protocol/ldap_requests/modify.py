@@ -115,7 +115,7 @@ class ModifyRequest(BaseRequest):
         self,
         change: Changes,
         user: User | None,
-        ctx: LDAPModifyRequestContext,
+        password_use_cases: PasswordPolicyUseCases,
     ) -> None:
         """Update password expiration if policy allows."""
         if not (
@@ -128,7 +128,7 @@ class ModifyRequest(BaseRequest):
             return
 
         password_policy = (
-            await ctx.password_use_cases.get_password_policy_for_user(user)
+            await password_use_cases.get_password_policy_for_user(user)
         )
 
         if password_policy.maximum_password_age_days == 0:
@@ -221,7 +221,7 @@ class ModifyRequest(BaseRequest):
                 await self._update_password_expiration(
                     change,
                     directory.user,
-                    ctx,
+                    ctx.password_use_cases,
                 )
 
                 add_args = (
