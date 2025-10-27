@@ -173,12 +173,6 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        if not directory.entity_type_id:
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
-            return
-
         can_modify = ctx.access_manager.check_modify_access(
             changes=self.changes,
             aces=directory.access_control_entries,

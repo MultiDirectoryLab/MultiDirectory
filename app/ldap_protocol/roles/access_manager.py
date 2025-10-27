@@ -105,7 +105,7 @@ class AccessManager:
         cls,
         changes: list[Changes],
         aces: list[AccessControlEntry],
-        entity_type_id: int,
+        entity_type_id: int | None,
     ) -> bool:
         """Check if modify access is allowed based on access control entries.
 
