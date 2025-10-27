@@ -29,7 +29,9 @@ def upgrade() -> None:
         await session.begin()
 
         krbadmin_user_dir = await session.scalar(
-            select(Directory).filter_by(name="krbadmin"),
+            select(Directory)
+            .filter_by(name="krbadmin")
+            .join(qa(Directory.user)),
         )
 
         if krbadmin_user_dir:
@@ -58,7 +60,9 @@ def downgrade() -> None:
         await session.begin()
 
         krbadmin_user_dir = await session.scalar(
-            select(Directory).filter_by(name="krbadmin"),
+            select(Directory)
+            .filter_by(name="krbadmin")
+            .join(qa(Directory.user)),
         )
 
         if krbadmin_user_dir:
