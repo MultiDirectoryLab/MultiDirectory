@@ -204,3 +204,21 @@ class PasswordPolicyUseCases(AbstractService):
         return await self._password_policy_dao.is_password_change_restricted(
             user_directory_id,
         )
+
+    async def is_required_password_change(self, user: User) -> bool:
+        """Check if user is required to change password.
+
+        :param User user: user
+        :return bool: required or not
+        """
+        pwd_last_set = await self.get_or_create_pwd_last_set(
+            user.directory_id,
+        )
+        password_policy = await self.get_password_policy()
+        is_pwd_expired = await self.check_expired_max_age(
+            password_policy,
+            user,
+            pwd_last_set,
+        )
+
+        return pwd_last_set == "0" or is_pwd_expired  # noqa: S105

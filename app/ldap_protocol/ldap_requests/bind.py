@@ -36,7 +36,6 @@ from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
 )
-from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
@@ -130,30 +129,6 @@ class BindRequest(BaseRequest):
         except MultifactorAPI.MultifactorError:
             return bool(policy.bypass_service_failure)
 
-    @staticmethod
-    async def is_required_password_change(
-        user: User,
-        password_use_case: PasswordPolicyUseCases,
-    ) -> bool:
-        """Check if user required to change password.
-
-        :param User user: user
-        :param PasswordPolicyUseCases password_use_case: password use case
-        :param AsyncSession session: db session
-        :return bool: required or not
-        """
-        pwd_last_set = await password_use_case.get_or_create_pwd_last_set(
-            user.directory_id,
-        )
-        password_policy = await password_use_case.get_password_policy()
-        is_pwd_expired = await password_use_case.check_expired_max_age(
-            password_policy,
-            user,
-            pwd_last_set,
-        )
-
-        return pwd_last_set == "0" or is_pwd_expired  # noqa: S105
-
     async def handle(
         self,
         ctx: LDAPBindRequestContext,
@@ -213,10 +188,7 @@ class BindRequest(BaseRequest):
             return
 
         if not uac_check(UserAccountControlFlag.DONT_EXPIRE_PASSWORD) and (
-            await self.is_required_password_change(
-                user,
-                ctx.password_use_cases,
-            )
+            await ctx.password_use_cases.is_required_password_change(user)
         ):
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
