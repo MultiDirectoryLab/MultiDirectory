@@ -16,10 +16,10 @@ class DefaultDomainPasswordPolicyPreset:
     """Preset for Default Domain Password Policy configuration."""
 
     name: str = "Default domain password policy"
-    password_history_length: Literal[4] = 4
-    maximum_password_age_days: Literal[0] = 0
-    minimum_password_age_days: Literal[0] = 0
-    minimum_password_length: Literal[7] = 7
+    history_length: Literal[4] = 4
+    min_age_days: Literal[0] = 0
+    max_age_days: Literal[0] = 0
+    min_length: Literal[7] = 7
     password_must_meet_complexity_requirements: Literal[True] = True
 
 
@@ -31,10 +31,10 @@ class TurnoffPasswordPolicyPreset:
     But `name` and `priority` remain unchanged.
     """
 
-    password_history_length: Literal[0] = 0
-    maximum_password_age_days: Literal[0] = 0
-    minimum_password_age_days: Literal[0] = 0
-    minimum_password_length: Literal[0] = 0
+    history_length: Literal[0] = 0
+    min_age_days: Literal[0] = 0
+    max_age_days: Literal[0] = 0
+    min_length: Literal[0] = 0
     password_must_meet_complexity_requirements: Literal[False] = False
 
 
@@ -44,10 +44,10 @@ class PasswordPolicyDTO(Generic[_IdT, PriorityT]):
 
     name: str
     group_paths: list[str]
-    password_history_length: int
-    maximum_password_age_days: int
-    minimum_password_age_days: int
-    minimum_password_length: int
+    history_length: int
+    min_age_days: int
+    max_age_days: int
+    min_length: int
     password_must_meet_complexity_requirements: bool
     id: _IdT = None  # type: ignore[assignment]
     priority: PriorityT = None  # type: ignore[assignment]

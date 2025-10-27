@@ -50,10 +50,10 @@ async def test_create(password_use_cases: PasswordPolicyUseCases) -> None:
         priority=1,
         name="Test Password Policy",
         group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
+        history_length=5,
+        min_age_days=1,
+        max_age_days=90,
+        min_length=8,
         password_must_meet_complexity_requirements=True,
     )  # fmt: skip
     await password_use_cases.create(dto)
@@ -72,10 +72,10 @@ async def test_create_without_priority(
         priority=None,
         name="Test Password Policy",
         group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
+        history_length=5,
+        min_age_days=1,
+        max_age_days=90,
+        min_length=8,
         password_must_meet_complexity_requirements=True,
     )  # fmt: skip
     await password_use_cases.create(dto)
@@ -95,10 +95,10 @@ async def test_get_password_policy_by_dir_path_dn(
         priority=1,
         name="Test Password Policy",
         group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
+        history_length=5,
+        min_age_days=1,
+        max_age_days=90,
+        min_length=8,
         password_must_meet_complexity_requirements=True,
     )  # fmt: skip
     await password_use_cases.create(dto)
@@ -147,10 +147,10 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
         priority=1,
         name="Test Password Policy",
         group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
+        history_length=5,
+        min_age_days=1,
+        max_age_days=90,
+        min_length=8,
         password_must_meet_complexity_requirements=True,
     )  # fmt: skip
     await password_use_cases.create(dto)
@@ -167,10 +167,10 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
         priority=2,
         name="NOT Test Password Policy",
         group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
+        history_length=5,
+        min_age_days=1,
+        max_age_days=90,
+        min_length=8,
         password_must_meet_complexity_requirements=True,
     )  # fmt: skip
     await password_use_cases.update(id_, dto_upd)
@@ -190,10 +190,10 @@ async def test_delete(password_use_cases: PasswordPolicyUseCases) -> None:
         priority=1,
         name="Test Password Policy",
         group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
+        history_length=5,
+        min_age_days=1,
+        max_age_days=90,
+        min_length=8,
         password_must_meet_complexity_requirements=True,
     )
     await password_use_cases.create(dto)
@@ -221,29 +221,29 @@ async def test_reset_domain_policy_to_default_config(
     response = await password_use_cases.get_all()
     policy_data = response[0]
 
-    assert policy_data.password_history_length == DefaultDomainPasswordPolicyPreset.password_history_length  # noqa: E501  # fmt: skip
-    assert policy_data.maximum_password_age_days == DefaultDomainPasswordPolicyPreset.maximum_password_age_days  # noqa: E501  # fmt: skip
-    assert policy_data.minimum_password_age_days == DefaultDomainPasswordPolicyPreset.minimum_password_age_days  # noqa: E501  # fmt: skip
-    assert policy_data.minimum_password_length == DefaultDomainPasswordPolicyPreset.minimum_password_length  # noqa: E501  # fmt: skip
+    assert policy_data.history_length == DefaultDomainPasswordPolicyPreset.history_length  # noqa: E501  # fmt: skip
+    assert policy_data.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days  # noqa: E501  # fmt: skip
+    assert policy_data.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days  # noqa: E501  # fmt: skip
+    assert policy_data.min_length == DefaultDomainPasswordPolicyPreset.min_length  # noqa: E501  # fmt: skip
     assert policy_data.password_must_meet_complexity_requirements == DefaultDomainPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
 
     changed_data = copy.deepcopy(policy_data)
-    changed_data.maximum_password_age_days = 80
-    changed_data.minimum_password_age_days = 30
+    changed_data.min_age_days = 30
+    changed_data.max_age_days = 80
     await password_use_cases.update(policy_data.id, changed_data)
 
     policy = await password_use_cases.get(policy_data.id)
-    assert policy.maximum_password_age_days == changed_data.maximum_password_age_days  # noqa: E501  # fmt: skip
-    assert policy.minimum_password_age_days == changed_data.minimum_password_age_days  # noqa: E501  # fmt: skip
+    assert policy.min_age_days == changed_data.min_age_days  # fmt: skip
+    assert policy.max_age_days == changed_data.max_age_days  # fmt: skip
 
     await password_use_cases.reset_domain_policy_to_default_config()
 
     policy_upd = await password_use_cases.get(policy_data.id)
     assert policy_upd.name == DefaultDomainPasswordPolicyPreset.name
-    assert policy_upd.password_history_length == DefaultDomainPasswordPolicyPreset.password_history_length  # noqa: E501  # fmt: skip
-    assert policy_upd.maximum_password_age_days == DefaultDomainPasswordPolicyPreset.maximum_password_age_days  # noqa: E501  # fmt: skip
-    assert policy_upd.minimum_password_age_days == DefaultDomainPasswordPolicyPreset.minimum_password_age_days  # noqa: E501  # fmt: skip
-    assert policy_upd.minimum_password_length == DefaultDomainPasswordPolicyPreset.minimum_password_length  # noqa: E501  # fmt: skip
+    assert policy_upd.history_length == DefaultDomainPasswordPolicyPreset.history_length  # noqa: E501  # fmt: skip
+    assert policy_upd.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days  # noqa: E501  # fmt: skip
+    assert policy_upd.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days  # noqa: E501  # fmt: skip
+    assert policy_upd.min_length == DefaultDomainPasswordPolicyPreset.min_length  # noqa: E501  # fmt: skip
     assert policy_upd.password_must_meet_complexity_requirements == DefaultDomainPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
 
 
@@ -290,10 +290,10 @@ async def test_turnoff(password_use_cases: PasswordPolicyUseCases) -> None:
         priority=1,
         name="Test Password Policy",
         group_paths=[],
-        password_history_length=5,
-        maximum_password_age_days=90,
-        minimum_password_age_days=1,
-        minimum_password_length=8,
+        history_length=5,
+        min_age_days=1,
+        max_age_days=90,
+        min_length=8,
         password_must_meet_complexity_requirements=True,
     )
     await password_use_cases.create(dto)
@@ -310,8 +310,8 @@ async def test_turnoff(password_use_cases: PasswordPolicyUseCases) -> None:
     assert policy.name == dto.name
     assert policy.priority == dto.priority
     assert policy.group_paths == dto.group_paths
-    assert policy.password_history_length == TurnoffPasswordPolicyPreset.password_history_length  # noqa: E501  # fmt: skip
-    assert policy.maximum_password_age_days == TurnoffPasswordPolicyPreset.maximum_password_age_days  # noqa: E501  # fmt: skip
-    assert policy.minimum_password_age_days == TurnoffPasswordPolicyPreset.minimum_password_age_days  # noqa: E501  # fmt: skip
-    assert policy.minimum_password_length == TurnoffPasswordPolicyPreset.minimum_password_length  # noqa: E501  # fmt: skip
+    assert policy.history_length == TurnoffPasswordPolicyPreset.history_length  # fmt: skip
+    assert policy.min_age_days == TurnoffPasswordPolicyPreset.min_age_days  # fmt: skip
+    assert policy.max_age_days == TurnoffPasswordPolicyPreset.max_age_days  # fmt: skip
+    assert policy.min_length == TurnoffPasswordPolicyPreset.min_length  # fmt: skip
     assert policy.password_must_meet_complexity_requirements is TurnoffPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip

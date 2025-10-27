@@ -24,10 +24,10 @@ class PasswordPolicySchema(BaseModel, Generic[_IdT, PriorityT]):
     priority: PriorityT = None  # type: ignore[assignment]
     name: str = Field(min_length=3, max_length=255)
     group_paths: list[str] = Field(default_factory=list)
-    password_history_length: int = Field(4, ge=0, le=24)
-    maximum_password_age_days: int = Field(0, ge=0, le=999)
-    minimum_password_age_days: int = Field(0, ge=0, le=999)
-    minimum_password_length: int = Field(7, ge=0, le=256)
+    history_length: int = Field(4, ge=0, le=24)
+    min_age_days: int = Field(0, ge=0, le=999)
+    max_age_days: int = Field(0, ge=0, le=999)
+    min_length: int = Field(7, ge=0, le=256)
     password_must_meet_complexity_requirements: bool = True
 
     @model_validator(mode="after")
@@ -39,8 +39,8 @@ class PasswordPolicySchema(BaseModel, Generic[_IdT, PriorityT]):
         return self
 
     @model_validator(mode="after")
-    def _validate_minimum_pwd_age(self) -> Self:
-        if self.minimum_password_age_days > self.maximum_password_age_days:
+    def _validate_age_days(self) -> Self:
+        if self.min_age_days > self.max_age_days:
             raise PasswordPolicyAgeDaysError(
                 "Minimum password age days must be "
                 "lower or equal than maximum password age days",

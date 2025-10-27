@@ -149,10 +149,10 @@ class PasswordPolicy:
     id: int = field(init=False)
     priority: int
     name: str
-    password_history_length: int
-    maximum_password_age_days: int
-    minimum_password_age_days: int
-    minimum_password_length: int
+    history_length: int
+    min_age_days: int
+    max_age_days: int
+    min_length: int
     password_must_meet_complexity_requirements: bool
     groups: list[Group] = field(default_factory=list, repr=False)
 

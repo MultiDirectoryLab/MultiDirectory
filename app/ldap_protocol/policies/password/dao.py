@@ -144,10 +144,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             priority=None,
             name=DefaultDomainP.name,
             group_paths=group_paths,
-            password_history_length=DefaultDomainP.password_history_length,
-            maximum_password_age_days=DefaultDomainP.maximum_password_age_days,
-            minimum_password_age_days=DefaultDomainP.minimum_password_age_days,
-            minimum_password_length=DefaultDomainP.minimum_password_length,
+            history_length=DefaultDomainP.history_length,
+            min_age_days=DefaultDomainP.min_age_days,
+            max_age_days=DefaultDomainP.max_age_days,
+            min_length=DefaultDomainP.min_length,
             password_must_meet_complexity_requirements=DefaultDomainP.password_must_meet_complexity_requirements,
         )
 
@@ -226,10 +226,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             priority=priority,
             name=dto.name,
             groups=groups,
-            password_history_length=dto.password_history_length,
-            maximum_password_age_days=dto.maximum_password_age_days,
-            minimum_password_age_days=dto.minimum_password_age_days,
-            minimum_password_length=dto.minimum_password_length,
+            history_length=dto.history_length,
+            min_age_days=dto.min_age_days,
+            max_age_days=dto.max_age_days,
+            min_length=dto.min_length,
             password_must_meet_complexity_requirements=dto.password_must_meet_complexity_requirements,
         )
         self._session.add(password_policy)
@@ -276,10 +276,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         policy.name = dto.name
         policy.groups = await get_groups(dto.group_paths, self._session)
-        policy.password_history_length = dto.password_history_length
-        policy.maximum_password_age_days = dto.maximum_password_age_days
-        policy.minimum_password_age_days = dto.minimum_password_age_days
-        policy.minimum_password_length = dto.minimum_password_length
+        policy.history_length = dto.history_length
+        policy.min_age_days = dto.min_age_days
+        policy.max_age_days = dto.max_age_days
+        policy.min_length = dto.min_length
         policy.password_must_meet_complexity_requirements = (
             dto.password_must_meet_complexity_requirements
         )
@@ -326,10 +326,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         domain_policy.name = dto.name
         domain_policy.priority = await self._get_total_count()
         domain_policy.groups = await get_groups(dto.group_paths, self._session)
-        domain_policy.password_history_length = dto.password_history_length
-        domain_policy.maximum_password_age_days = dto.maximum_password_age_days
-        domain_policy.minimum_password_age_days = dto.minimum_password_age_days
-        domain_policy.minimum_password_length = dto.minimum_password_length
+        domain_policy.history_length = dto.history_length
+        domain_policy.min_age_days = dto.min_age_days
+        domain_policy.max_age_days = dto.max_age_days
+        domain_policy.min_length = dto.min_length
         domain_policy.password_must_meet_complexity_requirements = (
             dto.password_must_meet_complexity_requirements
         )
@@ -372,10 +372,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if not policy:
             raise PasswordPolicyNotFoundError("Password Policy not found.")
 
-        policy.password_history_length = TurnoffP.password_history_length
-        policy.maximum_password_age_days = TurnoffP.maximum_password_age_days
-        policy.minimum_password_age_days = TurnoffP.minimum_password_age_days
-        policy.minimum_password_length = TurnoffP.minimum_password_length
+        policy.history_length = TurnoffP.history_length
+        policy.min_age_days = TurnoffP.min_age_days
+        policy.max_age_days = TurnoffP.max_age_days
+        policy.min_length = TurnoffP.min_length
         policy.password_must_meet_complexity_requirements = TurnoffP.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
 
         await self._session.flush()
@@ -394,7 +394,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if not dto:
             dto = await self.get_domain_password_policy()
 
-        return dto.maximum_password_age_days
+        return dto.max_age_days
 
     async def get_password_policy_for_user(
         self,

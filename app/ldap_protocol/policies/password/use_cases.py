@@ -160,30 +160,30 @@ class PasswordPolicyUseCases(AbstractService):
         """Validate password with given Password Policy."""
         self._password_policy_validator.not_otp_like_suffix()
 
-        if user and pwd_policy_dto.password_history_length:
+        if user and pwd_policy_dto.history_length:
             history = islice(
                 reversed(user.password_history),
-                pwd_policy_dto.password_history_length,
+                pwd_policy_dto.history_length,
             )
 
             self._password_policy_validator.reuse_prevention(
                 password_history=history,
             )
 
-        if user and pwd_policy_dto.minimum_password_age_days:
+        if user and pwd_policy_dto.min_age_days:
             pwd_last_set = (
                 await self._password_policy_dao.get_or_create_pwd_last_set(
                     user.directory_id,
                 )
             )
             self._password_policy_validator.min_age(
-                pwd_policy_dto.minimum_password_age_days,
+                pwd_policy_dto.min_age_days,
                 pwd_last_set,
             )
 
-        if pwd_policy_dto.minimum_password_length:
+        if pwd_policy_dto.min_length:
             self._password_policy_validator.min_length(
-                pwd_policy_dto.minimum_password_length,
+                pwd_policy_dto.min_length,
             )
 
         if pwd_policy_dto.password_must_meet_complexity_requirements:

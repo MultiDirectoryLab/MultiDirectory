@@ -454,48 +454,18 @@ password_policies_table = Table(
     "PasswordPolicies",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column(
-        "priority",
-        Integer,
-        nullable=False,
-        unique=True,
-    ),
-    Column(
-        "name",
-        String(255),
-        nullable=False,
-        unique=True,
-    ),
-    Column(
-        "password_history_length",
-        Integer,
-        nullable=False,
-    ),
-    Column(
-        "maximum_password_age_days",
-        Integer,
-        nullable=False,
-    ),
-    Column(
-        "minimum_password_age_days",
-        Integer,
-        nullable=False,
-    ),
-    Column(
-        "minimum_password_length",
-        Integer,
-        nullable=False,
-    ),
+    Column("priority", Integer, nullable=False, unique=True),
+    Column("name", String(255), nullable=False, unique=True),
+    Column("history_length", Integer, nullable=False),
+    Column("min_age_days", Integer, nullable=False),
+    Column("max_age_days", Integer, nullable=False),
+    Column("min_length", Integer, nullable=False),
     Column(
         "password_must_meet_complexity_requirements",
         Boolean,
         nullable=False,
     ),
-    Index(
-        "idx_password_policies_name",
-        "name",
-        postgresql_using="hash",
-    ),
+    Index("idx_password_policies_name", "name", postgresql_using="hash"),
 )
 
 roles_table = Table(

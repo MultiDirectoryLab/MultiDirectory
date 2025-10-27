@@ -131,11 +131,11 @@ class ModifyRequest(BaseRequest):
             await password_use_cases.get_password_policy_for_user(user)
         )
 
-        if password_policy.maximum_password_age_days == 0:
+        if password_policy.max_age_days == 0:
             return
 
         now = datetime.now(timezone.utc)
-        now += timedelta(days=password_policy.maximum_password_age_days)
+        now += timedelta(days=password_policy.max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(

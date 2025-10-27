@@ -168,25 +168,25 @@ class PasswordPolicyValidator:
 
     def min_age(
         self,
-        minimum_password_age_days: int,
+        min_age_days: int,
         value: str | None,
     ) -> Self:
         """Require minimal age for the password.
 
-        :param int minimum_password_age_days: Minimal age in days
+        :param int min_age_days: Minimal age in days
         to allow update.
         :param str | None value: Windows filetime string representing last
         change, or ``None``.
         :return: PasswordPolicyValidator.
 
         :Note:
-            If ``minimum_password_age_days`` is ``0`` or ``value`` is ``None``,
+            If ``min_age_days`` is ``0`` or ``value`` is ``None``,
             the check passes.
         """
         self.__add_checker(
             check=self.validate_min_age,
             error_message=ErrorMessages.NOT_OLD_ENOUGH,
-            args=[minimum_password_age_days, value],
+            args=[min_age_days, value],
         )
         return self
 
@@ -255,11 +255,11 @@ class PasswordPolicyValidator:
         self,
         _: str,
         __: Settings,
-        minimum_password_age_days: int,
+        min_age_days: int,
         value: str | None,
     ) -> bool:
         """Check if password is older than a specified number of days."""
-        if minimum_password_age_days == 0:
+        if min_age_days == 0:
             return True
 
         if not value:
@@ -267,5 +267,5 @@ class PasswordPolicyValidator:
 
         return (
             self._password_validator.count_password_age_days(value)
-            >= minimum_password_age_days
+            >= min_age_days
         )
