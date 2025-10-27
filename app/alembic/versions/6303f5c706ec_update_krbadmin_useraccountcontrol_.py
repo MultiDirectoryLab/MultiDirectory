@@ -35,7 +35,10 @@ def upgrade() -> None:
         if krbadmin_user_dir:
             await session.execute(
                 update(Attribute)
-                .where(qa(Attribute.directory_id) == krbadmin_user_dir.id)
+                .where(
+                    qa(Attribute.directory_id) == krbadmin_user_dir.id,
+                    qa(Attribute.name) == "userAccountControl",
+                )
                 .values(
                     value=str(
                         UserAccountControlFlag.NORMAL_ACCOUNT
@@ -61,7 +64,10 @@ def downgrade() -> None:
         if krbadmin_user_dir:
             await session.execute(
                 update(Attribute)
-                .where(qa(Attribute.directory_id) == krbadmin_user_dir.id)
+                .where(
+                    qa(Attribute.directory_id) == krbadmin_user_dir.id,
+                    qa(Attribute.name) == "userAccountControl",
+                )
                 .values(
                     value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
                 ),
