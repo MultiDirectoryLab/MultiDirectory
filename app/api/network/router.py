@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
+from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from entities import Group, NetworkPolicy
 from ldap_protocol.utils.queries import get_groups
 from repo.pg.tables import queryable_attr as qa
@@ -40,7 +41,7 @@ network_router = APIRouter(
 @network_router.post("", status_code=status.HTTP_201_CREATED)
 async def add_network_policy(
     policy: Policy,
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[NetworkPolicyFastAPIAdapter],
 ) -> PolicyResponse:
     """Add policy.
 
@@ -50,58 +51,7 @@ async def add_network_policy(
     :raises HTTPException: 422 Entry already exists
     :return PolicyResponse: Ready policy
     """
-    new_policy = NetworkPolicy(
-        name=policy.name,
-        netmasks=policy.complete_netmasks,
-        priority=policy.priority,
-        raw=policy.model_dump(mode="json")["netmasks"],
-        mfa_status=policy.mfa_status,
-        is_http=policy.is_http,
-        is_ldap=policy.is_ldap,
-        is_kerberos=policy.is_kerberos,
-        bypass_no_connection=policy.bypass_no_connection,
-        bypass_service_failure=policy.bypass_service_failure,
-    )
-    group_dns = []
-    mfa_group_dns = []
-
-    if policy.groups:
-        groups = await get_groups(policy.groups, session)
-        new_policy.groups = groups
-        group_dns = [group.directory.path_dn for group in groups]
-
-    if policy.mfa_groups:
-        mfa_groups = await get_groups(policy.mfa_groups, session)
-        new_policy.mfa_groups = mfa_groups
-        mfa_group_dns = [group.directory.path_dn for group in mfa_groups]
-
-    try:
-        session.add(new_policy)
-        await session.commit()
-    except IntegrityError:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Entry already exists",
-        )
-
-    await session.refresh(new_policy)
-
-    return PolicyResponse(
-        id=new_policy.id,
-        name=new_policy.name,
-        netmasks=new_policy.netmasks,
-        raw=new_policy.raw,
-        enabled=new_policy.enabled,
-        priority=new_policy.priority,
-        groups=group_dns,
-        mfa_status=new_policy.mfa_status,
-        mfa_groups=mfa_group_dns,
-        is_http=new_policy.is_http,
-        is_ldap=new_policy.is_ldap,
-        is_kerberos=new_policy.is_kerberos,
-        bypass_no_connection=new_policy.bypass_no_connection,
-        bypass_service_failure=new_policy.bypass_service_failure,
-    )
+    return await adapter.create(policy)
 
 
 @network_router.get("", name="policy")
