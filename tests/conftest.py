@@ -699,12 +699,11 @@ async def setup_session(
     )
     password_policy_dao = PasswordPolicyDAO(session)
     password_policy_validator = PasswordPolicyValidator(
-        password_validator,
         Settings.from_os(),
+        password_validator,
     )
     password_use_cases = PasswordPolicyUseCases(
         password_policy_dao,
-        password_validator,
         password_policy_validator,
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
@@ -817,7 +816,7 @@ async def password_policy_validator(
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         settings = await container.get(Settings)
-        yield PasswordPolicyValidator(password_validator, settings)
+        yield PasswordPolicyValidator(settings, password_validator)
 
 
 @pytest_asyncio.fixture(scope="function")
