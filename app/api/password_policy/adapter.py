@@ -65,14 +65,6 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         )
         return _convert_dto_to_schema(dto)
 
-    async def create(
-        self,
-        policy: PasswordPolicySchema[None, PriorityT],
-    ) -> None:
-        """Create one Password Policy."""
-        dto = _convert_schema_to_dto(policy)
-        await self._service.create(dto)
-
     async def update(
         self,
         id_: int,
@@ -82,17 +74,9 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         dto = _convert_schema_to_dto(policy)
         await self._service.update(id_, dto)
 
-    async def delete(self, id_: int) -> None:
-        """Delete one Password Policy."""
-        await self._service.delete(id_)
-
     async def reset_domain_policy_to_default_config(self) -> None:
         """Reset domain Password Policy to default configuration."""
         await self._service.reset_domain_policy_to_default_config()
-
-    async def update_priorities(self, new_priorities: dict[int, int]) -> None:
-        """Update priority of all Password Policies."""
-        await self._service.update_priorities(new_priorities)
 
     async def turnoff(self, id_: int) -> None:
         """Turn off one Password Policy."""

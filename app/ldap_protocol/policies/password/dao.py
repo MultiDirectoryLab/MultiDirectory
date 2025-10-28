@@ -8,16 +8,7 @@ from typing import Sequence, cast as tcast
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from sqlalchemy import (
-    Integer,
-    String,
-    cast,
-    delete,
-    exists,
-    func,
-    select,
-    update,
-)
+from sqlalchemy import Integer, String, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -27,10 +18,8 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyBaseDnNotFoundError,
     PasswordPolicyCantChangeDefaultDomainError,
-    PasswordPolicyCantDeleteError,
     PasswordPolicyDirIsNotUserError,
     PasswordPolicyNotFoundError,
-    PasswordPolicyUpdatePrioritiesError,
 )
 from ldap_protocol.user_account_control import (
     UserAccountControlFlag as UacFlag,
@@ -209,18 +198,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if priority == 0:
             priority = 1
 
-        domain_pwd_policy = await self._get_raw_domain_password_policy()
-        if domain_pwd_policy and domain_pwd_policy.priority < priority:
-            raise PasswordPolicyCantChangeDefaultDomainError(
-                "Domain Password Policy must have the lowest priority.",
-            )
-
-        await self._session.execute(
-            update(PasswordPolicy)
-            .values(priority=PasswordPolicy.priority + 1)
-            .where(priority <= qa(PasswordPolicy.priority)),
-        )  # fmt: skip
-
         groups = await get_groups(dto.group_paths, self._session)
         password_policy = PasswordPolicy(
             priority=priority,
@@ -259,21 +236,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
                 "Cannot change the name of the default domain Password Policy.",  # noqa: E501
             )
 
-        domain_password_policy = await self.get_domain_password_policy()
-        priority = dto.priority or await self._get_total_count()
-        if domain_password_policy.priority < priority:
-            raise PasswordPolicyCantChangeDefaultDomainError(
-                "Domain Password Policy must have the lowest priority.",
-            )
-
-        if priority != policy.priority:
-            policy.priority = priority
-            await self._session.execute(
-                update(PasswordPolicy)
-                .values(priority=PasswordPolicy.priority + 1)
-                .where(priority <= qa(PasswordPolicy.priority)),
-            )  # fmt: skip
-
         policy.name = dto.name
         policy.groups = await get_groups(dto.group_paths, self._session)
         policy.history_length = dto.history_length
@@ -288,30 +250,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
     async def delete(self, id_: int) -> None:
         """Delete one Password Policy."""
-        total_count = await self._get_total_count()
-        if total_count == 0:
-            raise PasswordPolicyNotFoundError("Password Policies not found.")
-        elif total_count == 1:
-            raise PasswordPolicyCantDeleteError(
-                "Cannot delete the last Password Policy.",
-            )
-
-        policy = await self.get(id_)
-        if policy.name == DefaultDomainP.name:
-            raise PasswordPolicyCantDeleteError(
-                "Cannot delete the domain Password Policy.",
-            )
-
-        await self._session.execute(delete(PasswordPolicy).filter_by(id=id_))
-        await self._session.flush()
-
-        await self._session.execute(
-            update(PasswordPolicy)
-            .values(priority=PasswordPolicy.priority - 1)
-            .where(policy.priority < qa(PasswordPolicy.priority)),
-        )  # fmt: skip
-
-        await self._session.flush()
 
     async def reset_domain_policy_to_default_config(self) -> None:
         """Reset domain Password Policy to default configuration using DefaultDomainPasswordPolicyPreset."""  # noqa: E501
@@ -334,36 +272,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             dto.password_must_meet_complexity_requirements
         )
 
-        await self._session.flush()
-
-    async def update_priorities(self, new_priorities: dict[int, int]) -> None:
-        """Update priority of all Password Policies."""
-        if len(set(new_priorities.values())) != len(new_priorities.values()):
-            raise PasswordPolicyUpdatePrioritiesError(
-                "Priorities contain duplicates.",
-            )
-
-        total_count = await self._get_total_count()
-        if len(new_priorities) != total_count:
-            raise PasswordPolicyUpdatePrioritiesError(
-                "Not all priorities set.",
-            )
-
-        domain_policy = await self.get_domain_password_policy()
-        if new_priorities.get(domain_policy.id) != total_count:
-            raise PasswordPolicyCantChangeDefaultDomainError(
-                "Domain Password Policy must have the lowest priority.",
-            )
-
-        # NOTE: temporary negate priorities to avoid unique constraint conflicts  # noqa: E501
-        await self._session.execute(
-            update(PasswordPolicy)
-            .values(priority=-PasswordPolicy.priority),
-        )  # fmt: skip
-        await self._session.flush()
-
-        for policy in await self._get_all_raw():
-            policy.priority = new_priorities.get(policy.id, policy.priority)
         await self._session.flush()
 
     async def turnoff(self, id_: int) -> None:

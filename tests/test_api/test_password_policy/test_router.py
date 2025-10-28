@@ -12,11 +12,7 @@ from httpx import AsyncClient
 
 from api.password_policy.schemas import PasswordPolicySchema
 
-from .datasets import (
-    test_create_data,
-    test_create_without_priority_data,
-    test_update_data,
-)
+from .datasets import test_update_data
 
 
 @pytest.mark.asyncio
@@ -39,38 +35,6 @@ async def test_get(
     response = await http_client.get("/password-policy/1")
     assert response.status_code == status.HTTP_200_OK
     password_use_cases.get.assert_called_once_with(1)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("schema", test_create_data)
-async def test_create(
-    schema: PasswordPolicySchema[None, int],
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
-    """Test create one Password Policy endpoint."""
-    response = await http_client.post(
-        "/password-policy",
-        json=schema.model_dump(),
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-    password_use_cases.create.assert_called_once()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("schema", test_create_without_priority_data)
-async def test_create_without_priority(
-    schema: PasswordPolicySchema[None, None],
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
-    """Test create one Password Policy without priority endpoint."""
-    response = await http_client.post(
-        "/password-policy",
-        json=schema.model_dump(),
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-    password_use_cases.create.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -104,17 +68,6 @@ async def test_update(
 
 
 @pytest.mark.asyncio
-async def test_delete(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
-    """Test delete one Password Policy endpoint."""
-    response = await http_client.delete("/password-policy/1")
-    assert response.status_code == status.HTTP_200_OK
-    password_use_cases.delete.assert_called_once()
-
-
-@pytest.mark.asyncio
 async def test_reset_domain_policy_to_default_config(
     http_client: AsyncClient,
     password_use_cases: Mock,
@@ -125,20 +78,6 @@ async def test_reset_domain_policy_to_default_config(
     )
     assert response.status_code == status.HTTP_200_OK
     password_use_cases.reset_domain_policy_to_default_config.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_update_priorities(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
-    """Test update priorities of all password policies endpoint."""
-    response = await http_client.put(
-        "/password-policy/update/priorities",
-        json={},
-    )
-    assert response.status_code == status.HTTP_200_OK
-    password_use_cases.update_priorities.assert_called_once()
 
 
 @pytest.mark.asyncio

@@ -64,17 +64,9 @@ class PasswordPolicyUseCases(AbstractService):
         """Update one Password Policy."""
         await self._password_policy_dao.update(id_, dto)
 
-    async def delete(self, id_: int) -> None:
-        """Delete one Password Policy."""
-        await self._password_policy_dao.delete(id_)
-
     async def reset_domain_policy_to_default_config(self) -> None:
         """Reset domain Password Policy to default configuration."""
         await self._password_policy_dao.reset_domain_policy_to_default_config()
-
-    async def update_priorities(self, new_priorities: dict[int, int]) -> None:
-        """Update priority of all Password Policies."""
-        await self._password_policy_dao.update_priorities(new_priorities)
 
     async def turnoff(self, id_: int) -> None:
         """Turn off one Password Policy."""

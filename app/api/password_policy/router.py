@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 
 from api.auth import get_current_user
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
@@ -58,15 +58,6 @@ async def get_password_policy_by_dir_path_dn(
     return await adapter.get_password_policy_by_dir_path_dn(path_dn)
 
 
-@password_policy_router.post("", status_code=status.HTTP_201_CREATED)
-async def create(
-    policy: PasswordPolicySchema[None, PriorityT],
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> None:
-    """Create one Password Policy."""
-    await adapter.create(policy)
-
-
 @password_policy_router.put("/{id_}")
 async def update(
     id_: int,
@@ -77,30 +68,12 @@ async def update(
     await adapter.update(id_, policy)
 
 
-@password_policy_router.delete("/{id_}")
-async def delete(
-    id_: int,
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> None:
-    """Delete one Password Policy."""
-    await adapter.delete(id_)
-
-
 @password_policy_router.put("/reset/domain_policy_to_default_config")
 async def reset_domain_policy_to_default_config(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
     """Reset domain Password Policy to default configuration."""
     await adapter.reset_domain_policy_to_default_config()
-
-
-@password_policy_router.put("/update/priorities")
-async def update_priorities(
-    new_priorities: dict[int, int],
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> None:
-    """Update priority of all Password Policies."""
-    await adapter.update_priorities(new_priorities)
 
 
 @password_policy_router.put("/turnoff/{id_}")
