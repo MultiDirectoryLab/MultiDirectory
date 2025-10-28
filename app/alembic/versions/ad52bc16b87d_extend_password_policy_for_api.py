@@ -1,4 +1,4 @@
-"""Extend Password Policy by priority and group membership.
+"""Extend Password Policy for API.
 
 Revision ID: ad52bc16b87d
 Revises: 93ba193c6a53
@@ -56,6 +56,7 @@ def upgrade() -> None:
         ),
     )
 
+    op.alter_column("PasswordPolicies", "name", server_default=None)
     op.alter_column("PasswordPolicies", "history_length", server_default=None)
     op.alter_column("PasswordPolicies", "min_age_days", server_default=None)
     op.alter_column("PasswordPolicies", "max_age_days", server_default=None)
@@ -97,6 +98,11 @@ def downgrade() -> None:
     op.alter_column("PasswordPolicies", "max_age_days", server_default="0")
     op.alter_column("PasswordPolicies", "min_age_days", server_default="0")
     op.alter_column("PasswordPolicies", "history_length", server_default="4")
+    op.alter_column(
+        "PasswordPolicies",
+        "name",
+        server_default="Default Policy",
+    )
 
     op.drop_column("PasswordPolicies", "priority")
 
