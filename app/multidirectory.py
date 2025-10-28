@@ -47,6 +47,7 @@ from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
     EventSenderProvider,
     HTTPProvider,
+    IdentityProvider,
     LDAPServerProvider,
     MainProvider,
     MFACredsProvider,
@@ -181,6 +182,7 @@ def create_prod_app(
         MainProvider(),
         MFAProvider(),
         HTTPProvider(),
+        IdentityProvider(),
         MFACredsProvider(),
         context={Settings: settings},
     )

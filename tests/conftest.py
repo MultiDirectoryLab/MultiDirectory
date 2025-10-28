@@ -40,8 +40,12 @@ from sqlalchemy.ext.asyncio import (
 
 from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
-from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
-from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.auth.adapters import (
+    CurrentUserGateway,
+    IdentityFastAPIAdapter,
+    MFAFastAPIAdapter,
+    SessionFastAPIGateway,
+)
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -62,6 +66,7 @@ from ldap_protocol.dns import (
     get_dns_manager_settings,
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.current_user_manager import CurrentUserManager
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin
@@ -405,6 +410,8 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
 
+    current_user_gateway = provide(CurrentUserGateway, scope=Scope.REQUEST)
+    current_user_manager = provide(CurrentUserManager, scope=Scope.REQUEST)
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
     ldap_entity_type_adapter = provide(

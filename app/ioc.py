@@ -18,8 +18,12 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api.audit.adapter import AuditPoliciesAdapter
-from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
-from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.auth.adapters import (
+    CurrentUserGateway,
+    IdentityFastAPIAdapter,
+    MFAFastAPIAdapter,
+    SessionFastAPIGateway,
+)
 from api.auth.utils import get_ip_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
@@ -46,6 +50,7 @@ from ldap_protocol.dns import (
     resolve_dns_server_ip,
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.current_user_manager import CurrentUserManager
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -571,7 +576,7 @@ class EventSenderProvider(Provider):
 
     @provide()
     def setup_audit_logging(self, settings: Settings) -> AuditLogger:
-        """Create audit logger.."""
+        """Create audit logger."""
         audit_logger = logger.bind(name="audit")
         audit_logger.remove()
         audit_logger.add(
@@ -589,6 +594,43 @@ class EventSenderProvider(Provider):
         AuditEventSenderManager,
         scope=Scope.REQUEST,
     )
+
+
+class IdentityProvider(Provider):
+    """Identity creds and api provider."""
+
+    scope = Scope.REQUEST
+
+    current_user_gateway = provide(CurrentUserGateway, scope=Scope.REQUEST)
+    current_user_manager = provide(CurrentUserManager, scope=Scope.REQUEST)
+    request = from_context(provides=Request, scope=Scope.REQUEST)
+
+    @provide(scope=Scope.APP)
+    async def get_redis_for_sessions(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[SessionStorageClient]:
+        """Get redis connection."""
+        client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
+
+        if not await client.ping():
+            raise SystemError("Redis is not available")
+
+        yield SessionStorageClient(client)
+        await client.aclose()
+
+    @provide(scope=Scope.APP)
+    async def get_session_storage(
+        self,
+        client: SessionStorageClient,
+        settings: Settings,
+    ) -> SessionStorage:
+        """Get session storage."""
+        return RedisSessionStorage(
+            client,
+            settings.SESSION_KEY_LENGTH,
+            settings.SESSION_KEY_EXPIRE_SECONDS,
+        )
 
 
 class MFAProvider(Provider):
