@@ -198,6 +198,12 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if priority == 0:
             priority = 1
 
+        await self._session.execute(
+            update(PasswordPolicy)
+            .values(priority=PasswordPolicy.priority + 1)
+            .where(priority <= qa(PasswordPolicy.priority)),
+        )  # fmt: skip
+
         groups = await get_groups(dto.group_paths, self._session)
         password_policy = PasswordPolicy(
             priority=priority,
