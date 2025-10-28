@@ -11,6 +11,9 @@ from typing import Any, Callable, Coroutine, Iterable, Self
 from passlib.exc import UnknownHashError
 
 from config import Settings
+from ldap_protocol.policies.password.validator_settings import (
+    PasswordValidatorSettings,
+)
 from password_manager import PasswordValidator
 
 from .error_messages import ErrorMessages
@@ -38,7 +41,7 @@ class PasswordPolicyValidator:
 
     def __init__(
         self,
-        settings: Settings,
+        password_validator_settings: PasswordValidatorSettings,
         password_validator: PasswordValidator,
     ) -> None:
         """Initialize a new validator instance.
@@ -46,9 +49,9 @@ class PasswordPolicyValidator:
         Sets up internal storage for checkers and default settings.
         """
         self._checkers: list[_Checker] = []
-        self._settings = settings
+        self._password_validator_settings = password_validator_settings
         self._password_validator = password_validator
-        self._error_messages: list[str] = []
+        self.error_messages: list[str] = []
 
     def __add_checker(
         self,
@@ -65,9 +68,13 @@ class PasswordPolicyValidator:
         )
 
     async def __run_checker(self, checker: _Checker, password: str) -> None:
-        result = await checker.check(password, self._settings, *checker.args)
+        result = await checker.check(
+            password,
+            self._password_validator_settings,
+            *checker.args,
+        )
         if result is False:
-            self._error_messages.append(checker.error_message)
+            self.error_messages.append(checker.error_message)
 
     async def validate(self, password: str) -> bool:
         """Validate the given password against the configured schema.
@@ -89,11 +96,11 @@ class PasswordPolicyValidator:
                     PasswordPolicyValidator().min_length(3).validate("abc")
                 )
         """  # fmt: skip
-        self._error_messages = []
+        self.error_messages = []
         for checker in self._checkers:
             await self.__run_checker(checker, password)
 
-        return not bool(self._error_messages)
+        return not bool(self.error_messages)
 
     def min_length(self, length: int) -> Self:
         """Require minimum password length.
@@ -244,10 +251,10 @@ class PasswordPolicyValidator:
     async def validate_not_otp_like_suffix(
         self,
         password: str,
-        settings: Settings,
+        settings: PasswordValidatorSettings,
     ) -> bool:
         """Check if password does not end with a specified number of digits."""
-        tail = password[-settings.OTP_TAIL_SIZE :]
+        tail = password[-settings.otp_tail_size :]
         res = tail.isdecimal()
         return not res
 

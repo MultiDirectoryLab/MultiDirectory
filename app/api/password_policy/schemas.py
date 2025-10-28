@@ -21,14 +21,19 @@ class PasswordPolicySchema(BaseModel, Generic[_IdT, PriorityT]):
     """PasswordPolicy schema."""
 
     id: _IdT = None  # type: ignore[assignment]
-    priority: PriorityT = None  # type: ignore[assignment]
-    name: str = Field(min_length=3, max_length=255)
+
     group_paths: list[str] = Field(default_factory=list)
-    history_length: int = Field(4, ge=0, le=24)
-    min_age_days: int = Field(0, ge=0, le=999)
-    max_age_days: int = Field(0, ge=0, le=999)
-    min_length: int = Field(7, ge=0, le=256)
-    password_must_meet_complexity_requirements: bool = True
+    name: str = Field(min_length=3, max_length=255)
+    priority: PriorityT = None  # type: ignore[assignment]
+
+    history_length: int = Field(ge=0, le=24)
+
+    min_age_days: int = Field(ge=0, le=999)
+    max_age_days: int = Field(ge=0, le=999)
+
+    min_length: int = Field(ge=0, le=256)
+
+    password_must_meet_complexity_requirements: bool
 
     @model_validator(mode="after")
     def _validate_priority(self) -> Self:

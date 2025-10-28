@@ -40,15 +40,15 @@ class TestLocalProvider(Provider):
             password_use_cases = Mock()
 
             dto = PasswordPolicyDTO(
-                name="Test pwd Policy",
+                id=1,
                 group_paths=["dc=md,dc=test"],
+                name="Test pwd Policy",
+                priority=1,
                 history_length=10,
                 min_age_days=7,
                 max_age_days=30,
                 min_length=8,
                 password_must_meet_complexity_requirements=True,
-                id=1,
-                priority=1,
             )
             password_use_cases.get_all = AsyncMock(return_value=[dto])
             password_use_cases.get = AsyncMock(return_value=dto)

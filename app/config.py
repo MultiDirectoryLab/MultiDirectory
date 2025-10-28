@@ -136,8 +136,6 @@ class Settings(BaseModel):
 
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
-    OTP_TAIL_SIZE: Literal[6] = 6
-
     @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
         """Get timezone from a string."""

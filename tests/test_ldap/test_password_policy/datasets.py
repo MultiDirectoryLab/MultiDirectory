@@ -44,9 +44,9 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
 test_update_priorities_dataset = [
     [
         PasswordPolicyDTO(
-            priority=1,
-            name="Test Password Policy 1",
             group_paths=[],
+            name="Test Password Policy 1",
+            priority=1,
             history_length=5,
             min_age_days=1,
             max_age_days=90,
@@ -54,9 +54,9 @@ test_update_priorities_dataset = [
             password_must_meet_complexity_requirements=True,
         ),
         PasswordPolicyDTO(
-            priority=2,
-            name="Test Password Policy 2",
             group_paths=[],
+            name="Test Password Policy 2",
+            priority=2,
             history_length=5,
             min_age_days=1,
             max_age_days=90,

@@ -105,6 +105,9 @@ from ldap_protocol.policies.password import (
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.validator_settings import (
+    PasswordValidatorSettings,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -270,6 +273,10 @@ class TestProvider(Provider):
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
     password_policy_validator = provide(
         PasswordPolicyValidator,
+        scope=Scope.REQUEST,
+    )
+    password_validator_settings = provide(
+        PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
@@ -699,7 +706,7 @@ async def setup_session(
     )
     password_policy_dao = PasswordPolicyDAO(session)
     password_policy_validator = PasswordPolicyValidator(
-        Settings.from_os(),
+        PasswordValidatorSettings(),
         password_validator,
     )
     password_use_cases = PasswordPolicyUseCases(
@@ -809,14 +816,26 @@ async def password_validator(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def password_validator_settings(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordValidatorSettings]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordValidatorSettings()
+
+
+@pytest_asyncio.fixture(scope="function")
 async def password_policy_validator(
     container: AsyncContainer,
+    password_validator_settings: PasswordValidatorSettings,
     password_validator: PasswordValidator,
 ) -> AsyncIterator[PasswordPolicyValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
-        settings = await container.get(Settings)
-        yield PasswordPolicyValidator(settings, password_validator)
+        yield PasswordPolicyValidator(
+            password_validator_settings,
+            password_validator,
+        )
 
 
 @pytest_asyncio.fixture(scope="function")

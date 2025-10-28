@@ -8,9 +8,9 @@ from api.password_policy.schemas import PasswordPolicySchema
 
 test_create_data = [
     PasswordPolicySchema[None, int](
-        priority=1,
-        name="Test Password Policy",
         group_paths=[],
+        name="Test Password Policy",
+        priority=1,
         history_length=5,
         min_age_days=1,
         max_age_days=90,
@@ -21,9 +21,9 @@ test_create_data = [
 
 test_create_without_priority_data = [
     PasswordPolicySchema[None, None](
-        priority=None,
-        name="Test Password Policy",
         group_paths=[],
+        name="Test Password Policy",
+        priority=None,
         history_length=5,
         min_age_days=1,
         max_age_days=90,
@@ -35,9 +35,9 @@ test_create_without_priority_data = [
 test_update_data = [
     PasswordPolicySchema[int, int](
         id=1,
-        priority=2,
-        name="NOT Test Password Policy",
         group_paths=[],
+        name="NOT Test Password Policy",
+        priority=2,
         history_length=5,
         min_age_days=1,
         max_age_days=90,

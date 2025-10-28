@@ -104,6 +104,9 @@ from ldap_protocol.policies.password import (
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.validator_settings import (
+    PasswordValidatorSettings,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -402,6 +405,10 @@ class MainProvider(Provider):
     password_policies_adapter = provide(
         PasswordPolicyFastAPIAdapter,
         scope=Scope.REQUEST,
+    )
+    password_validator_settings = provide(
+        PasswordValidatorSettings,
+        scope=Scope.RUNTIME,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)

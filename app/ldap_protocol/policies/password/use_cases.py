@@ -190,7 +190,7 @@ class PasswordPolicyUseCases(AbstractService):
             self._password_policy_validator.min_complexity()
 
         await self._password_policy_validator.validate(password)
-        return self._password_policy_validator._error_messages  # noqa: SLF001
+        return self._password_policy_validator.error_messages
 
     async def is_password_change_restricted(
         self,

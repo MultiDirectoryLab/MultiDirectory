@@ -42,12 +42,16 @@ class TurnoffPasswordPolicyPreset:
 class PasswordPolicyDTO(Generic[_IdT, PriorityT]):
     """Password policy data transfer object."""
 
-    name: str
     group_paths: list[str]
+    name: str
     history_length: int
+
     min_age_days: int
     max_age_days: int
+
     min_length: int
+
     password_must_meet_complexity_requirements: bool
+
     id: _IdT = None  # type: ignore[assignment]
     priority: PriorityT = None  # type: ignore[assignment]
