@@ -6,30 +6,20 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from dns.asyncresolver import Resolver as AsyncResolver
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from abstract_dao import AbstractService
 from config import Settings
-from entities import CatalogueSetting
 from ldap_protocol.dns.base import (
-    DNS_MANAGER_IP_ADDRESS_NAME,
-    DNS_MANAGER_STATE_NAME,
-    DNS_MANAGER_TSIG_KEY_NAME,
-    DNS_MANAGER_ZONE_NAME,
     AbstractDNSManager,
-    DNSConnectionError,
     DNSForwardServerStatus,
     DNSForwardZone,
     DNSManagerSettings,
-    DNSManagerState,
     DNSRecords,
     DNSServerParam,
     DNSZone,
     DNSZoneParam,
     DNSZoneType,
 )
-from ldap_protocol.dns.dns_gateway import DNSGateway
+from ldap_protocol.dns.dns_gateway import DNSStateGateway
 
 
 class DNSUseCase(AbstractService):
@@ -38,16 +28,14 @@ class DNSUseCase(AbstractService):
     def __init__(
         self,
         dns_manager: AbstractDNSManager,
-        dns_gateway: DNSGateway,
+        dns_gateway: DNSStateGateway,
         dns_settings: DNSManagerSettings,
         settings: Settings,
-        session: AsyncSession,
     ) -> None:
         """Initialize DNS use case."""
         self._dns_manager = dns_manager
         self._settings = settings
         self._dns_settings = dns_settings
-        self._session = session
         self._dns_gateway = dns_gateway
 
     async def setup_dns(
@@ -58,57 +46,18 @@ class DNSUseCase(AbstractService):
         tsig_key: str | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        await self._dns_manager.setup(
-            self._session,
+        setup_data = await self._dns_manager.setup(
             dns_status,
             domain,
             dns_ip_address or self._settings.DNS_BIND_HOST,
             tsig_key,
         )
-        await self._dns_gateway.setup_dns(dns_status)
+        if self._dns_settings.domain is not None:
+            await self._dns_gateway.update_settings(setup_data)
+        else:
+            await self._dns_gateway.create_settings(setup_data)
 
-    async def get_dns_state(self) -> DNSManagerState:
-        """Get DNS state."""
-        state = await self._dns_gateway.get_by_name(DNS_MANAGER_STATE_NAME)
-        if state is None:
-            await self._dns_gateway.create(
-                CatalogueSetting(
-                    name=DNS_MANAGER_STATE_NAME,
-                    value=DNSManagerState.NOT_CONFIGURED,
-                ),
-            )
-            return DNSManagerState.NOT_CONFIGURED
-        return DNSManagerState(state.value)
-
-    async def resolve_dns_server_ip(self, host: str) -> str:
-        """Resolve DNS server IP."""
-        async_resolver = AsyncResolver()
-        dns_server_ip_resolve = await async_resolver.resolve(host)
-        if (
-            dns_server_ip_resolve is None
-            or dns_server_ip_resolve.rrset is None
-        ):
-            raise DNSConnectionError
-        return dns_server_ip_resolve.rrset[0].address
-
-    async def get_dns_manager_settings(self) -> DNSManagerSettings:
-        """Get DNS manager settings."""
-        settings = {
-            setting.name: setting.value
-            for setting in await self._dns_gateway.get_dns_managers()
-        }
-        dns_server_ip = settings.get(DNS_MANAGER_IP_ADDRESS_NAME)
-
-        if await self.get_dns_state() == DNSManagerState.SELFHOSTED:
-            dns_server_ip = await self.resolve_dns_server_ip(
-                self._settings.DNS_BIND_HOST,
-            )
-
-        return DNSManagerSettings(
-            zone_name=settings.get(DNS_MANAGER_ZONE_NAME),
-            dns_server_ip=dns_server_ip,
-            tsig_key=settings.get(DNS_MANAGER_TSIG_KEY_NAME),
-        )
+        await self._dns_gateway.setup_dns_state(dns_status)
 
     async def create_record(
         self,
@@ -209,19 +158,6 @@ class DNSUseCase(AbstractService):
             host_dns_servers,
         )
 
-    async def check_forward_dns_zone(
-        self,
-        data: list[IPv4Address | IPv6Address],
-    ) -> list[DNSForwardServerStatus]:
-        """Check DNS forward zone for availability."""
-        return [
-            await self.check_forward_dns_server(
-                dns_server_ip,
-                self._settings.HOST_DNS_SERVERS,
-            )
-            for dns_server_ip in data
-        ]
-
     async def update_server_options(
         self,
         params: list[DNSServerParam],
@@ -244,7 +180,7 @@ class DNSUseCase(AbstractService):
     async def get_dns_status(self) -> dict[str, str | None]:
         """Get DNS status."""
         return {
-            "dns_status": await self.get_dns_state(),
+            "dns_status": await self._dns_gateway.get_dns_state(),
             "zone_name": self._dns_settings.zone_name,
             "dns_server_ip": self._dns_settings.dns_server_ip,
         }

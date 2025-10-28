@@ -5,25 +5,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import functools
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable
 
-from dns.asyncresolver import Resolver as AsyncResolver
-from sqlalchemy import or_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from entities import CatalogueSetting
-from repo.pg.tables import queryable_attr as qa
-
-from .base import (
-    DNS_MANAGER_IP_ADDRESS_NAME,
-    DNS_MANAGER_STATE_NAME,
-    DNS_MANAGER_TSIG_KEY_NAME,
-    DNS_MANAGER_ZONE_NAME,
-    DNSConnectionError,
-    DNSManagerSettings,
-    DNSManagerState,
-    log,
-)
+from .base import DNSConnectionError, log
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:
@@ -52,75 +36,3 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         return wrapped
 
     return wrapper
-
-
-async def get_dns_state(
-    session: AsyncSession,
-) -> "DNSManagerState":
-    """Get or create DNS manager state."""
-    state = await session.scalar(
-        select(CatalogueSetting)
-        .filter_by(name=DNS_MANAGER_STATE_NAME),
-    )  # fmt: skip
-
-    if state is None:
-        session.add(
-            CatalogueSetting(
-                name=DNS_MANAGER_STATE_NAME,
-                value=DNSManagerState.NOT_CONFIGURED,
-            ),
-        )
-        await session.commit()
-        return DNSManagerState.NOT_CONFIGURED
-
-    return DNSManagerState(state.value)
-
-
-async def set_dns_manager_state(
-    session: AsyncSession,
-    state: DNSManagerState | str,
-) -> None:
-    """Update DNS state."""
-    await session.execute(
-        update(CatalogueSetting)
-        .values({"value": state})
-        .filter_by(name=DNS_MANAGER_STATE_NAME),
-    )
-
-
-async def resolve_dns_server_ip(host: str) -> str:
-    """Get DNS server IP from Docker network."""
-    async_resolver = AsyncResolver()
-    dns_server_ip_resolve = await async_resolver.resolve(host)
-    if dns_server_ip_resolve is None or dns_server_ip_resolve.rrset is None:
-        raise DNSConnectionError
-    return dns_server_ip_resolve.rrset[0].address
-
-
-async def get_dns_manager_settings(
-    session: AsyncSession,
-    resolve_coro: Awaitable[str],
-) -> "DNSManagerSettings":
-    """Get DNS manager's settings."""
-    settings_dict = {}
-    for setting in await session.scalars(
-        select(CatalogueSetting).filter(
-            or_(
-                qa(CatalogueSetting.name) == DNS_MANAGER_ZONE_NAME,
-                qa(CatalogueSetting.name) == DNS_MANAGER_IP_ADDRESS_NAME,
-                qa(CatalogueSetting.name) == DNS_MANAGER_TSIG_KEY_NAME,
-            ),
-        ),
-    ):
-        settings_dict[setting.name] = setting.value
-
-    dns_server_ip = settings_dict.get(DNS_MANAGER_IP_ADDRESS_NAME)
-
-    if await get_dns_state(session) == DNSManagerState.SELFHOSTED:
-        dns_server_ip = await resolve_coro
-
-    return DNSManagerSettings(
-        zone_name=settings_dict.get(DNS_MANAGER_ZONE_NAME),
-        dns_server_ip=dns_server_ip,
-        tsig_key=settings_dict.get(DNS_MANAGER_TSIG_KEY_NAME),
-    )

@@ -11,12 +11,9 @@ from ipaddress import IPv4Address, IPv6Address
 
 import httpx
 from loguru import logger as loguru_logger
-from sqlalchemy import case, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractService
-from entities import CatalogueSetting
-from repo.pg.tables import queryable_attr as qa
+from ldap_protocol.dns.dto import DNSSettingEntity
 
 from .exceptions import DNSSetupError
 
@@ -196,12 +193,11 @@ class AbstractDNSManager(AbstractService):
 
     async def setup(
         self,
-        session: AsyncSession,
         dns_status: str,
         domain: str,
         dns_ip_address: str | IPv4Address | IPv6Address | None,
         tsig_key: str | None,
-    ) -> None:
+    ) -> DNSSettingEntity:
         """Set up DNS server and DNS manager."""
         try:
             if (
@@ -213,41 +209,13 @@ class AbstractDNSManager(AbstractService):
                     json={"zone_name": domain},
                 )
                 tsig_key = None
+            return DNSSettingEntity(
+                zone_name=domain,
+                dns_server_ip=dns_ip_address,
+                tsig_key=tsig_key,
+            )
 
-            new_settings = {
-                DNS_MANAGER_IP_ADDRESS_NAME: dns_ip_address,
-                DNS_MANAGER_ZONE_NAME: domain,
-            }
-            if tsig_key is not None:
-                new_settings[DNS_MANAGER_TSIG_KEY_NAME] = tsig_key
-
-            if self._dns_settings.domain is not None:
-                settings = [
-                    (qa(CatalogueSetting.name) == name, value)
-                    for name, value in new_settings.items()
-                ]
-
-                await session.execute(
-                    update(CatalogueSetting)
-                    .where(qa(CatalogueSetting.name).in_(new_settings.keys()))
-                    .values(
-                        {
-                            "value": case(
-                                *settings,
-                                else_=qa(CatalogueSetting.value),
-                            ),
-                        },
-                    ),
-                )
-            else:
-                session.add_all(
-                    [
-                        CatalogueSetting(name=name, value=str(value))
-                        for name, value in new_settings.items()
-                    ],
-                )
         except Exception as e:
-            await session.rollback()
             raise DNSSetupError(e)
 
     @abstractmethod
