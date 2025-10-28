@@ -11,9 +11,7 @@ from typing import Any, Callable, Coroutine, Iterable, Self
 from passlib.exc import UnknownHashError
 
 from config import Settings
-from ldap_protocol.policies.password.validator_settings import (
-    PasswordValidatorSettings,
-)
+from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from password_manager import PasswordValidator
 
 from .error_messages import ErrorMessages

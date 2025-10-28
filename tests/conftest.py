@@ -105,9 +105,7 @@ from ldap_protocol.policies.password import (
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
-from ldap_protocol.policies.password.validator_settings import (
-    PasswordValidatorSettings,
-)
+from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO

@@ -31,7 +31,7 @@ class PasswordPolicySchema(BaseModel, Generic[_IdT, PriorityT]):
     min_age_days: int = Field(ge=0, le=999)
     max_age_days: int = Field(ge=0, le=999)
 
-    min_length: int = Field(ge=0, le=256)
+    min_length: int = Field(ge=6, le=32)
 
     password_must_meet_complexity_requirements: bool
 
