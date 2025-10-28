@@ -56,26 +56,10 @@ def upgrade() -> None:
         ),
     )
 
-    op.alter_column(
-        "PasswordPolicies",
-        "min_length",
-        server_default=None,
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "max_age_days",
-        server_default=None,
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_age_days",
-        server_default=None,
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "history_length",
-        server_default=None,
-    )
+    op.alter_column("PasswordPolicies", "history_length", server_default=None)
+    op.alter_column("PasswordPolicies", "min_age_days", server_default=None)
+    op.alter_column("PasswordPolicies", "max_age_days", server_default=None)
+    op.alter_column("PasswordPolicies", "min_length", server_default=None)
     op.alter_column(
         "PasswordPolicies",
         "password_must_meet_complexity_requirements",
@@ -109,26 +93,10 @@ def downgrade() -> None:
         "password_must_meet_complexity_requirements",
         server_default=sa.text("false"),
     )
-    op.alter_column(
-        "PasswordPolicies",
-        "history_length",
-        server_default="4",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_age_days",
-        server_default="0",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "max_age_days",
-        server_default="0",
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_length",
-        server_default="7",
-    )
+    op.alter_column("PasswordPolicies", "min_length", server_default="7")
+    op.alter_column("PasswordPolicies", "max_age_days", server_default="0")
+    op.alter_column("PasswordPolicies", "min_age_days", server_default="0")
+    op.alter_column("PasswordPolicies", "history_length", server_default="4")
 
     op.drop_column("PasswordPolicies", "priority")
 
