@@ -1,5 +1,3 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from .base import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
@@ -20,22 +18,17 @@ from .base import (
     DNSZoneParamName,
     DNSZoneType,
 )
+from .dns_gateway import DNSStateGateway
 from .remote import RemoteDNSManager
 from .selfhosted import SelfHostedDNSManager
 from .stub import StubDNSManager
-from .utils import (
-    get_dns_manager_settings,
-    get_dns_state,
-    resolve_dns_server_ip,
-    set_dns_manager_state,
-)
 
 
 async def get_dns_manager_class(
-    session: AsyncSession,
+    dns_state_gateway: DNSStateGateway,
 ) -> type[AbstractDNSManager]:
     """Get DNS manager class."""
-    dns_state = await get_dns_state(session)
+    dns_state = await dns_state_gateway.get_dns_state()
     if dns_state == DNSManagerState.SELFHOSTED:
         return SelfHostedDNSManager
     elif dns_state == DNSManagerState.HOSTED:
@@ -49,10 +42,7 @@ __all__ = [
     "RemoteDNSManager",
     "SelfHostedDNSManager",
     "StubDNSManager",
-    "get_dns_state",
-    "set_dns_manager_state",
-    "get_dns_manager_settings",
-    "resolve_dns_server_ip",
+    "DNSStateGateway",
     "DNSForwardServerStatus",
     "DNSForwardZone",
     "DNSManagerSettings",

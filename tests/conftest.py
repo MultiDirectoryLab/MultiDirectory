@@ -46,6 +46,7 @@ from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
+from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
@@ -59,8 +60,10 @@ from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
     StubDNSManager,
-    get_dns_manager_settings,
 )
+from ldap_protocol.dns.dns_gateway import DNSStateGateway
+from ldap_protocol.dns.dto import DNSSettingDTO
+from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
@@ -176,6 +179,11 @@ class TestProvider(Provider):
         """Get mock DNS manager."""
         dns_manager = AsyncMock(spec=StubDNSManager)
 
+        dns_manager.setup.return_value = DNSSettingDTO(
+            zone_name="example.com",
+            dns_server_ip="127.0.0.1",
+            tsig_key=None,
+        )
         dns_manager.get_all_records.return_value = [
             {
                 "type": "A",
@@ -233,7 +241,7 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
     async def get_dns_mngr_settings(
         self,
-        session: AsyncSession,
+        dns_state_gateway: DNSStateGateway,
     ) -> AsyncIterator["DNSManagerSettings"]:
         """Get DNS manager's settings."""
 
@@ -241,7 +249,7 @@ class TestProvider(Provider):
             return "127.0.0.1"
 
         resolver = resolve()
-        yield await get_dns_manager_settings(session, resolver)
+        yield await dns_state_gateway.get_dns_manager_settings(resolver)
         weakref.finalize(resolver, resolver.close)
 
     @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
@@ -279,6 +287,9 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
+    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
+    dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
+    dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:

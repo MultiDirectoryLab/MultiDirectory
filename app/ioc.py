@@ -25,6 +25,7 @@ from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
+from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
@@ -42,9 +43,10 @@ from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
     get_dns_manager_class,
-    get_dns_manager_settings,
-    resolve_dns_server_ip,
 )
+from ldap_protocol.dns.dns_gateway import DNSStateGateway
+from ldap_protocol.dns.use_cases import DNSUseCase
+from ldap_protocol.dns.utils import resolve_dns_server_ip
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
@@ -199,22 +201,24 @@ class MainProvider(Provider):
     @provide(scope=Scope.SESSION)
     async def get_dns_mngr_class(
         self,
-        session_maker: async_sessionmaker[AsyncSession],
+        dns_state_gateway: DNSStateGateway,
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
-        async with session_maker() as session:
-            return await get_dns_manager_class(session)
+        return await get_dns_manager_class(dns_state_gateway)
 
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_settings(
         self,
-        session_maker: async_sessionmaker[AsyncSession],
         settings: Settings,
+        dns_state_gateway: DNSStateGateway,
     ) -> DNSManagerSettings:
         """Get DNS manager's settings."""
-        resolve_coro = resolve_dns_server_ip(settings.DNS_BIND_HOST)
-        async with session_maker() as session:
-            return await get_dns_manager_settings(session, resolve_coro)
+        resolve_coro = resolve_dns_server_ip(
+            settings.DNS_BIND_HOST,
+        )
+        return await dns_state_gateway.get_dns_manager_settings(
+            resolve_coro,
+        )
 
     @provide(scope=Scope.APP)
     async def get_dns_http_client(
@@ -419,6 +423,9 @@ class MainProvider(Provider):
     )
 
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
+    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
+    dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
+    dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
 
 class LDAPContextProvider(Provider):
