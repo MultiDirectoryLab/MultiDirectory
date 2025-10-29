@@ -1,7 +1,7 @@
 """Fixtures and providers for auth-related API tests."""
 
 import datetime
-from typing import Any, AsyncIterator
+from typing import AsyncIterator
 from unittest.mock import AsyncMock, Mock, NonCallableMagicMock
 
 import pytest
@@ -18,9 +18,10 @@ from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api.auth.adapters import CurrentUserGateway
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
+from ldap_protocol.identity.identity_provider import IdentityProvider
 from tests.conftest import TestProvider
 
 
@@ -29,21 +30,31 @@ class TestAuthProvider(Provider):
 
     __test__ = False
 
-    _cached_current_user_gateway: Mock | None = None
+    _cached_identity_provider: Mock | None = None
 
-    @provide(scope=Scope.APP, provides=CurrentUserGateway)
-    async def get_current_user_gateway(self) -> AsyncIterator[Mock]:
+    @provide(scope=Scope.REQUEST, provides=IdentityProvider)
+    async def get_identity_provider(
+        self,
+        request: Request,
+    ) -> AsyncIterator[Mock]:
         """Get mock current user gateway."""
-        current_user_gateway = NonCallableMagicMock(spec=CurrentUserGateway)
+        identity_provider = NonCallableMagicMock(
+            spec=IdentityProvider,
+        )
 
-        current_user_gateway.rekey_session = AsyncMock()
+        identity_provider.rekey_session = AsyncMock()
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        identity_provider.ip_from_request = str(ip_from_request)
+        identity_provider.user_agent = user_agent
+        identity_provider.session_key = request.cookies.get("id", "")
 
-        if not self._cached_current_user_gateway:
-            self._cached_current_user_gateway = current_user_gateway
+        if not self._cached_identity_provider:
+            self._cached_identity_provider = identity_provider
 
-        yield self._cached_current_user_gateway
+        yield self._cached_identity_provider
 
-        self._cached_current_user_gateway = None
+        self._cached_identity_provider = None
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -70,7 +81,7 @@ async def request_params() -> dict:
         "query_string": b"",
         "root_path": "",
         "headers": [],
-        "client": ("testclient", 0),
+        "client": ("127.0.0.1", 0),
         "server": ("testserver", 80),
     }
     request = Request(scope)
@@ -79,18 +90,17 @@ async def request_params() -> dict:
 
 
 @pytest_asyncio.fixture
-async def current_user_gateway(
+async def current_user_provider(
     container: AsyncContainer,
     request_params: dict,
-) -> AsyncIterator[CurrentUserGateway]:
-    """Yield a gateway mock that mimics successful authentication flow."""
+) -> AsyncIterator[IdentityProvider]:
+    """Yield a provider mock that mimics successful authentication flow."""
     async with container(
         scope=Scope.REQUEST,
         context=request_params,
     ) as cont:
-        gateway = await cont.get(CurrentUserGateway)
-        gateway_any: Any = gateway
-        gateway_any.get_current_user = AsyncMock(
+        provider = await cont.get(IdentityProvider)
+        provider.get_current_user = AsyncMock(  # type: ignore
             return_value=UserSchema(
                 id=1,
                 session_id="1",
@@ -104,53 +114,52 @@ async def current_user_gateway(
                 role_ids=[1],
             ),
         )
-        yield gateway
+        yield provider
 
 
 @pytest_asyncio.fixture
-async def invalid_user_gateway(
+async def invalid_user_provider(
     container: AsyncContainer,
     request_params: dict,
-) -> AsyncIterator[CurrentUserGateway]:
-    """Yield a gateway mock that raises 401 to simulate invalid sessions."""
+) -> AsyncIterator[IdentityProvider]:
+    """Yield a provider mock that raises 401 to simulate invalid sessions."""
     async with container(
         scope=Scope.REQUEST,
         context=request_params,
     ) as cont:
-        gateway = await cont.get(CurrentUserGateway)
-        gateway_any: Any = gateway
-        gateway_any.get_current_user = AsyncMock(
+        provider = await cont.get(IdentityProvider)
+        provider.get_current_user = AsyncMock(  # type: ignore
             side_effect=HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid session",
             ),
         )
-        yield gateway
+        yield provider
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_auth_user(
     http_client: AsyncClient,
-    current_user_gateway: CurrentUserGateway,
+    current_user_provider: Mock,
 ) -> None:
-    """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
+    """Verify successful authentication and session rekeying is performed."""
     response = await http_client.get("/auth/me")
     assert response.status_code == status.HTTP_200_OK
 
-    current_user_gateway.get_current_user.assert_called()  # type: ignore
-    current_user_gateway.rekey_session.assert_called()  # type: ignore
+    current_user_provider.get_current_user.assert_called()  # type: ignore
+    current_user_provider.rekey_session.assert_called()  # type: ignore
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_auth_invalid_user(
     unbound_http_client: AsyncClient,
-    invalid_user_gateway: Mock,
+    invalid_user_provider: Mock,
 ) -> None:
-    """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
+    """Validate unauthorized sessions return 401 and do not rekey session."""
     response = await unbound_http_client.get("/auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    invalid_user_gateway.get_current_user.assert_called()  # type: ignore
-    invalid_user_gateway.rekey_session.assert_not_called()  # type: ignore
+    invalid_user_provider.get_current_user.assert_called()  # type: ignore
+    invalid_user_provider.rekey_session.assert_not_called()  # type: ignore

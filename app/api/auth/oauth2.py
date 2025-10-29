@@ -8,13 +8,13 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import Response
 
-from api.auth.adapters.current_user_gateway import CurrentUserGateway
+from api.auth.adapters import IdentityFastAPIAdapter
 from ldap_protocol.dialogue import UserSchema
 
 
 @inject
 async def get_current_user(
-    current_user_gateway: FromDishka[CurrentUserGateway],
+    identity_adapter: FromDishka[IdentityFastAPIAdapter],
     response: Response,
 ) -> UserSchema:
     """Retrieve the currently authenticated user and rekey their session.
@@ -24,7 +24,7 @@ async def get_current_user(
     for security purposes.
 
     Args:
-        current_user_gateway (FromDishka[CurrentUserGateway]): The user adapter
+        identity_adapter (FromDishka[IdentityFastAPIAdapter]): The user adapter
             instance injected from Dishka DI container, used for
             user operations.
         response (Response): The HTTP response object used to set
@@ -35,7 +35,7 @@ async def get_current_user(
             authenticated user.
 
     """
-    user = await current_user_gateway.get_current_user()
-    await current_user_gateway.rekey_session(response)
+    user = await identity_adapter.get_current_user()
+    await identity_adapter.rekey_session(response)
 
     return user

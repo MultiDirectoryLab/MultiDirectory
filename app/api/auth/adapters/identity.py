@@ -11,6 +11,7 @@ from fastapi import Request, Response, status
 
 from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.base_adapter import BaseAdapter
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityManager
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
@@ -123,3 +124,21 @@ class IdentityFastAPIAdapter(
         await self._service.perform_first_setup(
             _convert_request_to_dto(request),
         )
+
+    async def get_current_user(self) -> UserSchema:
+        """Load the authenticated user using request-bound session data."""
+        return await self._service.get_current_user()
+
+    async def rekey_session(self, response: Response) -> None:
+        """Rotate session key if needed and refresh the response cookie."""
+        try:
+            key = await self._service.rekey_session()
+            if key:
+                response.set_cookie(
+                    key="id",
+                    value=key,
+                    httponly=True,
+                    expires=self._service.key_ttl,
+                )
+        except KeyError as err:
+            raise UnauthorizedError("Login failed") from err

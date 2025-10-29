@@ -19,12 +19,11 @@ from sqlalchemy.ext.asyncio import (
 
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import (
-    CurrentUserGateway,
     IdentityFastAPIAdapter,
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
-from api.auth.utils import get_ip_from_request
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -50,7 +49,10 @@ from ldap_protocol.dns import (
     resolve_dns_server_ip,
 )
 from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.identity.current_user_manager import CurrentUserManager
+from ldap_protocol.identity.identity_provider import IdentityProvider
+from ldap_protocol.identity.identity_provider_gateway import (
+    IdentityProviderGateway,
+)
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -473,6 +475,31 @@ class HTTPProvider(LDAPContextProvider):
         AuditMonitor,
         scope=Scope.REQUEST,
     )
+    identity_provider_gateway = provide(
+        IdentityProviderGateway,
+        scope=Scope.REQUEST,
+    )
+
+    @provide(provides=IdentityProvider)
+    async def get_identity_provider(
+        self,
+        request: Request,
+        session_storage: SessionStorage,
+        settings: Settings,
+        identity_provider_gateway: IdentityProviderGateway,
+    ) -> AsyncIterator[IdentityProvider]:
+        """Create ldap session."""
+        identity_provider = IdentityProvider(
+            session_storage,
+            settings,
+            identity_provider_gateway,
+        )
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        identity_provider.ip_from_request = str(ip_from_request)
+        identity_provider.user_agent = user_agent
+        identity_provider.session_key = request.cookies.get("id", "")
+        yield identity_provider
 
     @provide(provides=LDAPSession)
     async def get_session(
@@ -594,43 +621,6 @@ class EventSenderProvider(Provider):
         AuditEventSenderManager,
         scope=Scope.REQUEST,
     )
-
-
-class IdentityProvider(Provider):
-    """Identity creds and api provider."""
-
-    scope = Scope.REQUEST
-
-    current_user_gateway = provide(CurrentUserGateway, scope=Scope.REQUEST)
-    current_user_manager = provide(CurrentUserManager, scope=Scope.REQUEST)
-    request = from_context(provides=Request, scope=Scope.REQUEST)
-
-    @provide(scope=Scope.APP)
-    async def get_redis_for_sessions(
-        self,
-        settings: Settings,
-    ) -> AsyncIterator[SessionStorageClient]:
-        """Get redis connection."""
-        client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
-
-        if not await client.ping():
-            raise SystemError("Redis is not available")
-
-        yield SessionStorageClient(client)
-        await client.aclose()
-
-    @provide(scope=Scope.APP)
-    async def get_session_storage(
-        self,
-        client: SessionStorageClient,
-        settings: Settings,
-    ) -> SessionStorage:
-        """Get session storage."""
-        return RedisSessionStorage(
-            client,
-            settings.SESSION_KEY_LENGTH,
-            settings.SESSION_KEY_EXPIRE_SECONDS,
-        )
 
 
 class MFAProvider(Provider):
