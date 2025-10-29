@@ -410,7 +410,7 @@ class MainProvider(Provider):
     )
     password_validator_settings = provide(
         PasswordValidatorSettings,
-        scope=Scope.RUNTIME,
+        scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
