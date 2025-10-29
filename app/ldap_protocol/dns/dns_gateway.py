@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Awaitable
 
-from dns.asyncresolver import Resolver as AsyncResolver
 from sqlalchemy import case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,11 +16,10 @@ from ldap_protocol.dns.base import (
     DNS_MANAGER_STATE_NAME,
     DNS_MANAGER_TSIG_KEY_NAME,
     DNS_MANAGER_ZONE_NAME,
-    DNSConnectionError,
     DNSManagerSettings,
     DNSManagerState,
 )
-from ldap_protocol.dns.dto import DNSSettingEntity
+from ldap_protocol.dns.dto import DNSSettingDTO
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -73,7 +71,7 @@ class DNSStateGateway(AbstractService):
 
     async def update_settings(
         self,
-        data: DNSSettingEntity,
+        data: DNSSettingDTO,
     ) -> None:
         """Update DNS settings."""
         settings = [
@@ -114,7 +112,7 @@ class DNSStateGateway(AbstractService):
 
     async def create_settings(
         self,
-        data: DNSSettingEntity,
+        data: DNSSettingDTO,
     ) -> None:
         """Create DNS settings."""
         self._session.add_all(
@@ -134,17 +132,6 @@ class DNSStateGateway(AbstractService):
             ],
         )
         await self._session.flush()
-
-    async def resolve_dns_server_ip(self, host: str) -> str:
-        """Resolve DNS server IP."""
-        async_resolver = AsyncResolver()
-        dns_server_ip_resolve = await async_resolver.resolve(host)
-        if (
-            dns_server_ip_resolve is None
-            or dns_server_ip_resolve.rrset is None
-        ):
-            raise DNSConnectionError
-        return dns_server_ip_resolve.rrset[0].address
 
     async def get_dns_manager_settings(
         self,

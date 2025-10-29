@@ -46,6 +46,7 @@ from ldap_protocol.dns import (
 )
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.use_cases import DNSUseCase
+from ldap_protocol.dns.utils import resolve_dns_server_ip
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
@@ -212,7 +213,7 @@ class MainProvider(Provider):
         dns_state_gateway: DNSStateGateway,
     ) -> DNSManagerSettings:
         """Get DNS manager's settings."""
-        resolve_coro = dns_state_gateway.resolve_dns_server_ip(
+        resolve_coro = resolve_dns_server_ip(
             settings.DNS_BIND_HOST,
         )
         return await dns_state_gateway.get_dns_manager_settings(

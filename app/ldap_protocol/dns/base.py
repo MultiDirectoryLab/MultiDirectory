@@ -13,7 +13,7 @@ import httpx
 from loguru import logger as loguru_logger
 
 from abstract_dao import AbstractService
-from ldap_protocol.dns.dto import DNSSettingEntity
+from ldap_protocol.dns.dto import DNSSettingDTO
 
 from .exceptions import DNSSetupError
 
@@ -197,7 +197,7 @@ class AbstractDNSManager(AbstractService):
         domain: str,
         dns_ip_address: str | IPv4Address | IPv6Address | None,
         tsig_key: str | None,
-    ) -> DNSSettingEntity:
+    ) -> DNSSettingDTO:
         """Set up DNS server and DNS manager."""
         try:
             if (
@@ -209,7 +209,7 @@ class AbstractDNSManager(AbstractService):
                     json={"zone_name": domain},
                 )
                 tsig_key = None
-            return DNSSettingEntity(
+            return DNSSettingDTO(
                 zone_name=domain,
                 dns_server_ip=dns_ip_address,
                 tsig_key=tsig_key,

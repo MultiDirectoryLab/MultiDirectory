@@ -7,6 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import functools
 from typing import Any, Callable
 
+from dns.asyncresolver import Resolver as AsyncResolver
+
 from .base import DNSConnectionError, log
 
 
@@ -36,3 +38,12 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         return wrapped
 
     return wrapper
+
+
+async def resolve_dns_server_ip(host: str) -> str:
+    """Get DNS server IP from Docker network."""
+    async_resolver = AsyncResolver()
+    dns_server_ip_resolve = await async_resolver.resolve(host)
+    if dns_server_ip_resolve is None or dns_server_ip_resolve.rrset is None:
+        raise DNSConnectionError
+    return dns_server_ip_resolve.rrset[0].address

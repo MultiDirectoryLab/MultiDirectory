@@ -9,7 +9,7 @@ from ipaddress import IPv4Address, IPv6Address
 
 
 @dataclass
-class DNSSettingEntity:
+class DNSSettingDTO:
     """DNS settings entity."""
 
     zone_name: str | None

@@ -62,7 +62,7 @@ from ldap_protocol.dns import (
     StubDNSManager,
 )
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
-from ldap_protocol.dns.dto import DNSSettingEntity
+from ldap_protocol.dns.dto import DNSSettingDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityManager, MFAManager
 from ldap_protocol.identity.setup_gateway import SetupGateway
@@ -179,7 +179,7 @@ class TestProvider(Provider):
         """Get mock DNS manager."""
         dns_manager = AsyncMock(spec=StubDNSManager)
 
-        dns_manager.setup.return_value = DNSSettingEntity(
+        dns_manager.setup.return_value = DNSSettingDTO(
             zone_name="example.com",
             dns_server_ip="127.0.0.1",
             tsig_key=None,
