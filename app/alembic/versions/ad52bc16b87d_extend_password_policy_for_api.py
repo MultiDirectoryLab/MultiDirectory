@@ -8,6 +8,13 @@ Create Date: 2025-10-20 12:57:49.157153
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import update
+from sqlalchemy.orm import Session
+
+from entities import PasswordPolicy
+from ldap_protocol.policies.password.dataclasses import (
+    DefaultDomainPasswordPolicyPreset,
+)
 
 # revision identifiers, used by Alembic.
 revision: None | str = "ad52bc16b87d"
@@ -18,6 +25,14 @@ depends_on: None | list[str] = None
 
 def upgrade() -> None:
     """Upgrade."""
+    bind = op.get_bind()
+    session = Session(bind=bind)
+
+    session.execute(
+        update(PasswordPolicy)
+        .values({"name": DefaultDomainPasswordPolicyPreset.name}),
+    )  # fmt: skip
+
     op.alter_column(
         "PasswordPolicies",
         "minimum_password_length",
