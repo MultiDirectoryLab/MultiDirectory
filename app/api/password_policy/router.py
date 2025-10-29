@@ -1,4 +1,4 @@
-"""Password policy views.
+"""Password Policy routers.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -6,49 +6,71 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 
 from api.auth import get_current_user
-from api.password_policy.adapter import PasswordPoliciesAdapter
-from ldap_protocol.policies.password.schemas import PasswordPolicySchema
+from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
+from api.password_policy.schemas import PasswordPolicySchema
+from ldap_protocol.utils.const import GRANT_DN_STRING
 
-pwd_router = APIRouter(
+from .schemas import PriorityT
+
+password_policy_router = APIRouter(
     prefix="/password-policy",
     dependencies=[Depends(get_current_user)],
-    tags=["Password policy"],
+    tags=["Password Policy"],
     route_class=DishkaRoute,
 )
 
 
-@pwd_router.get("")
-async def get_policy(
-    adapter: FromDishka[PasswordPoliciesAdapter],
-) -> PasswordPolicySchema:
-    """Get current policy setting."""
-    return await adapter.get_policy()
+@password_policy_router.get("/all")
+async def get_all(
+    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
+) -> list[PasswordPolicySchema[int, int]]:
+    """Get all Password Policies."""
+    return await adapter.get_all()
 
 
-@pwd_router.post("", status_code=status.HTTP_201_CREATED)
-async def create_policy(
-    policy: PasswordPolicySchema,
-    adapter: FromDishka[PasswordPoliciesAdapter],
+@password_policy_router.get("/{id_}")
+async def get(
+    id_: int,
+    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
+) -> PasswordPolicySchema[int, int]:
+    """Get one Password Policy."""
+    return await adapter.get(id_)
+
+
+@password_policy_router.get("/by_dir_path_dn/{path_dn}")
+async def get_password_policy_by_dir_path_dn(
+    path_dn: GRANT_DN_STRING,
+    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
+) -> PasswordPolicySchema[int, int]:
+    """Get one Password Policy for one Directory by its path."""
+    return await adapter.get_password_policy_by_dir_path_dn(path_dn)
+
+
+@password_policy_router.put("/{id_}")
+async def update(
+    id_: int,
+    policy: PasswordPolicySchema[int, PriorityT],
+    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
-    """Create current policy setting."""
-    await adapter.create_policy(policy)
+    """Update one Password Policy."""
+    await adapter.update(id_, policy)
 
 
-@pwd_router.put("")
-async def update_policy(
-    policy: PasswordPolicySchema,
-    adapter: FromDishka[PasswordPoliciesAdapter],
+@password_policy_router.put("/reset/domain_policy")
+async def reset_domain_policy_to_default_config(
+    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
-    """Update current policy setting."""
-    await adapter.update_policy(policy)
+    """Reset domain Password Policy to default configuration."""
+    await adapter.reset_domain_policy_to_default_config()
 
 
-@pwd_router.delete("")
-async def reset_policy(
-    adapter: FromDishka[PasswordPoliciesAdapter],
+@password_policy_router.put("/turnoff/{id_}")
+async def turnoff(
+    id_: int,
+    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
-    """Reset current policy setting."""
-    await adapter.reset_policy()
+    """Turn off one Password Policy."""
+    await adapter.turnoff(id_)

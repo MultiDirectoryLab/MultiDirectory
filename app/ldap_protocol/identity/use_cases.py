@@ -128,17 +128,19 @@ class SetupUseCase(AbstractService):
                 data=data,
                 dn=dto.domain,
             )
+            await self._password_use_cases.create_default_domain_policy()
+
             errors = await (
                 self
                 ._password_use_cases
-                .check_default_policy_password_violations(
+                .check_password_violations(
                     password=dto.password,
+                    user=None,
                 )
             )  # fmt: skip
             if errors:
                 raise ForbiddenError(errors)
 
-            await self._password_use_cases.create_policy()
             await self._role_use_case.create_domain_admins_role()
             await self._role_use_case.create_read_only_role()
             await self._audit_use_case.create_policies()

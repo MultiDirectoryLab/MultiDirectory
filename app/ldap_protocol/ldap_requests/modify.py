@@ -28,7 +28,6 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
 from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
@@ -112,23 +111,27 @@ class ModifyRequest(BaseRequest):
             )
         return cls(object=entry.value, changes=changes)
 
-    def _update_password_expiration(
+    async def _update_password_expiration(
         self,
         change: Changes,
-        policy: PasswordPolicyDTO,
+        user: User | None,
+        password_use_cases: PasswordPolicyUseCases,
     ) -> None:
         """Update password expiration if policy allows."""
+        if not user:
+            return
+
         if not (
             change.modification.type == "krbpasswordexpiration"
             and change.modification.vals[0] == "19700101000000Z"
         ):
             return
 
-        if policy.maximum_password_age_days == 0:
+        max_age_days = await password_use_cases.get_max_age_days_for_user(user)
+        if max_age_days == 0:
             return
 
-        now = datetime.now(timezone.utc)
-        now += timedelta(days=policy.maximum_password_age_days)
+        now = datetime.now(timezone.utc) + timedelta(days=max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(
@@ -152,7 +155,6 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        policy = await ctx.password_use_cases.get_password_policy()
         query = self._get_dir_query()
         query = ctx.access_manager.mutate_query_with_ace_load(
             user_role_ids=ctx.ldap_session.user.role_ids,
@@ -206,7 +208,11 @@ class ModifyRequest(BaseRequest):
                 if change.modification.l_name in Directory.ro_fields:
                     continue
 
-                self._update_password_expiration(change, policy)
+                await self._update_password_expiration(
+                    change,
+                    directory.user,
+                    ctx.password_use_cases,
+                )
 
                 add_args = (
                     change,
@@ -303,7 +309,7 @@ class ModifyRequest(BaseRequest):
             case _:
                 raise err
 
-    def _get_dir_query(self) -> Select:
+    def _get_dir_query(self) -> Select[tuple[Directory]]:
         return (
             select(Directory)
             .options(joinedload(qa(Directory.user)))

@@ -48,7 +48,6 @@ from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPoliciesAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
@@ -109,6 +108,7 @@ from ldap_protocol.policies.password import (
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -281,11 +281,11 @@ class TestProvider(Provider):
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
     )
-    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    password_policies_adapter = provide(
-        PasswordPoliciesAdapter,
+    password_validator_settings = provide(
+        PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )
+    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
@@ -715,8 +715,8 @@ async def setup_session(
     )
     password_policy_dao = PasswordPolicyDAO(session)
     password_policy_validator = PasswordPolicyValidator(
+        PasswordValidatorSettings(),
         password_validator,
-        Settings.from_os(),
     )
     password_use_cases = PasswordPolicyUseCases(
         password_policy_dao,
@@ -724,11 +724,13 @@ async def setup_session(
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
     await audit_use_case.create_policies()
-    await password_use_cases.create_policy()
     await setup_gateway.setup_enviroment(
         dn="md.test",
         data=TEST_DATA,
     )
+
+    # NOTE: after setup environment we need base DN to be created
+    await password_use_cases.create_default_domain_policy()
 
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
@@ -823,14 +825,26 @@ async def password_validator(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def password_validator_settings(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordValidatorSettings]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordValidatorSettings()
+
+
+@pytest_asyncio.fixture(scope="function")
 async def password_policy_validator(
     container: AsyncContainer,
+    password_validator_settings: PasswordValidatorSettings,
     password_validator: PasswordValidator,
 ) -> AsyncIterator[PasswordPolicyValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
-        settings = await container.get(Settings)
-        yield PasswordPolicyValidator(password_validator, settings)
+        yield PasswordPolicyValidator(
+            password_validator_settings,
+            password_validator,
+        )
 
 
 @pytest_asyncio.fixture(scope="function")
