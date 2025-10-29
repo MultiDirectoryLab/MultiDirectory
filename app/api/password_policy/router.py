@@ -59,7 +59,7 @@ async def update(
     await adapter.update(id_, policy)
 
 
-@password_policy_router.put("/reset/domain_policyg")
+@password_policy_router.put("/reset/domain_policy")
 async def reset_domain_policy_to_default_config(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
