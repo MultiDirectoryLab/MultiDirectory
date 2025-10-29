@@ -23,10 +23,7 @@ password_policy_router = APIRouter(
 )
 
 
-@password_policy_router.get(
-    "/all",
-    response_model=list[PasswordPolicySchema[int, int]],
-)
+@password_policy_router.get("/all")
 async def get_all(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> list[PasswordPolicySchema[int, int]]:
@@ -34,10 +31,7 @@ async def get_all(
     return await adapter.get_all()
 
 
-@password_policy_router.get(
-    "/{id_}",
-    response_model=PasswordPolicySchema[int, int],
-)
+@password_policy_router.get("/{id_}")
 async def get(
     id_: int,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
@@ -46,10 +40,7 @@ async def get(
     return await adapter.get(id_)
 
 
-@password_policy_router.get(
-    "/by_dir_path_dn/{path_dn}",
-    response_model=PasswordPolicySchema[int, int],
-)
+@password_policy_router.get("/by_dir_path_dn/{path_dn}")
 async def get_password_policy_by_dir_path_dn(
     path_dn: GRANT_DN_STRING,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
@@ -68,7 +59,7 @@ async def update(
     await adapter.update(id_, policy)
 
 
-@password_policy_router.put("/reset/domain_policy_to_default_config")
+@password_policy_router.put("/reset/domain_policyg")
 async def reset_domain_policy_to_default_config(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:

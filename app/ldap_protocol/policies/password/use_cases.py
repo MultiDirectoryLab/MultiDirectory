@@ -90,6 +90,12 @@ class PasswordPolicyUseCases(AbstractService):
             user,
         )
 
+    async def get_max_age_days_for_user(self, user: User) -> int:
+        """Get max age days from Password Policy for user."""
+        return await self._password_policy_dao.get_max_age_days_for_user(
+            user,
+        )
+
     async def post_save_password_actions(self, user: User) -> None:
         """Post save actions for password update."""
         await self._password_policy_dao.post_save_password_actions(user)
@@ -103,8 +109,10 @@ class PasswordPolicyUseCases(AbstractService):
         if not user:
             return True
 
-        pwd_policy_max_age = await self._password_policy_dao.get_password_policy_max_age_for_user(  # noqa: E501
-            user,
+        pwd_policy_max_age = (
+            await self._password_policy_dao.get_max_age_days_for_user(
+                user,
+            )
         )
         if pwd_policy_max_age == 0:
             return False

@@ -11,6 +11,7 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy import Integer, String, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.base import ExecutableOption
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
@@ -89,7 +90,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
         return policies.all()
 
-    async def _get_raw(self, id_: int) -> PasswordPolicy | None:
+    async def _get_raw(self, id_: int) -> PasswordPolicy:
         """Get one raw (model) Password Policy by ID."""
         policy = await self._session.scalar(
             select(PasswordPolicy)
@@ -99,6 +100,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             )
             .filter_by(id=id_),
         )  # fmt: skip
+
+        if not policy:
+            raise PasswordPolicyNotFoundError("Password Policy not found.")
 
         return policy
 
@@ -166,10 +170,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
     async def get(self, id_: int) -> PasswordPolicyDTO[int, int]:
         """Get one Password Policy."""
-        policy = await self._get_raw(id_)
-        if not policy:
-            raise PasswordPolicyNotFoundError("Password Policy not found.")
-        return _convert_model_to_dto(policy)
+        return _convert_model_to_dto(await self._get_raw(id_))
 
     async def get_password_policy_by_dir_path_dn(
         self,
@@ -234,8 +235,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
     ) -> None:
         """Update one Password Policy."""
         policy = await self._get_raw(id_)
-        if not policy:
-            raise PasswordPolicyNotFoundError("Password Policy not found.")
 
         if policy.name == DefaultDomainP.name and dto.name != policy.name:
             raise PasswordPolicyCantChangeDefaultDomainError(
@@ -283,8 +282,6 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
     async def turnoff(self, id_: int) -> None:
         """Turn off one Password Policy using TurnoffPasswordPolicyPreset."""
         policy = await self._get_raw(id_)
-        if not policy:
-            raise PasswordPolicyNotFoundError("Password Policy not found.")
 
         policy.history_length = TurnoffP.history_length
         policy.min_age_days = TurnoffP.min_age_days
@@ -294,20 +291,32 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         await self._session.flush()
 
-    async def get_password_policy_max_age_for_user(self, user: User) -> int:
-        policy = await self._session.scalar(
+    async def _get_password_policy_for_user(
+        self,
+        user: User,
+        options: list[ExecutableOption] | None = None,
+    ) -> PasswordPolicyDTO[int, int]:
+        """Get Password Policy with options for the User."""
+        query = (
             select(PasswordPolicy)
             .join(qa(PasswordPolicy.groups))
             .join(qa(Group.users))
             .where(qa(Group.users).contains(user))
             .order_by(qa(PasswordPolicy.priority).asc())
-            .limit(1),
+            .limit(1)
         )
-        dto = _convert_model_to_dto(policy) if policy else None
+        if options:
+            query = query.options(*options)
 
-        if not dto:
+        if policy := await self._session.scalar(query):
+            dto = _convert_model_to_dto(policy)
+        else:
             dto = await self.get_domain_password_policy()
 
+        return dto
+
+    async def get_max_age_days_for_user(self, user: User) -> int:
+        dto = await self._get_password_policy_for_user(user)
         return dto.max_age_days
 
     async def get_password_policy_for_user(
@@ -321,24 +330,14 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         If no policy is assigned, the DefaultDomainPasswordPolicy is applied.
         """
-        policy = await self._session.scalar(
-            select(PasswordPolicy)
-            .join(qa(PasswordPolicy.groups))
-            .join(qa(Group.users))
-            .options(
+        dto = await self._get_password_policy_for_user(
+            user,
+            options=[
                 selectinload(qa(PasswordPolicy.groups)).joinedload(
                     qa(Group.directory),
                 ),
-            )
-            .where(qa(Group.users).contains(user))
-            .order_by(qa(PasswordPolicy.priority).asc())
-            .limit(1),
+            ],
         )
-        dto = _convert_model_to_dto(policy) if policy else None
-
-        if not dto:
-            dto = await self.get_domain_password_policy()
-
         return dto
 
     async def get_or_create_pwd_last_set(

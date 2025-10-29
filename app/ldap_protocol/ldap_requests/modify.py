@@ -118,24 +118,20 @@ class ModifyRequest(BaseRequest):
         password_use_cases: PasswordPolicyUseCases,
     ) -> None:
         """Update password expiration if policy allows."""
+        if not user:
+            return
+
         if not (
             change.modification.type == "krbpasswordexpiration"
             and change.modification.vals[0] == "19700101000000Z"
         ):
             return
 
-        if not user:
+        max_age_days = await password_use_cases.get_max_age_days_for_user(user)
+        if max_age_days == 0:
             return
 
-        password_policy = (
-            await password_use_cases.get_password_policy_for_user(user)
-        )
-
-        if password_policy.max_age_days == 0:
-            return
-
-        now = datetime.now(timezone.utc)
-        now += timedelta(days=password_policy.max_age_days)
+        now = datetime.now(timezone.utc) + timedelta(days=max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
     async def handle(

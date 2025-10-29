@@ -74,7 +74,7 @@ async def test_reset_domain_policy_to_default_config(
 ) -> None:
     """Test reset domain Password Policy to default config endpoint."""
     response = await http_client.put(
-        "/password-policy/reset/domain_policy_to_default_config",
+        "/password-policy/reset/domain_policyg",
     )
     assert response.status_code == status.HTTP_200_OK
     password_use_cases.reset_domain_policy_to_default_config.assert_called_once()
