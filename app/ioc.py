@@ -198,7 +198,7 @@ class MainProvider(Provider):
         """
         return kadmin_class(client)
 
-    @provide(scope=Scope.SESSION)
+    @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_class(
         self,
         dns_state_gateway: DNSStateGateway,
