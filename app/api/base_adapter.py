@@ -9,8 +9,8 @@ from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
 from errors.catalog import ErrorCatalog
+from errors.contracts import HasErrorCode
 from errors.http_mapper import HttpCodeMapper
-from errors.types import HasErrorCode
 from fastapi import HTTPException
 
 from abstract_dao import AbstractDAO, AbstractService

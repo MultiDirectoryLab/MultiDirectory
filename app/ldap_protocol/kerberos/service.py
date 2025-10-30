@@ -8,7 +8,7 @@ from typing import AsyncIterator
 
 import backoff
 from dishka import AsyncContainer
-from errors.types import ErrorCodeCarrierError
+from errors.contracts import ErrorCodeCarrierError
 from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -14,7 +14,7 @@ from dns.rdatatype import AXFR
 from dns.tsig import Key as TsigKey
 from dns.update import Update
 from dns.zone import Zone
-from errors.types import ErrorCodeCarrierError
+from errors.contracts import ErrorCodeCarrierError
 
 from enums import ErrorCode
 
