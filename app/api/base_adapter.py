@@ -8,6 +8,9 @@ from asyncio import iscoroutinefunction
 from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
+from errors.catalog import ErrorCatalog
+from errors.http_mapper import HttpCodeMapper
+from errors.types import HasErrorCode
 from fastapi import HTTPException
 
 from abstract_dao import AbstractDAO, AbstractService
@@ -16,11 +19,13 @@ _P = ParamSpec("_P")
 _R = TypeVar("_R")
 _T = TypeVar("_T", bound=AbstractDAO | AbstractService)
 
+_http_mapper = HttpCodeMapper()
+_catalog = ErrorCatalog()
+
 
 class BaseAdapter(Protocol[_T]):
     """Abstract Adapter interface."""
 
-    _exceptions_map: dict[type[Exception], int]
     _service: _T
 
     def __init__(self, service: _T) -> None:
@@ -32,7 +37,7 @@ class BaseAdapter(Protocol[_T]):
         *_: tuple,
         **__: dict,
     ) -> "BaseAdapter[_T]":
-        """Wrap all public methods with try catch for _exceptions_map."""
+        """Wrap all public methods with try catch for standardized errors."""
         instance = super().__new__(cls)
 
         def wrap_sync(func: Callable[_P, _R]) -> Callable[_P, _R]:
@@ -76,6 +81,15 @@ class BaseAdapter(Protocol[_T]):
         return instance
 
     def _reraise(self, exc: Exception) -> NoReturn:
+        """Reraise exception with standardized HTTP status code."""
+        if isinstance(exc, HasErrorCode):
+            http = _http_mapper.to_http(exc.get_error_code())
+            raise HTTPException(status_code=http, detail=str(exc)) from exc
+
+        elif (mapped := _catalog.resolve(exc)) is not None:
+            http = _http_mapper.to_http(mapped)
+            raise HTTPException(status_code=http, detail=str(exc)) from exc
+
         code = self._exceptions_map.get(type(exc))
 
         if code is None:
