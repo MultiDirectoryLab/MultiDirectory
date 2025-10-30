@@ -1,6 +1,9 @@
 """Exception → ErrorCode catalog.
 
 Centralized mapping from exception classes to internal ErrorCode values.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from enums import ErrorCode
