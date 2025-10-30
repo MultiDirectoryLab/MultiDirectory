@@ -8,6 +8,7 @@ import time
 from typing import Callable
 
 from fastapi import Request, Response
+from loguru import logger
 
 from ldap_protocol.identity.identity_provider import IdentityProvider
 
@@ -40,18 +41,21 @@ async def set_key_middleware(
     :return Response: HTTP response with session cookie
     """
     response: Response = await call_next(request)
-    identity_provider: IdentityProvider = (
-        await request.state.dishka_container.get(
-            IdentityProvider,
+    try:
+        identity_provider: IdentityProvider = (
+            await request.state.dishka_container.get(
+                IdentityProvider,
+            )
         )
-    )
 
-    if identity_provider.new_key:
-        response.set_cookie(
-            key="id",
-            value=identity_provider.new_key,
-            httponly=True,
-            expires=identity_provider.key_ttl,
-        )
+        if identity_provider.new_key:
+            response.set_cookie(
+                key="id",
+                value=identity_provider.new_key,
+                httponly=True,
+                expires=identity_provider.key_ttl,
+            )
+    except Exception:
+        logger.info("Failed to get IdentityProvider", exc_info=True)
 
     return response

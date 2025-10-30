@@ -299,4 +299,10 @@ class IdentityManager(AbstractService):
         return await self._identity_provider.get_current_user()
 
     def set_new_session_key(self, key: str) -> None:
+        """Set a new session key.
+
+        Args:
+            key: New session key to set.
+
+        """
         self._identity_provider.set_new_session_key(key)

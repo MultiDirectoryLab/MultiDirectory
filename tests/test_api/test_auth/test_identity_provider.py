@@ -20,7 +20,6 @@ from starlette.responses import Response
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
-from entities import User
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions.auth import UnauthorizedError
 from ldap_protocol.identity.identity_provider import IdentityProvider
@@ -135,7 +134,7 @@ async def invalid_user_provider(
         provider.get_user_id = AsyncMock(  # type: ignore
             side_effect=HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Coubld not validate credentials",
+                detail="Could not validate credentials",
             ),
         )
         yield provider
