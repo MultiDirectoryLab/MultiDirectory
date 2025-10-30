@@ -41,21 +41,18 @@ async def set_key_middleware(
     :return Response: HTTP response with session cookie
     """
     response: Response = await call_next(request)
-    try:
-        identity_provider: IdentityProvider = (
-            await request.state.dishka_container.get(
-                IdentityProvider,
-            )
+    identity_provider: IdentityProvider = (
+        await request.state.dishka_container.get(
+            IdentityProvider,
         )
+    )
 
-        if identity_provider.new_key:
-            response.set_cookie(
-                key="id",
-                value=identity_provider.new_key,
-                httponly=True,
-                expires=identity_provider.key_ttl,
-            )
-    except Exception:
-        logger.info("Failed to get IdentityProvider", exc_info=True)
+    if identity_provider.new_key:
+        response.set_cookie(
+            key="id",
+            value=identity_provider.new_key,
+            httponly=True,
+            expires=identity_provider.key_ttl,
+        )
 
     return response
