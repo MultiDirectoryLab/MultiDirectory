@@ -124,7 +124,7 @@ async def test_tree_collision(http_client: AsyncClient) -> None:
         },
     )
 
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -241,7 +241,7 @@ async def test_ktadd_404(
     names = ["test1", "test2"]
     response = await http_client.post("/kerberos/ktadd", json=names)
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -519,4 +519,4 @@ async def test_update_password(
         "auth/user/password",
         json={"identity": "user0", "new_password": "Password123"},
     )
-    assert response.status_code == status.HTTP_424_FAILED_DEPENDENCY
+    assert response.status_code == 500

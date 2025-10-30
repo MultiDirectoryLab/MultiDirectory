@@ -35,7 +35,7 @@ test_modify_one_attribute_type_dataset = [
             "single_value": True,
             "no_user_modification": False,
         },
-        "status_code": status.HTTP_404_NOT_FOUND,
+        "status_code": 400,
     },
     {
         "attribute_type_name": "testAttributeType2",

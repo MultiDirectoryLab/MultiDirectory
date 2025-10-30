@@ -13,6 +13,7 @@ from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 
 from entities import Directory, User
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.kerberos import KRBAPIError
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -21,6 +22,7 @@ from ldap_protocol.ldap_responses import (
     ExtendedResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
+from ldap_protocol.utils.error_codes import format_ldap_error_message
 from ldap_protocol.utils.queries import get_user
 
 from .base import BaseRequest
@@ -300,6 +302,10 @@ class ExtendedRequest(BaseRequest):
                 result_code=LDAPCodes.OPERATIONS_ERROR,
                 response_name=self.request_name,
                 response_value=None,
+                errorMessage=format_ldap_error_message(
+                    get_error_code_from_ldap_code(LDAPCodes.OPERATIONS_ERROR),
+                    str(err),
+                ),
             )
         else:
             yield ExtendedResponse(
