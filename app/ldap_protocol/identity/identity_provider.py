@@ -120,12 +120,7 @@ class IdentityProvider(AbstractService):
         return user_id
 
     async def rekey_session(self) -> None:
-        """Rotate the session key when storage policies require it.
-
-        Returns:
-            str | None: New session key when rotated, otherwise ``None``.
-
-        """
+        """Rotate the session key when storage policies require it."""
         session_id, _ = self._session_key.split(".")
         key = await self._session_storage.rekey_session_if_needed(
             session_id,
