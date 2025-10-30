@@ -6,13 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
