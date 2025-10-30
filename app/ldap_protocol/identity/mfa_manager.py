@@ -9,7 +9,7 @@ import traceback
 import weakref
 from ipaddress import IPv4Address, IPv6Address
 
-from errors.types import ErrorCodeCarrierError
+from errors.contracts import ErrorCodeCarrierError
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
 from loguru import logger

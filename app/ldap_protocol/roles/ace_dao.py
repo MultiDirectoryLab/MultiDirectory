@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from errors.types import ErrorCodeCarrierError
+from errors.contracts import ErrorCodeCarrierError
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession

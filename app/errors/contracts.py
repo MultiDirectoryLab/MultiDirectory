@@ -4,19 +4,17 @@ Defines a protocol for exceptions that carry a stable internal ErrorCode
 and a lightweight carrier implementation to wrap foreign exceptions.
 """
 
-from __future__ import annotations
-
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from enums import ErrorCode
 
 
+@runtime_checkable
 class HasErrorCode(Protocol):
     """Exceptions that expose a stable internal error code."""
 
     def get_error_code(self) -> ErrorCode:
         """Return internal error code."""
-        ...
 
 
 class ErrorCodeCarrierError(Exception):
