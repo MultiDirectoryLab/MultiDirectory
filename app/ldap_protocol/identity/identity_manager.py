@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from errors.contracts import ErrorCodeCarrierError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
@@ -15,6 +14,7 @@ from abstract_dao import AbstractService
 from config import Settings
 from entities import Directory, Group, User
 from enums import ErrorCode, MFAFlags
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (

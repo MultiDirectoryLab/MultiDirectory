@@ -9,10 +9,10 @@ from dataclasses import asdict
 from ipaddress import IPv4Address, IPv6Address
 
 import dns.asyncresolver
-from errors.contracts import ErrorCodeCarrierError
 
 import ldap_protocol.dns.exceptions as dns_exc
 from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 
 from .base import (
     AbstractDNSManager,
