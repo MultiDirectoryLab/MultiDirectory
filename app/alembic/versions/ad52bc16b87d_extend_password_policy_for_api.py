@@ -28,6 +28,8 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    # NOTE: If instance of Password Policy exists,
+    # it`s unique because it exists in only one instance.
     session.execute(
         update(PasswordPolicy)
         .values({"name": DefaultDomainPasswordPolicyPreset.name}),
@@ -63,13 +65,12 @@ def upgrade() -> None:
 
     op.add_column(
         "PasswordPolicies",
-        sa.Column(
-            "priority",
-            sa.Integer(),
-            nullable=False,
-            unique=True,
-        ),
+        sa.Column("priority", sa.Integer(), nullable=True, unique=True),
     )
+    # NOTE: If instance of Password Policy exists,
+    # it`s unique because it exists in only one instance.
+    session.execute(update(PasswordPolicy).values({"priority": 1}))
+    op.alter_column("PasswordPolicies", "priority", nullable=False)
 
     op.alter_column("PasswordPolicies", "name", server_default=None)
     op.alter_column("PasswordPolicies", "history_length", server_default=None)
