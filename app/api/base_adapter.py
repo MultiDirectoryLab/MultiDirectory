@@ -8,12 +8,12 @@ from asyncio import iscoroutinefunction
 from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
-from errors.catalog import ErrorCatalog
-from errors.contracts import HasErrorCode
-from errors.http_mapper import HttpCodeMapper
 from fastapi import HTTPException
 
 from abstract_dao import AbstractDAO, AbstractService
+from errors.catalog import ErrorCatalog
+from errors.contracts import HasErrorCode
+from errors.http_mapper import HttpCodeMapper
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
