@@ -20,8 +20,13 @@ from starlette.responses import Response
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
+from entities import User
 from ldap_protocol.dialogue import UserSchema
+from ldap_protocol.identity.exceptions.auth import UnauthorizedError
 from ldap_protocol.identity.identity_provider import IdentityProvider
+from ldap_protocol.identity.identity_provider_gateway import (
+    IdentityProviderGateway,
+)
 from ldap_protocol.session_storage.base import SessionStorage
 from tests.conftest import TestProvider
 
@@ -136,28 +141,6 @@ async def invalid_user_provider(
         yield provider
 
 
-@pytest_asyncio.fixture
-async def identity_provider(settings: Settings) -> IdentityProvider:
-    """Yield a provider mock that raises 401 to simulate invalid sessions."""
-    session_storage = NonCallableMagicMock(spec=SessionStorage)
-    session_storage.key_length = 16
-    session_storage.key_ttl = 300
-    session_storage.get_user_id = AsyncMock()
-    session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
-
-    gw = NonCallableMagicMock(spec=SessionStorage)
-    gw.get_user = AsyncMock()
-
-    return IdentityProvider(
-        session_storage=session_storage,
-        settings=settings,
-        identity_provider_gateway=gw,
-        ip_from_request="127.0.0.1",
-        user_agent="",
-        session_key="test.session",
-    )
-
-
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_auth_user(
@@ -188,33 +171,113 @@ async def test_auth_invalid_user(
     invalid_user_provider.rekey_session.assert_not_called()  # type: ignore
 
 
+@pytest.fixture
+def gateway() -> IdentityProviderGateway:
+    """Return a mock identity provider gateway."""
+    gw = NonCallableMagicMock(spec=IdentityProviderGateway)
+    gw.get_user = AsyncMock()
+    return gw
+
+
+@pytest.fixture
+def gateway_with_error() -> IdentityProviderGateway:
+    """Return a mock identity provider gateway."""
+    gw = NonCallableMagicMock(spec=IdentityProviderGateway)
+    gw.get_user = AsyncMock(return_value=None)
+    return gw
+
+
+@pytest_asyncio.fixture
+async def session_storage() -> SessionStorage:
+    """Return a mock session storage."""
+    session_storage = NonCallableMagicMock(spec=SessionStorage)
+    session_storage.key_length = 16
+    session_storage.key_ttl = 300
+    session_storage.get_user_id = AsyncMock(return_value=1)
+    session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
+    return session_storage
+
+
+@pytest_asyncio.fixture
+async def session_storage_with_error() -> SessionStorage:
+    """Return a mock session storage."""
+    session_storage = NonCallableMagicMock(spec=SessionStorage)
+    session_storage.key_length = 16
+    session_storage.key_ttl = 300
+    session_storage.get_user_id = AsyncMock(
+        side_effect=KeyError("Invalid data"),
+    )
+    session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
+    return session_storage
+
+
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_identity_provider(
-    identity_provider: IdentityProvider,
+    settings: Settings,
+    gateway: IdentityProviderGateway,
+    session_storage: SessionStorage,
 ) -> None:
     """Test identity provider."""
-    assert identity_provider.key_ttl == 300
-    assert identity_provider.new_key is None
+    idp = IdentityProvider(
+        session_storage=session_storage,
+        settings=settings,
+        identity_provider_gateway=gateway,
+        ip_from_request="127.0.0.1",
+        user_agent="",
+        session_key="test.session",
+    )
+    assert idp.key_ttl == 300
+    assert idp.new_key is None
 
-    user_id = await identity_provider.get_user_id()
-    identity_provider._session_storage.get_user_id.assert_awaited_with(  # type: ignore  # noqa: SLF001
-        identity_provider._settings,  # noqa: SLF001
-        identity_provider._session_key,  # noqa: SLF001
-        identity_provider._user_agent,  # noqa: SLF001
-        identity_provider._ip_from_request,  # noqa: SLF001
+    user_id = await idp.get_user_id()
+    idp._session_storage.get_user_id.assert_awaited_with(  # type: ignore  # noqa: SLF001
+        idp._settings,  # noqa: SLF001
+        idp._session_key,  # noqa: SLF001
+        idp._user_agent,  # noqa: SLF001
+        idp._ip_from_request,  # noqa: SLF001
     )
 
-    await identity_provider.get(user_id)
-    identity_provider._identity_provider_gateway.get_user.assert_awaited_with(  # type: ignore  # noqa: SLF001
+    await idp.get(user_id)
+    idp._identity_provider_gateway.get_user.assert_awaited_with(  # type: ignore  # noqa: SLF001
         user_id,
     )
 
-    session_id = identity_provider._session_key.split(".")[0]  # noqa: SLF001
-    await identity_provider.rekey_session()
-    identity_provider._session_storage.rekey_session_if_needed.assert_awaited_with(  # type: ignore  # noqa: SLF001
+    session_id = idp._session_key.split(".")[0]  # noqa: SLF001
+    await idp.rekey_session()
+    idp._session_storage.rekey_session_if_needed.assert_awaited_with(  # type: ignore  # noqa: SLF001
         session_id,
-        identity_provider._settings,  # noqa: SLF001
+        idp._settings,  # noqa: SLF001
     )
 
-    assert identity_provider.new_key == "test"
+    assert idp.new_key == "test"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_identity_provider_errors(
+    settings: Settings,
+    gateway_with_error: IdentityProviderGateway,
+    session_storage_with_error: SessionStorage,
+) -> None:
+    """Test identity provider exception raising."""
+    idp = IdentityProvider(
+        session_storage=session_storage_with_error,
+        settings=settings,
+        identity_provider_gateway=gateway_with_error,
+        ip_from_request="127.0.0.1",
+        user_agent="",
+        session_key="test.session",
+    )
+
+    with pytest.raises(
+        UnauthorizedError,
+        match="Could not validate credentials",
+    ):
+        await idp.get_user_id()
+
+    with pytest.raises(
+        UnauthorizedError,
+        match="Could not validate credentials",
+    ):
+        await idp.get(123)
