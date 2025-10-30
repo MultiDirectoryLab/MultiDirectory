@@ -210,7 +210,6 @@ known-first-party = [
     "schedule",
     "extra",
     "enums",
-    "middlewares",
 ]
 known-third-party = [
     "alembic",  # https://github.com/astral-sh/ruff/issues/10519
