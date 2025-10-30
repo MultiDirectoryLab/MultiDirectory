@@ -170,58 +170,25 @@ async def test_auth_invalid_user(
     invalid_user_provider.rekey_session.assert_not_called()  # type: ignore
 
 
-@pytest.fixture
-def gateway() -> IdentityProviderGateway:
-    """Return a mock identity provider gateway."""
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_identity_provider(
+    settings: Settings,
+) -> None:
+    """Test identity provider."""
     gw = NonCallableMagicMock(spec=IdentityProviderGateway)
     gw.get_user = AsyncMock()
-    return gw
 
-
-@pytest.fixture
-def gateway_with_error() -> IdentityProviderGateway:
-    """Return a mock identity provider gateway."""
-    gw = NonCallableMagicMock(spec=IdentityProviderGateway)
-    gw.get_user = AsyncMock(return_value=None)
-    return gw
-
-
-@pytest_asyncio.fixture
-async def session_storage() -> SessionStorage:
-    """Return a mock session storage."""
     session_storage = NonCallableMagicMock(spec=SessionStorage)
     session_storage.key_length = 16
     session_storage.key_ttl = 300
     session_storage.get_user_id = AsyncMock(return_value=1)
     session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
-    return session_storage
 
-
-@pytest_asyncio.fixture
-async def session_storage_with_error() -> SessionStorage:
-    """Return a mock session storage."""
-    session_storage = NonCallableMagicMock(spec=SessionStorage)
-    session_storage.key_length = 16
-    session_storage.key_ttl = 300
-    session_storage.get_user_id = AsyncMock(
-        side_effect=KeyError("Invalid data"),
-    )
-    session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
-    return session_storage
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_identity_provider(
-    settings: Settings,
-    gateway: IdentityProviderGateway,
-    session_storage: SessionStorage,
-) -> None:
-    """Test identity provider."""
     idp = IdentityProvider(
         session_storage=session_storage,
         settings=settings,
-        identity_provider_gateway=gateway,
+        identity_provider_gateway=gw,
         ip_from_request="127.0.0.1",
         user_agent="",
         session_key="test.session",
@@ -254,16 +221,23 @@ async def test_identity_provider(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_identity_provider_errors(
-    settings: Settings,
-    gateway_with_error: IdentityProviderGateway,
-    session_storage_with_error: SessionStorage,
-) -> None:
+async def test_identity_provider_errors(settings: Settings) -> None:
     """Test identity provider exception raising."""
+    gw = NonCallableMagicMock(spec=IdentityProviderGateway)
+    gw.get_user = AsyncMock(return_value=None)
+
+    session_storage = NonCallableMagicMock(spec=SessionStorage)
+    session_storage.key_length = 16
+    session_storage.key_ttl = 300
+    session_storage.get_user_id = AsyncMock(
+        side_effect=KeyError("Invalid data"),
+    )
+    session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
+
     idp = IdentityProvider(
-        session_storage=session_storage_with_error,
+        session_storage=session_storage,
         settings=settings,
-        identity_provider_gateway=gateway_with_error,
+        identity_provider_gateway=gw,
         ip_from_request="127.0.0.1",
         user_agent="",
         session_key="test.session",

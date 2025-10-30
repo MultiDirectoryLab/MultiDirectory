@@ -8,7 +8,6 @@ import time
 from typing import Callable
 
 from fastapi import Request, Response
-from loguru import logger
 
 from ldap_protocol.identity.identity_provider import IdentityProvider
 
