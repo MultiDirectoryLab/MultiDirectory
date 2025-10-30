@@ -247,7 +247,8 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         if policy.name == DefaultDomainP.name and dto.name != policy.name:
             raise ErrorCodeCarrierError(
                 PasswordPolicyCantChangeDefaultDomainError(
-                    "Cannot change the name of the default domain Password Policy.",
+                    "Cannot change the name of"
+                    " the default domain Password Policy.",
                 ),
                 ErrorCode.INVALID_OPERATION,
             )

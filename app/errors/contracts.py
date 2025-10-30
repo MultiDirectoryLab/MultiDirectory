@@ -2,6 +2,9 @@
 
 Defines a protocol for exceptions that carry a stable internal ErrorCode
 and a lightweight carrier implementation to wrap foreign exceptions.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from typing import Protocol, runtime_checkable

@@ -2,6 +2,9 @@
 
 Encapsulates policy of translating internal domain error codes to
 allowed HTTP status codes.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from __future__ import annotations
