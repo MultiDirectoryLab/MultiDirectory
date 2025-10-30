@@ -41,37 +41,3 @@ def get_error_code_from_ldap_code(ldap_code: LDAPCodes) -> ErrorCode:
     :return: Internal error code
     """
     return LDAP_TO_ERROR_CODE_MAP.get(ldap_code, ErrorCode.UNHANDLED_ERROR)
-
-
-def get_ldap_error_message(ldap_code: LDAPCodes) -> str:
-    """Get error message from LDAP code.
-
-    :param ldap_code: LDAP protocol code
-    :return: Error message
-    """
-    ldap_error_messages = {
-        LDAPCodes.SUCCESS: "Success",
-        LDAPCodes.OPERATIONS_ERROR: "Operation error",
-        LDAPCodes.PROTOCOL_ERROR: "Protocol error",
-        LDAPCodes.UNAVAILABLE: "Service unavailable",
-        LDAPCodes.BUSY: "Server busy",
-        LDAPCodes.INVALID_CREDENTIALS: "Invalid credentials",
-        LDAPCodes.INAPPROPRIATE_AUTHENTICATION: "Inappropriate authentication",
-        LDAPCodes.AUTH_METHOD_NOT_SUPPORTED: "Authentication method not supported",
-        LDAPCodes.STRONGER_AUTH_REQUIRED: "Stronger authentication required",
-        LDAPCodes.NO_SUCH_OBJECT: "No such object",
-        LDAPCodes.ENTRY_ALREADY_EXISTS: "Entry already exists",
-        LDAPCodes.NO_SUCH_ATTRIBUTE: "No such attribute",
-        LDAPCodes.ATTRIBUTE_OR_VALUE_EXISTS: "Attribute or value exists",
-        LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS: "Insufficient access rights",
-        LDAPCodes.UNWILLING_TO_PERFORM: "Unwilling to perform",
-        LDAPCodes.NOT_ALLOWED_ON_NON_LEAF: "Not allowed on non-leaf",
-        LDAPCodes.NOT_ALLOWED_ON_RDN: "Not allowed on RDN",
-        LDAPCodes.OBJECT_CLASS_MODS_PROHIBITED: "Object class modifications prohibited",
-        LDAPCodes.INVALID_DN_SYNTAX: "Invalid DN syntax",
-        LDAPCodes.INVALID_ATTRIBUTE_SYNTAX: "Invalid attribute syntax",
-        LDAPCodes.OBJECT_CLASS_VIOLATION: "Object class violation",
-        LDAPCodes.CONSTRAINT_VIOLATION: "Constraint violation",
-    }
-
-    return ldap_error_messages.get(ldap_code, "Unknown error")
