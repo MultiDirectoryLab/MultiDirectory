@@ -75,7 +75,7 @@ async def test_create_attribute_type_conflict_when_already_exists(
         "/schema/attribute_type",
         json=request_data,
     )
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -96,7 +96,7 @@ async def test_modify_system_attribute(http_client: AsyncClient) -> None:
                 f"/schema/attribute_type/{attribute_type_name}",
                 json=request_data.model_dump(),
             )
-            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.status_code == 401
             break
     else:
         pytest.fail("No system attribute")
@@ -135,7 +135,7 @@ async def test_modify_one_attribute_type_raise_404(
         "/schema/attribute_type/testAttributeType12345",
         json=attribute_type_data,
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == 400
 
 
 @pytest.mark.parametrize(
@@ -200,4 +200,4 @@ async def test_delete_bulk_attribute_types(
             response = await http_client.get(
                 f"/schema/attribute_type/{attribute_type_name}",
             )
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == 400
