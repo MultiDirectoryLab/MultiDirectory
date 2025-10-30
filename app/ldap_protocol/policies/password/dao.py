@@ -8,7 +8,7 @@ from typing import Sequence, cast as tcast
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from errors.types import ErrorCodeCarrierError
+from errors.contracts import ErrorCodeCarrierError
 from sqlalchemy import Integer, String, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
