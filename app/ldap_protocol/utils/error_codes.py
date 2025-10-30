@@ -4,8 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from __future__ import annotations
-
 from enums import ErrorCode
 
 

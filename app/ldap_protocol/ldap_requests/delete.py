@@ -147,7 +147,9 @@ class DeleteRequest(BaseRequest):
                     yield DeleteResponse(
                         result_code=LDAPCodes.OPERATIONS_ERROR,
                         error_message=format_ldap_error_message(
-                            LDAPCodes.OPERATIONS_ERROR,
+                            get_error_code_from_ldap_code(
+                                LDAPCodes.OPERATIONS_ERROR,
+                            ),
                             "Cannot delete yourself.",
                         ),
                     )
