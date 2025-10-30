@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
+from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -184,7 +185,9 @@ class AddRequest(BaseRequest):
                 yield AddResponse(
                     result_code=LDAPCodes.OPERATIONS_ERROR,
                     errorMessage=format_ldap_error_message(
-                        LDAPCodes.OPERATIONS_ERROR,
+                        get_error_code_from_ldap_code(
+                            LDAPCodes.OPERATIONS_ERROR,
+                        ),
                         error_msg,
                     ),
                 )
@@ -443,7 +446,7 @@ class AddRequest(BaseRequest):
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
                     errorMessage=format_ldap_error_message(
-                        LDAPCodes.UNAVAILABLE,
+                        get_error_code_from_ldap_code(LDAPCodes.UNAVAILABLE),
                         "KerberosError",
                     ),
                 )

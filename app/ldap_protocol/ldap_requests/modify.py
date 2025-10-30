@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
+from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from loguru import logger
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -37,6 +38,7 @@ from ldap_protocol.objects import (
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.cte import get_members_root_group
+from ldap_protocol.utils.error_codes import format_ldap_error_message
 from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
@@ -150,16 +152,31 @@ class ModifyRequest(BaseRequest):
         if not ctx.ldap_session.user:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                message=format_ldap_error_message(
+                    get_error_code_from_ldap_code(
+                        LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    ),
+                ),
             )
             return
 
         if not validate_entry(self.object.lower()):
-            yield ModifyResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
+            yield ModifyResponse(
+                result_code=LDAPCodes.INVALID_DN_SYNTAX,
+                message=format_ldap_error_message(
+                    get_error_code_from_ldap_code(LDAPCodes.INVALID_DN_SYNTAX),
+                ),
+            )
             return
 
         if not ctx.ldap_session.user.role_ids:
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                message=format_ldap_error_message(
+                    get_error_code_from_ldap_code(
+                        LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    ),
+                ),
             )
             return
 
@@ -174,7 +191,12 @@ class ModifyRequest(BaseRequest):
         directory = await ctx.session.scalar(query)
 
         if not directory:
-            yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            yield ModifyResponse(
+                result_code=LDAPCodes.NO_SUCH_OBJECT,
+                message=format_ldap_error_message(
+                    get_error_code_from_ldap_code(LDAPCodes.NO_SUCH_OBJECT),
+                ),
+            )
             return
 
         can_modify = ctx.access_manager.check_modify_access(
@@ -198,6 +220,11 @@ class ModifyRequest(BaseRequest):
         ):
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                message=format_ldap_error_message(
+                    get_error_code_from_ldap_code(
+                        LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    ),
+                ),
             )
             return
 
@@ -209,6 +236,11 @@ class ModifyRequest(BaseRequest):
             ):
                 yield ModifyResponse(
                     result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    message=format_ldap_error_message(
+                        get_error_code_from_ldap_code(
+                            LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                        ),
+                    ),
                 )
                 return
 

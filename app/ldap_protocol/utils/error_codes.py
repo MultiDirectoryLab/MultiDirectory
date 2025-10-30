@@ -4,27 +4,19 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from ldap_error_codes_mapping import get_error_code_from_ldap_code
+from __future__ import annotations
 
-from ldap_protocol.ldap_codes import LDAPCodes
+from enums import ErrorCode
 
 
 def format_ldap_error_message(
-    ldap_code: LDAPCodes,
+    code: ErrorCode,
     additional_info: str = "",
 ) -> str:
-    """Format LDAP error message with internal error code.
+    """Format LDAP error message with internal ErrorCode.
 
-    Format: "InternalCode: AdditionalInfo"
-    InternalCode is extracted from ErrorCode enum mapped from LDAP code.
-
-    :param ldap_code: LDAP protocol code
-    :param additional_info: Additional error information
-    :return: Formatted error message
+    Format: "<InternalCode>: <AdditionalInfo>".
     """
-    error_code = get_error_code_from_ldap_code(ldap_code)
-
     if additional_info:
-        return f"{error_code.value}: {additional_info}"
-
-    return f"{error_code.value}"
+        return f"{code.value}: {additional_info}"
+    return f"{code.value}"
