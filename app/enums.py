@@ -72,3 +72,28 @@ class AuditDestinationServiceType(StrEnum):
     """Audit destination type."""
 
     SYSLOG = "syslog"
+
+
+class ErrorCode(IntEnum):
+    """Internal error codes.
+
+    Format: NNN NNN NN [http code] [context] [sequence number]
+    """
+
+    UNHANDLED_ERROR = 50000001
+    DATABASE_CONNECTION_ERROR = 50000101
+    DATABASE_ERROR = 50000102
+
+    UNAUTHORIZED = 40100001
+    INVALID_CREDENTIALS = 40100101
+    SESSION_EXPIRED = 40100102
+
+    BAD_REQUEST = 40000001
+    ENTITY_NOT_FOUND = 40000101
+    ENTITY_ALREADY_EXISTS = 40000102
+    PERMISSION_DENIED = 40000201
+    INVALID_OPERATION = 40000202
+
+    VALIDATION_ERROR = 42200001
+    PASSWORD_POLICY_VIOLATION = 42200101
+    INVALID_INPUT = 42200201

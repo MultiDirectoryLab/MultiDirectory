@@ -14,6 +14,9 @@ from dns.rdatatype import AXFR
 from dns.tsig import Key as TsigKey
 from dns.update import Update
 from dns.zone import Zone
+from errors.types import ErrorCodeCarrierError
+
+from enums import ErrorCode
 
 from .base import AbstractDNSManager, DNSConnectionError, DNSRecord, DNSRecords
 from .utils import logger_wraps
@@ -31,7 +34,10 @@ class RemoteDNSManager(AbstractDNSManager):
             )
 
         if self._dns_settings.dns_server_ip is None:
-            raise DNSConnectionError
+            raise ErrorCodeCarrierError(
+                DNSConnectionError(),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
         await asynctcp(action, self._dns_settings.dns_server_ip)
 
@@ -57,7 +63,10 @@ class RemoteDNSManager(AbstractDNSManager):
             self._dns_settings.dns_server_ip is None
             or self._dns_settings.zone_name is None
         ):
-            raise DNSConnectionError
+            raise ErrorCodeCarrierError(
+                DNSConnectionError(),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
         zone = from_text(self._dns_settings.zone_name)
         zone_tm = Zone(zone)

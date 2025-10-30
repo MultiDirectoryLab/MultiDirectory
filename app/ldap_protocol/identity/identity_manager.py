@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
+from errors.types import ErrorCodeCarrierError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
@@ -13,7 +14,7 @@ from starlette.datastructures import URL
 from abstract_dao import AbstractService
 from config import Settings
 from entities import Directory, Group, User
-from enums import MFAFlags
+from enums import ErrorCode, MFAFlags
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
@@ -126,7 +127,10 @@ class IdentityManager(AbstractService):
             self._password_validator,
         )
         if not user:
-            raise UnauthorizedError("Incorrect username or password")
+            raise ErrorCodeCarrierError(
+                UnauthorizedError("Incorrect username or password"),
+                ErrorCode.INVALID_CREDENTIALS,
+            )
 
         query = (
             select(Group)
@@ -144,15 +148,24 @@ class IdentityManager(AbstractService):
         ).one()
 
         if not is_part_of_admin_group:
-            raise LoginFailedError("User not part of domain admins")
+            raise ErrorCodeCarrierError(
+                LoginFailedError("User not part of domain admins"),
+                ErrorCode.PERMISSION_DENIED,
+            )
 
         uac_check = await get_check_uac(self._session, user.directory_id)
 
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
-            raise LoginFailedError("User account is disabled")
+            raise ErrorCodeCarrierError(
+                LoginFailedError("User account is disabled"),
+                ErrorCode.PERMISSION_DENIED,
+            )
 
         if user.is_expired():
-            raise LoginFailedError("User account is expired")
+            raise ErrorCodeCarrierError(
+                LoginFailedError("User account is expired"),
+                ErrorCode.PERMISSION_DENIED,
+            )
 
         network_policy = await get_user_network_policy(
             ip,
@@ -161,7 +174,10 @@ class IdentityManager(AbstractService):
             policy_type="is_http",
         )
         if network_policy is None:
-            raise LoginFailedError("User not part of network policy")
+            raise ErrorCodeCarrierError(
+                LoginFailedError("User not part of network policy"),
+                ErrorCode.PERMISSION_DENIED,
+            )
 
         if self._mfa_api.is_initialized and network_policy.mfa_status in (
             MFAFlags.ENABLED,
@@ -218,15 +234,21 @@ class IdentityManager(AbstractService):
         )
 
         if not user:
-            raise UserNotFoundError(
-                f"User {identity} not found in the database.",
+            raise ErrorCodeCarrierError(
+                UserNotFoundError(
+                    f"User {identity} not found in the database.",
+                ),
+                ErrorCode.ENTITY_NOT_FOUND,
             )
 
         if await self._password_use_cases.is_password_change_restricted(
             user.directory_id,
         ):
-            raise PermissionError(
-                f"User {identity} is not allowed to change the password.",
+            raise ErrorCodeCarrierError(
+                PermissionError(
+                    f"User {identity} is not allowed to change the password.",
+                ),
+                ErrorCode.PERMISSION_DENIED,
             )
 
         errors = await self._password_use_cases.check_password_violations(
@@ -235,7 +257,10 @@ class IdentityManager(AbstractService):
         )
 
         if errors:
-            raise PasswordPolicyError(errors)
+            raise ErrorCodeCarrierError(
+                PasswordPolicyError(errors),
+                ErrorCode.PASSWORD_POLICY_VIOLATION,
+            )
 
         if include_krb:
             await self._kadmin.create_or_update_principal_pw(

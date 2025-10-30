@@ -9,8 +9,10 @@ from dataclasses import asdict
 from ipaddress import IPv4Address, IPv6Address
 
 import dns.asyncresolver
+from errors.types import ErrorCodeCarrierError
 
 import ldap_protocol.dns.exceptions as dns_exc
+from enums import ErrorCode
 
 from .base import (
     AbstractDNSManager,
@@ -52,7 +54,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise dns_exc.DNSRecordCreateError(response.text)
+            raise ErrorCodeCarrierError(
+                dns_exc.DNSRecordCreateError(response.text),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
     @logger_wraps()
     async def update_record(
@@ -75,7 +80,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise dns_exc.DNSRecordUpdateError(response.text)
+            raise ErrorCodeCarrierError(
+                dns_exc.DNSRecordUpdateError(response.text),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
     @logger_wraps()
     async def delete_record(
@@ -97,7 +105,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise dns_exc.DNSRecordDeleteError(response.text)
+            raise ErrorCodeCarrierError(
+                dns_exc.DNSRecordDeleteError(response.text),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
@@ -145,7 +156,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise dns_exc.DNSZoneCreateError(response.text)
+            raise ErrorCodeCarrierError(
+                dns_exc.DNSZoneCreateError(response.text),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
     @logger_wraps()
     async def update_zone(
@@ -162,7 +176,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise dns_exc.DNSZoneUpdateError(response.text)
+            raise ErrorCodeCarrierError(
+                dns_exc.DNSZoneUpdateError(response.text),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
     @logger_wraps()
     async def delete_zone(
@@ -177,7 +194,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
             )
 
             if response.status_code != 200:
-                raise dns_exc.DNSZoneDeleteError(response.text)
+                raise ErrorCodeCarrierError(
+                    dns_exc.DNSZoneDeleteError(response.text),
+                    ErrorCode.UNHANDLED_ERROR,
+                )
 
     @logger_wraps()
     async def find_forward_dns_fqdn(
@@ -264,7 +284,10 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise dns_exc.DNSUpdateServerOptionsError(response.text)
+            raise ErrorCodeCarrierError(
+                dns_exc.DNSUpdateServerOptionsError(response.text),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
     @logger_wraps()
     async def get_server_options(self) -> list[DNSServerParam]:

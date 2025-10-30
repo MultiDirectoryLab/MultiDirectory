@@ -23,6 +23,7 @@ from ldap_protocol.ldap_responses import (
     DeleteResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
+from ldap_protocol.utils.error_codes import format_ldap_error_message
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
     get_base_directories,
@@ -113,9 +114,10 @@ class DeleteRequest(BaseRequest):
             if await ctx.session.scalar(select(primary_group_members_query)):
                 yield DeleteResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
-                    error_message=(
+                    error_message=format_ldap_error_message(
+                        LDAPCodes.ENTRY_ALREADY_EXISTS,
                         "Can't delete group with members having"
-                        " it as primary group."
+                        " it as primary group.",
                     ),
                 )
                 return
@@ -141,7 +143,10 @@ class DeleteRequest(BaseRequest):
                 if directory.path_dn == ctx.ldap_session.user.dn:
                     yield DeleteResponse(
                         result_code=LDAPCodes.OPERATIONS_ERROR,
-                        error_message="Cannot delete yourself.",
+                        error_message=format_ldap_error_message(
+                            LDAPCodes.OPERATIONS_ERROR,
+                            "Cannot delete yourself.",
+                        ),
                     )
                     return
                 await ctx.session_storage.clear_user_sessions(
@@ -159,7 +164,10 @@ class DeleteRequest(BaseRequest):
         except (KRBAPIDeletePrincipalError, KRBAPIConnectionError):
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,
-                errorMessage="KerberosError",
+                errorMessage=format_ldap_error_message(
+                    LDAPCodes.UNAVAILABLE,
+                    "KerberosError",
+                ),
             )
             return
 
