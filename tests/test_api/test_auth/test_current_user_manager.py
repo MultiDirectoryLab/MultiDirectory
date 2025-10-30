@@ -42,7 +42,10 @@ class TestAuthProvider(Provider):
             spec=IdentityProvider,
         )
 
-        identity_provider.set_new_session_key = AsyncMock()
+        identity_provider.rekey_session = AsyncMock()
+        identity_provider.get_current_user = (
+            IdentityProvider.get_current_user.__get__(identity_provider)
+        )
         ip_from_request = get_ip_from_request(request)
         user_agent = get_user_agent_from_request(request)
         identity_provider.ip_from_request = str(ip_from_request)
@@ -100,20 +103,21 @@ async def current_user_provider(
         context=request_params,
     ) as cont:
         provider = await cont.get(IdentityProvider)
-        provider.get_current_user = AsyncMock(  # type: ignore
-            return_value=UserSchema(
-                id=1,
-                session_id="1",
-                sam_account_name="user0",
-                user_principal_name="user0@example.com",
-                mail="user0@example.com",
-                display_name="User Zero",
-                directory_id=1,
-                dn="CN=User Zero,CN=Users,DC=example,DC=com",
-                account_exp=datetime.datetime.max,
-                role_ids=[1],
-            ),
+        user = UserSchema(
+            id=1,
+            session_id="1",
+            sam_account_name="user0",
+            user_principal_name="user0@example.com",
+            mail="user0@example.com",
+            display_name="User Zero",
+            directory_id=1,
+            dn="CN=User Zero,CN=Users,DC=example,DC=com",
+            account_exp=datetime.datetime.max,
+            role_ids=[1],
         )
+        provider.get_user_id = AsyncMock(return_value=1)  # type: ignore
+        provider.get = AsyncMock(return_value=user)  # type: ignore
+
         yield provider
 
 
@@ -128,10 +132,10 @@ async def invalid_user_provider(
         context=request_params,
     ) as cont:
         provider = await cont.get(IdentityProvider)
-        provider.get_current_user = AsyncMock(  # type: ignore
+        provider.get_user_id = AsyncMock(  # type: ignore
             side_effect=HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid session",
+                detail="Coubld not validate credentials",
             ),
         )
         yield provider
@@ -147,8 +151,9 @@ async def test_auth_user(
     response = await http_client.get("/auth/me")
     assert response.status_code == status.HTTP_200_OK
 
-    current_user_provider.get_current_user.assert_called()  # type: ignore
-    current_user_provider.set_new_session_key.assert_called()  # type: ignore
+    current_user_provider.get_user_id.assert_called()  # type: ignore
+    current_user_provider.get.assert_called()  # type: ignore
+    current_user_provider.rekey_session.assert_called()  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -161,5 +166,6 @@ async def test_auth_invalid_user(
     response = await unbound_http_client.get("/auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    invalid_user_provider.get_current_user.assert_called()  # type: ignore
-    invalid_user_provider.set_new_session_key.assert_not_called()  # type: ignore
+    invalid_user_provider.get_user_id.assert_called()  # type: ignore
+    invalid_user_provider.get.assert_not_called()  # type: ignore
+    invalid_user_provider.rekey_session.assert_not_called()  # type: ignore
