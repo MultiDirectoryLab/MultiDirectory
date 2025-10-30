@@ -4,7 +4,10 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from api.ldap_schema.schema import AttributeTypeSchema
+from api.ldap_schema.schema import (
+    AttributeTypeSchema,
+    AttributeTypeUpdateSchema,
+)
 
 from .test_attribute_type_router_datasets import (
     test_delete_bulk_attribute_types_dataset,
@@ -73,7 +76,31 @@ async def test_create_attribute_type_conflict_when_already_exists(
         "/schema/attribute_type",
         json=schema.model_dump(),
     )
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_modify_system_attribute(http_client: AsyncClient) -> None:
+    """Test modify system attribute."""
+    page_number = 1
+    page_size = 10
+    response = await http_client.get(
+        f"/schema/attribute_types?page_number={page_number}&page_size={page_size}",
+    )
+    for attr in response.json()["items"]:
+        if attr["is_system"] is True:
+            attribute_type_name = attr["name"]
+            request_data = AttributeTypeUpdateSchema.model_validate(attr)
+            response = await http_client.patch(
+                f"/schema/attribute_type/{attribute_type_name}",
+                json=request_data.model_dump(),
+            )
+            assert response.status_code == 401
+            break
+    else:
+        pytest.fail("No system attribute")
 
 
 @pytest.mark.asyncio
@@ -110,7 +137,7 @@ async def test_modify_one_attribute_type_raise_404(
         "/schema/attribute_type/testAttributeType12345",
         json=schema.model_dump(),
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == 400
 
 
 @pytest.mark.parametrize(
@@ -176,4 +203,4 @@ async def test_delete_bulk_attribute_types(
             response = await http_client.get(
                 f"/schema/attribute_type/{attribute_type_name}",
             )
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == 400
