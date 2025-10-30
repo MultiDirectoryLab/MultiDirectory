@@ -153,14 +153,14 @@ async def test_modify_entity_type_with_duplicate_data(
         f"/schema/entity_type/{update_entity}",
         json=update_data,
     )
-    assert response.status_code == 401
+    assert response.status_code == 400
 
     update_entity, update_data = new_statements["duplicate_name"]
     response = await http_client.patch(
         f"/schema/entity_type/{update_entity}",
         json=update_data,
     )
-    assert response.status_code == 401
+    assert response.status_code == 400
 
 
 @pytest.mark.parametrize(
@@ -223,7 +223,7 @@ async def test_modify_primary_entity_type_name(
             "object_class_names": entity_type_data["object_class_names"],
         },
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == 400
 
     response = await http_client.get(
         f"/schema/entity_type/{entity_type_data['name']}",

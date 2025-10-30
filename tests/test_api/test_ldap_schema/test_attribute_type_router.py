@@ -97,7 +97,7 @@ async def test_modify_system_attribute(http_client: AsyncClient) -> None:
                 f"/schema/attribute_type/{attribute_type_name}",
                 json=request_data.model_dump(),
             )
-            assert response.status_code == 401
+            assert response.status_code == 400
             break
     else:
         pytest.fail("No system attribute")

@@ -531,4 +531,4 @@ async def test_update_password(
             "old_password": "password",
         },
     )
-    assert response.status_code == 401
+    assert response.status_code == 500

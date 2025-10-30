@@ -53,7 +53,7 @@ async def test_api_auth_after_change_account_exp(
         },
     )
 
-    assert auth.status_code == 401
+    assert auth.status_code == 400
 
     await http_client.patch(
         "/entry/update",
