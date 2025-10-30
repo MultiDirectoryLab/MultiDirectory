@@ -141,15 +141,26 @@ class ObjectClass:
 
 @dataclass
 class PasswordPolicy:
-    """Password policy configuration (history/complexity/age)."""
+    """Password Policy configuration.
 
-    id: int | None = field(init=False, default=None)
-    name: str = "Default Policy"
-    password_history_length: int = 4
-    maximum_password_age_days: int = 0
-    minimum_password_age_days: int = 0
-    minimum_password_length: int = 7
-    password_must_meet_complexity_requirements: bool = False
+    `priority` - lower number means higher priority.
+    """
+
+    id: int = field(init=False)
+
+    name: str
+    priority: int
+
+    history_length: int
+
+    min_age_days: int
+    max_age_days: int
+
+    min_length: int
+
+    password_must_meet_complexity_requirements: bool
+
+    groups: list[Group] = field(default_factory=list, repr=False)
 
 
 @dataclass
@@ -186,7 +197,7 @@ class Directory:
         compare=False,
     )
     group: Group = field(init=False, repr=False, compare=False)
-    user: User = field(init=False, repr=False, compare=False)
+    user: User | None = field(init=False, repr=False, compare=False)
     groups: list[Group] = field(init=False, repr=False, compare=False)
     access_control_entries: list[AccessControlEntry] = field(
         init=False,
@@ -393,6 +404,12 @@ class Group:
         compare=False,
     )
     roles: list[Role] = field(
+        init=False,
+        default_factory=list,
+        repr=False,
+        compare=False,
+    )
+    password_policies: list[PasswordPolicy] = field(
         init=False,
         default_factory=list,
         repr=False,

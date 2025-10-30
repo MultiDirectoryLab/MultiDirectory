@@ -189,9 +189,7 @@ class BindRequest(BaseRequest):
         pwd_last_set = await ctx.password_use_cases.get_or_create_pwd_last_set(
             user.directory_id,
         )
-        password_policy = await ctx.password_use_cases.get_password_policy()
         is_pwd_expired = await ctx.password_use_cases.check_expired_max_age(
-            password_policy,
             user,
             pwd_last_set,
         )
