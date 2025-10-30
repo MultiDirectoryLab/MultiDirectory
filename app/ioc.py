@@ -503,7 +503,7 @@ class HTTPProvider(LDAPContextProvider):
         """Create ldap session."""
         ip_from_request = get_ip_from_request(request)
         user_agent = get_user_agent_from_request(request)
-        identity_provider = IdentityProvider(
+        return IdentityProvider(
             session_storage,
             settings,
             identity_provider_gateway,
@@ -511,8 +511,6 @@ class HTTPProvider(LDAPContextProvider):
             user_agent=user_agent,
             session_key=request.cookies.get("id", ""),
         )
-
-        return identity_provider
 
     @provide(provides=LDAPSession)
     async def get_session(

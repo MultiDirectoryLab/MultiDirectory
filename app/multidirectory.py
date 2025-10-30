@@ -41,6 +41,7 @@ from api.exception_handlers import (
     handle_dns_error,
     handle_not_implemented_error,
 )
+from api.middlewares import proc_time_header_middleware, set_key_middleware
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
@@ -60,7 +61,6 @@ from ldap_protocol.dns import (
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
-from middlewares import proc_time_header_middleware, set_key_middleware
 from schedule import scheduler_factory
 
 
