@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
+from errors.types import ErrorCodeCarrierError
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
 from entities import AccessControlEntry, Directory
-from enums import AceType, RoleScope
+from enums import AceType, ErrorCode, RoleScope
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from repo.pg.tables import queryable_attr as qa
@@ -161,8 +162,11 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         )
 
         if not directories:
-            raise NoValidDistinguishedNameError(
-                f"Invalid distinguished name: {dto.base_dn}",
+            raise ErrorCodeCarrierError(
+                NoValidDistinguishedNameError(
+                    f"Invalid distinguished name: {dto.base_dn}",
+                ),
+                ErrorCode.INVALID_INPUT,
             )
 
         new_ace = AccessControlEntry(
@@ -181,8 +185,11 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         try:
             await self._session.flush()
         except IntegrityError:
-            raise AccessControlEntryAddError(
-                "Failed to add access control entries.",
+            raise ErrorCodeCarrierError(
+                AccessControlEntryAddError(
+                    "Failed to add access control entries.",
+                ),
+                ErrorCode.INVALID_OPERATION,
             )
 
     async def create_bulk(self, dtos: list[AccessControlEntryDTO]) -> None:
@@ -204,8 +211,11 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
                 )
 
             if not directory_cache[cache_key]:
-                raise NoValidDistinguishedNameError(
-                    f"Invalid distinguished name: {ace.base_dn}",
+                raise ErrorCodeCarrierError(
+                    NoValidDistinguishedNameError(
+                        f"Invalid distinguished name: {ace.base_dn}",
+                    ),
+                    ErrorCode.INVALID_INPUT,
                 )
 
             new_ace = AccessControlEntry(
@@ -226,8 +236,11 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
             await self._session.flush()
         except IntegrityError:
             await self._session.rollback()
-            raise AccessControlEntryAddError(
-                "Failed to add access control entries.",
+            raise ErrorCodeCarrierError(
+                AccessControlEntryAddError(
+                    "Failed to add access control entries.",
+                ),
+                ErrorCode.INVALID_OPERATION,
             )
 
     async def update(self, _id: int, dto: AccessControlEntryDTO) -> None:
@@ -251,8 +264,11 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
                 scope=dto.scope,
             )
             if not directories:
-                raise NoValidDistinguishedNameError(
-                    f"Invalid distinguished name: {dto.base_dn}",
+                raise ErrorCodeCarrierError(
+                    NoValidDistinguishedNameError(
+                        f"Invalid distinguished name: {dto.base_dn}",
+                    ),
+                    ErrorCode.INVALID_INPUT,
                 )
 
             ace.directories.clear()

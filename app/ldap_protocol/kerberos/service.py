@@ -8,12 +8,14 @@ from typing import AsyncIterator
 
 import backoff
 from dishka import AsyncContainer
+from errors.types import ErrorCodeCarrierError
 from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractService
 from config import Settings
+from enums import ErrorCode
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos.exceptions import (
@@ -116,8 +118,11 @@ class KerberosService(AbstractService):
         """Get LDAP root DN and domain."""
         base_dn_list = await get_base_directories(self._session)
         if not base_dn_list:
-            raise KerberosBaseDnNotFoundError(
-                "No base DN found in the LDAP directory.",
+            raise ErrorCodeCarrierError(
+                KerberosBaseDnNotFoundError(
+                    "No base DN found in the LDAP directory.",
+                ),
+                ErrorCode.UNHANDLED_ERROR,
             )
         return base_dn_list[0].path_dn, base_dn_list[0].name
 
@@ -258,7 +263,10 @@ class KerberosService(AbstractService):
                 context.krbgroup,
             )
             await self._kadmin.reset_setup()
-            raise KerberosDependencyError(str(err))
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(str(err)),
+                ErrorCode.UNHANDLED_ERROR,
+            )
         else:
             await set_state(self._session, KerberosState.READY)
             await self._session.commit()
@@ -307,7 +315,10 @@ class KerberosService(AbstractService):
             password,
             self._password_validator,
         ):
-            raise KerberosDependencyError("Incorrect password")
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError("Incorrect password"),
+                ErrorCode.PERMISSION_DENIED,
+            )
 
     async def _schedule_principal_task(
         self,
@@ -349,8 +360,9 @@ class KerberosService(AbstractService):
             principal_name = f"{primary}/{instance}"
             await self._kadmin.add_principal(principal_name, None)
         except KRBAPIAddPrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error adding principal: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(f"Error adding principal: {exc}"),
+                ErrorCode.UNHANDLED_ERROR,
             ) from exc
 
     async def rename_principal(
@@ -368,8 +380,11 @@ class KerberosService(AbstractService):
         try:
             await self._kadmin.rename_princ(principal_name, principal_new_name)
         except KRBAPIRenamePrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error renaming principal: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(
+                    f"Error renaming principal: {exc}",
+                ),
+                ErrorCode.UNHANDLED_ERROR,
             ) from exc
 
     async def reset_principal_pw(
@@ -390,8 +405,11 @@ class KerberosService(AbstractService):
                 new_password,
             )
         except Exception as exc:
-            raise KerberosDependencyError(
-                f"Error resetting principal password: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(
+                    f"Error resetting principal password: {exc}",
+                ),
+                ErrorCode.UNHANDLED_ERROR,
             ) from exc
 
     async def delete_principal(self, principal_name: str) -> None:
@@ -404,8 +422,11 @@ class KerberosService(AbstractService):
         try:
             await self._kadmin.del_principal(principal_name)
         except KRBAPIDeletePrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error deleting principal: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(
+                    f"Error deleting principal: {exc}",
+                ),
+                ErrorCode.UNHANDLED_ERROR,
             ) from exc
 
     async def ktadd(
@@ -436,8 +457,10 @@ class KerberosService(AbstractService):
         try:
             server_state = await self._kadmin.get_status()
         except KRBAPIStatusNotFoundError:
-            raise KerberosUnavailableError("Kerberos server unavailable")
-
+            raise ErrorCodeCarrierError(
+                KerberosUnavailableError("Kerberos server unavailable"),
+                ErrorCode.UNHANDLED_ERROR,
+            )
         if server_state is False and db_state == KerberosState.READY:
             return KerberosState.WAITING_FOR_RELOAD
         return db_state
