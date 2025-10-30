@@ -27,6 +27,7 @@ class BaseAdapter(Protocol[_T]):
     """Abstract Adapter interface."""
 
     _service: _T
+    _exceptions_map: dict[type[Exception], int]
 
     def __init__(self, service: _T) -> None:
         """Set service."""
