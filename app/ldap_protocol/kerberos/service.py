@@ -8,7 +8,6 @@ from typing import AsyncIterator
 
 import backoff
 from dishka import AsyncContainer
-from errors.contracts import ErrorCodeCarrierError
 from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from abstract_dao import AbstractService
 from config import Settings
 from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos.exceptions import (

@@ -8,7 +8,6 @@ from typing import Sequence, cast as tcast
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from errors.contracts import ErrorCodeCarrierError
 from sqlalchemy import Integer, String, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -16,6 +15,7 @@ from sqlalchemy.orm import selectinload
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
 from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.objects import UserAccountControlFlag as UacFlag
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,

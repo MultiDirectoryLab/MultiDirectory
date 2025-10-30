@@ -9,7 +9,6 @@ import traceback
 import weakref
 from ipaddress import IPv4Address, IPv6Address
 
-from errors.contracts import ErrorCodeCarrierError
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
 from loguru import logger
@@ -21,6 +20,7 @@ from abstract_dao import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
 from enums import ErrorCode, MFAChallengeStatuses, MFAFlags
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,

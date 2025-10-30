@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from errors.contracts import ErrorCodeCarrierError
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +14,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from abstract_dao import AbstractDAO
 from entities import AccessControlEntry, Directory
 from enums import AceType, ErrorCode, RoleScope
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from repo.pg.tables import queryable_attr as qa
