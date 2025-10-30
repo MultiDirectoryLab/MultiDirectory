@@ -42,7 +42,7 @@ class TestAuthProvider(Provider):
             spec=IdentityProvider,
         )
 
-        identity_provider.rekey_session = AsyncMock()
+        identity_provider.set_new_session_key = AsyncMock()
         ip_from_request = get_ip_from_request(request)
         user_agent = get_user_agent_from_request(request)
         identity_provider.ip_from_request = str(ip_from_request)
@@ -148,7 +148,7 @@ async def test_auth_user(
     assert response.status_code == status.HTTP_200_OK
 
     current_user_provider.get_current_user.assert_called()  # type: ignore
-    current_user_provider.rekey_session.assert_called()  # type: ignore
+    current_user_provider.set_new_session_key.assert_called()  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -162,4 +162,4 @@ async def test_auth_invalid_user(
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     invalid_user_provider.get_current_user.assert_called()  # type: ignore
-    invalid_user_provider.rekey_session.assert_not_called()  # type: ignore
+    invalid_user_provider.set_new_session_key.assert_not_called()  # type: ignore

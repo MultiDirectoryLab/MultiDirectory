@@ -31,5 +31,4 @@ async def get_current_user(
             authenticated user.
 
     """
-    user = await identity_adapter.get_current_user()
-    return user
+    return await identity_adapter.get_current_user()

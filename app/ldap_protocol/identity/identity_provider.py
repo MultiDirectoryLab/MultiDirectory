@@ -21,7 +21,7 @@ class IdentityProvider(AbstractService):
     _ip_from_request: str
     _user_agent: str
     _session_key: str
-    new_key: str | None = None
+    _new_key: str | None = None
 
     def __init__(
         self,
@@ -49,7 +49,7 @@ class IdentityProvider(AbstractService):
         self._ip_from_request = ip_from_request
         self._user_agent = user_agent
         self._session_key = session_key
-        self.new_key = None
+        self._new_key = None
 
     @property
     def key_ttl(self) -> int:
@@ -60,6 +60,11 @@ class IdentityProvider(AbstractService):
 
         """
         return self._session_storage.key_ttl
+
+    @property
+    def new_key(self) -> str | None:
+        """Return the new session key."""
+        return self._new_key
 
     async def get(self, user_id: int) -> UserSchema:
         """Return the user schema for the supplied identifier.
@@ -114,7 +119,7 @@ class IdentityProvider(AbstractService):
 
         return user_id
 
-    async def rekey_session(self) -> str | None:
+    async def rekey_session(self) -> None:
         """Rotate the session key when storage policies require it.
 
         Returns:
@@ -129,8 +134,6 @@ class IdentityProvider(AbstractService):
         if key:
             self.set_new_session_key(key)
 
-        return key
-
     def set_new_session_key(self, key: str) -> None:
         """Set a new session key.
 
@@ -138,7 +141,7 @@ class IdentityProvider(AbstractService):
             key: New session key to set.
 
         """
-        self.new_key = key
+        self._new_key = key
 
     @staticmethod
     async def to_schema(user: User, session_id: str) -> UserSchema:

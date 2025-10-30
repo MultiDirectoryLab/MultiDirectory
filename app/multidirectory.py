@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import argparse
 import asyncio
-import time
 from contextlib import asynccontextmanager
 from functools import partial
 from typing import AsyncIterator, Callable, Coroutine
@@ -17,7 +16,7 @@ from alembic.config import Config, command
 from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from sqlalchemy import exc as sa_exc
@@ -58,56 +57,11 @@ from ldap_protocol.dns import (
     DNSError,
     DNSNotImplementedError,
 )
-from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
+from middlewares import proc_time_header_middleware, set_key_middleware
 from schedule import scheduler_factory
-
-
-async def proc_time_header_middleware(
-    request: Request,
-    call_next: Callable,
-) -> Response:
-    """Set X-Process-Time header.
-
-    :param Request request: _description_
-    :param Callable call_next: _description_
-    :return Response: _description_
-    """
-    start_time = time.perf_counter()
-    response = await call_next(request)
-    process_time = time.perf_counter() - start_time
-    response.headers["X-Process-Time"] = f"{process_time:.4f}"
-    return response
-
-
-async def set_key_middleware(
-    request: Request,
-    call_next: Callable,
-) -> Response:
-    """Set session key to response cookies.
-
-    :param Request request: _description_
-    :param Callable call_next: _description_
-    :return Response: _description_
-    """
-    response: Response = await call_next(request)
-    identity_provider: IdentityProvider = (
-        await request.state.dishka_container.get(
-            IdentityProvider,
-        )
-    )
-
-    if identity_provider.new_key:
-        response.set_cookie(
-            key="id",
-            value=identity_provider.new_key,
-            httponly=True,
-            expires=identity_provider.key_ttl,
-        )
-
-    return response
 
 
 @asynccontextmanager

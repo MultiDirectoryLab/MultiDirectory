@@ -492,14 +492,14 @@ class HTTPProvider(LDAPContextProvider):
         scope=Scope.REQUEST,
     )
 
-    @provide(provides=IdentityProvider)
+    @provide()
     async def get_identity_provider(
         self,
         request: Request,
         session_storage: SessionStorage,
         settings: Settings,
         identity_provider_gateway: IdentityProviderGateway,
-    ) -> AsyncIterator[IdentityProvider]:
+    ) -> IdentityProvider:
         """Create ldap session."""
         ip_from_request = get_ip_from_request(request)
         user_agent = get_user_agent_from_request(request)
@@ -512,7 +512,7 @@ class HTTPProvider(LDAPContextProvider):
             session_key=request.cookies.get("id", ""),
         )
 
-        yield identity_provider
+        return identity_provider
 
     @provide(provides=LDAPSession)
     async def get_session(

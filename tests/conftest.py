@@ -424,7 +424,7 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
 
-    @provide(scope=Scope.REQUEST, provides=IdentityProvider)
+    @provide(scope=Scope.REQUEST)
     async def get_identity_provider(
         self,
         request: Request,
