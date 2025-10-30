@@ -145,7 +145,7 @@ async def test_create_subnet_api_error(
         json=sample_subnet_data,
     )
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_409_CONFLICT
     assert "Subnet already exists" in response.json()["detail"]
 
 
@@ -214,7 +214,7 @@ async def test_update_subnet_not_found(
         json=sample_subnet_data,
     )
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -241,7 +241,7 @@ async def test_delete_subnet_not_found(
 
     response = await http_client.delete("/dhcp/subnet/999")
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -295,7 +295,7 @@ async def test_create_lease_api_error(
         json=sample_lease_data,
     )
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_409_CONFLICT
     assert "IP already in use" in response.json()["detail"]
 
 
@@ -430,7 +430,7 @@ async def test_delete_lease_not_found(
 
     response = await http_client.delete("/dhcp/lease/192.168.1.128")
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -484,7 +484,7 @@ async def test_create_reservation_api_error(
         json=sample_reservation_data,
     )
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_409_CONFLICT
     assert "IP already reserved" in response.json()["detail"]
 
 
@@ -566,7 +566,7 @@ async def test_delete_reservation_not_found(
         },
     )
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio
