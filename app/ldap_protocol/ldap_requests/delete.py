@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
+from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -115,7 +116,9 @@ class DeleteRequest(BaseRequest):
                 yield DeleteResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
                     error_message=format_ldap_error_message(
-                        LDAPCodes.ENTRY_ALREADY_EXISTS,
+                        get_error_code_from_ldap_code(
+                            LDAPCodes.ENTRY_ALREADY_EXISTS,
+                        ),
                         "Can't delete group with members having"
                         " it as primary group.",
                     ),
@@ -165,7 +168,7 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,
                 errorMessage=format_ldap_error_message(
-                    LDAPCodes.UNAVAILABLE,
+                    get_error_code_from_ldap_code(LDAPCodes.UNAVAILABLE),
                     "KerberosError",
                 ),
             )
