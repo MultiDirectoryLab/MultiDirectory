@@ -10,7 +10,6 @@ from functools import cached_property
 from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
-from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_, select
@@ -29,6 +28,7 @@ from entities import (
     User,
 )
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.filter_interpreter import (
