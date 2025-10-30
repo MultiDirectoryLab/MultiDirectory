@@ -6,12 +6,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import joinedload, selectinload
 
 from entities import Directory, Group
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIConnectionError,

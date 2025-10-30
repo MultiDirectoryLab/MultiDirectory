@@ -6,13 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
-from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from entities import Attribute, Directory, Group, User
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,

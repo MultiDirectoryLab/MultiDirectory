@@ -8,12 +8,12 @@ from abc import ABC, abstractmethod
 from typing import AsyncGenerator, ClassVar
 
 from asn1 import Decoder
-from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from loguru import logger
 from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 
 from entities import Directory, User
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIChangePasswordError,

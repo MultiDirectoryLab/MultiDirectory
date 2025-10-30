@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
-from ldap_error_codes_mapping import get_error_code_from_ldap_code
 from loguru import logger
 from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -18,6 +17,7 @@ from config import Settings
 from constants import PRIMARY_ENTITY_TYPE_NAMES
 from entities import Attribute, Directory, Group, User
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, unlock_principal
