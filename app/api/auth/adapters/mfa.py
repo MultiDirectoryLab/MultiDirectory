@@ -9,7 +9,6 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import status
 from fastapi.responses import RedirectResponse
 
-from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.base_adapter import BaseAdapter
 from ldap_protocol.identity import MFAManager
 from ldap_protocol.identity.exceptions.mfa import (
@@ -25,7 +24,7 @@ from ldap_protocol.identity.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 
-class MFAFastAPIAdapter(ResponseCookieMixin, BaseAdapter[MFAManager]):
+class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
     """Adapter for using MFAManager with FastAPI."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -92,11 +91,7 @@ class MFAFastAPIAdapter(ResponseCookieMixin, BaseAdapter[MFAManager]):
                 user_agent,
             )
             response = RedirectResponse("/", 302)
-            await self.set_session_cookie(
-                response,
-                self._service.key_ttl,
-                key,
-            )
+            self._service.set_new_session_key(key)
             return response
         except MFATokenError:
             return RedirectResponse("/mfa_token_error", status.HTTP_302_FOUND)

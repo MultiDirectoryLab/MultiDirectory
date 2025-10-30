@@ -29,6 +29,7 @@ from ldap_protocol.identity.exceptions.mfa import (
     MissingMFACredentialsError,
     NetworkPolicyError,
 )
+from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,
     MFACreateRequest,
@@ -68,6 +69,7 @@ class MFAManager(AbstractService):
         repository: SessionRepository,
         monitor: AuditMonitorUseCase,
         password_validator: PasswordValidator,
+        identity_provider: IdentityProvider,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -85,6 +87,7 @@ class MFAManager(AbstractService):
         self._repository = repository
         self._monitor = monitor
         self._password_validator = password_validator
+        self._identity_provider = identity_provider
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -374,3 +377,7 @@ class MFAManager(AbstractService):
                     return
 
         raise AuthenticationError("Authentication failed.")
+
+    def set_new_session_key(self, key: str) -> None:
+        """Set a new session key."""
+        self._identity_provider.set_new_session_key(key)

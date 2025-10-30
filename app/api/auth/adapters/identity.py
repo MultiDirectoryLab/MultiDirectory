@@ -7,9 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv6Address
 
 from adaptix.conversion import get_converter
-from fastapi import Request, Response, status
+from fastapi import Request, status
 
-from api.auth.adapters.cookie_mixin import ResponseCookieMixin
 from api.base_adapter import BaseAdapter
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityManager
@@ -36,10 +35,7 @@ from ldap_protocol.kerberos import KRBAPIError
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
 
-class IdentityFastAPIAdapter(
-    ResponseCookieMixin,
-    BaseAdapter[IdentityManager],
-):
+class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
     """Adapter for using IdentityManager with FastAPI."""
 
     _exceptions_map: dict[type[Exception], int] = {
@@ -59,7 +55,6 @@ class IdentityFastAPIAdapter(
         self,
         form: OAuth2Form,
         request: Request,
-        response: Response,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
     ) -> MFAChallengeResponse | None:
@@ -82,9 +77,7 @@ class IdentityFastAPIAdapter(
             user_agent=user_agent,
         )
         if login_dto.session_key is not None:
-            await self.set_session_cookie(
-                response,
-                self._service.key_ttl,
+            self._service.set_new_session_key(
                 login_dto.session_key,
             )
         return login_dto.mfa_challenge
@@ -128,17 +121,3 @@ class IdentityFastAPIAdapter(
     async def get_current_user(self) -> UserSchema:
         """Load the authenticated user using request-bound session data."""
         return await self._service.get_current_user()
-
-    async def rekey_session(self, response: Response) -> None:
-        """Rotate session key if needed and refresh the response cookie."""
-        try:
-            key = await self._service.rekey_session()
-            if key:
-                response.set_cookie(
-                    key="id",
-                    value=key,
-                    httponly=True,
-                    expires=self._service.key_ttl,
-                )
-        except KeyError as err:
-            raise UnauthorizedError("Login failed") from err

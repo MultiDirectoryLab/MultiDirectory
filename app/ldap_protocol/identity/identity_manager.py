@@ -298,6 +298,5 @@ class IdentityManager(AbstractService):
         """Load the authenticated user using request-bound session data."""
         return await self._identity_provider.get_current_user()
 
-    async def rekey_session(self) -> str | None:
-        """Rotate session key if needed and refresh the response cookie."""
-        return await self._identity_provider.rekey_session()
+    def set_new_session_key(self, key: str) -> None:
+        self._identity_provider.set_new_session_key(key)

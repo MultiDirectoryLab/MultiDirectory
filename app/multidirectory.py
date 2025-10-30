@@ -58,6 +58,7 @@ from ldap_protocol.dns import (
     DNSError,
     DNSNotImplementedError,
 )
+from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
@@ -78,6 +79,34 @@ async def proc_time_header_middleware(
     response = await call_next(request)
     process_time = time.perf_counter() - start_time
     response.headers["X-Process-Time"] = f"{process_time:.4f}"
+    return response
+
+
+async def set_key_middleware(
+    request: Request,
+    call_next: Callable,
+) -> Response:
+    """Set session key to response cookies.
+
+    :param Request request: _description_
+    :param Callable call_next: _description_
+    :return Response: _description_
+    """
+    response: Response = await call_next(request)
+    identity_provider: IdentityProvider = (
+        await request.state.dishka_container.get(
+            IdentityProvider,
+        )
+    )
+
+    if identity_provider.new_key:
+        response.set_cookie(
+            key="id",
+            value=identity_provider.new_key,
+            httponly=True,
+            expires=identity_provider.key_ttl,
+        )
+
     return response
 
 
@@ -119,6 +148,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     if settings.DEBUG:
         app.middleware("http")(proc_time_header_middleware)
 
+    app.middleware("http")(set_key_middleware)
     app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
     app.add_exception_handler(DNSException, handle_dns_error)
