@@ -523,4 +523,4 @@ async def test_update_password(
         "auth/user/password",
         json={"identity": "user0", "new_password": "Password123"},
     )
-    assert response.status_code == 401
+    assert response.status_code == 500

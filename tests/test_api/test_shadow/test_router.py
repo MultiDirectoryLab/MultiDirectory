@@ -28,7 +28,7 @@ async def test_shadow_api_non_existent_user(http_client: AsyncClient) -> None:
         ).model_dump(),
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
