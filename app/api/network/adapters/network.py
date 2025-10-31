@@ -10,8 +10,16 @@ from fastapi import Request, status
 from fastapi.responses import RedirectResponse
 
 from api.base_adapter import BaseAdapter
-from api.network.schema import Policy, PolicyResponse
-from ldap_protocol.policies.network.dto import NetworkPolicyDTO
+from api.network.schema import (
+    Policy,
+    PolicyResponse,
+    PolicyUpdate,
+    SwapResponse,
+)
+from ldap_protocol.policies.network.dto import (
+    NetworkPolicyDTO,
+    NetworkPolicyUpdateDTO,
+)
 from ldap_protocol.policies.network.exceptions import (
     LastActivePolicyError,
     NetworkPolicyAlreadyExistsError,
@@ -99,3 +107,51 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
     async def switch_network_policy(self, _id: int) -> Literal[True]:
         """Switch network policy."""
         return await self._service.switch_network_policy(_id)
+
+    async def update(self, model: PolicyUpdate) -> PolicyResponse:
+        """Update network policy."""
+        policy_dto = await self._service.update(
+            NetworkPolicyUpdateDTO(
+                id=model.id,
+                name=model.name,
+                netmasks=model.complete_netmasks if model.netmasks else None,
+                mfa_status=model.mfa_status,
+                is_http=model.is_http,
+                is_ldap=model.is_ldap,
+                is_kerberos=model.is_kerberos,
+                groups=model.groups,
+                mfa_groups=model.mfa_groups,
+                bypass_no_connection=model.bypass_no_connection,
+                bypass_service_failure=model.bypass_service_failure,
+                raw=model.model_dump(mode="json")["netmasks"]
+                if model.netmasks
+                else None,
+            ),
+        )
+
+        return PolicyResponse(
+            id=policy_dto.id,
+            name=policy_dto.name,
+            netmasks=policy_dto.netmasks,
+            raw=policy_dto.raw,
+            enabled=policy_dto.enabled,
+            priority=policy_dto.priority,
+            groups=policy_dto.groups,
+            mfa_status=policy_dto.mfa_status,
+            mfa_groups=policy_dto.mfa_groups,
+            is_http=policy_dto.is_http,
+            is_ldap=policy_dto.is_ldap,
+            is_kerberos=policy_dto.is_kerberos,
+            bypass_no_connection=policy_dto.bypass_no_connection,
+            bypass_service_failure=policy_dto.bypass_service_failure,
+        )
+
+    async def swap_priorities(self, _id1: int, _id2: int) -> SwapResponse:
+        """Swap priorities for network policies."""
+        swap_dto = await self._service.swap_priorities(_id1, _id2)
+        return SwapResponse(
+            first_policy_id=_id1,
+            first_policy_priority=swap_dto.priority1,
+            second_policy_id=_id2,
+            second_policy_priority=swap_dto.priority2,
+        )

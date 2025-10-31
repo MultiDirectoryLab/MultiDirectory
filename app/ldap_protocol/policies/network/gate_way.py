@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Group, NetworkPolicy
-from ldap_protocol.policies.network.dto import NetworkPolicyDTO
+from ldap_protocol.policies.network.dto import (
+    NetworkPolicyDTO,
+    SwapPrioritiesDTO,
+)
 from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,
@@ -26,7 +29,26 @@ class NetworkPolicyGateway:
         """Initialize Network policy gateway."""
         self._session = session
 
-    # async def get()
+    async def _get_row(self, _id: int) -> NetworkPolicy:
+        """Get network policy."""
+        policy = await self._session.scalar(
+            select(NetworkPolicy)
+            .filter_by(id=_id)
+            .options(
+                selectinload(qa(NetworkPolicy.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
+                    qa(Group.directory),
+                ),
+            ),
+        )
+        if not policy:
+            raise NetworkPolicyNotFoundError(
+                f"Policy with id {_id} not found.",
+            )
+        return policy
+
     async def create(
         self,
         dto: NetworkPolicyDTO,
@@ -190,6 +212,46 @@ class NetworkPolicyGateway:
         _id: int,
     ) -> None:
         await self._session.execute(
-            update(NetworkPolicy).filter_by(id=_id).values({"enabled": False}),
+            update(NetworkPolicy).filter_by(id=_id).values(enabled=False),
         )
         await self._session.commit()
+
+    async def update(
+        self,
+        dto: NetworkPolicyDTO,
+        groups: list[Group],
+        mfa_groups: list[Group],
+    ) -> None:
+        """Update network policy."""
+        try:
+            policy_entity = await self._get_row(dto.get_id())
+            policy_entity.name = dto.name
+            policy_entity.netmasks = dto.netmasks
+            policy_entity.raw = dto.raw
+            policy_entity.mfa_status = dto.mfa_status
+            policy_entity.is_http = dto.is_http
+            policy_entity.is_ldap = dto.is_ldap
+            policy_entity.is_kerberos = dto.is_kerberos
+            policy_entity.bypass_no_connection = dto.bypass_no_connection
+            policy_entity.bypass_service_failure = dto.bypass_service_failure
+            policy_entity.groups = groups
+            policy_entity.mfa_groups = mfa_groups
+            await self._session.commit()
+        except IntegrityError:
+            raise NetworkPolicyAlreadyExistsError(
+                "Entry already exists",
+            )
+
+    async def swap_priorities(
+        self,
+        _id1: int,
+        _id2: int,
+    ) -> SwapPrioritiesDTO:
+        policy1 = await self._get_row(_id1)
+        policy2 = await self._get_row(_id2)
+        policy1.priority, policy2.priority = policy2.priority, policy1.priority
+        await self._session.commit()
+        return SwapPrioritiesDTO(
+            priority1=policy1.priority,
+            priority2=policy2.priority,
+        )
