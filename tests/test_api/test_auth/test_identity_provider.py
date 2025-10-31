@@ -150,9 +150,9 @@ async def test_auth_user(
     response = await http_client.get("/auth/me")
     assert response.status_code == status.HTTP_200_OK
 
-    current_user_provider.get_user_id.assert_called()  # type: ignore
-    current_user_provider.get.assert_called()  # type: ignore
-    current_user_provider.rekey_session.assert_called()  # type: ignore
+    current_user_provider.get_user_id.assert_called()
+    current_user_provider.get.assert_called()
+    current_user_provider.rekey_session.assert_called()
 
 
 @pytest.mark.asyncio
@@ -165,9 +165,9 @@ async def test_auth_invalid_user(
     response = await unbound_http_client.get("/auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    invalid_user_provider.get_user_id.assert_called()  # type: ignore
-    invalid_user_provider.get.assert_not_called()  # type: ignore
-    invalid_user_provider.rekey_session.assert_not_called()  # type: ignore
+    invalid_user_provider.get_user_id.assert_called()
+    invalid_user_provider.get.assert_not_called()
+    invalid_user_provider.rekey_session.assert_not_called()
 
 
 @pytest.mark.asyncio
