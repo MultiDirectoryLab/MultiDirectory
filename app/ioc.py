@@ -18,9 +18,12 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api.audit.adapter import AuditPoliciesAdapter
-from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
-from api.auth.adapters.session_gateway import SessionFastAPIGateway
-from api.auth.utils import get_ip_from_request
+from api.auth.adapters import (
+    IdentityFastAPIAdapter,
+    MFAFastAPIAdapter,
+    SessionFastAPIGateway,
+)
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -48,6 +51,10 @@ from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.dns.utils import resolve_dns_server_ip
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.identity_provider import IdentityProvider
+from ldap_protocol.identity.identity_provider_gateway import (
+    IdentityProviderGateway,
+)
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -480,6 +487,30 @@ class HTTPProvider(LDAPContextProvider):
         AuditMonitor,
         scope=Scope.REQUEST,
     )
+    identity_provider_gateway = provide(
+        IdentityProviderGateway,
+        scope=Scope.REQUEST,
+    )
+
+    @provide()
+    async def get_identity_provider(
+        self,
+        request: Request,
+        session_storage: SessionStorage,
+        settings: Settings,
+        identity_provider_gateway: IdentityProviderGateway,
+    ) -> IdentityProvider:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        return IdentityProvider(
+            session_storage,
+            settings,
+            identity_provider_gateway,
+            ip_from_request=str(ip_from_request),
+            user_agent=user_agent,
+            session_key=request.cookies.get("id", ""),
+        )
 
     @provide(provides=LDAPSession)
     async def get_session(
@@ -583,7 +614,7 @@ class EventSenderProvider(Provider):
 
     @provide()
     def setup_audit_logging(self, settings: Settings) -> AuditLogger:
-        """Create audit logger.."""
+        """Create audit logger."""
         audit_logger = logger.bind(name="audit")
         audit_logger.remove()
         audit_logger.add(

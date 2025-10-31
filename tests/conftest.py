@@ -40,8 +40,12 @@ from sqlalchemy.ext.asyncio import (
 
 from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
-from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
-from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.auth.adapters import (
+    IdentityFastAPIAdapter,
+    MFAFastAPIAdapter,
+    SessionFastAPIGateway,
+)
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -64,6 +68,10 @@ from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.dto import DNSSettingDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.identity_provider import IdentityProvider
+from ldap_protocol.identity.identity_provider_gateway import (
+    IdentityProviderGateway,
+)
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin
@@ -416,6 +424,31 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
 
+    @provide(scope=Scope.REQUEST)
+    async def get_identity_provider(
+        self,
+        request: Request,
+        session_storage: SessionStorage,
+        settings: Settings,
+        identity_provider_gateway: IdentityProviderGateway,
+    ) -> IdentityProvider:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+
+        return IdentityProvider(
+            session_storage,
+            settings,
+            identity_provider_gateway,
+            ip_from_request=str(ip_from_request),
+            user_agent=user_agent,
+            session_key=request.cookies.get("id", ""),
+        )
+
+    identity_provider_gateway = provide(
+        IdentityProviderGateway,
+        scope=Scope.REQUEST,
+    )
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
     ldap_entity_type_adapter = provide(

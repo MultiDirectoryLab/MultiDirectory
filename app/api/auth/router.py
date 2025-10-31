@@ -30,7 +30,6 @@ auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 async def login(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
-    response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
     auth_manager: FromDishka[IdentityFastAPIAdapter],
@@ -58,7 +57,6 @@ async def login(
     return await auth_manager.login(
         form=form,
         request=request,
-        response=response,
         ip=ip,
         user_agent=user_agent,
     )
