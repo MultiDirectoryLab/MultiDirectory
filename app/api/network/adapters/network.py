@@ -24,7 +24,7 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
 
     async def create(self, policy: Policy) -> PolicyResponse:
         """Create network policy."""
-        policy_entity, groups, mfa_groups = await self._service.create(
+        policy_dto = await self._service.create(
             NetworkPolicyDTO(
                 name=policy.name,
                 netmasks=policy.complete_netmasks,
@@ -41,18 +41,18 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
             ),
         )
         return PolicyResponse(
-            id=policy_entity.id,
-            name=policy_entity.name,
-            netmasks=policy_entity.netmasks,
-            raw=policy_entity.raw,
-            enabled=policy_entity.enabled,
-            priority=policy_entity.priority,
-            groups=[group.directory.path_dn for group in groups],
-            mfa_groups=[group.directory.path_dn for group in mfa_groups],
-            is_http=policy_entity.is_http,
-            is_ldap=policy_entity.is_ldap,
-            is_kerberos=policy_entity.is_kerberos,
-            bypass_no_connection=policy_entity.bypass_no_connection,
-            bypass_service_failure=policy_entity.bypass_service_failure,
-            mfa_status=policy_entity.mfa_status,
+            id=policy_dto.id,
+            name=policy_dto.name,
+            netmasks=policy_dto.netmasks,
+            raw=policy_dto.raw,
+            enabled=policy_dto.enabled,
+            priority=policy_dto.priority,
+            groups=policy_dto.groups,
+            mfa_groups=policy_dto.mfa_groups,
+            is_http=policy_dto.is_http,
+            is_ldap=policy_dto.is_ldap,
+            is_kerberos=policy_dto.is_kerberos,
+            bypass_no_connection=policy_dto.bypass_no_connection,
+            bypass_service_failure=policy_dto.bypass_service_failure,
+            mfa_status=policy_dto.mfa_status,
         )

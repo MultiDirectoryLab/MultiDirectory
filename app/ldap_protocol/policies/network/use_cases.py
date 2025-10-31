@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abstract_dao import AbstractService
-from entities import Group, NetworkPolicy
 from ldap_protocol.policies.network.dto import NetworkPolicyDTO
 
 from .gate_way import NetworkPolicyGateway
@@ -21,7 +20,7 @@ class NetworkPolicyUseCase(AbstractService):
     async def create(
         self,
         dto: NetworkPolicyDTO,
-    ) -> tuple[NetworkPolicy, list[Group], list[Group]]:
+    ) -> NetworkPolicyDTO:
         """Create network policy."""
         groups = mfa_groups = []
         if dto.groups:
@@ -31,9 +30,9 @@ class NetworkPolicyUseCase(AbstractService):
                 dto.mfa_groups,
             )
 
-        policy = await self._network_policy_gateway.create(
+        policy_dto = await self._network_policy_gateway.create(
             dto,
             groups,
             mfa_groups,
         )
-        return policy, groups, mfa_groups
+        return policy_dto

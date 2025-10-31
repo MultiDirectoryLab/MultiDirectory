@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from adaptix.conversion import get_converter
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,8 +14,6 @@ from ldap_protocol.policies.network.exceptions import (
 )
 from ldap_protocol.utils.queries import get_groups
 
-_converter = get_converter(NetworkPolicyDTO, NetworkPolicy)
-
 
 class NetworkPolicyGateway:
     """Network policy gateway."""
@@ -25,12 +22,13 @@ class NetworkPolicyGateway:
         """Initialize Network policy gateway."""
         self._session = session
 
+    # async def get()
     async def create(
         self,
         dto: NetworkPolicyDTO,
         groups: list[Group],
         mfa_groups: list[Group],
-    ) -> NetworkPolicy:
+    ) -> NetworkPolicyDTO:
         """Get network policy."""
         policy = NetworkPolicy(
             name=dto.name,
@@ -54,7 +52,22 @@ class NetworkPolicyGateway:
             self._session.add(policy)
             await self._session.commit()
             await self._session.refresh(policy)
-            return policy
+            return NetworkPolicyDTO(
+                id=policy.id,
+                name=policy.name,
+                netmasks=policy.netmasks,
+                priority=policy.priority,
+                raw=policy.raw,
+                mfa_status=policy.mfa_status,
+                is_http=policy.is_http,
+                is_ldap=policy.is_ldap,
+                is_kerberos=policy.is_kerberos,
+                bypass_no_connection=policy.bypass_no_connection,
+                bypass_service_failure=policy.bypass_service_failure,
+                enabled=policy.enabled,
+                groups=dto.groups,
+                mfa_groups=dto.mfa_groups,
+            )
         except IntegrityError:
             raise NetworkPolicyAlreadyExistsError(
                 "Entry already exists",
