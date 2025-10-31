@@ -10,7 +10,6 @@ from fastapi import HTTPException, Request, status
 from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
-from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -74,42 +73,17 @@ async def get_list_network_policies(
 async def delete_network_policy(
     policy_id: int,
     request: Request,
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[NetworkPolicyFastAPIAdapter],
 ) -> list[PolicyResponse]:
     """Delete policy.
 
     \f
     :param int policy_id: id
-    :param User user: requires login
-    :raises HTTPException: 404
-    :raises HTTPException: 422 On last active policy,
-        at least 1 should be in database.
-    :return bool: status of delete
+    :param Request request: request
+    :param NetworkPolicyFastAPIAdapter adapter: adapter
+    :return RedirectResponse: redirect response
     """
-    policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
-
-    if not policy:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
-
-    await check_policy_count(session)
-
-    async with session.begin_nested():
-        await session.delete(policy)
-        await session.flush()
-        await session.execute(
-            (
-                update(NetworkPolicy)
-                .values({"priority": NetworkPolicy.priority - 1})
-                .filter(qa(NetworkPolicy.priority) > policy.priority)
-            ),
-        )
-        await session.commit()
-
-    return RedirectResponse(
-        request.url_for("policy"),
-        status_code=status.HTTP_303_SEE_OTHER,
-        headers=request.headers,
-    )  # type: ignore
+    return await adapter.delete(request, policy_id)  # type: ignore
 
 
 @network_router.patch("/{policy_id}")

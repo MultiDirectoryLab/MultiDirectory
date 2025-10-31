@@ -4,13 +4,16 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from fastapi import status
+from fastapi import Request, status
+from fastapi.responses import RedirectResponse
 
 from api.base_adapter import BaseAdapter
 from api.network.schema import Policy, PolicyResponse
 from ldap_protocol.policies.network.dto import NetworkPolicyDTO
 from ldap_protocol.policies.network.exceptions import (
+    LastActivePolicyError,
     NetworkPolicyAlreadyExistsError,
+    NetworkPolicyNotFoundError,
 )
 from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 
@@ -20,6 +23,8 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
 
     _exceptions_map: dict[type[Exception], int] = {
         NetworkPolicyAlreadyExistsError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        LastActivePolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        NetworkPolicyNotFoundError: status.HTTP_404_NOT_FOUND,
     }
 
     async def create(self, policy: Policy) -> PolicyResponse:
@@ -79,3 +84,12 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
             )
             for policy_dto in policy_dtos
         ]
+
+    async def delete(self, request: Request, _id: int) -> RedirectResponse:
+        """Delete network policy."""
+        await self._service.delete(_id)
+        return RedirectResponse(
+            request.url_for("policy"),
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers=request.headers,
+        )

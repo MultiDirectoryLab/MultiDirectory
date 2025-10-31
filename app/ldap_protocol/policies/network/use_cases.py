@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abstract_dao import AbstractService
 from ldap_protocol.policies.network.dto import NetworkPolicyDTO
+from ldap_protocol.policies.network.exceptions import LastActivePolicyError
 
 from .gate_way import NetworkPolicyGateway
 
@@ -42,3 +43,16 @@ class NetworkPolicyUseCase(AbstractService):
     ) -> list[NetworkPolicyDTO]:
         """Get list of network policies."""
         return await self._network_policy_gateway.get_list_policies()
+
+    async def delete(self, _id: int) -> None:
+        """Delete network policy by ID."""
+        policy = await self._network_policy_gateway.get(_id)
+
+        count = await self._network_policy_gateway.get_policy_count()
+        if count == 1:
+            raise LastActivePolicyError("At least one policy should be active")
+
+        await self._network_policy_gateway.delete_with_update_priority(
+            _id,
+            policy.priority,
+        )
