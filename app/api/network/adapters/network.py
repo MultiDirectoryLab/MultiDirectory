@@ -4,6 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Literal
+
 from fastapi import Request, status
 from fastapi.responses import RedirectResponse
 
@@ -93,3 +95,7 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
             status_code=status.HTTP_303_SEE_OTHER,
             headers=request.headers,
         )
+
+    async def switch_network_policy(self, _id: int) -> Literal[True]:
+        """Switch network policy."""
+        return await self._service.switch_network_policy(_id)

@@ -27,7 +27,6 @@ from .schema import (
     SwapRequest,
     SwapResponse,
 )
-from .utils import check_policy_count
 
 network_router = APIRouter(
     prefix="/policy",
@@ -89,7 +88,7 @@ async def delete_network_policy(
 @network_router.patch("/{policy_id}")
 async def switch_network_policy(
     policy_id: int,
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[NetworkPolicyFastAPIAdapter],
 ) -> bool:
     """Switch state of policy.
 
@@ -102,17 +101,7 @@ async def switch_network_policy(
         at least 1 should be active
     :return bool: status of update
     """
-    policy = await session.get(NetworkPolicy, policy_id, with_for_update=True)
-
-    if not policy:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Policy not found")
-
-    if policy.enabled:
-        await check_policy_count(session)
-
-    policy.enabled = not policy.enabled
-    await session.commit()
-    return True
+    return await adapter.switch_network_policy(policy_id)
 
 
 @network_router.put("")

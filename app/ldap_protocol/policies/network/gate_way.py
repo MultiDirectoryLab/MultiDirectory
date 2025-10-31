@@ -184,3 +184,12 @@ class NetworkPolicyGateway:
                 .values({"priority": NetworkPolicy.priority - 1})
                 .filter(qa(NetworkPolicy.priority) > priority),
             )
+
+    async def disable_policy(
+        self,
+        _id: int,
+    ) -> None:
+        await self._session.execute(
+            update(NetworkPolicy).filter_by(id=_id).values({"enabled": False}),
+        )
+        await self._session.commit()
