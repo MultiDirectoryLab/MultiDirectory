@@ -36,3 +36,9 @@ class NetworkPolicyUseCase(AbstractService):
             mfa_groups,
         )
         return policy_dto
+
+    async def get_list_policies(
+        self,
+    ) -> list[NetworkPolicyDTO]:
+        """Get list of network policies."""
+        return await self._network_policy_gateway.get_list_policies()

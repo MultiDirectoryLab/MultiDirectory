@@ -56,3 +56,26 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
             bypass_service_failure=policy_dto.bypass_service_failure,
             mfa_status=policy_dto.mfa_status,
         )
+
+    async def get_list_policies(self) -> list[PolicyResponse]:
+        """Get list of network policies."""
+        policy_dtos = await self._service.get_list_policies()
+        return [
+            PolicyResponse(
+                id=policy_dto.id,
+                name=policy_dto.name,
+                netmasks=policy_dto.netmasks,
+                raw=policy_dto.raw,
+                enabled=policy_dto.enabled,
+                priority=policy_dto.priority,
+                groups=policy_dto.groups,
+                mfa_groups=policy_dto.mfa_groups,
+                is_http=policy_dto.is_http,
+                is_ldap=policy_dto.is_ldap,
+                is_kerberos=policy_dto.is_kerberos,
+                bypass_no_connection=policy_dto.bypass_no_connection,
+                bypass_service_failure=policy_dto.bypass_service_failure,
+                mfa_status=policy_dto.mfa_status,
+            )
+            for policy_dto in policy_dtos
+        ]

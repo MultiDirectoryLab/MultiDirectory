@@ -10,14 +10,14 @@ from fastapi import HTTPException, Request, status
 from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.auth import get_current_user
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
-from entities import Group, NetworkPolicy
+from entities import NetworkPolicy
 from ldap_protocol.utils.queries import get_groups
 from repo.pg.tables import queryable_attr as qa
 
@@ -56,45 +56,14 @@ async def add_network_policy(
 
 @network_router.get("", name="policy")
 async def get_list_network_policies(
-    session: FromDishka[AsyncSession],
+    adapter: FromDishka[NetworkPolicyFastAPIAdapter],
 ) -> list[PolicyResponse]:
     """Get network.
 
     \f
     :return list[PolicyResponse]: all policies
     """
-    groups = selectinload(qa(NetworkPolicy.groups)).selectinload(
-        qa(Group.directory),
-    )
-    mfa_groups = selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
-        qa(Group.directory),
-    )
-
-    return [
-        PolicyResponse(
-            id=policy.id,
-            name=policy.name,
-            netmasks=policy.netmasks,
-            raw=policy.raw,
-            enabled=policy.enabled,
-            priority=policy.priority,
-            groups=(group.directory.path_dn for group in policy.groups),
-            mfa_status=policy.mfa_status,
-            mfa_groups=(
-                group.directory.path_dn for group in policy.mfa_groups
-            ),
-            is_http=policy.is_http,
-            is_ldap=policy.is_ldap,
-            is_kerberos=policy.is_kerberos,
-            bypass_no_connection=policy.bypass_no_connection,
-            bypass_service_failure=policy.bypass_service_failure,
-        )
-        for policy in await session.scalars(
-            select(NetworkPolicy)
-            .options(groups, mfa_groups)
-            .order_by(qa(NetworkPolicy.priority).asc()),
-        )
-    ]
+    return await adapter.get_list_policies()
 
 
 @network_router.delete(

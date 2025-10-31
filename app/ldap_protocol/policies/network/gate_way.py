@@ -4,8 +4,10 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from entities import Group, NetworkPolicy
 from ldap_protocol.policies.network.dto import NetworkPolicyDTO
@@ -13,6 +15,7 @@ from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
 )
 from ldap_protocol.utils.queries import get_groups
+from repo.pg.tables import queryable_attr as qa
 
 
 class NetworkPolicyGateway:
@@ -78,3 +81,40 @@ class NetworkPolicyGateway:
         groups: list[str],
     ) -> list[Group]:
         return await get_groups(groups, self._session)
+
+    async def get_list_policies(
+        self,
+    ) -> list[NetworkPolicyDTO]:
+        policies = await self._session.scalars(
+            select(NetworkPolicy)
+            .options(
+                selectinload(qa(NetworkPolicy.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
+                    qa(Group.directory),
+                ),
+            )
+            .order_by(qa(NetworkPolicy.priority).asc()),
+        )
+        return [
+            NetworkPolicyDTO(
+                id=policy.id,
+                name=policy.name,
+                netmasks=policy.netmasks,
+                priority=policy.priority,
+                raw=policy.raw,
+                mfa_status=policy.mfa_status,
+                is_http=policy.is_http,
+                is_ldap=policy.is_ldap,
+                is_kerberos=policy.is_kerberos,
+                bypass_no_connection=policy.bypass_no_connection,
+                bypass_service_failure=policy.bypass_service_failure,
+                enabled=policy.enabled,
+                groups=[group.directory.path_dn for group in policy.groups],
+                mfa_groups=[
+                    group.directory.path_dn for group in policy.mfa_groups
+                ],
+            )
+            for policy in policies
+        ]
