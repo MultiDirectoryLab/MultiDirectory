@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from entities import Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.kerberos.exceptions import KRBAPIAddPrincipalError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -432,7 +432,7 @@ class AddRequest(BaseRequest):
                         new_dir.host_principal,
                         None,
                     )
-            except KRBAPIError:
+            except KRBAPIAddPrincipalError:
                 await ctx.session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,

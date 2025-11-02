@@ -24,6 +24,11 @@ from ldap_protocol.kerberos import (
     KRBAPIError,
     unlock_principal,
 )
+from ldap_protocol.kerberos.exceptions import (
+    KRBAPIForcePasswordChangeError,
+    KRBAPILockPrincipalError,
+    KRBAPIPrincipalNotFoundError,
+)
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
 from ldap_protocol.objects import Changes, Operation, ProtocolRequests
@@ -63,6 +68,9 @@ MODIFY_EXCEPTION_STACK = (
     RecursionError,
     PermissionError,
     ModifyForbiddenError,
+    KRBAPIPrincipalNotFoundError,
+    KRBAPILockPrincipalError,
+    KRBAPIForcePasswordChangeError,
 )
 
 _DOMAIN_ADMIN_NAME = "domain admins"

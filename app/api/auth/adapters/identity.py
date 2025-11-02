@@ -30,7 +30,7 @@ from ldap_protocol.identity.schemas import (
     OAuth2Form,
     SetupRequest,
 )
-from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
@@ -45,7 +45,7 @@ class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
         PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         PermissionError: status.HTTP_403_FORBIDDEN,
         UserNotFoundError: status.HTTP_404_NOT_FOUND,
-        KRBAPIError: status.HTTP_424_FAILED_DEPENDENCY,
+        KRBAPIChangePasswordError: status.HTTP_424_FAILED_DEPENDENCY,
         AlreadyConfiguredError: status.HTTP_423_LOCKED,
         MissingMFACredentialsError: status.HTTP_403_FORBIDDEN,
         MFAError: status.HTTP_406_NOT_ACCEPTABLE,

@@ -29,7 +29,16 @@ from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 from password_manager import PasswordValidator
 
 from .base import AbstractKadmin
-from .exceptions import KRBAPIError
+from .exceptions import (
+    KRBAPIAddPrincipalError,
+    KRBAPIDeletePrincipalError,
+    KRBAPIPrincipalNotFoundError,
+    KRBAPIRenamePrincipalError,
+    KRBAPISetupConfigsError,
+    KRBAPISetupStashError,
+    KRBAPISetupTreeError,
+    KRBAPIStatusNotFoundError,
+)
 from .ldap_structure import KRBLDAPStructureManager
 from .schemas import AddRequests, KDCContext, KerberosAdminDnGroup, TaskStruct
 from .template_render import KRBTemplateRenderer
@@ -237,7 +246,12 @@ class KerberosService(AbstractService):
                 kdc_config=kdc_config,
                 ldap_keytab_path=self._settings.KRB5_LDAP_KEYTAB,
             )
-        except KRBAPIError as err:
+        except (
+            KRBAPISetupConfigsError,
+            KRBAPISetupStashError,
+            KRBAPISetupTreeError,
+            KerberosDependencyError,
+        ) as err:
             await self._ldap_manager.rollback_kerberos_structure(
                 context.krbadmin,
                 context.services_container,
@@ -334,7 +348,7 @@ class KerberosService(AbstractService):
         try:
             principal_name = f"{primary}/{instance}"
             await self._kadmin.add_principal(principal_name, None)
-        except KRBAPIError as exc:
+        except KRBAPIAddPrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error adding principal: {exc}",
             ) from exc
@@ -353,7 +367,7 @@ class KerberosService(AbstractService):
         """
         try:
             await self._kadmin.rename_princ(principal_name, principal_new_name)
-        except Exception as exc:
+        except KRBAPIRenamePrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error renaming principal: {exc}",
             ) from exc
@@ -389,7 +403,7 @@ class KerberosService(AbstractService):
         """
         try:
             await self._kadmin.del_principal(principal_name)
-        except Exception as exc:
+        except KRBAPIDeletePrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error deleting principal: {exc}",
             ) from exc
@@ -406,7 +420,7 @@ class KerberosService(AbstractService):
         """
         try:
             response = await self._kadmin.ktadd(names)
-        except KRBAPIError:
+        except KRBAPIPrincipalNotFoundError:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
         func = response.aclose
@@ -421,8 +435,9 @@ class KerberosService(AbstractService):
         db_state = await get_krb_server_state(self._session)
         try:
             server_state = await self._kadmin.get_status()
-        except KRBAPIError:
+        except KRBAPIStatusNotFoundError:
             raise KerberosUnavailableError("Kerberos server unavailable")
+
         if server_state is False and db_state == KerberosState.READY:
             return KerberosState.WAITING_FOR_RELOAD
         return db_state

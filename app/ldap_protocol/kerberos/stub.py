@@ -2,8 +2,9 @@
 
 from typing import NoReturn
 
+from ldap_protocol.kerberos import KRBAPIPrincipalNotFoundError
+
 from .base import AbstractKadmin
-from .exceptions import KRBAPIError
 from .utils import logger_wraps
 
 
@@ -48,7 +49,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps(is_stub=True)
     async def ktadd(self, names: list[str]) -> NoReturn:  # noqa: ARG002
-        raise KRBAPIError
+        raise KRBAPIPrincipalNotFoundError
 
     @logger_wraps(is_stub=True)
     async def lock_principal(self, name: str) -> None: ...
