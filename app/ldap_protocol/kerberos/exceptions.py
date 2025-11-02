@@ -87,6 +87,3 @@ class KRBAPIStatusNotFoundError(KRBAPIError):
 
 class KRBAPIConnectionError(KRBAPIError):
     """Connection error."""
-
-
-print(isinstance(KRBAPIConnectionError(), KRBAPIError))
