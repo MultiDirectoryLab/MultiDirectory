@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import AbstractKadmin
 from .client import KerberosMDAPIClient
-from .exceptions import KRBAPIError, KRBAPIPrincipalNotFoundError
+from .exceptions import KRBAPIPrincipalNotFoundError
 from .stub import StubKadminMDADPIClient
 from .utils import (
     KERBEROS_STATE_NAME,
@@ -30,7 +30,6 @@ __all__ = [
     "StubKadminMDADPIClient",
     "AbstractKadmin",
     "KerberosState",
-    "KRBAPIError",
     "KRBAPIPrincipalNotFoundError",
     "unlock_principal",
     "KERBEROS_STATE_NAME",

@@ -19,11 +19,7 @@ from entities import Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.kerberos import (
-    AbstractKadmin,
-    KRBAPIError,
-    unlock_principal,
-)
+from ldap_protocol.kerberos import AbstractKadmin, unlock_principal
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIForcePasswordChangeError,
     KRBAPILockPrincipalError,
@@ -64,7 +60,6 @@ class ModifyForbiddenError(Exception):
 MODIFY_EXCEPTION_STACK = (
     ValueError,
     IntegrityError,
-    KRBAPIError,
     RecursionError,
     PermissionError,
     ModifyForbiddenError,
@@ -302,9 +297,6 @@ class ModifyRequest(BaseRequest):
             case IntegrityError():
                 return LDAPCodes.ENTRY_ALREADY_EXISTS, ""
 
-            case KRBAPIError():
-                return LDAPCodes.UNAVAILABLE, "Kerberos error"
-
             case RecursionError():
                 return LDAPCodes.LOOP_DETECT, ""
 
@@ -313,6 +305,15 @@ class ModifyRequest(BaseRequest):
 
             case ModifyForbiddenError():
                 return LDAPCodes.OPERATIONS_ERROR, str(err)
+
+            case KRBAPIPrincipalNotFoundError():
+                return LDAPCodes.UNAVAILABLE, "Kerberos error"
+
+            case KRBAPILockPrincipalError():
+                return LDAPCodes.UNAVAILABLE, "Kerberos error"
+
+            case KRBAPIForcePasswordChangeError():
+                return LDAPCodes.UNAVAILABLE, "Kerberos error"
 
             case _:
                 raise err
