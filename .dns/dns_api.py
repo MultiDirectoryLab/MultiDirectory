@@ -50,6 +50,50 @@ class DNSError(Exception):
     """Base class for DNS exceptions."""
 
 
+class DNSRecordCreateError(DNSError):
+    """DNS record create error."""
+
+
+class DNSRecordUpdateError(DNSError):
+    """DNS record update error."""
+
+
+class DNSRecordDeleteError(DNSError):
+    """DNS record delete error."""
+
+
+class DNSZoneCreateError(DNSError):
+    """DNS zone create error."""
+
+
+class DNSZoneUpdateError(DNSError):
+    """DNS zone update error."""
+
+
+class DNSZoneDeleteError(DNSError):
+    """DNS zone delete error."""
+
+
+class DNSUpdateServerOptionsError(DNSError):
+    """DNS update server options error."""
+
+
+class DNSDomainNotFoundError(DNSError):
+    """DNS domain not found error."""
+
+
+class DNSZoneValidationError(DNSError):
+    """DNS validation error."""
+
+
+class DNSZoneConfigError(DNSError):
+    """DNS zone config error."""
+
+
+class DNSZoneNotFoundError(DNSError):
+    """DNS zone not found error."""
+
+
 class DNSZoneType(StrEnum):
     """DNS zone types."""
 
@@ -236,7 +280,7 @@ class BindDNSServerManager:
         """
         error = self._check_zone(zone.to_text(), zone_name)
         if error:
-            raise DNSError(
+            raise DNSZoneCreateError(
                 f"Error while writing zone data to file {zone_name}: {error}",
             )
 
@@ -296,7 +340,7 @@ class BindDNSServerManager:
         matches = re.search(pattern, named_local, re.DOTALL | re.VERBOSE)
 
         if not matches:
-            raise DNSError("Base domain not found")
+            raise DNSDomainNotFoundError("Base domain not found")
 
         return matches.group(1)
 
@@ -347,7 +391,7 @@ class BindDNSServerManager:
 
             zone_error = self._check_zone(zone_file, zone_name)
             if zone_error:
-                raise DNSError(
+                raise DNSZoneValidationError(
                     f"Error in zonefile during adding zone: {zone_error}",
                 )
 
@@ -621,7 +665,7 @@ class BindDNSServerManager:
 
         error = self._check_config(named_local)
         if error:
-            raise DNSError(
+            raise DNSZoneConfigError(
                 f"Error while updating zone {zone_name}: {error}",
             )
 
@@ -679,7 +723,7 @@ class BindDNSServerManager:
 
         error = self._check_config(named_local)
         if error:
-            raise DNSError(
+            raise DNSZoneConfigError(
                 f"Error while deleting zone {zone_name}: {error}",
             )
 
@@ -780,7 +824,7 @@ class BindDNSServerManager:
         pattern = rf'zone\s*"{re.escape(zone_name)}"\s*{{\s*type\s*([^;]+);'
         match = re.search(pattern, named_local_settings)
         if not match:
-            raise DNSError(f"Zone not found: {zone_name}")
+            raise DNSZoneNotFoundError(f"Zone not found: {zone_name}")
         return DNSZoneType(match.group(1).strip())
 
     def get_all_records_from_zone(
@@ -1093,7 +1137,7 @@ class BindDNSServerManager:
 
         error = self._check_config(named_options)
         if error:
-            raise DNSError(
+            raise DNSZoneConfigError(
                 f"Error while updating DNS settings: {error}",
             )
 
