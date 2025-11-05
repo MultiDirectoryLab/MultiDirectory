@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 from entities import Group, NetworkPolicy
 from ldap_protocol.utils.queries import get_groups
 from repo.pg.tables import queryable_attr as qa
@@ -33,7 +33,7 @@ network_router = APIRouter(
     prefix="/policy",
     tags=["Network policy"],
     route_class=DishkaRoute,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 
 
