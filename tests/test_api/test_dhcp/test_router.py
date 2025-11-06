@@ -585,7 +585,7 @@ async def test_lease_to_reservation_success(
     dhcp_manager: Mock,
     sample_reservation_data: dict,
 ) -> None:
-    """Test successfull lease to reservation transformation."""
+    """Test successful lease to reservation transformation."""
     response = await http_client.patch(
         "/dhcp/lease/to_reservation",
         json=sample_reservation_data,
@@ -603,7 +603,7 @@ async def test_lease_to_reservation_not_found(
     dhcp_manager: Mock,
     sample_reservation_data: dict,
 ) -> None:
-    """Test successfull lease to reservation transformation."""
+    """Test lease to reservation transformation when lease is not found."""
     dhcp_manager.release_lease.side_effect = DHCPEntryNotFoundError(
         "Lease not found",
     )
