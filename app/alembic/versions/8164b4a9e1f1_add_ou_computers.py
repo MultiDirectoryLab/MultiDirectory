@@ -41,6 +41,7 @@ def upgrade() -> None:
 
     async def _create_ou_computers(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
+        await session.begin()
         object_class_dao = ObjectClassDAO(session)
         entity_type_dao = EntityTypeDAO(session, object_class_dao)
         setup_gateway = SetupGateway(
@@ -48,7 +49,6 @@ def upgrade() -> None:
             PasswordValidator(),
             entity_type_dao,
         )
-        await session.begin()
 
         base_directories = await get_base_directories(session)
         if not base_directories:

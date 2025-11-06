@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from entities import Group
+from entities import Directory, Group
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -169,7 +169,7 @@ def upgrade() -> None:
         krb_group_query = (
             select(Group)
             .join(qa(Group.directory))
-            .where(qa(Group.directory).name == "krbadmin")
+            .where(qa(Directory.name) == "krbadmin")
             .exists()
         )
 
