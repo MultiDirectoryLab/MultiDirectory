@@ -112,7 +112,7 @@ AND d.entity_type_id IS NULL;
                 qa(NetworkPolicy.name) == "Default open policy",
             )
             .values(
-                ldap_session_ttl=32400,
+                ldap_session_ttl=7200,
             ),
         )
 
