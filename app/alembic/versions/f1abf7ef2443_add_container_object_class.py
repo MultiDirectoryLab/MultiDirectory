@@ -7,7 +7,7 @@ Create Date: 2025-10-10 06:23:58.238864
 """
 
 from alembic import op
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory
@@ -55,14 +55,13 @@ def upgrade() -> None:
             )
 
             await session.execute(
-                update(Attribute)
+                delete(Attribute)
                 .where(
                     qa(Attribute.directory_id) == directory.id,
                     qa(Attribute.name) == "objectClass",
                     qa(Attribute.value) == "organizationalUnit",
-                )
-                .values(value="container"),
-            )
+                ),
+            )  # fmt: skip
 
             new_path = []
             for path_component in directory.path:
@@ -135,14 +134,13 @@ def downgrade() -> None:
             )
 
             await session.execute(
-                update(Attribute)
-                .where(
-                    qa(Attribute.directory_id) == directory.id,
-                    qa(Attribute.name) == "objectClass",
-                    qa(Attribute.name) == "container",
-                )
-                .values(value="organizationalUnit"),
-            )
+                insert(Attribute)
+                .values(
+                    directory_id=directory.id,
+                    name="objectClass",
+                    value="organizationalUnit",
+                ),
+            )  # fmt: skip
 
             new_path = []
             for path_component in directory.path:
