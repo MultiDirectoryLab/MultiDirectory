@@ -72,15 +72,6 @@ class PasswordPolicyUseCases(AbstractService):
         """Turn off one Password Policy."""
         await self._password_policy_dao.turnoff(id_)
 
-    async def get_or_create_pwd_last_set(
-        self,
-        directory_id: int,
-    ) -> str | None:
-        """Get or create password last set."""
-        return await self._password_policy_dao.get_or_create_pwd_last_set(
-            directory_id,
-        )
-
     async def get_password_policy_for_user(
         self,
         user: User,
@@ -211,8 +202,10 @@ class PasswordPolicyUseCases(AbstractService):
         :param User user: user
         :return bool: required or not
         """
-        pwd_last_set = await self.get_or_create_pwd_last_set(
-            user.directory_id,
+        pwd_last_set = (
+            await self._password_policy_dao.get_or_create_pwd_last_set(
+                user.directory_id,
+            )
         )
         is_pwd_expired = await self.check_expired_max_age(
             user,
