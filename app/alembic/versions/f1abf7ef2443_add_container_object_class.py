@@ -59,6 +59,7 @@ def upgrade() -> None:
                 .where(
                     qa(Attribute.directory_id) == directory.id,
                     qa(Attribute.name) == "objectClass",
+                    qa(Attribute.value) == "organizationalUnit",
                 )
                 .values(value="container"),
             )
