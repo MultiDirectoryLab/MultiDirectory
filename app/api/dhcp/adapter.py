@@ -187,7 +187,11 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         self,
         lease_to_reservation_data: DHCPReservationSchemaRequest,
     ) -> None:
-        """Transform lease to reservation."""
+        """Transform lease to reservation.
+
+        Transoformation can only be done via delete -> create
+        due to limitation of the Kea DHCP API.
+        """
         await self._service.release_lease(lease_to_reservation_data.ip_address)
 
         await self._service.add_reservation(
