@@ -45,7 +45,32 @@ def upgrade() -> None:
             session,
             object_class_dao=object_class_dao,
         )
-
+        await session.execute(
+            sa.text("""
+WITH directory_classes AS (
+    SELECT
+        a."directoryId" as directory_id,
+        ARRAY_AGG(LOWER(a.value) ORDER BY LOWER(a.value)) as sorted_classes
+    FROM public."Attributes" a
+    WHERE LOWER(a."name") = 'objectclass'
+    GROUP BY a."directoryId"
+),
+entity_type_classes AS (
+    SELECT
+        et.id as entity_type_id,
+        ARRAY_AGG(LOWER(obj_class) ORDER BY LOWER(obj_class)) as sorted_classes
+    FROM public."EntityTypes" et
+    CROSS JOIN LATERAL unnest(et.object_class_names) AS obj_class
+    GROUP BY et.id
+)
+UPDATE public."Directory" d
+SET entity_type_id = etc.entity_type_id
+FROM directory_classes dc
+JOIN entity_type_classes etc ON dc.sorted_classes = etc.sorted_classes
+WHERE d.id = dc.directory_id
+AND d.entity_type_id IS NULL;
+            """),
+        )
         await entity_type_dao.attach_entity_type_to_directories()
 
     async def _change_uid_admin(connection: AsyncConnection) -> None:
