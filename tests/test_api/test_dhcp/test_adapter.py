@@ -347,14 +347,14 @@ async def test_lease_to_reservation(
     dhcp_manager: Mock,
 ) -> None:
     """Test lease to reservation transformation."""
-    lease_to_reservation_data = DHCPReservationSchemaRequest(
+    data = DHCPReservationSchemaRequest(
         subnet_id=1,
         ip_address=IPv4Address("192.168.1.50"),
         mac_address="00:11:22:33:44:55",
         hostname="server-01",
     )
 
-    await dhcp_adapter.lease_to_reservation(lease_to_reservation_data)
+    await dhcp_adapter.lease_to_reservation(data)
 
     dhcp_manager.release_lease.assert_called_once_with(
         IPv4Address("192.168.1.50"),
@@ -363,7 +363,7 @@ async def test_lease_to_reservation(
     dhcp_manager.add_reservation.assert_called_once()
     call_args = dhcp_manager.add_reservation.call_args[0][0]
 
-    assert call_args.subnet_id == 1
-    assert call_args.ip_address == IPv4Address("192.168.1.50")
-    assert call_args.mac_address == "00:11:22:33:44:55"
-    assert call_args.hostname == "server-01"
+    assert call_args.subnet_id == data.subnet_id
+    assert call_args.ip_address == data.ip_address
+    assert call_args.mac_address == data.mac_address
+    assert call_args.hostname == data.hostname
