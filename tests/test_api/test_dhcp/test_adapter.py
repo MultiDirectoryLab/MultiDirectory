@@ -339,3 +339,31 @@ async def test_get_reservations(
     assert result[0].ip_address == IPv4Address("192.168.1.50")
     assert result[0].mac_address == "00:11:22:33:44:55"
     assert result[0].hostname == "server-01"
+
+
+@pytest.mark.asyncio
+async def test_lease_to_reservation(
+    dhcp_adapter: DHCPAdapter,
+    dhcp_manager: Mock,
+) -> None:
+    """Test lease to reservation transformation."""
+    lease_to_reservation_data = DHCPReservationSchemaRequest(
+        subnet_id=1,
+        ip_address=IPv4Address("192.168.1.50"),
+        mac_address="00:11:22:33:44:55",
+        hostname="server-01",
+    )
+
+    await dhcp_adapter.lease_to_reservation(lease_to_reservation_data)
+
+    dhcp_manager.release_lease.assert_called_once_with(
+        IPv4Address("192.168.1.50"),
+    )
+
+    dhcp_manager.add_reservation.assert_called_once()
+    call_args = dhcp_manager.add_reservation.call_args[0][0]
+
+    assert call_args.subnet_id == 1
+    assert call_args.ip_address == IPv4Address("192.168.1.50")
+    assert call_args.mac_address == "00:11:22:33:44:55"
+    assert call_args.hostname == "server-01"

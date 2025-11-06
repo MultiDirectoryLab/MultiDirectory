@@ -577,3 +577,42 @@ async def test_delete_reservation_missing_params(
     response = await http_client.delete("/dhcp/reservation")
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.asyncio
+async def test_lease_to_reservation_success(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_reservation_data: dict,
+) -> None:
+    """Test successfull lease to reservation transformation."""
+    response = await http_client.patch(
+        "/dhcp/lease/to_reservation",
+        json=sample_reservation_data,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    dhcp_manager.release_lease.assert_called_once()
+    dhcp_manager.add_reservation.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_lease_to_reservation_not_found(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_reservation_data: dict,
+) -> None:
+    """Test successfull lease to reservation transformation."""
+    dhcp_manager.release_lease.side_effect = DHCPEntryNotFoundError(
+        "Lease not found",
+    )
+
+    response = await http_client.patch(
+        "/dhcp/lease/to_reservation",
+        json=sample_reservation_data,
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    dhcp_manager.add_reservation.assert_not_called()
