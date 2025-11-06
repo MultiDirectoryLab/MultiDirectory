@@ -124,11 +124,11 @@ async def delete_dhcp_lease(
 
 @dhcp_router.patch("/lease/to_reservation")
 async def lease_to_reservation(
-    lease_to_reservation_data: DHCPReservationSchemaRequest,
+    data: DHCPReservationSchemaRequest,
     dhcp_adapter: FromDishka[DHCPAdapter],
 ) -> None:
     """Transform lease to reservation."""
-    await dhcp_adapter.lease_to_reservation(lease_to_reservation_data)
+    await dhcp_adapter.lease_to_reservation(data)
 
 
 @dhcp_router.post("/reservation", status_code=status.HTTP_201_CREATED)

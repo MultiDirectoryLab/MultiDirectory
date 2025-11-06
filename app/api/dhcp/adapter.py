@@ -185,21 +185,21 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
 
     async def lease_to_reservation(
         self,
-        lease_to_reservation_data: DHCPReservationSchemaRequest,
+        data: DHCPReservationSchemaRequest,
     ) -> None:
         """Transform lease to reservation.
 
         Transoformation can only be done via delete -> create
         due to limitation of the Kea DHCP API.
         """
-        await self._service.release_lease(lease_to_reservation_data.ip_address)
+        await self._service.release_lease(data.ip_address)
 
         await self._service.add_reservation(
             DHCPReservation(
-                subnet_id=lease_to_reservation_data.subnet_id,
-                ip_address=lease_to_reservation_data.ip_address,
-                mac_address=lease_to_reservation_data.mac_address,
-                hostname=lease_to_reservation_data.hostname,
+                subnet_id=data.subnet_id,
+                ip_address=data.ip_address,
+                mac_address=data.mac_address,
+                hostname=data.hostname,
             ),
         )
 
