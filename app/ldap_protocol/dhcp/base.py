@@ -170,6 +170,12 @@ class AbstractDHCPManager(AbstractService):
     ) -> DHCPLease: ...
 
     @abstractmethod
+    async def lease_to_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None: ...
+
+    @abstractmethod
     async def add_reservation(
         self,
         reservation: DHCPReservation,

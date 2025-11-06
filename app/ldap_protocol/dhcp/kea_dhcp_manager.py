@@ -14,6 +14,8 @@ from .exceptions import (
     DHCPEntryDeleteError,
     DHCPEntryNotFoundError,
     DHCPEntryUpdateError,
+    DHCPError,
+    DHCPValidatonError,
 )
 
 
@@ -119,6 +121,36 @@ class KeaDHCPManager(AbstractDHCPManager):
             )
 
         return lease
+
+    async def lease_to_reservation(self, reservation: DHCPReservation) -> None:
+        """Transform lease to reservation.
+
+        Transoformation can only be done via delete -> create
+        due to limitation of the Kea DHCP API.
+        """
+        if reservation.ip_address is None:
+            raise DHCPValidatonError("IP address must be specified")
+
+        try:
+            await self._api_repository.release_lease(reservation.ip_address)
+        except DHCPAPIError as e:
+            raise DHCPEntryDeleteError(f"Failed to release lease: {e}")
+
+        try:
+            await self._api_repository.create_reservation(reservation)
+        except DHCPError as e:
+            await self._api_repository.create_lease(
+                DHCPLease(
+                    subnet_id=reservation.subnet_id,
+                    ip_address=reservation.ip_address,
+                    mac_address=reservation.mac_address,
+                    hostname=reservation.hostname,
+                ),
+            )
+
+            raise DHCPEntryAddError(
+                f"Failed to add reservation: {e}",
+            )
 
     async def add_reservation(
         self,
