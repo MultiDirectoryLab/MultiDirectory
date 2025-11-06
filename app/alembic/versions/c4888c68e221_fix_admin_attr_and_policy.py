@@ -8,11 +8,10 @@ Create Date: 2025-11-06 10:38:31.124118
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
-from entities import Attribute, Directory
+from entities import Attribute, Directory, NetworkPolicy
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.helpers import create_integer_hash
@@ -103,15 +102,24 @@ AND d.entity_type_id IS NULL;
             ),
         )
 
+    async def _change_ldap_session_ttl(connection: AsyncConnection) -> None:
+        session = AsyncSession(bind=connection)
+        await session.begin()
+
+        await session.execute(
+            sa.update(NetworkPolicy)
+            .where(
+                qa(NetworkPolicy.name) == "Default open policy",
+            )
+            .values(
+                ldap_session_ttl=32400,
+            ),
+        )
+
     op.run_async(_change_uid_admin)
+    op.run_async(_change_ldap_session_ttl)
     op.run_async(_attach_entity_type_to_directories)
 
 
 def downgrade() -> None:
     """Downgrade."""
-    op.alter_column(
-        "EntityTypes",
-        "object_class_names",
-        existing_type=postgresql.ARRAY(sa.VARCHAR()),
-        nullable=False,
-    )
