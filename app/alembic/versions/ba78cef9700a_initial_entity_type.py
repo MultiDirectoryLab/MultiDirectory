@@ -34,7 +34,13 @@ def upgrade() -> None:
     """Upgrade database schema and data, creating Entity Types."""
     op.create_table(
         "EntityTypes",
-        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column(
+            "id",
+            sa.Integer(),
+            nullable=True,
+            server_default="0",
+        ),
+        sa.Column("name", sa.String(length=255), nullable=False, unique=True),
         sa.Column(
             "object_class_names",
             postgresql.ARRAY(sa.String()),
@@ -92,11 +98,11 @@ def upgrade() -> None:
 
     async def _create_entity_types(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
+        await session.begin()
 
         if not await get_base_directories(session):
             return
 
-        await session.begin()
         object_class_dao = ObjectClassDAO(session)
         entity_type_dao = EntityTypeDAO(
             session,
@@ -122,11 +128,10 @@ def upgrade() -> None:
         connection: AsyncConnection,
     ) -> None:
         session = AsyncSession(bind=connection)
+        await session.begin()
 
         if not await get_base_directories(session):
             return
-
-        session.begin()
 
         query = (
             select(User)
@@ -162,11 +167,11 @@ def upgrade() -> None:
         connection: AsyncConnection,
     ) -> None:
         session = AsyncSession(bind=connection)
+        await session.begin()
 
         if not await get_base_directories(session):
             return
 
-        session.begin()
         object_class_dao = ObjectClassDAO(
             session,
         )
@@ -182,6 +187,7 @@ def upgrade() -> None:
     op.run_async(_create_entity_types)
     op.run_async(_append_object_class_to_user_dirs)
     op.run_async(_attach_entity_type_to_directories)
+    op.drop_column("EntityTypes", "id")
 
 
 def downgrade() -> None:
