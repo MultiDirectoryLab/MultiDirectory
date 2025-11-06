@@ -214,11 +214,9 @@ class PasswordPolicyUseCases(AbstractService):
         pwd_last_set = await self.get_or_create_pwd_last_set(
             user.directory_id,
         )
-        password_policy = await self.get_password_policy()
         is_pwd_expired = await self.check_expired_max_age(
-            password_policy,
             user,
             pwd_last_set,
         )
 
-        return pwd_last_set == "0" or is_pwd_expired  # noqa: S105
+        return bool(pwd_last_set == "0" or is_pwd_expired)  # noqa: S105
