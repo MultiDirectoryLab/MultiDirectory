@@ -6,6 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from abstract_dao import AbstractService
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
@@ -20,9 +22,14 @@ from .gate_way import NetworkPolicyGateway
 class NetworkPolicyUseCase(AbstractService):
     """Network policies use cases."""
 
-    def __init__(self, network_policy_gateway: NetworkPolicyGateway):
+    def __init__(
+        self,
+        network_policy_gateway: NetworkPolicyGateway,
+        session: AsyncSession,
+    ):
         """Initialize Network policies use cases."""
         self._network_policy_gateway = network_policy_gateway
+        self._session = session
 
     async def create(
         self,
@@ -115,6 +122,7 @@ class NetworkPolicyUseCase(AbstractService):
             groups,
             mfa_groups,
         )
+        await self._session.commit()
         return policy
 
     async def swap_priorities(self, _id1: int, _id2: int) -> SwapPrioritiesDTO:

@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Literal
 
+from adaptix.conversion import get_converter
 from fastapi import Request, status
 from fastapi.responses import RedirectResponse
 
@@ -27,6 +28,12 @@ from ldap_protocol.policies.network.exceptions import (
 )
 from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 
+# _convert_schema_to_dto = get_converter(Policy, NetworkPolicyDTO[None])
+_convert_dto_to_schema = get_converter(
+    NetworkPolicyDTO[int],
+    PolicyResponse,
+)
+
 
 class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
     """Network policy adapter."""
@@ -41,6 +48,7 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
         """Create network policy."""
         policy_dto = await self._service.create(
             NetworkPolicyDTO(
+                id=None,
                 name=policy.name,
                 netmasks=policy.complete_netmasks,
                 priority=policy.priority,
@@ -55,45 +63,12 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
                 mfa_groups=policy.mfa_groups,
             ),
         )
-        return PolicyResponse(
-            id=policy_dto.id,
-            name=policy_dto.name,
-            netmasks=policy_dto.netmasks,
-            raw=policy_dto.raw,
-            enabled=policy_dto.enabled,
-            priority=policy_dto.priority,
-            groups=policy_dto.groups,
-            mfa_groups=policy_dto.mfa_groups,
-            is_http=policy_dto.is_http,
-            is_ldap=policy_dto.is_ldap,
-            is_kerberos=policy_dto.is_kerberos,
-            bypass_no_connection=policy_dto.bypass_no_connection,
-            bypass_service_failure=policy_dto.bypass_service_failure,
-            mfa_status=policy_dto.mfa_status,
-        )
+        return _convert_dto_to_schema(policy_dto)
 
     async def get_list_policies(self) -> list[PolicyResponse]:
         """Get list of network policies."""
-        policy_dtos = await self._service.get_list_policies()
-        return [
-            PolicyResponse(
-                id=policy_dto.id,
-                name=policy_dto.name,
-                netmasks=policy_dto.netmasks,
-                raw=policy_dto.raw,
-                enabled=policy_dto.enabled,
-                priority=policy_dto.priority,
-                groups=policy_dto.groups,
-                mfa_groups=policy_dto.mfa_groups,
-                is_http=policy_dto.is_http,
-                is_ldap=policy_dto.is_ldap,
-                is_kerberos=policy_dto.is_kerberos,
-                bypass_no_connection=policy_dto.bypass_no_connection,
-                bypass_service_failure=policy_dto.bypass_service_failure,
-                mfa_status=policy_dto.mfa_status,
-            )
-            for policy_dto in policy_dtos
-        ]
+        dtos = await self._service.get_list_policies()
+        return list(map(_convert_dto_to_schema, dtos))
 
     async def delete(self, request: Request, _id: int) -> RedirectResponse:
         """Delete network policy."""
@@ -129,22 +104,7 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
             ),
         )
 
-        return PolicyResponse(
-            id=policy_dto.id,
-            name=policy_dto.name,
-            netmasks=policy_dto.netmasks,
-            raw=policy_dto.raw,
-            enabled=policy_dto.enabled,
-            priority=policy_dto.priority,
-            groups=policy_dto.groups,
-            mfa_status=policy_dto.mfa_status,
-            mfa_groups=policy_dto.mfa_groups,
-            is_http=policy_dto.is_http,
-            is_ldap=policy_dto.is_ldap,
-            is_kerberos=policy_dto.is_kerberos,
-            bypass_no_connection=policy_dto.bypass_no_connection,
-            bypass_service_failure=policy_dto.bypass_service_failure,
-        )
+        return _convert_dto_to_schema(policy_dto)
 
     async def swap_priorities(self, _id1: int, _id2: int) -> SwapResponse:
         """Swap priorities for network policies."""

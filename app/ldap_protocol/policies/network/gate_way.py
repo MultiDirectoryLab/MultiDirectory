@@ -51,7 +51,7 @@ class NetworkPolicyGateway:
 
     async def create(
         self,
-        dto: NetworkPolicyDTO,
+        dto: NetworkPolicyDTO[None],
         groups: list[Group],
         mfa_groups: list[Group],
     ) -> NetworkPolicyDTO:
@@ -76,7 +76,7 @@ class NetworkPolicyGateway:
 
         try:
             self._session.add(policy)
-            await self._session.commit()
+            await self._session.flush()
             await self._session.refresh(policy)
             return NetworkPolicyDTO(
                 id=policy.id,
@@ -218,13 +218,13 @@ class NetworkPolicyGateway:
 
     async def update(
         self,
-        dto: NetworkPolicyDTO,
+        dto: NetworkPolicyDTO[int],
         groups: list[Group],
         mfa_groups: list[Group],
     ) -> None:
         """Update network policy."""
         try:
-            policy_entity = await self._get_row(dto.get_id())
+            policy_entity = await self._get_row(dto.id)
             policy_entity.name = dto.name
             policy_entity.netmasks = dto.netmasks
             policy_entity.raw = dto.raw
@@ -236,7 +236,7 @@ class NetworkPolicyGateway:
             policy_entity.bypass_service_failure = dto.bypass_service_failure
             policy_entity.groups = groups
             policy_entity.mfa_groups = mfa_groups
-            await self._session.commit()
+            await self._session.flush()
         except IntegrityError:
             raise NetworkPolicyAlreadyExistsError(
                 "Entry already exists",

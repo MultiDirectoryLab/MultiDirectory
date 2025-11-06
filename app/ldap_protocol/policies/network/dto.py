@@ -6,16 +6,19 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass, field
 from ipaddress import IPv4Address, IPv4Network
+from typing import Generic, TypeVar
 
 from enums import MFAFlags
 
+_IdT = TypeVar("_IdT", int, None)
+
 
 @dataclass
-class NetworkPolicyDTO:
+class NetworkPolicyDTO(Generic[_IdT]):
     """Network policy DTO."""
 
+    id: _IdT
     mfa_status: MFAFlags
-    id: int | None = None
     name: str = ""
     raw: dict | list = field(default_factory=dict)
     netmasks: list[IPv4Network | IPv4Address] = field(default_factory=list)
@@ -30,12 +33,6 @@ class NetworkPolicyDTO:
     http_session_ttl: int = 28800
     groups: list[str] = field(default_factory=list)
     mfa_groups: list[str] = field(default_factory=list)
-
-    def get_id(self) -> int:
-        """Get the ID of the network policy."""
-        if not self.id:
-            raise ValueError("ID is not set for the network policy.")
-        return self.id
 
 
 @dataclass
