@@ -593,8 +593,7 @@ async def test_lease_to_reservation_success(
 
     assert response.status_code == status.HTTP_200_OK
 
-    dhcp_manager.release_lease.assert_called_once()
-    dhcp_manager.add_reservation.assert_called_once()
+    dhcp_manager.lease_to_reservation.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -604,7 +603,7 @@ async def test_lease_to_reservation_not_found(
     sample_reservation_data: dict,
 ) -> None:
     """Test lease to reservation transformation when lease is not found."""
-    dhcp_manager.release_lease.side_effect = DHCPEntryNotFoundError(
+    dhcp_manager.lease_to_reservation.side_effect = DHCPEntryNotFoundError(
         "Lease not found",
     )
 
@@ -614,5 +613,3 @@ async def test_lease_to_reservation_not_found(
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    dhcp_manager.add_reservation.assert_not_called()

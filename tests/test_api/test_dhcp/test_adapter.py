@@ -356,12 +356,8 @@ async def test_lease_to_reservation(
 
     await dhcp_adapter.lease_to_reservation(data)
 
-    dhcp_manager.release_lease.assert_called_once_with(
-        IPv4Address("192.168.1.50"),
-    )
-
-    dhcp_manager.add_reservation.assert_called_once()
-    call_args = dhcp_manager.add_reservation.call_args[0][0]
+    dhcp_manager.lease_to_reservation.assert_called_once()
+    call_args = dhcp_manager.lease_to_reservation.call_args[0][0]
 
     assert call_args.subnet_id == data.subnet_id
     assert call_args.ip_address == data.ip_address
