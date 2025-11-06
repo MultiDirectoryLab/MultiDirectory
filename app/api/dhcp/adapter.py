@@ -24,6 +24,7 @@ from ldap_protocol.dhcp import (
     DHCPStateSchemaResponse,
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
+    DHCPValidatonError,
 )
 from ldap_protocol.dhcp.dataclasses import (
     DHCPLease,
@@ -43,6 +44,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         DHCPEntryAddError: status.HTTP_409_CONFLICT,
         DHCPEntryUpdateError: status.HTTP_409_CONFLICT,
         DHCPAPIError: status.HTTP_400_BAD_REQUEST,
+        DHCPValidatonError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     }
 
     async def create_subnet(
@@ -187,14 +189,8 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         self,
         data: DHCPReservationSchemaRequest,
     ) -> None:
-        """Transform lease to reservation.
-
-        Transoformation can only be done via delete -> create
-        due to limitation of the Kea DHCP API.
-        """
-        await self._service.release_lease(data.ip_address)
-
-        await self._service.add_reservation(
+        """Transform lease to reservation."""
+        await self._service.lease_to_reservation(
             DHCPReservation(
                 subnet_id=data.subnet_id,
                 ip_address=data.ip_address,

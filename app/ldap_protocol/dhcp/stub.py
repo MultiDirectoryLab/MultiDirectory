@@ -137,6 +137,12 @@ class StubDHCPManager(AbstractDHCPManager):
         raise DHCPAPIError
 
     @logger_wraps(is_stub=True)
+    async def lease_to_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
     async def add_reservation(
         self,
         reservation: DHCPReservation,
