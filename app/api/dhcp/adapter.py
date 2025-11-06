@@ -183,6 +183,22 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             else None
         )
 
+    async def lease_to_reservation(
+        self,
+        lease_to_reservation_data: DHCPReservationSchemaRequest,
+    ) -> None:
+        """Transform lease to reservation."""
+        await self._service.release_lease(lease_to_reservation_data.ip_address)
+
+        await self._service.add_reservation(
+            DHCPReservation(
+                subnet_id=lease_to_reservation_data.subnet_id,
+                ip_address=lease_to_reservation_data.ip_address,
+                mac_address=lease_to_reservation_data.mac_address,
+                hostname=lease_to_reservation_data.hostname,
+            ),
+        )
+
     async def add_reservation(
         self,
         reservation_data: DHCPReservationSchemaRequest,
