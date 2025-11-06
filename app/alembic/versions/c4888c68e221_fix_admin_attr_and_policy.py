@@ -10,9 +10,13 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.helpers import create_integer_hash
+from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -25,18 +29,37 @@ depends_on: None | list[str] = None
 def upgrade() -> None:
     """Upgrade."""
 
-    async def change_uid_admin(connection: AsyncConnection) -> None:
+    async def _attach_entity_type_to_directories(
+        connection: AsyncConnection,
+    ) -> None:
+        session = AsyncSession(bind=connection)
+        await session.begin()
+
+        if not await get_base_directories(session):
+            return
+
+        object_class_dao = ObjectClassDAO(
+            session,
+        )
+        entity_type_dao = EntityTypeDAO(
+            session,
+            object_class_dao=object_class_dao,
+        )
+
+        await entity_type_dao.attach_entity_type_to_directories()
+
+    async def _change_uid_admin(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
         directory = await session.scalar(
             sa.select(Directory)
-            .join(qa(Directory.user))
             .join(qa(Directory.attributes))
             .where(
                 qa(Attribute.name) == "uidNumber",
                 qa(Attribute.value) == "1000",
-            ),
+            )
+            .options(joinedload(qa(Directory.user))),
         )  # fmt: skip
 
         if not directory:
@@ -55,7 +78,8 @@ def upgrade() -> None:
             ),
         )
 
-    op.run_async(change_uid_admin)
+    op.run_async(_change_uid_admin)
+    op.run_async(_attach_entity_type_to_directories)
 
 
 def downgrade() -> None:
