@@ -20,6 +20,7 @@ from ldap_protocol.dhcp import (
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
     DHCPLeaseToReservationErrorResponse,
+    DHCPOperationError,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
     DHCPStateSchemaResponse,
@@ -46,6 +47,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         DHCPEntryUpdateError: status.HTTP_409_CONFLICT,
         DHCPAPIError: status.HTTP_400_BAD_REQUEST,
         DHCPValidatonError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        DHCPOperationError: status.HTTP_400_BAD_REQUEST,
     }
 
     async def create_subnet(
