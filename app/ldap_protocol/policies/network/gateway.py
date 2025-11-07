@@ -116,10 +116,7 @@ class NetworkPolicyGateway:
         )
         return count.one()
 
-    async def update_priority(
-        self,
-        priority: int,
-    ) -> None:
+    async def update_priority(self, priority: int) -> None:
         await self._session.execute(
             update(NetworkPolicy)
             .values({"priority": NetworkPolicy.priority - 1})
