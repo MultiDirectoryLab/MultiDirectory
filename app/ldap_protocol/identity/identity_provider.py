@@ -13,6 +13,14 @@ from ldap_protocol.identity.identity_provider_gateway import (
     IdentityProviderGateway,
 )
 from ldap_protocol.session_storage.base import SessionStorage
+from ldap_protocol.session_storage.exceptions import (
+    SessionStorageInvalidDataError,
+    SessionStorageInvalidIpError,
+    SessionStorageInvalidKeyError,
+    SessionStorageInvalidSignatureError,
+    SessionStorageInvalidUserAgentError,
+    SessionStorageMissingDataError,
+)
 
 
 class IdentityProvider(AbstractService):
@@ -114,7 +122,14 @@ class IdentityProvider(AbstractService):
                 self._user_agent,
                 self._ip_from_request,
             )
-        except KeyError as err:
+        except (
+            SessionStorageInvalidKeyError,
+            SessionStorageMissingDataError,
+            SessionStorageInvalidIpError,
+            SessionStorageInvalidUserAgentError,
+            SessionStorageInvalidSignatureError,
+            SessionStorageInvalidDataError,
+        ) as err:
             raise UnauthorizedError("Could not validate credentials") from err
 
         return user_id
