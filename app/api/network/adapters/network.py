@@ -136,12 +136,12 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
 
         return _convert_dto_to_schema(policy_dto)
 
-    async def swap_priorities(self, _id1: int, _id2: int) -> SwapResponse:
+    async def swap_priorities(self, id1: int, id2: int) -> SwapResponse:
         """Swap priorities for network policies."""
-        swap_dto = await self._service.swap_priorities(_id1, _id2)
+        swap_dto = await self._service.swap_priorities(id1, id2)
         return SwapResponse(
-            first_policy_id=_id1,
+            first_policy_id=id1,
             first_policy_priority=swap_dto.priority1,
-            second_policy_id=_id2,
+            second_policy_id=id2,
             second_policy_priority=swap_dto.priority2,
         )

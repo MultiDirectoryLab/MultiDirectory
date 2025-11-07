@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Group, NetworkPolicy
-from ldap_protocol.policies.network.dto import SwapPrioritiesDTO
 from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,
@@ -143,24 +142,9 @@ class NetworkPolicyGateway:
     ) -> None:
         """Update network policy."""
         try:
-            self._session.add(policy)
             await self._session.flush()
             await self._session.refresh(policy)
         except IntegrityError:
             raise NetworkPolicyAlreadyExistsError(
                 "Entry already exists",
             )
-
-    async def swap_priorities(
-        self,
-        _id1: int,
-        _id2: int,
-    ) -> SwapPrioritiesDTO:
-        policy1 = await self._get_row(_id1)
-        policy2 = await self._get_row(_id2)
-        policy1.priority, policy2.priority = policy2.priority, policy1.priority
-        await self._session.commit()
-        return SwapPrioritiesDTO(
-            priority1=policy1.priority,
-            priority2=policy2.priority,
-        )

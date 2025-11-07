@@ -176,9 +176,13 @@ class NetworkPolicyUseCase(AbstractService):
         await self._session.commit()
         return _convert_model_to_dto(policy)
 
-    async def swap_priorities(self, _id1: int, _id2: int) -> SwapPrioritiesDTO:
+    async def swap_priorities(self, id1: int, id2: int) -> SwapPrioritiesDTO:
         """Swap priorities for network policies."""
-        return await self._network_policy_gateway.swap_priorities(
-            _id1,
-            _id2,
+        policy1 = await self.get(id1)
+        policy2 = await self.get(id2)
+        policy1.priority, policy2.priority = policy2.priority, policy1.priority
+        await self._session.commit()
+        return SwapPrioritiesDTO(
+            priority1=policy1.priority,
+            priority2=policy2.priority,
         )
