@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from sqlalchemy import delete, exists, func, select, update
-from sqlalchemy.engine.result import ScalarResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -67,20 +66,21 @@ class NetworkPolicyGateway:
     ) -> list[Group]:
         return await get_groups(groups, self._session)
 
-    async def get_list_policies(self) -> ScalarResult[NetworkPolicy]:
-        policies = await self._session.scalars(
-            select(NetworkPolicy)
-            .options(
-                selectinload(qa(NetworkPolicy.groups)).selectinload(
-                    qa(Group.directory),
-                ),
-                selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
-                    qa(Group.directory),
-                ),
-            )
-            .order_by(qa(NetworkPolicy.priority).asc()),
+    async def get_list_policies(self) -> list[NetworkPolicy]:
+        return list(
+            await self._session.scalars(
+                select(NetworkPolicy)
+                .options(
+                    selectinload(qa(NetworkPolicy.groups)).selectinload(
+                        qa(Group.directory),
+                    ),
+                    selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
+                        qa(Group.directory),
+                    ),
+                )
+                .order_by(qa(NetworkPolicy.priority).asc()),
+            ),
         )
-        return policies
 
     async def get_with_for_update(self, _id: int) -> NetworkPolicy:
         policy = await self._session.scalar(

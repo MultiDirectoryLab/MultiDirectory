@@ -4,8 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Literal
-
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -127,15 +125,13 @@ class NetworkPolicyUseCase(AbstractService):
             policy.priority,
         )
 
-    async def switch_network_policy(self, _id: int) -> Literal[True]:
+    async def switch_network_policy(self, _id: int) -> None:
         """Switch network policy."""
         policy = await self.get(_id)
         if policy.enabled:
             await self.validate_policy_count()
         await self._network_policy_gateway.disable_policy(_id)
         await self._session.commit()
-
-        return True
 
     async def validate_policy_count(self) -> None:
         """Validate policy count."""

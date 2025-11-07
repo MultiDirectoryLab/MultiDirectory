@@ -111,7 +111,8 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
 
     async def switch_network_policy(self, _id: int) -> Literal[True]:
         """Switch network policy."""
-        return await self._service.switch_network_policy(_id)
+        await self._service.switch_network_policy(_id)
+        return True
 
     async def update(self, model: PolicyUpdate) -> PolicyResponse:
         """Update network policy."""
