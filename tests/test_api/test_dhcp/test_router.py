@@ -675,7 +675,7 @@ async def test_lease_to_reservation_bad_request(
     dhcp_manager: Mock,
     sample_reservation_data: dict,
 ) -> None:
-    """Test lease to reservation transformation when lease is not found."""
+    """Test lease to reservation cast when operation fails completely."""
     dhcp_manager.lease_to_reservation.side_effect = DHCPOperationError(
         "Transformation failed",
     )
