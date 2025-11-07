@@ -17,7 +17,10 @@ from ldap_protocol.policies.network.dto import (
     NetworkPolicyUpdateDTO,
     SwapPrioritiesDTO,
 )
-from ldap_protocol.policies.network.exceptions import LastActivePolicyError
+from ldap_protocol.policies.network.exceptions import (
+    LastActivePolicyError,
+    NetworkPolicyAlreadyExistsError,
+)
 
 from .gateway import NetworkPolicyGateway
 
@@ -130,6 +133,8 @@ class NetworkPolicyUseCase(AbstractService):
         if policy.enabled:
             await self.validate_policy_count()
         await self._network_policy_gateway.disable_policy(_id)
+        await self._session.commit()
+
         return True
 
     async def validate_policy_count(self) -> None:
@@ -170,7 +175,10 @@ class NetworkPolicyUseCase(AbstractService):
             policy.mfa_groups = await self._network_policy_gateway.get_groups(
                 dto.mfa_groups,
             )
-        await self._network_policy_gateway.update(policy)
+        if await self._network_policy_gateway.check_policy_exists(policy):
+            raise NetworkPolicyAlreadyExistsError(
+                "Entry already exists",
+            )
         await self._session.commit()
         return _convert_model_to_dto(policy)
 

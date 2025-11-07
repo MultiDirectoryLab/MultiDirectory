@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, exists, func, select, update
 from sqlalchemy.engine.result import ScalarResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -134,16 +134,15 @@ class NetworkPolicyGateway:
         await self._session.execute(
             update(NetworkPolicy).filter_by(id=_id).values(enabled=False),
         )
-        await self._session.commit()
 
-    async def update(
-        self,
-        _: NetworkPolicy,
-    ) -> None:
-        """Update network policy."""
-        try:
-            await self._session.flush()
-        except IntegrityError:
-            raise NetworkPolicyAlreadyExistsError(
-                "Entry already exists",
-            )
+    async def check_policy_exists(self, policy: NetworkPolicy) -> bool:
+        result = await self._session.scalars(
+            select(
+                exists(NetworkPolicy).where(
+                    qa(NetworkPolicy.name) == policy.name,
+                    qa(NetworkPolicy.netmasks) == policy.netmasks,
+                    qa(NetworkPolicy.id) != policy.id,
+                ),
+            ),
+        )
+        return result.one()
