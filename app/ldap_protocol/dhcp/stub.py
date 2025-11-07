@@ -73,6 +73,10 @@ class StubDHCPAPIRepository(DHCPAPIRepository):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
+    async def update_reservation(self, reservation: DHCPReservation) -> None:
+        """Update a reservation."""
+
+    @logger_wraps(is_stub=True)
     async def delete_reservation(self, reservation: DHCPReservation) -> None:
         """Delete a reservation."""
 
@@ -144,6 +148,12 @@ class StubDHCPManager(AbstractDHCPManager):
 
     @logger_wraps(is_stub=True)
     async def add_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def update_reservation(
         self,
         reservation: DHCPReservation,
     ) -> None: ...
