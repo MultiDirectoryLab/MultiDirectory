@@ -116,18 +116,15 @@ class NetworkPolicyGateway:
         )
         return count.one()
 
-    async def delete_with_update_priority(
+    async def update_priority(
         self,
-        _id: int,
         priority: int,
     ) -> None:
-        async with self._session.begin_nested():
-            await self.delete(_id)
-            await self._session.execute(
-                update(NetworkPolicy)
-                .values({"priority": NetworkPolicy.priority - 1})
-                .filter(qa(NetworkPolicy.priority) > priority),
-            )
+        await self._session.execute(
+            update(NetworkPolicy)
+            .values({"priority": NetworkPolicy.priority - 1})
+            .filter(qa(NetworkPolicy.priority) > priority),
+        )
 
     async def disable_policy(self, _id: int) -> None:
         await self._session.execute(

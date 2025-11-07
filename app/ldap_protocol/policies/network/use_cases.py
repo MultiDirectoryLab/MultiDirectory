@@ -119,11 +119,8 @@ class NetworkPolicyUseCase(AbstractService):
         policy = await self.get(_id)
 
         await self.validate_policy_count()
-
-        await self._network_policy_gateway.delete_with_update_priority(
-            _id,
-            policy.priority,
-        )
+        await self._network_policy_gateway.delete(_id)
+        await self._network_policy_gateway.update_priority(policy.priority)
 
     async def switch_network_policy(self, _id: int) -> None:
         """Switch network policy."""
