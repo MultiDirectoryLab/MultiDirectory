@@ -67,20 +67,19 @@ class NetworkPolicyGateway:
         return await get_groups(groups, self._session)
 
     async def get_list_policies(self) -> list[NetworkPolicy]:
-        return list(
-            await self._session.scalars(
-                select(NetworkPolicy)
-                .options(
-                    selectinload(qa(NetworkPolicy.groups)).selectinload(
-                        qa(Group.directory),
-                    ),
-                    selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
-                        qa(Group.directory),
-                    ),
-                )
-                .order_by(qa(NetworkPolicy.priority).asc()),
-            ),
+        result = await self._session.scalars(
+            select(NetworkPolicy)
+            .options(
+                selectinload(qa(NetworkPolicy.groups)).selectinload(
+                    qa(Group.directory),
+                ),
+                selectinload(qa(NetworkPolicy.mfa_groups)).selectinload(
+                    qa(Group.directory),
+                ),
+            )
+            .order_by(qa(NetworkPolicy.priority).asc()),
         )
+        return list(result)
 
     async def get_with_for_update(self, _id: int) -> NetworkPolicy:
         policy = await self._session.scalar(
