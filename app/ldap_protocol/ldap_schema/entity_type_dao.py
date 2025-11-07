@@ -303,7 +303,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
                 is_system_entity_type=False,
             )
 
-        return None
+        await self.__session.flush()
 
     async def attach_entity_type_to_directory(
         self,
