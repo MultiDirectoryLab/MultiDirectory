@@ -14,7 +14,6 @@ from .auth import (
 )
 from .mfa import (
     InvalidCredentialsError,
-    MFAError,
     MFARequiredError,
     MFATokenError,
     MissingMFACredentialsError,
@@ -30,7 +29,6 @@ __all__ = [
     "PasswordPolicyError",
     "UserNotFoundError",
     "MFARequiredError",
-    "MFAError",
     "MFATokenError",
     "MissingMFACredentialsError",
     "InvalidCredentialsError",

@@ -21,7 +21,8 @@ from ldap_protocol.identity.exceptions.auth import (
     UserNotFoundError,
 )
 from ldap_protocol.identity.exceptions.mfa import (
-    MFAError,
+    MFAAPIError,
+    MFAConnectError,
     MFARequiredError,
     MissingMFACredentialsError,
 )
@@ -48,7 +49,8 @@ class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
         KRBAPIChangePasswordError: status.HTTP_424_FAILED_DEPENDENCY,
         AlreadyConfiguredError: status.HTTP_423_LOCKED,
         MissingMFACredentialsError: status.HTTP_403_FORBIDDEN,
-        MFAError: status.HTTP_406_NOT_ACCEPTABLE,
+        MFAAPIError: status.HTTP_406_NOT_ACCEPTABLE,
+        MFAConnectError: status.HTTP_406_NOT_ACCEPTABLE,
     }
 
     async def login(
