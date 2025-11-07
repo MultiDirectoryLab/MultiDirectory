@@ -170,9 +170,7 @@ class NetworkPolicyUseCase(AbstractService):
             policy.mfa_groups = await self._network_policy_gateway.get_groups(
                 dto.mfa_groups,
             )
-        await self._network_policy_gateway.update(
-            policy,
-        )
+        await self._network_policy_gateway.update(policy)
         await self._session.commit()
         return _convert_model_to_dto(policy)
 

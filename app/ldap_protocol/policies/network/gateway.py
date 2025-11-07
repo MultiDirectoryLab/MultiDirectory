@@ -138,13 +138,11 @@ class NetworkPolicyGateway:
 
     async def update(
         self,
-        policy: NetworkPolicy,
+        _: NetworkPolicy,
     ) -> None:
         """Update network policy."""
         try:
-            self._session.add(policy)
             await self._session.flush()
-            await self._session.refresh(policy)
         except IntegrityError:
             raise NetworkPolicyAlreadyExistsError(
                 "Entry already exists",
