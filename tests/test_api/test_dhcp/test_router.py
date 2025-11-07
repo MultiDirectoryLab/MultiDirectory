@@ -13,6 +13,7 @@ from httpx import AsyncClient
 
 from ldap_protocol.dhcp.dataclasses import (
     DHCPLease,
+    DHCPLeaseToReservationError,
     DHCPOptionData,
     DHCPPool,
     DHCPReservation,
@@ -22,6 +23,7 @@ from ldap_protocol.dhcp.exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
     DHCPEntryNotFoundError,
+    DHCPOperationError,
 )
 
 
@@ -56,6 +58,25 @@ def sample_reservation_data() -> dict:
         "mac_address": "00:11:22:33:44:55",
         "hostname": "server-01",
     }
+
+
+@pytest.fixture
+def sample_batch_reservation_data() -> list[dict]:
+    """Sample batch reservation data for testing."""
+    return [
+        {
+            "subnet_id": 1,
+            "ip_address": "192.168.1.50",
+            "mac_address": "00:11:22:33:44:55",
+            "hostname": "server-01",
+        },
+        {
+            "subnet_id": 1,
+            "ip_address": "192.168.1.51",
+            "mac_address": "00:11:22:33:44:66",
+            "hostname": "server-02",
+        },
+    ]
 
 
 @pytest.fixture
@@ -588,10 +609,43 @@ async def test_lease_to_reservation_success(
     """Test successful lease to reservation transformation."""
     response = await http_client.patch(
         "/dhcp/lease/to_reservation",
-        json=sample_reservation_data,
+        json=[sample_reservation_data],
     )
 
     assert response.status_code == status.HTTP_200_OK
+
+    dhcp_manager.lease_to_reservation.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_lease_to_reservation_partial_success(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_batch_reservation_data: list[dict],
+) -> None:
+    """Test partial success on lease to reservation transformation."""
+    ip_address = "192.168.1.51"
+    mac_address = "00:11:22:33:44:66"
+    error_text = "Failed to release lease: IPv4 lease not found"
+
+    dhcp_manager.lease_to_reservation.return_value = [
+        DHCPLeaseToReservationError(
+            text=error_text,
+            ip_address=IPv4Address(ip_address),
+            mac_address=mac_address,
+        ),
+    ]
+
+    response = await http_client.patch(
+        "/dhcp/lease/to_reservation",
+        json=sample_batch_reservation_data,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data[0]["ip_address"] == ip_address
+    assert data[0]["mac_address"] == mac_address
+    assert data[0]["text"] == error_text
 
     dhcp_manager.lease_to_reservation.assert_called_once()
 
@@ -609,10 +663,29 @@ async def test_lease_to_reservation_not_found(
 
     response = await http_client.patch(
         "/dhcp/lease/to_reservation",
-        json=sample_reservation_data,
+        json=[sample_reservation_data],
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_lease_to_reservation_bad_request(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_reservation_data: dict,
+) -> None:
+    """Test lease to reservation transformation when lease is not found."""
+    dhcp_manager.lease_to_reservation.side_effect = DHCPOperationError(
+        "Transformation failed",
+    )
+
+    response = await http_client.patch(
+        "/dhcp/lease/to_reservation",
+        json=[sample_reservation_data],
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
