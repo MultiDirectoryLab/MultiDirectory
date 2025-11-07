@@ -50,32 +50,8 @@ class DNSError(Exception):
     """Base class for DNS exceptions."""
 
 
-class DNSRecordCreateError(DNSError):
-    """DNS record create error."""
-
-
-class DNSRecordUpdateError(DNSError):
-    """DNS record update error."""
-
-
-class DNSRecordDeleteError(DNSError):
-    """DNS record delete error."""
-
-
 class DNSZoneCreateError(DNSError):
     """DNS zone create error."""
-
-
-class DNSZoneUpdateError(DNSError):
-    """DNS zone update error."""
-
-
-class DNSZoneDeleteError(DNSError):
-    """DNS zone delete error."""
-
-
-class DNSUpdateServerOptionsError(DNSError):
-    """DNS update server options error."""
 
 
 class DNSDomainNotFoundError(DNSError):
