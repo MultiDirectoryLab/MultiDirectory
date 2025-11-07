@@ -28,6 +28,7 @@ class KeaDHCPCommands(StrEnum):
     LEASE4_GET_BY_HW_ADDRESS = "lease4-get-by-hw-address"
     LEASE4_GET_BY_HOSTNAME = "lease4-get-by-hostname"
     RESERVATION_ADD = "reservation-add"
+    RESERVATION_UPDATE = "reservation-update"
     RESERVATION_DEL = "reservation-del"
     RESERVATION_LIST = "reservation-get-all"
     CONFIG_WRITE = "config-write"
