@@ -189,7 +189,7 @@ class KeaDHCPManager(AbstractDHCPManager):
 
         if len(errors) == 0:
             return None
-        elif len(errors) > 0 and len(errors) < len(reservations):
+        elif len(errors) < len(reservations):
             return errors
         else:
             raise DHCPOperationError("Transformation failed")
