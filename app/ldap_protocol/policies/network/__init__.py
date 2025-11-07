@@ -2,7 +2,7 @@
 
 from .dto import NetworkPolicyDTO
 from .exceptions import NetworkPolicyAlreadyExistsError
-from .gate_way import NetworkPolicyGateway
+from .gateway import NetworkPolicyGateway
 from .use_cases import NetworkPolicyUseCase
 
 __all__ = [

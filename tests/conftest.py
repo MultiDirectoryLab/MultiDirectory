@@ -112,7 +112,7 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
-from ldap_protocol.policies.network.gate_way import NetworkPolicyGateway
+from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
 from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,

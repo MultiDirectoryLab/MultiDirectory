@@ -11,10 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Group, NetworkPolicy
-from ldap_protocol.policies.network.dto import (
-    NetworkPolicyDTO,
-    SwapPrioritiesDTO,
-)
+from ldap_protocol.policies.network.dto import SwapPrioritiesDTO
 from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,
@@ -52,29 +49,9 @@ class NetworkPolicyGateway:
 
     async def create(
         self,
-        dto: NetworkPolicyDTO[None],
-        groups: list[Group],
-        mfa_groups: list[Group],
+        policy: NetworkPolicy,
     ) -> NetworkPolicy:
         """Get network policy."""
-        policy = NetworkPolicy(
-            name=dto.name,
-            netmasks=dto.netmasks,
-            priority=dto.priority,
-            raw=dto.raw,
-            mfa_status=dto.mfa_status,
-            is_http=dto.is_http,
-            is_ldap=dto.is_ldap,
-            is_kerberos=dto.is_kerberos,
-            bypass_no_connection=dto.bypass_no_connection,
-            bypass_service_failure=dto.bypass_service_failure,
-        )
-
-        if dto.groups:
-            policy.groups = groups
-        if dto.mfa_groups:
-            policy.mfa_groups = mfa_groups
-
         try:
             self._session.add(policy)
             await self._session.flush()
@@ -91,9 +68,7 @@ class NetworkPolicyGateway:
     ) -> list[Group]:
         return await get_groups(groups, self._session)
 
-    async def get_list_policies(
-        self,
-    ) -> ScalarResult[NetworkPolicy]:
+    async def get_list_policies(self) -> ScalarResult[NetworkPolicy]:
         policies = await self._session.scalars(
             select(NetworkPolicy)
             .options(
@@ -108,7 +83,7 @@ class NetworkPolicyGateway:
         )
         return policies
 
-    async def get(self, _id: int) -> NetworkPolicyDTO:
+    async def get(self, _id: int) -> NetworkPolicy:
         policy = await self._session.scalar(
             select(NetworkPolicy)
             .filter_by(id=_id)
@@ -126,24 +101,7 @@ class NetworkPolicyGateway:
             raise NetworkPolicyNotFoundError(
                 f"Policy with id {_id} not found.",
             )
-        return NetworkPolicyDTO(
-            id=policy.id,
-            name=policy.name,
-            netmasks=policy.netmasks,
-            priority=policy.priority,
-            raw=policy.raw,
-            mfa_status=policy.mfa_status,
-            is_http=policy.is_http,
-            is_ldap=policy.is_ldap,
-            is_kerberos=policy.is_kerberos,
-            bypass_no_connection=policy.bypass_no_connection,
-            bypass_service_failure=policy.bypass_service_failure,
-            enabled=policy.enabled,
-            groups=[group.directory.path_dn for group in policy.groups],
-            mfa_groups=[
-                group.directory.path_dn for group in policy.mfa_groups
-            ],
-        )
+        return policy
 
     async def delete(self, _id: int) -> None:
         await self._session.execute(
@@ -173,10 +131,7 @@ class NetworkPolicyGateway:
                 .filter(qa(NetworkPolicy.priority) > priority),
             )
 
-    async def disable_policy(
-        self,
-        _id: int,
-    ) -> None:
+    async def disable_policy(self, _id: int) -> None:
         await self._session.execute(
             update(NetworkPolicy).filter_by(id=_id).values(enabled=False),
         )
@@ -184,25 +139,13 @@ class NetworkPolicyGateway:
 
     async def update(
         self,
-        dto: NetworkPolicyDTO[int],
-        groups: list[Group],
-        mfa_groups: list[Group],
+        policy: NetworkPolicy,
     ) -> None:
         """Update network policy."""
         try:
-            policy_entity = await self._get_row(dto.id)
-            policy_entity.name = dto.name
-            policy_entity.netmasks = dto.netmasks
-            policy_entity.raw = dto.raw
-            policy_entity.mfa_status = dto.mfa_status
-            policy_entity.is_http = dto.is_http
-            policy_entity.is_ldap = dto.is_ldap
-            policy_entity.is_kerberos = dto.is_kerberos
-            policy_entity.bypass_no_connection = dto.bypass_no_connection
-            policy_entity.bypass_service_failure = dto.bypass_service_failure
-            policy_entity.groups = groups
-            policy_entity.mfa_groups = mfa_groups
+            self._session.add(policy)
             await self._session.flush()
+            await self._session.refresh(policy)
         except IntegrityError:
             raise NetworkPolicyAlreadyExistsError(
                 "Entry already exists",
