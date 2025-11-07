@@ -12,7 +12,12 @@ from loguru import logger as loguru_logger
 
 from abstract_dao import AbstractService
 
-from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
+from .dataclasses import (
+    DHCPLease,
+    DHCPLeaseToReservationError,
+    DHCPReservation,
+    DHCPSubnet,
+)
 from .dhcp_manager_repository import DHCPManagerRepository
 from .enums import DHCPManagerState
 
@@ -176,8 +181,8 @@ class AbstractDHCPManager(AbstractService):
     @abstractmethod
     async def lease_to_reservation(
         self,
-        reservation: DHCPReservation,
-    ) -> None: ...
+        reservations: list[DHCPReservation],
+    ) -> None | list[DHCPLeaseToReservationError]: ...
 
     @abstractmethod
     async def add_reservation(
