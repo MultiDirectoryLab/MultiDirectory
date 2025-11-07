@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.engine.result import ScalarResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -54,7 +55,7 @@ class NetworkPolicyGateway:
         dto: NetworkPolicyDTO[None],
         groups: list[Group],
         mfa_groups: list[Group],
-    ) -> NetworkPolicyDTO:
+    ) -> NetworkPolicy:
         """Get network policy."""
         policy = NetworkPolicy(
             name=dto.name,
@@ -78,22 +79,7 @@ class NetworkPolicyGateway:
             self._session.add(policy)
             await self._session.flush()
             await self._session.refresh(policy)
-            return NetworkPolicyDTO(
-                id=policy.id,
-                name=policy.name,
-                netmasks=policy.netmasks,
-                priority=policy.priority,
-                raw=policy.raw,
-                mfa_status=policy.mfa_status,
-                is_http=policy.is_http,
-                is_ldap=policy.is_ldap,
-                is_kerberos=policy.is_kerberos,
-                bypass_no_connection=policy.bypass_no_connection,
-                bypass_service_failure=policy.bypass_service_failure,
-                enabled=policy.enabled,
-                groups=dto.groups,
-                mfa_groups=dto.mfa_groups,
-            )
+            return policy
         except IntegrityError:
             raise NetworkPolicyAlreadyExistsError(
                 "Entry already exists",
@@ -107,7 +93,7 @@ class NetworkPolicyGateway:
 
     async def get_list_policies(
         self,
-    ) -> list[NetworkPolicyDTO]:
+    ) -> ScalarResult[NetworkPolicy]:
         policies = await self._session.scalars(
             select(NetworkPolicy)
             .options(
@@ -120,27 +106,7 @@ class NetworkPolicyGateway:
             )
             .order_by(qa(NetworkPolicy.priority).asc()),
         )
-        return [
-            NetworkPolicyDTO(
-                id=policy.id,
-                name=policy.name,
-                netmasks=policy.netmasks,
-                priority=policy.priority,
-                raw=policy.raw,
-                mfa_status=policy.mfa_status,
-                is_http=policy.is_http,
-                is_ldap=policy.is_ldap,
-                is_kerberos=policy.is_kerberos,
-                bypass_no_connection=policy.bypass_no_connection,
-                bypass_service_failure=policy.bypass_service_failure,
-                enabled=policy.enabled,
-                groups=[group.directory.path_dn for group in policy.groups],
-                mfa_groups=[
-                    group.directory.path_dn for group in policy.mfa_groups
-                ],
-            )
-            for policy in policies
-        ]
+        return policies
 
     async def get(self, _id: int) -> NetworkPolicyDTO:
         policy = await self._session.scalar(

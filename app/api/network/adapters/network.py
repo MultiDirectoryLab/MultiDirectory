@@ -4,9 +4,11 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv4Network
 from typing import Literal
 
-from adaptix.conversion import get_converter
+from adaptix import P
+from adaptix.conversion import get_converter, link_function
 from fastapi import Request, status
 from fastapi.responses import RedirectResponse
 
@@ -28,10 +30,38 @@ from ldap_protocol.policies.network.exceptions import (
 )
 from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 
-# _convert_schema_to_dto = get_converter(Policy, NetworkPolicyDTO[None])
+
+def _convert_netmasks(
+    dto: NetworkPolicyDTO[int],
+) -> list[IPv4Network]:
+    """Convert list of IPv4Network | IPv4Address to list of IPv4Network."""
+    return [
+        IPv4Network(item) if isinstance(item, IPv4Address) else item
+        for item in dto.netmasks
+    ]
+
+
+def _convert_raw(dto: NetworkPolicyDTO[int]) -> list[str | dict]:
+    """Convert dict | list to list[str | dict]."""
+    raw = dto.raw
+    if isinstance(raw, dict):
+        return [] if not raw else [raw]
+    return raw
+
+
 _convert_dto_to_schema = get_converter(
     NetworkPolicyDTO[int],
     PolicyResponse,
+    recipe=[
+        link_function(
+            _convert_netmasks,
+            P[PolicyResponse].netmasks,
+        ),
+        link_function(
+            _convert_raw,
+            P[PolicyResponse].raw,
+        ),
+    ],
 )
 
 

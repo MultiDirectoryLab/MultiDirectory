@@ -44,18 +44,54 @@ class NetworkPolicyUseCase(AbstractService):
                 dto.mfa_groups,
             )
 
-        policy_dto = await self._network_policy_gateway.create(
+        policy = await self._network_policy_gateway.create(
             dto,
             groups,
             mfa_groups,
         )
-        return policy_dto
+        return NetworkPolicyDTO[int](
+            id=policy.id,
+            name=policy.name,
+            netmasks=policy.netmasks,
+            priority=policy.priority,
+            raw=policy.raw,
+            mfa_status=policy.mfa_status,
+            is_http=policy.is_http,
+            is_ldap=policy.is_ldap,
+            is_kerberos=policy.is_kerberos,
+            bypass_no_connection=policy.bypass_no_connection,
+            bypass_service_failure=policy.bypass_service_failure,
+            enabled=policy.enabled,
+            groups=dto.groups,
+            mfa_groups=dto.mfa_groups,
+        )
 
     async def get_list_policies(
         self,
     ) -> list[NetworkPolicyDTO]:
         """Get list of network policies."""
-        return await self._network_policy_gateway.get_list_policies()
+        policies = await self._network_policy_gateway.get_list_policies()
+        return [
+            NetworkPolicyDTO[int](
+                id=policy.id,
+                name=policy.name,
+                netmasks=policy.netmasks,
+                priority=policy.priority,
+                raw=policy.raw,
+                mfa_status=policy.mfa_status,
+                is_http=policy.is_http,
+                is_ldap=policy.is_ldap,
+                is_kerberos=policy.is_kerberos,
+                bypass_no_connection=policy.bypass_no_connection,
+                bypass_service_failure=policy.bypass_service_failure,
+                enabled=policy.enabled,
+                groups=[group.directory.path_dn for group in policy.groups],
+                mfa_groups=[
+                    group.directory.path_dn for group in policy.mfa_groups
+                ],
+            )
+            for policy in policies
+        ]
 
     async def delete(self, _id: int) -> None:
         """Delete network policy by ID."""
