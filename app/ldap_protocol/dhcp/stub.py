@@ -149,7 +149,7 @@ class StubDHCPManager(AbstractDHCPManager):
     async def lease_to_reservation(
         self,
         reservations: list[DHCPReservation],
-    ) -> None | DHCPLeaseToReservationError: ...
+    ) -> None | list[DHCPLeaseToReservationError]: ...
 
     @logger_wraps(is_stub=True)
     async def add_reservation(
