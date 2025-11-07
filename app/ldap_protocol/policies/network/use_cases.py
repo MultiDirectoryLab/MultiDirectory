@@ -103,7 +103,7 @@ class NetworkPolicyUseCase(AbstractService):
         )
 
     async def get(self, _id: int) -> NetworkPolicyDTO[int]:
-        policy = await self._network_policy_gateway.get(_id)
+        policy = await self._network_policy_gateway.get_with_for_update(_id)
         return _convert_model_to_dto(policy)
 
     async def get_list_policies(
@@ -143,7 +143,7 @@ class NetworkPolicyUseCase(AbstractService):
         dto: NetworkPolicyUpdateDTO,
     ) -> NetworkPolicyDTO:
         """Update network policy."""
-        policy = await self._network_policy_gateway.get(dto.id)
+        policy = await self._network_policy_gateway.get_with_for_update(dto.id)
         for field in dto.fields_to_update:
             value = getattr(dto, field)
             if value is not None:
@@ -178,8 +178,8 @@ class NetworkPolicyUseCase(AbstractService):
 
     async def swap_priorities(self, id1: int, id2: int) -> SwapPrioritiesDTO:
         """Swap priorities for network policies."""
-        policy1 = await self.get(id1)
-        policy2 = await self.get(id2)
+        policy1 = await self._network_policy_gateway.get(id1)
+        policy2 = await self._network_policy_gateway.get(id2)
         policy1.priority, policy2.priority = policy2.priority, policy1.priority
         await self._session.commit()
         return SwapPrioritiesDTO(

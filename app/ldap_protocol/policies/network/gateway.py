@@ -26,7 +26,7 @@ class NetworkPolicyGateway:
         """Initialize Network policy gateway."""
         self._session = session
 
-    async def _get_row(self, _id: int) -> NetworkPolicy:
+    async def get(self, _id: int) -> NetworkPolicy:
         """Get network policy."""
         policy = await self._session.scalar(
             select(NetworkPolicy)
@@ -82,7 +82,7 @@ class NetworkPolicyGateway:
         )
         return policies
 
-    async def get(self, _id: int) -> NetworkPolicy:
+    async def get_with_for_update(self, _id: int) -> NetworkPolicy:
         policy = await self._session.scalar(
             select(NetworkPolicy)
             .filter_by(id=_id)
@@ -142,6 +142,7 @@ class NetworkPolicyGateway:
     ) -> None:
         """Update network policy."""
         try:
+            self._session.add(policy)
             await self._session.flush()
             await self._session.refresh(policy)
         except IntegrityError:
