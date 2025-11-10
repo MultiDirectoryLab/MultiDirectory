@@ -238,6 +238,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
         elif item.tag_id == TagNumbers.EXTENSIBLE_MATCH:
             attr = item.value[_ATTR_POS].value.decode("utf-8").lower()
+            attr = attr.split(":")[0]
             self.attributes.add(attr)
 
             if item.value[_RULE_POS].value in (
