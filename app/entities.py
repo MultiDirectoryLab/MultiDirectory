@@ -558,3 +558,12 @@ class DedicatedServer:
     domain_name: str
     use_tls: bool
     bind_type: Literal["SIMPLE", "GSSAPI"]
+
+
+@dataclass
+class UserApiPermissions:
+    """User permissions to UseCases."""
+
+    user_id: int
+    user: User = field(repr=False, init=False)
+    permissions: list[str]

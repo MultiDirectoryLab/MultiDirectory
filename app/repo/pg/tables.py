@@ -50,6 +50,7 @@ from entities import (
     PasswordPolicy,
     Role,
     User,
+    UserApiPermissions,
 )
 from enums import (
     AceType,
@@ -230,6 +231,23 @@ users_table = Table(
     Index("idx_User_upn_gin", "user_principal_name", postgresql_using="gin"),
     Index("idx_user_hash_dir_id", "directory_id", postgresql_using="hash"),
 )
+
+user_api_permissions_table = Table(
+    "UserApiPermissions",
+    metadata,
+    Column(
+        "id",
+        Integer,
+        ForeignKey("Users.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "permissions",
+        ARRAY(String),
+        primary_key=True,
+    ),
+)
+
 
 directory_memberships_table = Table(
     "DirectoryMemberships",
@@ -800,6 +818,10 @@ mapper_registry.map_imperatively(
             lazy="raise",
             overlaps="group,groups,directory",
         ),
+        "api_permissions": relationship(
+            UserApiPermissions,
+            lazy="raise",
+        ),
         "samaccountname": synonym("sam_account_name"),
         "userprincipalname": synonym("user_principal_name"),
         "displayname": synonym("display_name"),
@@ -807,6 +829,19 @@ mapper_registry.map_imperatively(
         "accountexpires": synonym("account_exp"),
     },
 )
+
+mapper_registry.map_imperatively(
+    UserApiPermissions,
+    user_api_permissions_table,
+    properties={
+        "user": relationship(
+            User,
+            back_populates="api_permissions",
+            lazy="raise",
+        ),
+    },
+)
+
 
 mapper_registry.map_imperatively(
     Group,
