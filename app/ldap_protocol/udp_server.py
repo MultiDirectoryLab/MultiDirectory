@@ -135,8 +135,8 @@ class UDPConnectionHandler(asyncio.DatagramProtocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """Call when connection is established."""
         if not isinstance(transport, asyncio.DatagramTransport):
-            raise TypeError("Expected DatagramTransport")
-
+            log.warning("UDP connection made with invalid transport type")
+            return
         self.transport = transport
         self._running.set()
         log.debug("UDP connection established")
