@@ -18,13 +18,16 @@ from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions.auth import UnauthorizedError
 from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.identity.identity_provider_gateway import (
     IdentityProviderGateway,
+)
+from ldap_protocol.identity.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
 )
 from ldap_protocol.session_storage.base import SessionStorage
 from tests.conftest import TestProvider

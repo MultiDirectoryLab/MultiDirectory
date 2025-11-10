@@ -45,7 +45,6 @@ from api.auth.adapters import (
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -75,6 +74,10 @@ from ldap_protocol.identity.identity_provider_gateway import (
 )
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
+from ldap_protocol.identity.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
