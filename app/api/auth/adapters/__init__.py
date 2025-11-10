@@ -6,8 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from .identity import IdentityFastAPIAdapter
 from .mfa import MFAFastAPIAdapter
+from .session_gateway import SessionFastAPIGateway
 
 __all__ = [
     "IdentityFastAPIAdapter",
     "MFAFastAPIAdapter",
+    "SessionFastAPIGateway",
 ]

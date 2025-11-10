@@ -577,3 +577,74 @@ async def test_delete_reservation_missing_params(
     response = await http_client.delete("/dhcp/reservation")
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.asyncio
+async def test_lease_to_reservation_success(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_reservation_data: dict,
+) -> None:
+    """Test successful lease to reservation transformation."""
+    response = await http_client.patch(
+        "/dhcp/lease/to_reservation",
+        json=sample_reservation_data,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    dhcp_manager.lease_to_reservation.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_lease_to_reservation_not_found(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_reservation_data: dict,
+) -> None:
+    """Test lease to reservation transformation when lease is not found."""
+    dhcp_manager.lease_to_reservation.side_effect = DHCPEntryNotFoundError(
+        "Lease not found",
+    )
+
+    response = await http_client.patch(
+        "/dhcp/lease/to_reservation",
+        json=sample_reservation_data,
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_update_reservation_success(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_reservation_data: dict,
+) -> None:
+    """Test successful reservation update."""
+    response = await http_client.put(
+        "/dhcp/reservation",
+        json=sample_reservation_data,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    dhcp_manager.update_reservation.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_reservation_not_found(
+    http_client: AsyncClient,
+    dhcp_manager: Mock,
+    sample_reservation_data: dict,
+) -> None:
+    """Test reservation update when reservation not found."""
+    dhcp_manager.update_reservation.side_effect = DHCPEntryNotFoundError(
+        "Reservation not found",
+    )
+
+    response = await http_client.put(
+        "/dhcp/reservation",
+        json=sample_reservation_data,
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND

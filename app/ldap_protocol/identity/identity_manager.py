@@ -14,6 +14,7 @@ from abstract_dao import AbstractService
 from config import Settings
 from entities import Directory, Group, User
 from enums import MFAFlags
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
     LoginFailedError,
@@ -21,6 +22,7 @@ from ldap_protocol.identity.exceptions.auth import (
     UnauthorizedError,
     UserNotFoundError,
 )
+from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.identity.mfa_manager import MFAManager
 from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form
 from ldap_protocol.identity.use_cases import SetupUseCase
@@ -60,6 +62,7 @@ class IdentityManager(AbstractService):
         kadmin: AbstractKadmin,
         mfa_manager: MFAManager,
         setup_use_case: SetupUseCase,
+        identity_provider: IdentityProvider,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -82,6 +85,7 @@ class IdentityManager(AbstractService):
         self._kadmin = kadmin
         self._mfa_manager = mfa_manager
         self._setup_use_case = setup_use_case
+        self._identity_provider = identity_provider
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -289,3 +293,16 @@ class IdentityManager(AbstractService):
         :return: None.
         """
         await self._setup_use_case.setup(dto)
+
+    async def get_current_user(self) -> UserSchema:
+        """Load the authenticated user using request-bound session data."""
+        return await self._identity_provider.get_current_user()
+
+    def set_new_session_key(self, key: str) -> None:
+        """Set a new session key.
+
+        Args:
+            key: New session key to set.
+
+        """
+        self._identity_provider.set_new_session_key(key)

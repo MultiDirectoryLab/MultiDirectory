@@ -74,6 +74,7 @@ class Settings(BaseModel):
     INSTANCE_DB_POOL_SIZE: int = 10
     INSTANCE_DB_POOL_OVERFLOW: int = 30
     INSTANCE_DB_POOL_TIMEOUT: int = 5
+    INSTANCE_DB_POOL_RECYCLE: int = 60 * 60  # 1 hour
 
     SSL_CERT: str = "/certs/cert.pem"
     SSL_KEY: str = "/certs/privkey.pem"
@@ -135,8 +136,6 @@ class Settings(BaseModel):
 
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
 
-    OTP_TAIL_SIZE: Literal[6] = 6
-
     @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
         """Get timezone from a string."""
@@ -186,6 +185,7 @@ class Settings(BaseModel):
             pool_size=self.INSTANCE_DB_POOL_SIZE,
             max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
             pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
+            pool_recycle=self.INSTANCE_DB_POOL_RECYCLE,
             pool_pre_ping=False,
             future=True,
             echo=False,

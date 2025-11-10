@@ -40,14 +40,19 @@ from sqlalchemy.ext.asyncio import (
 
 from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
-from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
-from api.auth.adapters.session_gateway import SessionFastAPIGateway
+from api.auth.adapters import (
+    IdentityFastAPIAdapter,
+    MFAFastAPIAdapter,
+    SessionFastAPIGateway,
+)
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
+from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPoliciesAdapter
+from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
@@ -59,9 +64,15 @@ from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
     StubDNSManager,
-    get_dns_manager_settings,
 )
+from ldap_protocol.dns.dns_gateway import DNSStateGateway
+from ldap_protocol.dns.dto import DNSSettingDTO
+from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.identity_provider import IdentityProvider
+from ldap_protocol.identity.identity_provider_gateway import (
+    IdentityProviderGateway,
+)
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin
@@ -101,11 +112,14 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
+from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
+from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -176,6 +190,11 @@ class TestProvider(Provider):
         """Get mock DNS manager."""
         dns_manager = AsyncMock(spec=StubDNSManager)
 
+        dns_manager.setup.return_value = DNSSettingDTO(
+            zone_name="example.com",
+            dns_server_ip="127.0.0.1",
+            tsig_key=None,
+        )
         dns_manager.get_all_records.return_value = [
             {
                 "type": "A",
@@ -233,7 +252,7 @@ class TestProvider(Provider):
     @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
     async def get_dns_mngr_settings(
         self,
-        session: AsyncSession,
+        dns_state_gateway: DNSStateGateway,
     ) -> AsyncIterator["DNSManagerSettings"]:
         """Get DNS manager's settings."""
 
@@ -241,7 +260,7 @@ class TestProvider(Provider):
             return "127.0.0.1"
 
         resolver = resolve()
-        yield await get_dns_manager_settings(session, resolver)
+        yield await dns_state_gateway.get_dns_manager_settings(resolver)
         weakref.finalize(resolver, resolver.close)
 
     @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
@@ -273,12 +292,15 @@ class TestProvider(Provider):
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
     )
-    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
-    password_policies_adapter = provide(
-        PasswordPoliciesAdapter,
+    password_validator_settings = provide(
+        PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )
+    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
+    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
+    dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
+    dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
     @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -405,6 +427,31 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
 
+    @provide(scope=Scope.REQUEST)
+    async def get_identity_provider(
+        self,
+        request: Request,
+        session_storage: SessionStorage,
+        settings: Settings,
+        identity_provider_gateway: IdentityProviderGateway,
+    ) -> IdentityProvider:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+
+        return IdentityProvider(
+            session_storage,
+            settings,
+            identity_provider_gateway,
+            ip_from_request=str(ip_from_request),
+            user_agent=user_agent,
+            session_key=request.cookies.get("id", ""),
+        )
+
+    identity_provider_gateway = provide(
+        IdentityProviderGateway,
+        scope=Scope.REQUEST,
+    )
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
     ldap_entity_type_adapter = provide(
@@ -556,6 +603,15 @@ class TestProvider(Provider):
     dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
     setup_gateway = provide(SetupGateway, scope=Scope.REQUEST)
     setup_use_case = provide(SetupUseCase, scope=Scope.REQUEST)
+    network_policy_adapter = provide(
+        NetworkPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    network_policy_use_case = provide(
+        NetworkPolicyUseCase,
+        scope=Scope.REQUEST,
+    )
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
 
 @dataclass
@@ -704,8 +760,8 @@ async def setup_session(
     )
     password_policy_dao = PasswordPolicyDAO(session)
     password_policy_validator = PasswordPolicyValidator(
+        PasswordValidatorSettings(),
         password_validator,
-        Settings.from_os(),
     )
     password_use_cases = PasswordPolicyUseCases(
         password_policy_dao,
@@ -713,11 +769,13 @@ async def setup_session(
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
     await audit_use_case.create_policies()
-    await password_use_cases.create_policy()
     await setup_gateway.setup_enviroment(
         dn="md.test",
         data=TEST_DATA,
     )
+
+    # NOTE: after setup environment we need base DN to be created
+    await password_use_cases.create_default_domain_policy()
 
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
@@ -812,14 +870,26 @@ async def password_validator(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def password_validator_settings(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordValidatorSettings]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordValidatorSettings()
+
+
+@pytest_asyncio.fixture(scope="function")
 async def password_policy_validator(
     container: AsyncContainer,
+    password_validator_settings: PasswordValidatorSettings,
     password_validator: PasswordValidator,
 ) -> AsyncIterator[PasswordPolicyValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
-        settings = await container.get(Settings)
-        yield PasswordPolicyValidator(password_validator, settings)
+        yield PasswordPolicyValidator(
+            password_validator_settings,
+            password_validator,
+        )
 
 
 @pytest_asyncio.fixture(scope="function")

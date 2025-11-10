@@ -18,15 +18,20 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api.audit.adapter import AuditPoliciesAdapter
-from api.auth.adapters import IdentityFastAPIAdapter, MFAFastAPIAdapter
-from api.auth.adapters.session_gateway import SessionFastAPIGateway
-from api.auth.utils import get_ip_from_request
+from api.auth.adapters import (
+    IdentityFastAPIAdapter,
+    MFAFastAPIAdapter,
+    SessionFastAPIGateway,
+)
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
+from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.password_policy.adapter import PasswordPoliciesAdapter
+from api.network.adapters.network import NetworkPolicyFastAPIAdapter
+from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from ldap_protocol.dhcp import (
@@ -42,10 +47,15 @@ from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
     get_dns_manager_class,
-    get_dns_manager_settings,
-    resolve_dns_server_ip,
 )
+from ldap_protocol.dns.dns_gateway import DNSStateGateway
+from ldap_protocol.dns.use_cases import DNSUseCase
+from ldap_protocol.dns.utils import resolve_dns_server_ip
 from ldap_protocol.identity import IdentityManager, MFAManager
+from ldap_protocol.identity.identity_provider import IdentityProvider
+from ldap_protocol.identity.identity_provider_gateway import (
+    IdentityProviderGateway,
+)
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -99,11 +109,14 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
+from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
+from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -196,25 +209,27 @@ class MainProvider(Provider):
         """
         return kadmin_class(client)
 
-    @provide(scope=Scope.SESSION)
+    @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_class(
         self,
-        session_maker: async_sessionmaker[AsyncSession],
+        dns_state_gateway: DNSStateGateway,
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
-        async with session_maker() as session:
-            return await get_dns_manager_class(session)
+        return await get_dns_manager_class(dns_state_gateway)
 
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_settings(
         self,
-        session_maker: async_sessionmaker[AsyncSession],
         settings: Settings,
+        dns_state_gateway: DNSStateGateway,
     ) -> DNSManagerSettings:
         """Get DNS manager's settings."""
-        resolve_coro = resolve_dns_server_ip(settings.DNS_BIND_HOST)
-        async with session_maker() as session:
-            return await get_dns_manager_settings(session, resolve_coro)
+        resolve_coro = resolve_dns_server_ip(
+            settings.DNS_BIND_HOST,
+        )
+        return await dns_state_gateway.get_dns_manager_settings(
+            resolve_coro,
+        )
 
     @provide(scope=Scope.APP)
     async def get_dns_http_client(
@@ -400,7 +415,11 @@ class MainProvider(Provider):
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
     password_policies_adapter = provide(
-        PasswordPoliciesAdapter,
+        PasswordPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    password_validator_settings = provide(
+        PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
@@ -419,6 +438,9 @@ class MainProvider(Provider):
     )
 
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
+    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
+    dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
+    dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
 
 class LDAPContextProvider(Provider):
@@ -468,6 +490,30 @@ class HTTPProvider(LDAPContextProvider):
         AuditMonitor,
         scope=Scope.REQUEST,
     )
+    identity_provider_gateway = provide(
+        IdentityProviderGateway,
+        scope=Scope.REQUEST,
+    )
+
+    @provide()
+    async def get_identity_provider(
+        self,
+        request: Request,
+        session_storage: SessionStorage,
+        settings: Settings,
+        identity_provider_gateway: IdentityProviderGateway,
+    ) -> IdentityProvider:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        return IdentityProvider(
+            session_storage,
+            settings,
+            identity_provider_gateway,
+            ip_from_request=str(ip_from_request),
+            user_agent=user_agent,
+            session_key=request.cookies.get("id", ""),
+        )
 
     @provide(provides=LDAPSession)
     async def get_session(
@@ -521,6 +567,15 @@ class HTTPProvider(LDAPContextProvider):
     dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
     setup_use_case = provide(SetupUseCase, scope=Scope.REQUEST)
     setup_gateway = provide(SetupGateway, scope=Scope.REQUEST)
+    network_policy_adapter = provide(
+        NetworkPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    network_policy_use_case = provide(
+        NetworkPolicyUseCase,
+        scope=Scope.REQUEST,
+    )
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
@@ -571,7 +626,7 @@ class EventSenderProvider(Provider):
 
     @provide()
     def setup_audit_logging(self, settings: Settings) -> AuditLogger:
-        """Create audit logger.."""
+        """Create audit logger."""
         audit_logger = logger.bind(name="audit")
         audit_logger.remove()
         audit_logger.add(

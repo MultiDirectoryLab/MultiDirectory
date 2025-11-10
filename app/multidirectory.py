@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import argparse
 import asyncio
-import time
 from contextlib import asynccontextmanager
 from functools import partial
 from typing import AsyncIterator, Callable, Coroutine
@@ -17,7 +16,7 @@ from alembic.config import Config, command
 from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from dns.exception import DNSException
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from sqlalchemy import exc as sa_exc
@@ -32,7 +31,7 @@ from api import (
     ldap_schema_router,
     mfa_router,
     network_router,
-    pwd_router,
+    password_policy_router,
     session_router,
     shadow_router,
 )
@@ -42,6 +41,7 @@ from api.exception_handlers import (
     handle_dns_error,
     handle_not_implemented_error,
 )
+from api.middlewares import proc_time_header_middleware, set_key_middleware
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
@@ -62,23 +62,6 @@ from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
 from schedule import scheduler_factory
-
-
-async def proc_time_header_middleware(
-    request: Request,
-    call_next: Callable,
-) -> Response:
-    """Set X-Process-Time header.
-
-    :param Request request: _description_
-    :param Callable call_next: _description_
-    :return Response: _description_
-    """
-    start_time = time.perf_counter()
-    response = await call_next(request)
-    process_time = time.perf_counter() - start_time
-    response.headers["X-Process-Time"] = f"{process_time:.4f}"
-    return response
 
 
 @asynccontextmanager
@@ -103,7 +86,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(entry_router)
     app.include_router(network_router)
     app.include_router(mfa_router)
-    app.include_router(pwd_router)
+    app.include_router(password_policy_router)
     app.include_router(krb5_router)
     app.include_router(dns_router)
     app.include_router(session_router)
@@ -119,6 +102,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     if settings.DEBUG:
         app.middleware("http")(proc_time_header_middleware)
 
+    app.middleware("http")(set_key_middleware)
     app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
     app.add_exception_handler(DNSException, handle_dns_error)

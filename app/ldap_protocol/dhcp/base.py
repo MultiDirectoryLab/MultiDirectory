@@ -90,6 +90,10 @@ class DHCPAPIRepository(ABC):
         """Create a new reservation."""
 
     @abstractmethod
+    async def update_reservation(self, reservation: DHCPReservation) -> None:
+        """Update a reservation."""
+
+    @abstractmethod
     async def delete_reservation(self, reservation: DHCPReservation) -> None:
         """Delete a reservation."""
 
@@ -170,7 +174,19 @@ class AbstractDHCPManager(AbstractService):
     ) -> DHCPLease: ...
 
     @abstractmethod
+    async def lease_to_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None: ...
+
+    @abstractmethod
     async def add_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None: ...
+
+    @abstractmethod
+    async def update_reservation(
         self,
         reservation: DHCPReservation,
     ) -> None: ...

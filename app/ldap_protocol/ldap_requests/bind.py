@@ -40,10 +40,7 @@ from ldap_protocol.user_account_control import (
     UserAccountControlFlag,
     get_check_uac,
 )
-from ldap_protocol.utils.queries import (
-    check_kerberos_group,
-    set_user_logon_attrs,
-)
+from ldap_protocol.utils.queries import set_user_logon_attrs
 
 from .base import BaseRequest
 from .contexts import LDAPBindRequestContext, LDAPUnbindRequestContext
@@ -186,27 +183,13 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
-        pwd_last_set = await ctx.password_use_cases.get_or_create_pwd_last_set(
-            user.directory_id,
-        )
-        password_policy = await ctx.password_use_cases.get_password_policy()
-        is_pwd_expired = await ctx.password_use_cases.check_expired_max_age(
-            password_policy,
-            user,
-            pwd_last_set,
-        )
-
-        is_krb_user = await check_kerberos_group(user, ctx.session)
-
-        required_pwd_change = (
-            pwd_last_set == "0" or is_pwd_expired  # noqa: S105
-        ) and not is_krb_user
-
         if user.is_expired():
             yield get_bad_response(LDAPBindErrors.ACCOUNT_EXPIRED)
             return
 
-        if required_pwd_change:
+        if not uac_check(UserAccountControlFlag.DONT_EXPIRE_PASSWORD) and (
+            await ctx.password_use_cases.is_required_password_change(user)
+        ):
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 

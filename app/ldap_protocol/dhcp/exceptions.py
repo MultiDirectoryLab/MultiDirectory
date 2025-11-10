@@ -13,6 +13,10 @@ class DHCPAPIError(DHCPError):
     """DHCP API error."""
 
 
+class DHCPValidatonError(DHCPError):
+    """DHCP validation error."""
+
+
 class DHCPConnectionError(ConnectionError):
     """DHCP connection error."""
 
