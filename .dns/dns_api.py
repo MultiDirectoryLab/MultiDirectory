@@ -13,7 +13,7 @@ import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Annotated, ClassVar, NoReturn
+from typing import Annotated, NoReturn
 
 import dns
 import dns.zone
@@ -23,7 +23,7 @@ from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
 
-TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
+TEMPLATES: jinja2.Environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates/"),
     autoescape=True,
     keep_trailing_newline=True,
@@ -43,6 +43,45 @@ FIRST_SETUP_RECORDS = [
     {"name": "_kdc._udp.", "value": "0 0 88 ", "type": "SRV"},
     {"name": "_kpasswd._tcp.", "value": "0 0 464 ", "type": "SRV"},
     {"name": "_kpasswd._udp.", "value": "0 0 464 ", "type": "SRV"},
+    # Record for PDC Emulator
+    {
+        "name": "_ldap._tcp.pdc._msdcs",
+        "value": "0 100 389 ",
+        "type": "SRV",
+    },
+    # Records for DC Locator (for trusts)
+    {
+        "name": "_kerberos._tcp.dc._msdcs.",
+        "value": "0 100 88 ",
+        "type": "SRV",
+    },
+    {
+        "name": "_kerberos._tcp.Default-First-Site-Name._sites.dc._msdcs.",
+        "value": "0 100 88 ",
+        "type": "SRV",
+    },
+    {
+        "name": "_ldap._tcp.dc._msdcs.",
+        "value": "0 100 389 ",
+        "type": "SRV",
+    },
+    {
+        "name": "_ldap._tcp.Default-First-Site-Name._sites.dc._msdcs.",
+        "value": "0 100 389 ",
+        "type": "SRV",
+    },
+    # Records for Global Catalog
+    {"name": "_gc._tcp.", "value": "0 100 3268 ", "type": "SRV"},
+    {
+        "name": "_ldap._tcp.Default-First-Site-Name._sites.gc._msdcs.",
+        "value": "0 100 3268 ",
+        "type": "SRV",
+    },
+    {
+        "name": "_ldap._tcp.gc._msdcs.",
+        "value": "0 100 3268 ",
+        "type": "SRV",
+    },
 ]
 
 
@@ -759,6 +798,16 @@ class BindDNSServerManager:
             "master",
             None,
             params=[],
+        )
+
+        self.add_record(
+            DNSRecord(
+                name=f"gc._msdcs.{zone_name}",
+                value=os.getenv("DEFAULT_NAMESERVER"),
+                ttl=604800,
+            ),
+            DNSRecordType.A,
+            zone_name,
         )
 
         for record in FIRST_SETUP_RECORDS:
