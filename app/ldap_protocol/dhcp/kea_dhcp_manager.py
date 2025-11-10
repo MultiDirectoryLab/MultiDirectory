@@ -165,6 +165,16 @@ class KeaDHCPManager(AbstractDHCPManager):
                 f"Failed to add reservation: {e}",
             )
 
+    async def update_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None:
+        try:
+            await self._api_repository.update_reservation(reservation)
+            await self._api_repository.write_config()
+        except DHCPAPIError as e:
+            raise DHCPEntryUpdateError(f"Failed to update reservation: {e}")
+
     async def delete_reservation(
         self,
         mac_address: str,

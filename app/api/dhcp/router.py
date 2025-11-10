@@ -149,6 +149,15 @@ async def get_dhcp_reservation(
     return await dhcp_adapter.get_reservations(subnet_id)
 
 
+@dhcp_router.put("/reservation")
+async def update_dhcp_reservation(
+    data: DHCPReservationSchemaRequest,
+    dhcp_adapter: FromDishka[DHCPAdapter],
+) -> None:
+    """Update a reservation."""
+    await dhcp_adapter.update_reservation(data)
+
+
 @dhcp_router.delete("/reservation")
 async def delete_dhcp_reservation(
     mac_address: str,

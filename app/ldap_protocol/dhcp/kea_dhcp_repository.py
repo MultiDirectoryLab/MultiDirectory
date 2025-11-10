@@ -336,6 +336,20 @@ class KeaDHCPAPIRepository(DHCPAPIRepository):
 
         await self._make_request(data)
 
+    async def update_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None:
+        """Update a reservation."""
+        data = add_reservation_retort.dump(
+            KeaDHCPAPIReservationRequest(
+                command=KeaDHCPCommands.RESERVATION_UPDATE,
+                arguments=reservation,
+            ),
+        )
+
+        await self._make_request(data)
+
     async def delete_reservation(
         self,
         reservation: DHCPReservation,

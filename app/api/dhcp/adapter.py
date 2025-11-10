@@ -226,6 +226,19 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             subnet_id,
         )
 
+    async def update_reservation(
+        self,
+        data: DHCPReservationSchemaRequest,
+    ) -> None:
+        await self._service.update_reservation(
+            DHCPReservation(
+                subnet_id=data.subnet_id,
+                ip_address=data.ip_address,
+                mac_address=data.mac_address,
+                hostname=data.hostname,
+            ),
+        )
+
     async def get_reservations(
         self,
         subnet_id: int,
