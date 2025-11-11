@@ -30,6 +30,9 @@ from ldap_protocol.identity.utils import (
     get_user_agent_from_request,
 )
 from ldap_protocol.session_storage.base import SessionStorage
+from ldap_protocol.session_storage.exceptions import (
+    SessionStorageInvalidDataError,
+)
 from tests.conftest import TestProvider
 
 
@@ -233,7 +236,7 @@ async def test_identity_provider_errors(settings: Settings) -> None:
     session_storage.key_length = 16
     session_storage.key_ttl = 300
     session_storage.get_user_id = AsyncMock(
-        side_effect=KeyError("Invalid data"),
+        side_effect=SessionStorageInvalidDataError("Invalid data"),
     )
     session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
 

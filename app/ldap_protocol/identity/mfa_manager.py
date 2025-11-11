@@ -24,7 +24,8 @@ from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
-    MFAError,
+    MFAAPIError,
+    MFAConnectError,
     MFATokenError,
     MissingMFACredentialsError,
     NetworkPolicyError,
@@ -261,7 +262,6 @@ class MFAManager(AbstractService):
         :raises MissingMFACredentialsError: if MFA is not initialized
         :raises InvalidCredentialsError: if credentials are invalid
         :raises NetworkPolicyError: if network policy is not passed
-        :raises MFAError: for MFA-specific errors
         """
         if not self._mfa_api.is_initialized:
             raise MissingMFACredentialsError()
@@ -285,7 +285,7 @@ class MFAManager(AbstractService):
             if network_policy.bypass_no_connection:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
-            raise MFAError("Multifactor error")
+            raise MFAConnectError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
             return await bypass_coro
@@ -294,7 +294,7 @@ class MFAManager(AbstractService):
             if network_policy.bypass_service_failure:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
-            raise MFAError(str(error))
+            raise MFAAPIError(str(error))
 
         else:
             weakref.finalize(bypass_coro, bypass_coro.close)

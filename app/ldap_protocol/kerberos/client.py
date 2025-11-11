@@ -2,8 +2,9 @@
 
 import httpx
 
+import ldap_protocol.kerberos.exceptions as krb_exc
+
 from .base import AbstractKadmin
-from .exceptions import KRBAPIError, KRBAPIPrincipalNotFoundError
 from .utils import logger_wraps
 
 
@@ -29,7 +30,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         )
 
         if response.status_code != 201:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPIAddPrincipalError(response.text)
 
     @logger_wraps()
     async def get_principal(self, name: str) -> dict:
@@ -37,10 +38,10 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.get("principal", params={"name": name})
 
         if response.status_code == 404:
-            raise KRBAPIPrincipalNotFoundError
+            raise krb_exc.KRBAPIPrincipalNotFoundError
 
         if response.status_code != 200:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPIGetPrincipalError(response.text)
 
         return response.json()
 
@@ -50,10 +51,10 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.delete("principal", params={"name": name})
 
         if response.status_code == 404:
-            raise KRBAPIPrincipalNotFoundError
+            raise krb_exc.KRBAPIPrincipalNotFoundError
 
         if response.status_code != 200:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPIDeletePrincipalError(response.text)
 
     @logger_wraps()
     async def change_principal_password(
@@ -67,7 +68,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             json={"name": name, "password": password},
         )
         if response.status_code != 201:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPIChangePasswordError(response.text)
 
     @logger_wraps()
     async def create_or_update_principal_pw(
@@ -82,10 +83,10 @@ class KerberosMDAPIClient(AbstractKadmin):
         )
 
         if response.status_code == 404:
-            raise KRBAPIPrincipalNotFoundError
+            raise krb_exc.KRBAPIPrincipalNotFoundError
 
         if response.status_code != 201:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPIChangePasswordError(response.text)
 
     @logger_wraps()
     async def rename_princ(self, name: str, new_name: str) -> None:
@@ -95,7 +96,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             json={"name": name, "new_name": new_name},
         )
         if response.status_code != 202:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPIRenamePrincipalError(response.text)
 
     @logger_wraps()
     async def ktadd(self, names: list[str]) -> httpx.Response:
@@ -112,7 +113,7 @@ class KerberosMDAPIClient(AbstractKadmin):
 
         response = await self.client.send(request, stream=True)
         if response.status_code == 404:
-            raise KRBAPIPrincipalNotFoundError
+            raise krb_exc.KRBAPIPrincipalNotFoundError
 
         return response
 
@@ -121,7 +122,8 @@ class KerberosMDAPIClient(AbstractKadmin):
         """Lock princ.
 
         :param str name: upn
-        :raises KRBAPIError: on error
+        :raises KRBAPIPrincipalNotFoundError: on error
+        :raises KRBAPILockPrincipalError: on error
         """
         response = await self.client.post(
             "principal/lock",
@@ -129,17 +131,18 @@ class KerberosMDAPIClient(AbstractKadmin):
         )
 
         if response.status_code == 404:
-            raise KRBAPIPrincipalNotFoundError
+            raise krb_exc.KRBAPIPrincipalNotFoundError
 
         if response.status_code != 200:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPILockPrincipalError(response.text)
 
     @logger_wraps()
     async def force_princ_pw_change(self, name: str) -> None:
         """Force mark password change for principal.
 
         :param str name: pw
-        :raises KRBAPIError: err
+        :raises KRBAPIPrincipalNotFoundError: err
+        :raises KRBAPIForcePasswordChangeError: err
         """
         response = await self.client.post(
             "principal/force_reset",
@@ -147,7 +150,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         )
 
         if response.status_code == 404:
-            raise KRBAPIPrincipalNotFoundError
+            raise krb_exc.KRBAPIPrincipalNotFoundError
 
         if response.status_code != 200:
-            raise KRBAPIError(response.text)
+            raise krb_exc.KRBAPIForcePasswordChangeError(response.text)

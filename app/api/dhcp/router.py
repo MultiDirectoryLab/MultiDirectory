@@ -10,7 +10,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, status
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 from ldap_protocol.dhcp.schemas import (
     DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
@@ -28,7 +28,7 @@ from .adapter import DHCPAdapter
 dhcp_router = APIRouter(
     prefix="/dhcp",
     tags=["DHCP"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
     route_class=DishkaRoute,
 )
 

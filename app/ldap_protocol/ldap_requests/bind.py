@@ -15,7 +15,7 @@ from entities import NetworkPolicy, User
 from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.kerberos.exceptions import KRBAPIAddPrincipalError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.bind_methods import (
     AbstractLDAPAuth,
@@ -214,7 +214,10 @@ class BindRequest(BaseRequest):
                     yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
                     return
 
-        with contextlib.suppress(KRBAPIError, httpx.TimeoutException):
+        with contextlib.suppress(
+            KRBAPIAddPrincipalError,
+            httpx.TimeoutException,
+        ):
             await ctx.kadmin.add_principal(
                 user.get_upn_prefix(),
                 self.authentication_choice.password.get_secret_value(),

@@ -17,12 +17,16 @@ class MFARequiredError(MFAIdentityError):
     """Raised when MFA is required for authentication."""
 
 
-class MFAError(MFAIdentityError):
-    """Raised for general MFA errors."""
-
-
 class MFATokenError(MFAIdentityError):
     """Raised when an MFA token is invalid or missing."""
+
+
+class MFAAPIError(MFAIdentityError):
+    """Raised when an MFA API error occurs."""
+
+
+class MFAConnectError(MFAIdentityError):
+    """Raised when an MFA connect error occurs."""
 
 
 class MissingMFACredentialsError(MFAIdentityError):
