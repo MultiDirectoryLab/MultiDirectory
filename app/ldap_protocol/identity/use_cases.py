@@ -21,7 +21,7 @@ from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.helpers import ft_now
+from ldap_protocol.utils.helpers import create_integer_hash, ft_now
 
 
 class SetupUseCase(AbstractService):
@@ -106,7 +106,7 @@ class SetupUseCase(AbstractService):
                         ],
                         "pwdLastSet": [ft_now()],
                         "loginShell": ["/bin/bash"],
-                        "uidNumber": ["1000"],
+                        "uidNumber": [str(create_integer_hash(dto.username))],
                         "gidNumber": ["513"],
                         "userAccountControl": ["512"],
                         "primaryGroupID": ["512"],
