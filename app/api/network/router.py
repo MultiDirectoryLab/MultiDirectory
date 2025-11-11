@@ -11,7 +11,7 @@ from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 
 from .schema import (
@@ -26,7 +26,7 @@ network_router = APIRouter(
     prefix="/policy",
     tags=["Network policy"],
     route_class=DishkaRoute,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 
 

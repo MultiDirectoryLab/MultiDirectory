@@ -9,13 +9,13 @@ from .adapters.session_gateway import (
     SessionContentResponseSchema,
     SessionFastAPIGateway,
 )
-from .oauth2 import get_current_user
+from .oauth2 import verify_auth
 
 session_router = APIRouter(
     prefix="/sessions",
     tags=["Session"],
     route_class=DishkaRoute,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 
 
