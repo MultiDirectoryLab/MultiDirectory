@@ -54,6 +54,7 @@ from entities import (
 )
 from enums import (
     AceType,
+    ApiPermissionsType,
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
@@ -243,8 +244,7 @@ user_api_permissions_table = Table(
     ),
     Column(
         "permissions",
-        ARRAY(String),
-        primary_key=True,
+        ARRAY(Enum(ApiPermissionsType, name="apipermissions")),
     ),
 )
 

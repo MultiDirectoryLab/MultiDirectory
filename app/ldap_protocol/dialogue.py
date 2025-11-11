@@ -44,12 +44,14 @@ class UserSchema:
 
     account_exp: datetime | None
     role_ids: list[int]
+    api_permissions: list[str]
 
     @classmethod
     async def from_db(
         cls,
         user: User,
         session_id: str,
+        api_permissions: list[str] | None = None,
     ) -> UserSchema:
         """Create model from db model."""
         return cls(
@@ -65,6 +67,7 @@ class UserSchema:
             role_ids=[
                 role.id for group in user.groups for role in group.roles
             ],
+            api_permissions=api_permissions or [],
         )
 
 

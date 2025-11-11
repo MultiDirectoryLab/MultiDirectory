@@ -8,8 +8,7 @@ from abstract_dao import AbstractService
 from config import Settings
 from entities import User
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.exceptions.auth import UnauthorizedError
-from ldap_protocol.identity.identity_provider_gateway import (
+from ldap_protocol.identity_provider.identity_provider_gateway import (
     IdentityProviderGateway,
 )
 from ldap_protocol.session_storage.base import SessionStorage
@@ -21,6 +20,14 @@ from ldap_protocol.session_storage.exceptions import (
     SessionStorageInvalidUserAgentError,
     SessionStorageMissingDataError,
 )
+
+
+class IdentityError(Exception):
+    """Base exception for authentication identity-related errors."""
+
+
+class UnauthorizedError(IdentityError):
+    """Raised when authentication fails due to invalid credentials."""
 
 
 class IdentityProvider(AbstractService):

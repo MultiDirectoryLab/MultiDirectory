@@ -21,13 +21,13 @@ from starlette.responses import Response
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions.auth import UnauthorizedError
-from ldap_protocol.identity.identity_provider import IdentityProvider
-from ldap_protocol.identity.identity_provider_gateway import (
-    IdentityProviderGateway,
-)
 from ldap_protocol.identity.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
+)
+from ldap_protocol.identity_provider import IdentityProvider
+from ldap_protocol.identity_provider.identity_provider_gateway import (
+    IdentityProviderGateway,
 )
 from ldap_protocol.session_storage.base import SessionStorage
 from ldap_protocol.session_storage.exceptions import (
@@ -119,6 +119,7 @@ async def current_user_provider(
             dn="CN=User Zero,CN=Users,DC=example,DC=com",
             account_exp=datetime.datetime.max,
             role_ids=[1],
+            api_permissions=[],
         )
         provider.get_user_id = AsyncMock(return_value=1)  # type: ignore
         provider.get = AsyncMock(return_value=user)  # type: ignore

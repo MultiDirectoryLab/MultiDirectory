@@ -10,11 +10,12 @@ from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
 from fastapi import HTTPException
 
-from abstract_dao import AbstractDAO, AbstractService
+from abstract_dao import AbstractService
+from ldap_protocol.permissions_checker import ApiPermissionsChecker
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
-_T = TypeVar("_T", bound=AbstractDAO | AbstractService)
+_T = TypeVar("_T", bound=AbstractService)
 
 
 class BaseAdapter(Protocol[_T]):
@@ -22,10 +23,12 @@ class BaseAdapter(Protocol[_T]):
 
     _exceptions_map: dict[type[Exception], int]
     _service: _T
+    _perm_check: ApiPermissionsChecker
 
-    def __init__(self, service: _T) -> None:
+    def __init__(self, service: _T, perm_check: ApiPermissionsChecker) -> None:
         """Set service."""
         self._service = service
+        self._service.set_permissions_checker(perm_check)
 
     def __new__(
         cls,

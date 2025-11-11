@@ -11,6 +11,9 @@ from redis.asyncio import Redis
 from redis.asyncio.lock import Lock
 
 from config import Settings
+from ldap_protocol.session_storage.exceptions import (
+    SessionStorageMissingDataError,
+)
 
 from .base import ProtocolType, SessionStorage
 
@@ -98,7 +101,7 @@ class RedisSessionStorage(SessionStorage):
         """
         data = await self._storage.get(key)
         if data is None:
-            raise KeyError
+            raise SessionStorageMissingDataError
         return json.loads(data)
 
     async def delete(self, keys: Iterable[str]) -> None:
@@ -324,7 +327,7 @@ class RedisSessionStorage(SessionStorage):
         ip = data.get("ip")
 
         if uid is None or ip is None:
-            raise KeyError("Invalid session id")
+            raise SessionStorageMissingDataError("Invalid session id")
 
         uid = int(uid)
 
@@ -519,7 +522,7 @@ class RedisSessionStorage(SessionStorage):
         uid = data.get("id")
         ip = data.get("ip")
         if uid is None or ip is None:
-            raise KeyError("Invalid session id")
+            raise SessionStorageMissingDataError("Invalid session id")
         uid = int(uid)
 
         ttl = await self._storage.ttl(session_id)

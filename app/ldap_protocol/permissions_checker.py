@@ -3,7 +3,8 @@
 from functools import wraps
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 
-from ldap_protocol.identity.identity_provider import IdentityProvider
+from enums import ApiPermissionsType
+from ldap_protocol.identity_provider import IdentityProvider
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -17,36 +18,37 @@ class ApiPermissionsChecker:
     """API permissions checker."""
 
     def __init__(self, identity_provider: IdentityProvider) -> None:
-        """Initialize."""
-        self._identity_provider = identity_provider
+        """Set current user.
 
-    async def has_permission(self, permission: str) -> bool:
+        :param UserSchema | None user: current user
+        :return: None
+        """
+        self._idp = identity_provider
+
+    async def _has_permission(self, permission: ApiPermissionsType) -> bool:
         """Check if current user has permission.
 
         :param str permission: permission to check
         :return: bool
         """
-        user = await self._identity_provider.get_current_user()
-        if not user:
-            return False
-
+        user = await self._idp.get_current_user()
         return permission in user.api_permissions
 
-    async def check_permission(self, permission: str) -> None:
+    async def check_permission(self, permission: ApiPermissionsType) -> None:
         """Check if current user has permission, raise error if not.
 
         :param str permission: permission to check
         :raises ApiPermissionError: if user does not have permission
         :return: None
         """
-        if not await self.has_permission(permission):
+        if not await self._has_permission(permission):
             raise ApiPermissionError(
                 f"User does not have permission: {permission}",
             )
 
     def wrap_use_case(
         self,
-        permission_name: str,
+        permission_name: ApiPermissionsType,
         func: Callable[_P, Awaitable[_R]],
     ) -> Callable[_P, Awaitable[_R]]:
         @wraps(func)

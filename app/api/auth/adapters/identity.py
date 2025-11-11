@@ -8,6 +8,7 @@ from ipaddress import IPv4Address, IPv6Address
 
 from adaptix.conversion import get_converter
 from fastapi import Request, status
+from loguru import logger
 
 from api.base_adapter import BaseAdapter
 from ldap_protocol.dialogue import UserSchema
@@ -32,6 +33,9 @@ from ldap_protocol.identity.schemas import (
     SetupRequest,
 )
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
+from ldap_protocol.identity_provider.identity_provider import (
+    UnauthorizedError as UnE,
+)
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
@@ -41,6 +45,7 @@ class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
 
     _exceptions_map: dict[type[Exception], int] = {
         UnauthorizedError: status.HTTP_401_UNAUTHORIZED,
+        UnE: status.HTTP_401_UNAUTHORIZED,
         LoginFailedError: status.HTTP_403_FORBIDDEN,
         MFARequiredError: status.HTTP_426_UPGRADE_REQUIRED,
         PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,

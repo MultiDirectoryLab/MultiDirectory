@@ -8,6 +8,8 @@ from itertools import islice
 
 from abstract_dao import AbstractService
 from entities import User
+from enums import ApiPermissionsType
+from ldap_protocol.permissions_checker import ApiPermissionsChecker
 
 from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO, PriorityT
@@ -19,6 +21,20 @@ class PasswordPolicyUseCases(AbstractService):
 
     _password_policy_dao: PasswordPolicyDAO
     _password_policy_validator: PasswordPolicyValidator
+    _perm_checker: ApiPermissionsChecker
+
+    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
+        "get_all": ApiPermissionsType.PASSWORD_POLICY_GET_ALL,
+        "get": ApiPermissionsType.PASSWORD_POLICY_GET,
+        "get_password_policy_by_dir_path_dn": (
+            ApiPermissionsType.PASSWORD_POLICY_GET_BY_DIR
+        ),
+        "update": ApiPermissionsType.PASSWORD_POLICY_UPDATE,
+        "reset_domain_policy_to_default_config": (
+            ApiPermissionsType.PASSWORD_POLICY_RESET_DOMAIN_POLICY
+        ),
+        "turnoff": ApiPermissionsType.PASSWORD_POLICY_TURNOFF,
+    }
 
     def __init__(
         self,

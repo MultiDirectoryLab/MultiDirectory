@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
@@ -22,11 +23,11 @@ from ldap_protocol.identity.exceptions.auth import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.identity.mfa_manager import MFAManager
 from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.identity.utils import authenticate_user
+from ldap_protocol.identity_provider import IdentityProvider
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase

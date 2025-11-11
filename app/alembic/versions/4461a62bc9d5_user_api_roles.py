@@ -25,11 +25,27 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column(
             "permissions",
-            postgresql.ARRAY(sa.String()),
+            postgresql.ARRAY(
+                sa.Enum(
+                    "PASSWORD_POLICY_GET_ALL",
+                    "PASSWORD_POLICY_GET",
+                    "PASSWORD_POLICY_GET_BY_DIR",
+                    "PASSWORD_POLICY_UPDATE",
+                    "PASSWORD_POLICY_RESET_DOMAIN_POLICY",
+                    "PASSWORD_POLICY_TURNOFF",
+                    "NETWORK_POLICY_CREATE",
+                    "NETWORK_POLICY_GET_LIST_POLICIES",
+                    "NETWORK_POLICY_DELETE",
+                    "NETWORK_POLICY_SWITCH_NETWORK_POLICY",
+                    "NETWORK_POLICY_SWAP_PRIORITIES",
+                    "NETWORK_POLICY_UPDATE",
+                    name="apipermissions",
+                ),
+            ),
             nullable=False,
         ),
         sa.ForeignKeyConstraint(["id"], ["Users.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id", "permissions"),
+        sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###
 

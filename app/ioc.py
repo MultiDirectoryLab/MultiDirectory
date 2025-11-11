@@ -51,15 +51,15 @@ from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.dns.utils import resolve_dns_server_ip
 from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.identity.identity_provider import IdentityProvider
-from ldap_protocol.identity.identity_provider_gateway import (
-    IdentityProviderGateway,
-)
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.identity.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
+)
+from ldap_protocol.identity_provider import IdentityProvider
+from ldap_protocol.identity_provider.identity_provider_gateway import (
+    IdentityProviderGateway,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
@@ -91,6 +91,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.permissions_checker import ApiPermissionsChecker
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.dataclasses import (
@@ -417,10 +418,6 @@ class MainProvider(Provider):
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
-    password_policies_adapter = provide(
-        PasswordPolicyFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
     password_validator_settings = provide(
         PasswordValidatorSettings,
         scope=Scope.REQUEST,
@@ -431,17 +428,8 @@ class MainProvider(Provider):
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
-    attribute_type_fastapi_adapter = provide(
-        AttributeTypeFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
-    object_class_fastapi_adapter = provide(
-        ObjectClassFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
 
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
-    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
@@ -495,6 +483,25 @@ class HTTPProvider(LDAPContextProvider):
     )
     identity_provider_gateway = provide(
         IdentityProviderGateway,
+        scope=Scope.REQUEST,
+    )
+
+    password_policies_adapter = provide(
+        PasswordPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    attribute_type_fastapi_adapter = provide(
+        AttributeTypeFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    object_class_fastapi_adapter = provide(
+        ObjectClassFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
+
+    api_permissions_checker = provide(
+        ApiPermissionsChecker,
         scope=Scope.REQUEST,
     )
 

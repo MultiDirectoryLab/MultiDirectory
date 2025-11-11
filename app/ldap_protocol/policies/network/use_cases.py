@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractService
 from entities import NetworkPolicy
+from enums import ApiPermissionsType
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -56,6 +57,15 @@ _convert_dto_to_model = get_converter(
 
 class NetworkPolicyUseCase(AbstractService):
     """Network policies use cases."""
+
+    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
+        "create": ApiPermissionsType.NETWORK_POLICY_CREATE,
+        "get_list_policies": ApiPermissionsType.NETWORK_POLICY_GET_LIST_POLICIES,
+        "delete": ApiPermissionsType.NETWORK_POLICY_DELETE,
+        "switch_network_policy": ApiPermissionsType.NETWORK_POLICY_SWITCH_NETWORK_POLICY,
+        "update": ApiPermissionsType.NETWORK_POLICY_UPDATE,
+        "swap_priorities": ApiPermissionsType.NETWORK_POLICY_SWAP_PRIORITIES,
+    }
 
     def __init__(
         self,

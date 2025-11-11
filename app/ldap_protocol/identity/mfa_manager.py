@@ -30,13 +30,13 @@ from ldap_protocol.identity.exceptions.mfa import (
     MissingMFACredentialsError,
     NetworkPolicyError,
 )
-from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,
     MFACreateRequest,
     MFAGetResponse,
 )
 from ldap_protocol.identity.utils import get_user
+from ldap_protocol.identity_provider import IdentityProvider
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
