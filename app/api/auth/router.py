@@ -12,12 +12,15 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, Request, Response, status
 
 from api.auth.adapters import IdentityFastAPIAdapter
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
+)
+from ldap_protocol.identity.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
 )
 from ldap_protocol.session_storage import SessionStorage
 

@@ -354,10 +354,10 @@ async def test_lease_to_reservation(
         hostname="server-01",
     )
 
-    await dhcp_adapter.lease_to_reservation(data)
+    await dhcp_adapter.lease_to_reservation([data])
 
     dhcp_manager.lease_to_reservation.assert_called_once()
-    call_args = dhcp_manager.lease_to_reservation.call_args[0][0]
+    call_args = dhcp_manager.lease_to_reservation.call_args[0][0][0]
 
     assert call_args.subnet_id == data.subnet_id
     assert call_args.ip_address == data.ip_address

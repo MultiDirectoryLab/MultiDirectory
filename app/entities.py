@@ -491,7 +491,7 @@ class NetworkPolicy:
     is_kerberos: bool = True
     bypass_no_connection: bool = False
     bypass_service_failure: bool = False
-    ldap_session_ttl: int = -1
+    ldap_session_ttl: int = 7200
     http_session_ttl: int = 28800
     groups: list[Group] = field(init=False, default_factory=list, repr=False)
     mfa_groups: list[Group] = field(
