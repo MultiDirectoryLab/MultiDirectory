@@ -71,7 +71,8 @@ async def users_me(
 ) -> UserSchema:
     """Get current logged-in user data.
 
-    :param identity_adapter: IdentityFastAPIAdapter instance for user identity operations
+    :param identity_adapter: IdentityFastAPIAdapter instance for user
+        identity operations
     :return: UserSchema
     """
     return await identity_adapter.get_current_user()
