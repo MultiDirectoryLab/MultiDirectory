@@ -64,6 +64,9 @@ def upgrade() -> None:
         if not directory:
             return
 
+        if not directory.user or not directory.user.sam_account_name:
+            return
+
         await session.execute(
             sa.update(Attribute)
             .where(
