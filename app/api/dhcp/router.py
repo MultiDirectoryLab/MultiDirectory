@@ -15,6 +15,7 @@ from ldap_protocol.dhcp.schemas import (
     DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
+    DHCPLeaseToReservationErrorResponse,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
     DHCPStateSchemaResponse,
@@ -124,11 +125,11 @@ async def delete_dhcp_lease(
 
 @dhcp_router.patch("/lease/to_reservation")
 async def lease_to_reservation(
-    data: DHCPReservationSchemaRequest,
+    data: list[DHCPReservationSchemaRequest],
     dhcp_adapter: FromDishka[DHCPAdapter],
-) -> None:
+) -> None | list[DHCPLeaseToReservationErrorResponse]:
     """Transform lease to reservation."""
-    await dhcp_adapter.lease_to_reservation(data)
+    return await dhcp_adapter.lease_to_reservation(data)
 
 
 @dhcp_router.post("/reservation", status_code=status.HTTP_201_CREATED)

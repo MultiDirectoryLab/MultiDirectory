@@ -140,6 +140,14 @@ class DHCPReservationSchemaResponse(BaseModel):
     hostname: str | None = None
 
 
+class DHCPLeaseToReservationErrorResponse(BaseModel):
+    """Schema for responding with lease to reservation operation error."""
+
+    text: str
+    ip_address: IPv4Address | None = None
+    mac_address: str | None = None
+
+
 class DHCPChangeStateSchemaRequest(BaseModel):
     """Schema for setting up the DHCP server."""
 

@@ -7,6 +7,7 @@ from .exceptions import (
     DHCPEntryDeleteError,
     DHCPEntryNotFoundError,
     DHCPEntryUpdateError,
+    DHCPOperationError,
     DHCPValidatonError,
 )
 from .kea_dhcp_manager import KeaDHCPManager
@@ -15,6 +16,7 @@ from .schemas import (
     DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
+    DHCPLeaseToReservationErrorResponse,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
     DHCPStateSchemaResponse,
@@ -53,6 +55,7 @@ __all__ = [
     "DHCPEntryAddError",
     "DHCPEntryUpdateError",
     "DHCPValidatonError",
+    "DHCPOperationError",
     "DHCPAPIError",
     "DHCPSubnetSchemaRequest",
     "DHCPSubnetSchemaAddRequest",
@@ -63,4 +66,5 @@ __all__ = [
     "DHCPReservationSchemaResponse",
     "DHCPChangeStateSchemaRequest",
     "DHCPStateSchemaResponse",
+    "DHCPLeaseToReservationErrorResponse",
 ]
