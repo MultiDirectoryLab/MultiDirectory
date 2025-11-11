@@ -34,7 +34,7 @@ from ldap_protocol.identity.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
 )
-from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -292,7 +292,7 @@ class AuditMonitorUseCase:
             except (
                 UserNotFoundError,
                 PasswordPolicyError,
-                KRBAPIError,
+                KRBAPIChangePasswordError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc

@@ -7,7 +7,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address
 
 from .base import AbstractDHCPManager
-from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
+from .dataclasses import (
+    DHCPLease,
+    DHCPLeaseToReservationError,
+    DHCPReservation,
+    DHCPSubnet,
+)
 from .exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
@@ -15,7 +20,7 @@ from .exceptions import (
     DHCPEntryNotFoundError,
     DHCPEntryUpdateError,
     DHCPError,
-    DHCPValidatonError,
+    DHCPOperationError,
 )
 
 
@@ -122,35 +127,72 @@ class KeaDHCPManager(AbstractDHCPManager):
 
         return lease
 
-    async def lease_to_reservation(self, reservation: DHCPReservation) -> None:
+    async def lease_to_reservation(
+        self,
+        reservations: list[DHCPReservation],
+    ) -> None | list[DHCPLeaseToReservationError]:
         """Transform lease to reservation.
 
         Transoformation can only be done via delete -> create
         due to limitation of the Kea DHCP API.
         """
-        if reservation.ip_address is None:
-            raise DHCPValidatonError("IP address must be specified")
+        errors = []
 
-        try:
-            await self._api_repository.release_lease(reservation.ip_address)
-        except DHCPAPIError as e:
-            raise DHCPEntryDeleteError(f"Failed to release lease: {e}")
+        for reservation in reservations:
+            if (
+                reservation.ip_address is None
+                or reservation.mac_address is None
+            ):
+                errors.append(
+                    DHCPLeaseToReservationError(
+                        ip_address=reservation.ip_address,
+                        mac_address=reservation.mac_address,
+                        text="MAC address and IP address must be specified",
+                    ),
+                )
+                continue
 
-        try:
-            await self._api_repository.create_reservation(reservation)
-        except DHCPError as e:
-            await self._api_repository.create_lease(
-                DHCPLease(
-                    subnet_id=reservation.subnet_id,
-                    ip_address=reservation.ip_address,
-                    mac_address=reservation.mac_address,
-                    hostname=reservation.hostname,
-                ),
-            )
+            try:
+                await self._api_repository.release_lease(
+                    reservation.ip_address,
+                )
+            except DHCPError as e:
+                errors.append(
+                    DHCPLeaseToReservationError(
+                        ip_address=reservation.ip_address,
+                        mac_address=reservation.mac_address,
+                        text=f"Failed to release lease: {e}",
+                    ),
+                )
+                continue
 
-            raise DHCPEntryAddError(
-                f"Failed to add reservation: {e}",
-            )
+            try:
+                await self._api_repository.create_reservation(reservation)
+            except DHCPError as e:
+                await self._api_repository.create_lease(
+                    DHCPLease(
+                        subnet_id=reservation.subnet_id,
+                        ip_address=reservation.ip_address,
+                        mac_address=reservation.mac_address,
+                        hostname=reservation.hostname,
+                    ),
+                )
+
+                errors.append(
+                    DHCPLeaseToReservationError(
+                        ip_address=reservation.ip_address,
+                        mac_address=reservation.mac_address,
+                        text=f"Failed to add reservation: {e}",
+                    ),
+                )
+                continue
+
+        if len(errors) == 0:
+            return None
+        elif len(errors) < len(reservations):
+            return errors
+        else:
+            raise DHCPOperationError("Transformation failed")
 
     async def add_reservation(
         self,

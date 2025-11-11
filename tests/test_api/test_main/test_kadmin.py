@@ -10,7 +10,11 @@ from fastapi import status
 from httpx import AsyncClient
 
 from config import Settings
-from ldap_protocol.kerberos import AbstractKadmin, KerberosState, KRBAPIError
+from ldap_protocol.kerberos import AbstractKadmin, KerberosState
+from ldap_protocol.kerberos.exceptions import (
+    KRBAPIChangePasswordError,
+    KRBAPIPrincipalNotFoundError,
+)
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from ldap_protocol.ldap_requests.contexts import LDAPBindRequestContext
 from password_manager import PasswordValidator
@@ -236,7 +240,7 @@ async def test_ktadd_404(
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    kadmin.ktadd.side_effect = KRBAPIError()  # type: ignore
+    kadmin.ktadd.side_effect = KRBAPIPrincipalNotFoundError()  # type: ignore
 
     names = ["test1", "test2"]
     response = await http_client.post("/kerberos/ktadd", json=names)
@@ -514,7 +518,7 @@ async def test_update_password(
     """Update policy."""
     (
         kadmin.create_or_update_principal_pw.side_effect  # type: ignore
-    ) = KRBAPIError()
+    ) = KRBAPIChangePasswordError()
     response = await http_client.patch(
         "auth/user/password",
         json={"identity": "user0", "new_password": "Password123"},

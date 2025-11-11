@@ -24,7 +24,7 @@ from ldap_protocol.identity.utils import (
 )
 from ldap_protocol.session_storage import SessionStorage
 
-from .oauth2 import get_current_user
+from .oauth2 import verify_auth
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
@@ -67,21 +67,22 @@ async def login(
 
 @auth_router.get("/me")
 async def users_me(
-    user: Annotated[UserSchema, Depends(get_current_user)],
+    identity_adapter: FromDishka[IdentityFastAPIAdapter],
 ) -> UserSchema:
     """Get current logged-in user data.
 
-    :param user: UserSchema (current user)
+    :param identity_adapter: IdentityFastAPIAdapter instance for user
+        identity operations
     :return: UserSchema
     """
-    return user
+    return await identity_adapter.get_current_user()
 
 
 @auth_router.delete("/", response_class=Response)
 async def logout(
     response: Response,
     storage: FromDishka[SessionStorage],
-    user: Annotated[UserSchema, Depends(get_current_user)],
+    identity_adapter: FromDishka[IdentityFastAPIAdapter],
 ) -> None:
     """Delete token cookies and user session.
 
@@ -90,6 +91,7 @@ async def logout(
     :param user: UserSchema (current user)
     :return: None
     """
+    user = await identity_adapter.get_current_user()
     response.delete_cookie("id", httponly=True)
     await storage.delete_user_session(user.session_id)
 
@@ -97,7 +99,7 @@ async def logout(
 @auth_router.patch(
     "/user/password",
     status_code=200,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],

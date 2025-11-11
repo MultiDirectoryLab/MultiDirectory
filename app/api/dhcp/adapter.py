@@ -19,6 +19,8 @@ from ldap_protocol.dhcp import (
     DHCPEntryUpdateError,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
+    DHCPLeaseToReservationErrorResponse,
+    DHCPOperationError,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
     DHCPStateSchemaResponse,
@@ -45,6 +47,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         DHCPEntryUpdateError: status.HTTP_409_CONFLICT,
         DHCPAPIError: status.HTTP_400_BAD_REQUEST,
         DHCPValidatonError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        DHCPOperationError: status.HTTP_400_BAD_REQUEST,
     }
 
     async def create_subnet(
@@ -187,16 +190,32 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
 
     async def lease_to_reservation(
         self,
-        data: DHCPReservationSchemaRequest,
-    ) -> None:
+        data: list[DHCPReservationSchemaRequest],
+    ) -> None | list[DHCPLeaseToReservationErrorResponse]:
         """Transform lease to reservation."""
-        await self._service.lease_to_reservation(
-            DHCPReservation(
-                subnet_id=data.subnet_id,
-                ip_address=data.ip_address,
-                mac_address=data.mac_address,
-                hostname=data.hostname,
-            ),
+        errors_info = await self._service.lease_to_reservation(
+            [
+                DHCPReservation(
+                    subnet_id=reservation_data.subnet_id,
+                    ip_address=reservation_data.ip_address,
+                    mac_address=reservation_data.mac_address,
+                    hostname=reservation_data.hostname,
+                )
+                for reservation_data in data
+            ],
+        )
+
+        return (
+            [
+                DHCPLeaseToReservationErrorResponse(
+                    ip_address=error.ip_address,
+                    mac_address=error.mac_address,
+                    text=error.text,
+                )
+                for error in errors_info
+            ]
+            if errors_info is not None
+            else None
         )
 
     async def add_reservation(

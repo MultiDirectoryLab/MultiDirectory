@@ -128,6 +128,38 @@ class SearchRequest(BaseRequest):
         """Serialize filter field."""
         return val.to_ldap_filter() if isinstance(val, ASN1Row) else None
 
+    @cached_property
+    def member_of(self) -> bool:
+        return "memberof" in self.requested_attrs or self.all_attrs
+
+    @cached_property
+    def entity_type_name(self) -> bool:
+        return "entitytypename" in self.requested_attrs or self.all_attrs
+
+    @cached_property
+    def member(self) -> bool:
+        return "member" in self.requested_attrs or self.all_attrs
+
+    @cached_property
+    def token_groups(self) -> bool:
+        return "tokengroups" in self.requested_attrs
+
+    @property
+    def is_sid_requested(self) -> bool:
+        return self.all_attrs or "objectsid" in self.requested_attrs
+
+    @property
+    def is_guid_requested(self) -> bool:
+        return self.all_attrs or "objectguid" in self.requested_attrs
+
+    @cached_property
+    def all_attrs(self) -> bool:
+        return "*" in self.requested_attrs or not self.requested_attrs
+
+    @cached_property
+    def requested_attrs(self) -> list[str]:
+        return [attr.lower() for attr in self.attributes]
+
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "SearchRequest":
         (
@@ -151,10 +183,6 @@ class SearchRequest(BaseRequest):
             filter=filter_,
             attributes=[field.value for field in attributes.value],
         )
-
-    @cached_property
-    def requested_attrs(self) -> list[str]:
-        return [attr.lower() for attr in self.attributes]
 
     async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
         attrs: dict[str, list[str]] = defaultdict(list)
@@ -312,7 +340,7 @@ class SearchRequest(BaseRequest):
             )
             return
 
-        query = self.build_query(
+        query = self._build_query(
             await get_base_directories(ctx.session),
             user,
             ctx.access_manager,
@@ -349,34 +377,6 @@ class SearchRequest(BaseRequest):
             total_objects=count,
         )
 
-    @cached_property
-    def member_of(self) -> bool:
-        return "memberof" in self.requested_attrs or self.all_attrs
-
-    @cached_property
-    def entity_type_name(self) -> bool:
-        return "entitytypename" in self.requested_attrs or self.all_attrs
-
-    @cached_property
-    def member(self) -> bool:
-        return "member" in self.requested_attrs or self.all_attrs
-
-    @cached_property
-    def token_groups(self) -> bool:
-        return "tokengroups" in self.requested_attrs
-
-    @property
-    def is_sid_requested(self) -> bool:
-        return self.all_attrs or "objectsid" in self.requested_attrs
-
-    @property
-    def is_guid_requested(self) -> bool:
-        return self.all_attrs or "objectguid" in self.requested_attrs
-
-    @cached_property
-    def all_attrs(self) -> bool:
-        return "*" in self.requested_attrs or not self.requested_attrs
-
     def _mutate_query_with_attributes_to_load(
         self,
         query: Select,
@@ -391,11 +391,11 @@ class SearchRequest(BaseRequest):
         if self.all_attrs:
             return query.options(selectinload(qa(Directory.attributes)))
 
-        attrs = [
+        attrs = {
             attr
             for attr in self.requested_attrs
             if attr not in _ATTRS_TO_CLEAN
-        ]
+        }
 
         return query.options(
             selectinload(qa(Directory.attributes)),
@@ -405,12 +405,12 @@ class SearchRequest(BaseRequest):
             ),
         )
 
-    def build_query(
+    def _build_query(
         self,
         base_directories: list[Directory],
         user: UserSchema,
         access_manager: AccessManager,
-    ) -> Select:
+    ) -> Select[tuple[Directory]]:
         """Build tree query."""
         query = (
             select(Directory)

@@ -9,7 +9,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.schema import (
     DNSServiceForwardZoneCheckRequest,
@@ -33,7 +33,7 @@ from ldap_protocol.dns import (
 dns_router = APIRouter(
     prefix="/dns",
     tags=["DNS_SERVICE"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
     route_class=DishkaRoute,
 )
 

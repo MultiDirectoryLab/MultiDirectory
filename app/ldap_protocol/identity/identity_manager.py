@@ -27,7 +27,7 @@ from ldap_protocol.identity.mfa_manager import MFAManager
 from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form
 from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.identity.utils import authenticate_user
-from ldap_protocol.kerberos import AbstractKadmin, KRBAPIError
+from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network_policy import (
@@ -209,7 +209,7 @@ class IdentityManager(AbstractService):
         :param include_krb: bool
         :raises UserNotFoundError: if user not found
         :raises PasswordPolicyError: if password does not meet policy
-        :raises KRBAPIError: if Kerberos password update failed
+        :raises KRBAPIChangePasswordError: if Kerberos password update failed
         :return: None.
         """
         user = await get_user(self._session, identity)
@@ -235,15 +235,10 @@ class IdentityManager(AbstractService):
             raise PasswordPolicyError(errors)
 
         if include_krb:
-            try:
-                await self._kadmin.create_or_update_principal_pw(
-                    user.get_upn_prefix(),
-                    new_password,
-                )
-            except KRBAPIError:
-                raise KRBAPIError(
-                    "Failed kerberos password update",
-                )
+            await self._kadmin.create_or_update_principal_pw(
+                user.get_upn_prefix(),
+                new_password,
+            )
 
         user.password = self._password_validator.get_password_hash(
             new_password,

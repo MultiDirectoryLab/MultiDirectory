@@ -80,7 +80,7 @@ class FilterInterpreterProtocol(Protocol):
     def _get_bit_filter_function(
         self,
         oid: str,
-    ) -> Callable[..., UnaryExpression]:
+    ) -> Callable[[str, int], UnaryExpression]:
         """Retrieve the appropriate filter function based on the attribute."""
         if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND:
             return self._filter_bit_and
@@ -107,13 +107,12 @@ class FilterInterpreterProtocol(Protocol):
             (00000111 & 00000011) == 00000011  # True
 
         """
-        return qa(Directory.id).in_(
-            select(qa(Attribute.directory_id))
-            .where(
+        return qa(Directory).attributes.any(
+            and_(
                 func.lower(Attribute.name) == attr_name.lower(),
                 cast(Attribute.value, BigInteger).op("&")(bit_mask) == bit_mask,  # noqa: E501
             ),
-        )  # type: ignore  # fmt: skip
+        )  # fmt: skip
 
     def _filter_bit_or(self, attr_name: str, bit_mask: int) -> UnaryExpression:
         """Equivalent to a bitwise "OR" operation.
@@ -129,18 +128,17 @@ class FilterInterpreterProtocol(Protocol):
             (00000111 & 00000010) > 0  # True
 
         """
-        return qa(Directory.id).in_(
-            select(qa(Attribute.directory_id))
-            .where(
+        return qa(Directory).attributes.any(
+            and_(
                 func.lower(Attribute.name) == attr_name.lower(),
                 cast(Attribute.value, BigInteger).op("&")(bit_mask) > 0,
             ),
-        )  # type: ignore # fmt: skip
+        )
 
     def _get_filter_function(
         self,
         column: str,
-    ) -> Callable[..., UnaryExpression]:
+    ) -> Callable[[str], UnaryExpression]:
         """Retrieve the appropriate filter function based on the attribute."""
         if len(column.split(":")) == 1:
             attribute = column
@@ -239,6 +237,10 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             return self._get_filter_condition(attr)
 
         elif item.tag_id == TagNumbers.EXTENSIBLE_MATCH:
+            attr = item.value[_ATTR_POS].value.decode("utf-8").lower()
+            attr = attr.split(":")[0]
+            self.attributes.add(attr)
+
             if item.value[_RULE_POS].value in (
                 LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND,
                 LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR,
@@ -248,7 +250,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             elif (
                 len(item.value) == 3
                 and isinstance(item.value[_ATTR_POS].value, bytes)
-                and item.value[_ATTR_POS].value.decode("utf-8").lower() in _MEMBERS_ATTRS  # noqa: E501
+                and attr in _MEMBERS_ATTRS
             ):  # fmt: skip
                 return self._ldap_filter_by_attribute(*item.value)  # NOTE: oid
 
@@ -257,7 +259,6 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
         left, right = item.value
         attr = left.value.lower().replace("objectcategory", "objectclass")
-
         self.attributes.add(attr)
 
         is_substring = item.tag_id == TagNumbers.SUBSTRING

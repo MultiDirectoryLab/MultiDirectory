@@ -21,6 +21,10 @@ class DHCPConnectionError(ConnectionError):
     """DHCP connection error."""
 
 
+class DHCPOperationError(DHCPError):
+    """DHCP operation error."""
+
+
 class DHCPEntryAddError(DHCPError):
     """DHCP entry addition error."""
 

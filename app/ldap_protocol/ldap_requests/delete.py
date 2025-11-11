@@ -12,7 +12,10 @@ from sqlalchemy.orm import joinedload, selectinload
 from entities import Directory, Group
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.kerberos import KRBAPIError, KRBAPIPrincipalNotFoundError
+from ldap_protocol.kerberos.exceptions import (
+    KRBAPIDeletePrincipalError,
+    KRBAPIPrincipalNotFoundError,
+)
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
@@ -152,7 +155,7 @@ class DeleteRequest(BaseRequest):
                 )
         except KRBAPIPrincipalNotFoundError:
             pass
-        except KRBAPIError:
+        except KRBAPIDeletePrincipalError:
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,
                 errorMessage="KerberosError",

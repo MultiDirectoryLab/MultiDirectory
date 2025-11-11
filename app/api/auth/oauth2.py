@@ -8,13 +8,12 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 
 from api.auth.adapters import IdentityFastAPIAdapter
-from ldap_protocol.dialogue import UserSchema
 
 
 @inject
-async def get_current_user(
+async def verify_auth(
     identity_adapter: FromDishka[IdentityFastAPIAdapter],
-) -> UserSchema:
+) -> None:
     """Retrieve the currently authenticated user and rekey their session.
 
     This function fetches the current user based on the request's
@@ -31,4 +30,4 @@ async def get_current_user(
             authenticated user.
 
     """
-    return await identity_adapter.get_current_user()
+    await identity_adapter.get_current_user()

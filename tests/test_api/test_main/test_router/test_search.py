@@ -329,7 +329,7 @@ async def test_api_search_by_rule_bit_and(
             "time_limit": 10,
             "types_only": True,
             "filter": f"(&(objectClass=user){dataset['filter']})",
-            "attributes": ["userAccountControl"],
+            "attributes": [],
             "page_number": 1,
         },
     )
@@ -362,7 +362,7 @@ async def test_api_search_by_rule_bit_or(
             "time_limit": 10,
             "types_only": True,
             "filter": f"(&(objectClass=user){dataset['filter']})",
-            "attributes": ["userAccountControl"],
+            "attributes": [],
             "page_number": 1,
         },
     )

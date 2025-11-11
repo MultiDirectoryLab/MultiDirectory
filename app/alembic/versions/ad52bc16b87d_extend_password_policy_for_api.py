@@ -18,7 +18,7 @@ from ldap_protocol.policies.password.dataclasses import (
 
 # revision identifiers, used by Alembic.
 revision: None | str = "ad52bc16b87d"
-down_revision: None | str = "93ba193c6a53"
+down_revision: None | str = "c4888c68e221"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 

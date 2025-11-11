@@ -14,7 +14,8 @@ from ldap_protocol.identity import MFAManager
 from ldap_protocol.identity.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
-    MFAError,
+    MFAAPIError,
+    MFAConnectError,
     MFATokenError,
     MissingMFACredentialsError,
     NetworkPolicyError,
@@ -33,8 +34,8 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
         ForbiddenError: status.HTTP_403_FORBIDDEN,
         InvalidCredentialsError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         NotFoundError: status.HTTP_404_NOT_FOUND,
-        MFAError: status.HTTP_406_NOT_ACCEPTABLE,
-        MFATokenError: status.HTTP_302_FOUND,
+        MFAAPIError: status.HTTP_406_NOT_ACCEPTABLE,
+        MFAConnectError: status.HTTP_406_NOT_ACCEPTABLE,
     }
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
