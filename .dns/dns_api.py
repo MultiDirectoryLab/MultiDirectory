@@ -45,7 +45,7 @@ FIRST_SETUP_RECORDS = [
     {"name": "_kpasswd._udp.", "value": "0 0 464 ", "type": "SRV"},
     # Record for PDC Emulator
     {
-        "name": "_ldap._tcp.pdc._msdcs",
+        "name": "_ldap._tcp.pdc._msdcs.",
         "value": "0 100 389 ",
         "type": "SRV",
     },
