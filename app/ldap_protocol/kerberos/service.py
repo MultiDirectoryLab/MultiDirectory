@@ -24,6 +24,7 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
+from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 from password_manager import PasswordValidator
 
@@ -181,6 +182,12 @@ class KerberosService(AbstractService):
                 "sAMAccountName": ["krbadmin"],
                 "userPrincipalName": ["krbadmin"],
                 "displayName": ["Kerberos Administrator"],
+                "userAccountControl": [
+                    str(
+                        UserAccountControlFlag.NORMAL_ACCOUNT
+                        + UserAccountControlFlag.DONT_EXPIRE_PASSWORD,
+                    ),
+                ],
             },
         )
         return AddRequests(

@@ -12,7 +12,12 @@ from loguru import logger as loguru_logger
 
 from abstract_dao import AbstractService
 
-from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
+from .dataclasses import (
+    DHCPLease,
+    DHCPLeaseToReservationError,
+    DHCPReservation,
+    DHCPSubnet,
+)
 from .dhcp_manager_repository import DHCPManagerRepository
 from .enums import DHCPManagerState
 
@@ -88,6 +93,10 @@ class DHCPAPIRepository(ABC):
     @abstractmethod
     async def create_reservation(self, reservation: DHCPReservation) -> None:
         """Create a new reservation."""
+
+    @abstractmethod
+    async def update_reservation(self, reservation: DHCPReservation) -> None:
+        """Update a reservation."""
 
     @abstractmethod
     async def delete_reservation(self, reservation: DHCPReservation) -> None:
@@ -170,7 +179,19 @@ class AbstractDHCPManager(AbstractService):
     ) -> DHCPLease: ...
 
     @abstractmethod
+    async def lease_to_reservation(
+        self,
+        reservations: list[DHCPReservation],
+    ) -> None | list[DHCPLeaseToReservationError]: ...
+
+    @abstractmethod
     async def add_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None: ...
+
+    @abstractmethod
+    async def update_reservation(
         self,
         reservation: DHCPReservation,
     ) -> None: ...

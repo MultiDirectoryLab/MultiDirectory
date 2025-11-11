@@ -23,13 +23,13 @@ from api.auth.adapters import (
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
+from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
@@ -57,6 +57,10 @@ from ldap_protocol.identity.identity_provider_gateway import (
 )
 from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.identity.use_cases import SetupUseCase
+from ldap_protocol.identity.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
@@ -108,6 +112,8 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
+from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
+from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
@@ -564,6 +570,15 @@ class HTTPProvider(LDAPContextProvider):
     dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
     setup_use_case = provide(SetupUseCase, scope=Scope.REQUEST)
     setup_gateway = provide(SetupGateway, scope=Scope.REQUEST)
+    network_policy_adapter = provide(
+        NetworkPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    network_policy_use_case = provide(
+        NetworkPolicyUseCase,
+        scope=Scope.REQUEST,
+    )
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
