@@ -1,5 +1,6 @@
 """Ready to work kadmin client."""
 
+import backoff
 import httpx
 
 import ldap_protocol.kerberos.exceptions as krb_exc
@@ -10,6 +11,30 @@ from .utils import logger_wraps
 
 class KerberosMDAPIClient(AbstractKadmin):
     """KRB server integration."""
+
+    @backoff.on_exception(
+        backoff.constant,
+        (
+            httpx.ConnectError,
+            httpx.ConnectTimeout,
+            httpx.RemoteProtocolError,
+            ValueError,
+        ),
+        jitter=None,
+        raise_on_giveup=False,
+        max_tries=30,
+    )
+    async def get_status(self, wait_for_positive: bool = False) -> bool | None:
+        """Get status of setup.
+
+        :param bool wait_for_positive: wait for positive status
+        :return bool | None: status or None if max tries achieved
+        """
+        response = await self.client.get("/setup/status")
+        status = response.json()
+        if wait_for_positive and not status:
+            raise krb_exc.KRBAPIStatusNotFoundError
+        return status
 
     @logger_wraps(is_stub=True)
     async def setup(*_, **__) -> None:  # type: ignore
