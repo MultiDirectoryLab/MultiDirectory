@@ -58,10 +58,6 @@ services:
     labels:
       - traefik.enable=true
 
-      - traefik.udp.routers.cldap.entrypoints=cldap
-      - traefik.udp.routers.cldap.service=cldap
-      - traefik.udp.services.cldap.loadbalancer.server.port=389
-
       - traefik.tcp.routers.ldap.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldap.entrypoints=ldap
       - traefik.tcp.routers.ldap.service=ldap
@@ -80,6 +76,43 @@ services:
       timeout: 10s
       retries: 10
       start_period: 3s
+
+  cldap_server:
+    build:
+      context: .
+      dockerfile: ./.docker/dev.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
+    image: multidirectory
+    user: root
+    restart: unless-stopped
+    environment:
+      - SERVICE_NAME=ldap_server
+    # container_name: multidirectory
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - ldap_keytab:/LDAP_keytab/
+    env_file: local.env
+    command: python -OO multidirectory.py --cldap
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      cert_local_check:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 100M
+    labels:
+      - traefik.enable=true
+
+      - traefik.udp.routers.cldap.entrypoints=cldap
+      - traefik.udp.routers.cldap.service=cldap
+      - traefik.udp.services.cldap.loadbalancer.server.port=389
 
   api:
     image: multidirectory
