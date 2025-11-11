@@ -12,7 +12,7 @@ from entities import Attribute, CatalogueSetting, Directory, EntityType
 from enums import StrEnum
 from repo.pg.tables import queryable_attr as qa
 
-from .exceptions import KRBAPIError
+from .exceptions import KRBAPIConnectionError, KRBAPIError
 
 KERBEROS_STATE_NAME = "KerberosState"
 log = loguru_logger.bind(name="kadmin")
@@ -58,11 +58,12 @@ def logger_wraps(is_stub: bool = False) -> Callable:
                 result = await func(*args, **kwargs)
             except (httpx.ConnectError, httpx.TimeoutException):
                 logger.critical("Can not access kadmin server!")
-                raise KRBAPIError
+                raise KRBAPIConnectionError
 
-            except KRBAPIError as err:
-                logger.error(f"{name} call raised: {err}")
-                raise
+            except Exception as err:
+                if isinstance(err, KRBAPIError):
+                    logger.error(f"{name} call raised: {err}")
+                    raise
 
             else:
                 if not is_stub:

@@ -14,8 +14,16 @@ from sqlalchemy import update
 
 from entities import Directory, User
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
-from ldap_protocol.kerberos import KRBAPIError
+from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_requests.exceptions import (
+    PasswordModifyKadminError,
+    PasswordModifyNoPasswordModifyAccessError,
+    PasswordModifyNoUserProvidedError,
+    PasswordModifyPasswordChangeRestrictedError,
+    PasswordModifyUserNotAllowedError,
+    PasswordModifyUserNotFoundError,
+)
 from ldap_protocol.ldap_responses import (
     BaseExtendedResponseValue,
     ExtendedResponse,
@@ -188,17 +196,21 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         if self.user_identity is not None:
             user = await get_user(ctx.session, self.user_identity)  # type: ignore
             if user is None:
-                raise PermissionError("Cannot acquire user by DN")
+                raise PasswordModifyUserNotFoundError(
+                    "Cannot acquire user by DN",
+                )
         else:
             if not ctx.ldap_session.user:
-                raise PermissionError("Anonymous user")
+                raise PasswordModifyUserNotAllowedError("Anonymous user")
 
             user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
         if await ctx.password_use_cases.is_password_change_restricted(
             user.directory_id,
         ):
-            raise PermissionError("Password cannot be changed")
+            raise PasswordModifyPasswordChangeRestrictedError(
+                "Password cannot be changed",
+            )
 
         errors = await ctx.password_use_cases.check_password_violations(
             password=new_password,
@@ -215,9 +227,13 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 if not await ctx.role_use_case.contains_domain_admins_role(
                     ctx.ldap_session.user.role_ids,
                 ):
-                    raise PermissionError("No password modify access")
+                    raise PasswordModifyNoPasswordModifyAccessError(
+                        "No password modify access",
+                    )
             elif not pwd_ace.is_allow:
-                raise PermissionError("No password modify access")
+                raise PasswordModifyNoPasswordModifyAccessError(
+                    "No password modify access",
+                )
 
         if not errors and (
             user.password is None
@@ -231,9 +247,9 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                     user.get_upn_prefix(),
                     new_password,
                 )
-            except KRBAPIError:
+            except KRBAPIChangePasswordError:
                 await ctx.session.rollback()
-                raise PermissionError("Kadmin Error")
+                raise PasswordModifyKadminError("Kadmin Error")
 
             user.password = ctx.password_validator.get_password_hash(
                 new_password,
@@ -247,7 +263,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
             await ctx.session_storage.clear_user_sessions(user.id)
 
             return PasswdModifyResponse()
-        raise PermissionError("No user provided")
+        raise PasswordModifyNoUserProvidedError("No user provided")
 
     @classmethod
     def from_data(cls, data: ASN1Row) -> "PasswdModifyRequestValue":
