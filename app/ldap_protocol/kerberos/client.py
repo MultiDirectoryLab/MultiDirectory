@@ -24,7 +24,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         raise_on_giveup=False,
         max_tries=30,
     )
-    async def get_status(self, wait_for_positive: bool = False) -> bool | None:
+    async def get_status(self, wait_for_positive: bool = False) -> bool:
         """Get status of setup.
 
         :param bool wait_for_positive: wait for positive status
@@ -33,7 +33,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.get("/setup/status")
         status = response.json()
         if wait_for_positive and not status:
-            raise krb_exc.KRBAPIStatusNotFoundError
+            return False
         return status
 
     @logger_wraps(is_stub=True)
