@@ -17,6 +17,7 @@ from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 
 from .data_logger import DataLogger
+from .udp import create_udp_socket
 
 log = logger.bind(name="cldap")
 log.add(
@@ -28,23 +29,20 @@ log.add(
 )
 
 
-class UDPConnectionHandler(asyncio.DatagramProtocol):
-    """UDP server for CLDAP protocol with improved architecture."""
+class CLDAPUDPServer:
+    """UDP ldap server."""
 
     def __init__(self, settings: Settings, container: AsyncContainer):
         """Initialize UDP server."""
         self.settings = settings
         self.container = container
         self.logger = DataLogger(log, full=self.settings.DEBUG)
-        self.transport: asyncio.DatagramTransport | None = None
-        self._running = asyncio.Event()
-        self._server_task: asyncio.Task | None = None
 
-    async def _handle_datagram(
+    async def _handle(
         self,
         data: bytes,
         addr: tuple[str, int],
-    ) -> None:
+    ) -> bytes:
         """Handle individual datagram with proper error handling."""
         addr_str = f"{addr[0]}:{addr[1]}"
 
@@ -63,9 +61,9 @@ class UDPConnectionHandler(asyncio.DatagramProtocol):
                         )
                     except PermissionError:
                         log.warning(f"Whitelist violation from UDP {addr_str}")
-                        return
+                        raise ConnectionAbortedError
 
-                log.debug(f"UDP datagram received from {addr_str}: {data!r}")
+                log.info(f"UDP datagram received from {addr_str}")
 
                 try:
                     request = LDAPRequestMessage.from_bytes(data)
@@ -82,9 +80,7 @@ class UDPConnectionHandler(asyncio.DatagramProtocol):
                     )
 
                     error_response = LDAPRequestMessage.from_err(data, err)
-                    if self.transport:
-                        self.transport.sendto(error_response.encode(), addr)
-                    return
+                    return error_response.encode()
 
                 # Handle request
                 async with session_scope(scope=Scope.REQUEST) as request_scope:
@@ -92,11 +88,8 @@ class UDPConnectionHandler(asyncio.DatagramProtocol):
 
                     async for response in request.create_response(handler):
                         self.logger.rsp_log(addr_str, response)
-
-                        if self.transport and not self.transport.is_closing():
-                            response_data = response.encode()
-                            self.transport.sendto(response_data, addr)
-                        break  # CLDAP typically expects single response
+                        # CLDAP typically expects single response
+                        return response.encode()
 
         except asyncio.CancelledError:
             log.debug(f"UDP handler cancelled for {addr_str}")
@@ -105,105 +98,29 @@ class UDPConnectionHandler(asyncio.DatagramProtocol):
             log.error(f"UDP handler error for {addr_str}: {err}")
             log.debug(f"UDP handler traceback: {format_exc()}")
 
-    async def _datagram_handler(
-        self,
-        data: bytes,
-        addr: tuple[str, int],
-    ) -> None:
-        """Wrap for datagram handling with task management."""
-        try:
-            await self._handle_datagram(data, addr)
-        except Exception as err:
-            log.error(f"Unhandled error in UDP datagram handler: {err}")
+        raise
 
-    def datagram_received(self, data: bytes, addr: tuple[str, int]) -> None:
-        """Call when a datagram is received."""
-        if not self._running.is_set():
-            return
-
-        # Create task for handling datagram
-        loop = asyncio.get_running_loop()
-        task = loop.create_task(self._datagram_handler(data, addr))
-
-        # Add error handling for the task
-        def task_done_callback(task: asyncio.Task) -> None:
-            if task.exception():
-                log.error(f"UDP task failed: {task.exception()}")
-
-        task.add_done_callback(task_done_callback)
-
-    def connection_made(self, transport: asyncio.BaseTransport) -> None:
-        """Call when connection is established."""
-        if not isinstance(transport, asyncio.DatagramTransport):
-            log.warning("UDP connection made with invalid transport type")
-            return
-        self.transport = transport
-        self._running.set()
-        log.debug("UDP connection established")
-
-    def connection_lost(self, exc: Exception | None) -> None:
-        """Call when connection is lost."""
-        self._running.clear()
-        log.debug(f"UDP connection lost: {exc}")
-
-    def error_received(self, exc: Exception) -> None:
-        """Call when an error is received."""
-        log.error(f"UDP error received: {exc}")
-
-    async def start_server(self) -> None:
+    async def start(self) -> None:
         """Start UDP server for CLDAP protocol."""
-        if self._running.is_set():
-            log.warning("UDP server already running")
-            return
-
+        sock = await create_udp_socket(
+            local_addr=(str(self.settings.HOST), self.settings.PORT),
+        )
+        log.info("started DEBUG CLDAP server")
         try:
-            loop = asyncio.get_running_loop()
-            log.info("Starting CLDAP server...")
-
-            transport, _ = await loop.create_datagram_endpoint(
-                lambda: self,
-                local_addr=(str(self.settings.HOST), self.settings.PORT),
-                reuse_port=True,
-            )
-
-            self.transport = transport
-
-            log.success(
-                f"CLDAP server started on "
-                f"{self.settings.HOST}:{self.settings.PORT}",
-            )
-
-            try:
-                await self._running.wait()
-            except asyncio.CancelledError:
-                log.info("CLDAP server shutdown requested")
-            finally:
-                await self.stop_server()
-
+            while True:
+                p = await sock.recvfrom()
+                d = await self._handle(p.data, p.addr)
+                sock.sendto(d, p.addr)
         except Exception as err:
-            log.error(f"Failed to start CLDAP server: {err}")
-            raise
+            log.critical(err)
+        finally:
+            await self.stop()
 
-    async def stop_server(self) -> None:
+    async def stop(self) -> None:
         """Stop UDP server gracefully."""
-        if not self._running.is_set():
-            return
-
         log.info("Stopping CLDAP server...")
-        self._running.clear()
-
-        if self.transport and not self.transport.is_closing():
-            self.transport.close()
-
-        # Wait a bit for cleanup
-        await asyncio.sleep(0.1)
 
         if self.container:
             await self.container.close()
 
         log.info("CLDAP server stopped")
-
-    def __del__(self) -> None:
-        """Cleanup on deletion."""
-        if self.transport and not self.transport.is_closing():
-            self.transport.close()
