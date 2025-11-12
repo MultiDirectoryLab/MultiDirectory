@@ -192,7 +192,11 @@ class AuditMonitorUseCase:
                 )
                 self._monitor.username = key
                 return key
-            except (ForbiddenError, MFATokenError) as exc:
+            except (
+                ForbiddenError,
+                MFATokenError,
+                ApiPermissionError,
+            ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
             finally:
@@ -273,6 +277,7 @@ class AuditMonitorUseCase:
             except (
                 UserNotFoundError,
                 PasswordPolicyError,
+                ApiPermissionError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
@@ -299,6 +304,7 @@ class AuditMonitorUseCase:
                 UserNotFoundError,
                 PasswordPolicyError,
                 KRBAPIChangePasswordError,
+                ApiPermissionError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
