@@ -35,15 +35,14 @@ class AbstractDAO(Protocol[_T, _A]):
     async def delete(self, _id: _A) -> None: ...
 
 
-class AbstractService(ABC):  # noqa:  B024
+class AbstractService(ABC):
     """Abstract Service/Manager base class for nominal typing.
 
     Intentionally empty:
     concrete services may define arbitrary attributes/methods.
     """
 
-    # TODO убрать аргумент по умолчанию
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {}
+    _usecase_api_permissions: dict[str, ApiPermissionsType]
 
     def __getattribute__(self, name: str) -> Any:
         """Intercept attribute access."""

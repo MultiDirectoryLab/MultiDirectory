@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abstract_dao import AbstractService
 from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
+from enums import ApiPermissionsType
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -18,6 +19,15 @@ from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 class EntityTypeUseCase(AbstractService):
     """Entity Use Case."""
+
+    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
+        "get": ApiPermissionsType.ENTITY_TYPE_GET,
+        "create": ApiPermissionsType.ENTITY_TYPE_CREATE,
+        "get_paginator": ApiPermissionsType.ENTITY_TYPE_GET_PAGINATOR,
+        "update": ApiPermissionsType.ENTITY_TYPE_UPDATE,
+        "delete_all_by_names": ApiPermissionsType.ENTITY_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
+        "get_entity_type_attributes": ApiPermissionsType.ENTITY_TYPE_GET_ATTRIBUTES,  # noqa: E501
+    }
 
     def __init__(
         self,

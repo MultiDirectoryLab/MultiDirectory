@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractService
 from config import Settings
+from enums import ApiPermissionsType
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos.exceptions import (
@@ -47,6 +48,17 @@ from .utils import KerberosState, get_krb_server_state, set_state
 
 class KerberosService(AbstractService):
     """Kerberos business logic coordinator for KDC and LDAP operations."""
+
+    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
+        "setup_krb_catalogue": ApiPermissionsType.KRB_SETUP_CATALOGUE,
+        "setup_kdc": ApiPermissionsType.KRB_SETUP_KDC,
+        "ktadd": ApiPermissionsType.KRB_KTADD,
+        "get_status": ApiPermissionsType.KRB_GET_STATUS,
+        "add_principal": ApiPermissionsType.KRB_ADD_PRINCIPAL,
+        "rename_principal": ApiPermissionsType.KRB_RENAME_PRINCIPAL,
+        "reset_principal_pw": ApiPermissionsType.KRB_RESET_PRINCIPAL_PW,
+        "delete_principal": ApiPermissionsType.KRB_DELETE_PRINCIPAL,
+    }
 
     def __init__(
         self,
