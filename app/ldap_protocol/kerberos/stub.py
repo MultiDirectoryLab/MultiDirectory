@@ -16,11 +16,11 @@ class StubKadminMDADPIClient(AbstractKadmin):
         """Call setup."""
         await super().setup(*args, **kwargs)
 
-    @logger_wraps()
+    @logger_wraps(is_stub=True)
     async def get_status(
         self,
         wait_for_positive: bool = False,
-    ) -> bool | None: ...
+    ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def add_principal(
