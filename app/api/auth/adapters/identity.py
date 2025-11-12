@@ -8,7 +8,6 @@ from ipaddress import IPv4Address, IPv6Address
 
 from adaptix.conversion import get_converter
 from fastapi import Request, status
-from loguru import logger
 
 from api.base_adapter import BaseAdapter
 from ldap_protocol.dialogue import UserSchema
@@ -32,10 +31,10 @@ from ldap_protocol.identity.schemas import (
     OAuth2Form,
     SetupRequest,
 )
-from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.identity_provider.identity_provider import (
     UnauthorizedError as UnE,
 )
+from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 

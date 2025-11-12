@@ -14,7 +14,7 @@ from starlette.datastructures import URL
 from abstract_dao import AbstractService
 from config import Settings
 from entities import Directory, Group, User
-from enums import MFAFlags
+from enums import ApiPermissionsType, MFAFlags
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
@@ -50,6 +50,9 @@ from repo.pg.tables import queryable_attr as qa
 class IdentityManager(AbstractService):
     """Authentication manager."""
 
+    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
+        "reset_password": ApiPermissionsType.AUTH_RESET_PASSWORD,
+    }
     def __init__(
         self,
         session: AsyncSession,

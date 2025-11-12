@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy.exc import IntegrityError
 
 from abstract_dao import AbstractService
+from enums import ApiPermissionsType
 
 from .dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from .destination_dao import AuditDestinationDAO
@@ -16,6 +17,15 @@ from .policies_dao import AuditPoliciesDAO
 
 class AuditService(AbstractService):
     """Audit service class for managing audit policies."""
+
+    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
+        "get_policies": ApiPermissionsType.AUDIT_GET_POLICIES,
+        "update_policy": ApiPermissionsType.AUDIT_UPDATE_POLICY,
+        "get_destinations": ApiPermissionsType.AUDIT_GET_DESTINATIONS,
+        "create_destination": ApiPermissionsType.AUDIT_CREATE_DESTINATION,
+        "delete_destination": ApiPermissionsType.AUDIT_DELETE_DESTINATION,
+        "update_destination": ApiPermissionsType.AUDIT_UPDATE_DESTINATION,
+    }
 
     def __init__(
         self,

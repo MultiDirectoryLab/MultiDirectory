@@ -153,3 +153,12 @@ class ApiPermissionsType(StrEnum):
     KRB_RENAME_PRINCIPAL = "krb_rename_principal"
     KRB_RESET_PRINCIPAL_PW = "krb_reset_principal_pw"
     KRB_DELETE_PRINCIPAL = "krb_delete_principal"
+
+    AUDIT_GET_POLICIES = "audit_get_policies"
+    AUDIT_UPDATE_POLICY = "audit_update_policy"
+    AUDIT_GET_DESTINATIONS = "audit_get_destinations"
+    AUDIT_CREATE_DESTINATION = "audit_create_destination"
+    AUDIT_DELETE_DESTINATION = "audit_delete_destination"
+    AUDIT_UPDATE_DESTINATION = "audit_update_destination"
+
+    AUTH_RESET_PASSWORD = "auth_reset_password"
