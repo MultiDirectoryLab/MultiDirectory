@@ -92,3 +92,20 @@ class ApiPermissionsType(StrEnum):
     )
     NETWORK_POLICY_SWAP_PRIORITIES = "network_policy_swap_priorities"
     NETWORK_POLICY_UPDATE = "network_policy_update"
+
+
+    DHCP_CHANGE_STATE = "dhcp_change_state"
+    DHCP_GET_STATE = "dhcp_get_state"
+    DHCP_CREATE_SUBNET = "dhcp_create_subnet"
+    DHCP_DELETE_SUBNET = "dhcp_delete_subnet"
+    DHCP_GET_SUBNETS = "dhcp_get_subnets"
+    DHCP_UPDATE_SUBNET = "dhcp_update_subnet"
+    DHCP_CREATE_LEASE = "dhcp_create_lease"
+    DHCP_RELEASE_LEASE = "dhcp_release_lease"
+    DHCP_LIST_ACTIVE_LEASES = "dhcp_list_active_leases"
+    DHCP_FIND_LEASE = "dhcp_find_lease"
+    DHCP_LEASE_TO_RESERVATION = "dhcp_lease_to_reservation"
+    DHCP_ADD_RESERVATION = "dhcp_add_reservation"
+    DHCP_GET_RESERVATIONS = "dhcp_get_reservations"
+    DHCP_UPDATE_RESERVATION = "dhcp_update_reservation"
+    DHCP_DELETE_RESERVATION = "dhcp_delete_reservation"

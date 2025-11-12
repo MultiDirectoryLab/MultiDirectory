@@ -35,6 +35,7 @@ from ldap_protocol.dhcp.dataclasses import (
     DHCPReservation,
     DHCPSubnet,
 )
+from ldap_protocol.permissions_checker import ApiPermissionError
 
 
 class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
@@ -48,6 +49,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         DHCPAPIError: status.HTTP_400_BAD_REQUEST,
         DHCPValidatonError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         DHCPOperationError: status.HTTP_400_BAD_REQUEST,
+        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def create_subnet(
