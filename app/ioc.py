@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import (
 
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import (
-    IdentityFastAPIAdapter,
+    AuthFastAPIAdapter,
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
@@ -33,6 +33,13 @@ from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
+from ldap_protocol.auth import AuthManager, MFAManager
+from ldap_protocol.auth.setup_gateway import SetupGateway
+from ldap_protocol.auth.use_cases import SetupUseCase
+from ldap_protocol.auth.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.dhcp import (
     AbstractDHCPManager,
     DHCPAPIRepository,
@@ -50,15 +57,8 @@ from ldap_protocol.dns import (
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.dns.utils import resolve_dns_server_ip
-from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.identity.setup_gateway import SetupGateway
-from ldap_protocol.identity.use_cases import SetupUseCase
-from ldap_protocol.identity.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
-from ldap_protocol.identity_provider import IdentityProvider
-from ldap_protocol.identity_provider.identity_provider_gateway import (
+from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.identity_provider_gateway import (
     IdentityProviderGateway,
 )
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -539,11 +539,11 @@ class HTTPProvider(LDAPContextProvider):
         await session.disconnect()
 
     identity_fastapi_adapter = provide(
-        IdentityFastAPIAdapter,
+        AuthFastAPIAdapter,
         scope=Scope.REQUEST,
     )
     identity_manager = provide(
-        IdentityManager,
+        AuthManager,
         scope=Scope.REQUEST,
     )
     shadow_adapter = provide(

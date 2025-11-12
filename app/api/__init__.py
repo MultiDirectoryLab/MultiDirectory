@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from .audit.router import audit_router
-from .auth.router import auth_router
+from .auth.router_auth import auth_router
 from .auth.router_mfa import mfa_router
 from .auth.session_router import session_router
 from .dhcp.router import dhcp_router

@@ -10,13 +10,13 @@ from typing import ParamSpec, TypeVar
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.identity.exceptions.auth import PasswordPolicyError
-from ldap_protocol.identity.exceptions.mfa import (
+from ldap_protocol.auth import AuthManager, MFAManager
+from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
     NetworkPolicyError,
 )
+from ldap_protocol.identity.identity_exceptions import PasswordPolicyError
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -36,7 +36,7 @@ class ShadowAdapter(BaseAdapter):
     def __init__(
         self,
         mfa_manager: MFAManager,
-        identity_manager: IdentityManager,
+        identity_manager: AuthManager,
     ) -> None:
         """Initialize the adapter."""
         self._mfa_manager = mfa_manager

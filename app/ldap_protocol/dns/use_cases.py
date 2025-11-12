@@ -38,7 +38,7 @@ class DNSUseCase(AbstractService):
         "create_zone": ApiPermissionsType.DNS_CREATE_ZONE,
         "update_zone": ApiPermissionsType.DNS_UPDATE_ZONE,
         "delete_zone": ApiPermissionsType.DNS_DELETE_ZONE,
-        "check_dns_forward_zone": ApiPermissionsType.DNS_CHECK_DNS_FORWARD_ZONE,
+        "check_dns_forward_zone": ApiPermissionsType.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
         "reload_zone": ApiPermissionsType.DNS_RELOAD_ZONE,
         "update_server_options": ApiPermissionsType.DNS_UPDATE_SERVER_OPTIONS,
         "get_server_options": ApiPermissionsType.DNS_GET_SERVER_OPTIONS,

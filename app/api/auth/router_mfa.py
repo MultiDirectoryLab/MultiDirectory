@@ -15,8 +15,8 @@ from fastapi.routing import APIRouter
 
 from api.auth import verify_auth
 from api.auth.adapters import MFAFastAPIAdapter
-from ldap_protocol.identity.schemas import MFACreateRequest, MFAGetResponse
-from ldap_protocol.identity.utils import (
+from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
+from ldap_protocol.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
 )

@@ -15,8 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from abstract_dao import AbstractService
 from config import Settings
 from enums import ApiPermissionsType
+from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos.exceptions import (
     KerberosBaseDnNotFoundError,
     KerberosDependencyError,

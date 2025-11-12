@@ -10,8 +10,8 @@ from fastapi import status
 from fastapi.responses import RedirectResponse
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.identity import MFAManager
-from ldap_protocol.identity.exceptions.mfa import (
+from ldap_protocol.auth import MFAManager
+from ldap_protocol.auth.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
     MFAAPIError,
@@ -21,7 +21,7 @@ from ldap_protocol.identity.exceptions.mfa import (
     NetworkPolicyError,
     NotFoundError,
 )
-from ldap_protocol.identity.schemas import MFACreateRequest, MFAGetResponse
+from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 from ldap_protocol.permissions_checker import ApiPermissionError
 

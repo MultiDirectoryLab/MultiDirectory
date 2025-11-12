@@ -11,20 +11,20 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, Request, Response, status
 
-from api.auth.adapters import IdentityFastAPIAdapter
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.schemas import (
+from api.auth.adapters import AuthFastAPIAdapter
+from ldap_protocol.auth.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
-from ldap_protocol.identity.utils import (
+from ldap_protocol.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
 )
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
 
-from .oauth2 import verify_auth
+from .utils import verify_auth
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
@@ -35,7 +35,7 @@ async def login(
     request: Request,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
-    auth_manager: FromDishka[IdentityFastAPIAdapter],
+    auth_manager: FromDishka[AuthFastAPIAdapter],
 ) -> MFAChallengeResponse | None:
     """Create session to cookies and storage.
 
@@ -67,7 +67,7 @@ async def login(
 
 @auth_router.get("/me")
 async def users_me(
-    identity_adapter: FromDishka[IdentityFastAPIAdapter],
+    identity_adapter: FromDishka[AuthFastAPIAdapter],
 ) -> UserSchema:
     """Get current logged-in user data.
 
@@ -82,7 +82,7 @@ async def users_me(
 async def logout(
     response: Response,
     storage: FromDishka[SessionStorage],
-    identity_adapter: FromDishka[IdentityFastAPIAdapter],
+    identity_adapter: FromDishka[AuthFastAPIAdapter],
 ) -> None:
     """Delete token cookies and user session.
 
@@ -104,7 +104,7 @@ async def logout(
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
-    auth_manager: FromDishka[IdentityFastAPIAdapter],
+    auth_manager: FromDishka[AuthFastAPIAdapter],
 ) -> None:
     """Reset user's (entry) password.
 
@@ -122,7 +122,7 @@ async def password_reset(
 
 @auth_router.get("/setup")
 async def check_setup(
-    auth_manager: FromDishka[IdentityFastAPIAdapter],
+    auth_manager: FromDishka[AuthFastAPIAdapter],
 ) -> bool:
     """Check if initial setup is required.
 
@@ -139,7 +139,7 @@ async def check_setup(
 )
 async def first_setup(
     request: SetupRequest,
-    auth_manager: FromDishka[IdentityFastAPIAdapter],
+    auth_manager: FromDishka[AuthFastAPIAdapter],
 ) -> None:
     """Perform initial structure and policy setup.
 

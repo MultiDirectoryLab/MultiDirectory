@@ -14,19 +14,19 @@ from abstract_dao import AbstractService
 from config import Settings
 from entities import Directory, Group, User
 from enums import ApiPermissionsType, MFAFlags
+from ldap_protocol.auth.dto import SetupDTO
+from ldap_protocol.auth.mfa_manager import MFAManager
+from ldap_protocol.auth.schemas import LoginDTO, OAuth2Form
+from ldap_protocol.auth.use_cases import SetupUseCase
+from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.dto import SetupDTO
-from ldap_protocol.identity.exceptions.auth import (
+from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.identity_exceptions import (
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
     UserNotFoundError,
 )
-from ldap_protocol.identity.mfa_manager import MFAManager
-from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form
-from ldap_protocol.identity.use_cases import SetupUseCase
-from ldap_protocol.identity.utils import authenticate_user
-from ldap_protocol.identity_provider import IdentityProvider
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
@@ -46,7 +46,7 @@ from password_manager import PasswordValidator
 from repo.pg.tables import queryable_attr as qa
 
 
-class IdentityManager(AbstractService):
+class AuthManager(AbstractService):
     """Authentication manager."""
 
     _usecase_api_permissions: dict[str, ApiPermissionsType] = {

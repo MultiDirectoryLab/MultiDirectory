@@ -9,7 +9,7 @@ from typing import Callable
 
 from fastapi import Request, Response
 
-from ldap_protocol.identity_provider import IdentityProvider
+from ldap_protocol.identity import IdentityProvider
 
 
 async def proc_time_header_middleware(

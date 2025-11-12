@@ -19,7 +19,7 @@ from sqlalchemy.orm import joinedload
 
 from entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
-from ldap_protocol.identity.utils import authenticate_user
+from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation

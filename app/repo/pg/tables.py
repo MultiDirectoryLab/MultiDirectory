@@ -54,7 +54,6 @@ from entities import (
 )
 from enums import (
     AceType,
-    ApiPermissionsType,
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
@@ -237,14 +236,15 @@ user_api_permissions_table = Table(
     "UserApiPermissions",
     metadata,
     Column(
-        "id",
+        "user_id",
         Integer,
         ForeignKey("Users.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
         "permissions",
-        ARRAY(Enum(ApiPermissionsType, name="apipermissions")),
+        ARRAY(String),
+        server_default="{}",
     ),
 )
 
@@ -821,6 +821,7 @@ mapper_registry.map_imperatively(
         "api_permissions": relationship(
             UserApiPermissions,
             lazy="raise",
+            uselist=False,
         ),
         "samaccountname": synonym("sam_account_name"),
         "userprincipalname": synonym("user_principal_name"),

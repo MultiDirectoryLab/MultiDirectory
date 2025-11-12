@@ -10,29 +10,26 @@ from adaptix.conversion import get_converter
 from fastapi import Request, status
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity import IdentityManager
-from ldap_protocol.identity.dto import SetupDTO
-from ldap_protocol.identity.exceptions.auth import (
-    AlreadyConfiguredError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
-)
-from ldap_protocol.identity.exceptions.mfa import (
+from ldap_protocol.auth import AuthManager
+from ldap_protocol.auth.dto import SetupDTO
+from ldap_protocol.auth.exceptions.mfa import (
     MFAAPIError,
     MFAConnectError,
     MFARequiredError,
     MissingMFACredentialsError,
 )
-from ldap_protocol.identity.schemas import (
+from ldap_protocol.auth.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
-from ldap_protocol.identity_provider.identity_provider import (
-    UnauthorizedError as UnE,
+from ldap_protocol.dialogue import UserSchema
+from ldap_protocol.identity.identity_exceptions import (
+    AlreadyConfiguredError,
+    LoginFailedError,
+    PasswordPolicyError,
+    UnauthorizedError,
+    UserNotFoundError,
 )
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.permissions_checker import ApiPermissionError
@@ -40,12 +37,11 @@ from ldap_protocol.permissions_checker import ApiPermissionError
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
 
-class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
+class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
     """Adapter for using IdentityManager with FastAPI."""
 
     _exceptions_map: dict[type[Exception], int] = {
         UnauthorizedError: status.HTTP_401_UNAUTHORIZED,
-        UnE: status.HTTP_401_UNAUTHORIZED,
         LoginFailedError: status.HTTP_403_FORBIDDEN,
         MFARequiredError: status.HTTP_426_UPGRADE_REQUIRED,
         PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,

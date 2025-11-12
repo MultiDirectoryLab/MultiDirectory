@@ -43,7 +43,10 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :param str name: any name: dn, email or upn
     :return User | None: user from db
     """
-    policies = selectinload(qa(User.groups)).selectinload(qa(Group.roles))
+    dependencies = [
+        selectinload(qa(User.groups)).selectinload(qa(Group.roles)),
+        joinedload(qa(User.api_permissions)),
+    ]
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):
@@ -51,12 +54,14 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
         else:
             cond = qa(User.sam_account_name).ilike(name)
 
-        return await session.scalar(select(User).where(cond).options(policies))
+        return await session.scalar(
+            select(User).where(cond).options(*dependencies),
+        )
 
     return await session.scalar(
         select(User)
         .join(qa(User.directory))
-        .options(policies)
+        .options(*dependencies)
         .where(get_filter_from_path(name)),
     )
 

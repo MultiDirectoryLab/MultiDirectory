@@ -60,9 +60,9 @@ class NetworkPolicyUseCase(AbstractService):
 
     _usecase_api_permissions: dict[str, ApiPermissionsType] = {
         "create": ApiPermissionsType.NETWORK_POLICY_CREATE,
-        "get_list_policies": ApiPermissionsType.NETWORK_POLICY_GET_LIST_POLICIES,
+        "get_list_policies": ApiPermissionsType.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
         "delete": ApiPermissionsType.NETWORK_POLICY_DELETE,
-        "switch_network_policy": ApiPermissionsType.NETWORK_POLICY_SWITCH_NETWORK_POLICY,
+        "switch_network_policy": ApiPermissionsType.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
         "update": ApiPermissionsType.NETWORK_POLICY_UPDATE,
         "swap_priorities": ApiPermissionsType.NETWORK_POLICY_SWAP_PRIORITIES,
     }

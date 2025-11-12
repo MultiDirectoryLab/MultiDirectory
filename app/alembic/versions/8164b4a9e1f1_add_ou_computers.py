@@ -37,7 +37,7 @@ _OU_COMPUTERS_DATA = {
 
 def upgrade() -> None:
     """Upgrade."""
-    from ldap_protocol.identity.setup_gateway import SetupGateway
+    from ldap_protocol.auth.setup_gateway import SetupGateway
 
     async def _create_ou_computers(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)

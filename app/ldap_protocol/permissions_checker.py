@@ -4,7 +4,7 @@ from functools import wraps
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from enums import ApiPermissionsType
-from ldap_protocol.identity_provider import IdentityProvider
+from ldap_protocol.identity import IdentityProvider
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -57,4 +57,4 @@ class ApiPermissionsChecker:
             await self.check_permission(permission_name)
             return await func(*args, **kwargs)
 
-        return wrapped_use_case  # type: ignore
+        return wrapped_use_case

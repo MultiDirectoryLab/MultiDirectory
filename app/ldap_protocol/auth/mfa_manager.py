@@ -20,7 +20,7 @@ from abstract_dao import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
 from enums import ApiPermissionsType, MFAChallengeStatuses, MFAFlags
-from ldap_protocol.identity.exceptions.mfa import (
+from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
@@ -30,13 +30,13 @@ from ldap_protocol.identity.exceptions.mfa import (
     MissingMFACredentialsError,
     NetworkPolicyError,
 )
-from ldap_protocol.identity.schemas import (
+from ldap_protocol.auth.schemas import (
     MFAChallengeResponse,
     MFACreateRequest,
     MFAGetResponse,
 )
-from ldap_protocol.identity.utils import get_user
-from ldap_protocol.identity_provider import IdentityProvider
+from ldap_protocol.auth.utils import get_user
+from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,

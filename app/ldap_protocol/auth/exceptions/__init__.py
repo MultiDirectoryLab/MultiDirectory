@@ -4,14 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .auth import (
-    AlreadyConfiguredError,
-    ForbiddenError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
-)
 from .mfa import (
     InvalidCredentialsError,
     MFARequiredError,
@@ -22,12 +14,6 @@ from .mfa import (
 )
 
 __all__ = [
-    "UnauthorizedError",
-    "AlreadyConfiguredError",
-    "ForbiddenError",
-    "LoginFailedError",
-    "PasswordPolicyError",
-    "UserNotFoundError",
     "MFARequiredError",
     "MFATokenError",
     "MissingMFACredentialsError",

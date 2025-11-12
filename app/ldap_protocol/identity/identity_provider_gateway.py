@@ -37,7 +37,10 @@ class IdentityProviderGateway:
         return await self.session.scalar(
             select(User)
             .filter_by(id=user_id)
-            .options(joinedload(qa(User.directory)))
+            .options(
+                joinedload(qa(User.directory)),
+                joinedload(qa(User.api_permissions)),
+            )
             .options(
                 selectinload(qa(User.groups)).selectinload(qa(Group.roles)),
             ),
