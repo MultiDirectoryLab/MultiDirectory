@@ -26,6 +26,7 @@ from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassNotFoundError,
 )
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.permissions_checker import ApiPermissionError
 
 
 def _convert_update_schema_to_dto(
@@ -101,4 +102,5 @@ class ObjectClassFastAPIAdapter(
         ObjectClassAlreadyExistsError: status.HTTP_409_CONFLICT,
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
         ObjectClassCantModifyError: status.HTTP_403_FORBIDDEN,
+        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }

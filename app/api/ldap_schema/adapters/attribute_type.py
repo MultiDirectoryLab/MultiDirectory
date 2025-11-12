@@ -37,6 +37,7 @@ from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeCantModifyError,
     AttributeTypeNotFoundError,
 )
+from ldap_protocol.permissions_checker import ApiPermissionError
 
 
 def _convert_update_uschema_to_dto(
@@ -101,4 +102,5 @@ class AttributeTypeFastAPIAdapter(
         AttributeTypeAlreadyExistsError: status.HTTP_409_CONFLICT,
         AttributeTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
+        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }

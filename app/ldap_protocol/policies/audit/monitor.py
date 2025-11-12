@@ -37,6 +37,7 @@ from ldap_protocol.identity.utils import (
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.objects import OperationEvent
+from ldap_protocol.permissions_checker import ApiPermissionError
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.events.factory import (
     RawAuditEventBuilderRedis,
@@ -215,6 +216,7 @@ class AuditMonitorUseCase:
                 InvalidCredentialsError,
                 NetworkPolicyError,
                 AuthenticationError,
+                ApiPermissionError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
@@ -242,7 +244,11 @@ class AuditMonitorUseCase:
                     ip=ip,
                     user_agent=user_agent,
                 )
-            except (UnauthorizedError, LoginFailedError) as exc:
+            except (
+                UnauthorizedError,
+                LoginFailedError,
+                ApiPermissionError,
+            ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
             except MFARequiredError as exc:

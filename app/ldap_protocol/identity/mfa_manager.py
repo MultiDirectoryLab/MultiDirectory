@@ -19,7 +19,7 @@ from starlette.datastructures import URL
 from abstract_dao import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
-from enums import MFAChallengeStatuses, MFAFlags
+from enums import ApiPermissionsType, MFAChallengeStatuses, MFAFlags
 from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -59,6 +59,12 @@ ALGORITHM = "HS256"
 
 class MFAManager(AbstractService):
     """MFA manager."""
+
+    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
+        "setup_mfa": ApiPermissionsType.MFA_SETUP,
+        "remove_mfa": ApiPermissionsType.MFA_REMOVE,
+        "get_mfa": ApiPermissionsType.MFA_GET,
+    }
 
     def __init__(
         self,

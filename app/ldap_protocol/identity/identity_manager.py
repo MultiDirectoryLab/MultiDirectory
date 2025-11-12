@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
@@ -53,6 +52,7 @@ class IdentityManager(AbstractService):
     _usecase_api_permissions: dict[str, ApiPermissionsType] = {
         "reset_password": ApiPermissionsType.AUTH_RESET_PASSWORD,
     }
+
     def __init__(
         self,
         session: AsyncSession,

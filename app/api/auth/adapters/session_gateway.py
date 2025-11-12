@@ -8,6 +8,7 @@ from typing import Literal, ParamSpec, TypeVar
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
+from ldap_protocol.permissions_checker import ApiPermissionError
 from ldap_protocol.session_storage import SessionRepository
 
 _P = ParamSpec("_P")
@@ -56,6 +57,7 @@ class SessionFastAPIGateway(BaseAdapter[SessionRepository]):
 
     _exceptions_map: dict[type[Exception], int] = {
         LookupError: status.HTTP_404_NOT_FOUND,
+        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     def __init__(self, repository: SessionRepository) -> None:

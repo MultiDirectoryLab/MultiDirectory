@@ -161,4 +161,12 @@ class ApiPermissionsType(StrEnum):
     AUDIT_DELETE_DESTINATION = "audit_delete_destination"
     AUDIT_UPDATE_DESTINATION = "audit_update_destination"
 
-    AUTH_RESET_PASSWORD = "auth_reset_password"
+    AUTH_RESET_PASSWORD = "auth_reset_password"  # noqa: S105
+
+    MFA_SETUP = "mfa_setup"
+    MFA_REMOVE = "mfa_remove"
+    MFA_GET = "mfa_get"
+
+    SESSION_GET_USE_SESSIONS = "session_get_use_sessions"
+    SESSION_CLEAR_USE_SESSIONS = "session_clear_use_sessions"
+    SESSSION_DELETE = "sesssion_delete"
