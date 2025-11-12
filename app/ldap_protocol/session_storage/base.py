@@ -172,7 +172,11 @@ class SessionStorage(ABC):
         except (ValueError, AttributeError):
             raise SessionStorageInvalidKeyError("Invalid payload key")
 
-        data = await self.get(session_id)
+        try:
+            data = await self.get(session_id)
+        except KeyError:
+            raise SessionStorageInvalidKeyError("Invalid session key")
+
         expected_ua_hash = self.get_user_agent_hash(user_agent)
         expected_signature = self._sign(session_id, settings)
 

@@ -2,14 +2,12 @@
 
 from abc import ABC, abstractmethod
 
-import backoff
 import httpx
 
 from .exceptions import (
     KRBAPISetupConfigsError,
     KRBAPISetupStashError,
     KRBAPISetupTreeError,
-    KRBAPIStatusNotFoundError,
 )
 from .utils import log, logger_wraps
 
@@ -181,29 +179,11 @@ class AbstractKadmin(ABC):
     @abstractmethod
     async def rename_princ(self, name: str, new_name: str) -> None: ...
 
-    @backoff.on_exception(
-        backoff.constant,
-        (
-            httpx.ConnectError,
-            httpx.ConnectTimeout,
-            httpx.RemoteProtocolError,
-            ValueError,
-        ),
-        jitter=None,
-        raise_on_giveup=False,
-        max_tries=30,
-    )
-    async def get_status(self, wait_for_positive: bool = False) -> bool | None:
-        """Get status of setup.
-
-        :param bool wait_for_positive: wait for positive status
-        :return bool | None: status or None if max tries achieved
-        """
-        response = await self.client.get("/setup/status")
-        status = response.json()
-        if wait_for_positive and not status:
-            raise KRBAPIStatusNotFoundError
-        return status
+    @abstractmethod
+    async def get_status(
+        self,
+        wait_for_positive: bool = False,
+    ) -> bool: ...
 
     @abstractmethod
     async def ktadd(self, names: list[str]) -> httpx.Response: ...

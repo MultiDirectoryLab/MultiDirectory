@@ -13,6 +13,7 @@ from entities import Directory, Group
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
+    KRBAPIConnectionError,
     KRBAPIDeletePrincipalError,
     KRBAPIPrincipalNotFoundError,
 )
@@ -155,7 +156,7 @@ class DeleteRequest(BaseRequest):
                 )
         except KRBAPIPrincipalNotFoundError:
             pass
-        except KRBAPIDeletePrincipalError:
+        except (KRBAPIDeletePrincipalError, KRBAPIConnectionError):
             yield DeleteResponse(
                 result_code=LDAPCodes.UNAVAILABLE,
                 errorMessage="KerberosError",
