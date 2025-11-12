@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import asyncio
 from ipaddress import ip_address
 from traceback import format_exc
 
@@ -42,77 +41,73 @@ class CLDAPUDPServer:
         self,
         data: bytes,
         addr: tuple[str, int],
+        container: AsyncContainer,
     ) -> bytes:
         """Handle individual datagram with proper error handling."""
         addr_str = f"{addr[0]}:{addr[1]}"
 
+        ldap_session = await container.get(LDAPSession)
+        ldap_session.ip = ip_address(addr[0])
+
+        # Validate connection if needed
         try:
-            async with self.container(scope=Scope.SESSION) as session_scope:
-                ldap_session = await session_scope.get(LDAPSession)
-                ldap_session.ip = ip_address(addr[0])
+            session = await container.get(AsyncSession)
+            await ldap_session.validate_conn(ldap_session.ip, session)
+        except PermissionError:
+            log.warning(f"Whitelist violation from UDP {addr_str}")
+            raise ConnectionAbortedError
 
-                # Validate connection if needed
-                async with session_scope(scope=Scope.REQUEST) as request_scope:
-                    try:
-                        session = await request_scope.get(AsyncSession)
-                        await ldap_session.validate_conn(
-                            ldap_session.ip,
-                            session,
-                        )
-                    except PermissionError:
-                        log.warning(f"Whitelist violation from UDP {addr_str}")
-                        raise ConnectionAbortedError
+        log.info(f"UDP datagram received from {addr_str}")
 
-                log.info(f"UDP datagram received from {addr_str}")
+        try:
+            request = LDAPRequestMessage.from_bytes(data)
+            self.logger.req_log(addr_str, request)
 
-                try:
-                    request = LDAPRequestMessage.from_bytes(data)
-                    self.logger.req_log(addr_str, request)
+        except (
+            ValidationError,
+            IndexError,
+            KeyError,
+            ValueError,
+        ) as err:
+            log.error(
+                f"Invalid UDP schema from {addr_str}: {format_exc()}",
+            )
 
-                except (
-                    ValidationError,
-                    IndexError,
-                    KeyError,
-                    ValueError,
-                ) as err:
-                    log.error(
-                        f"Invalid UDP schema from {addr_str}: {format_exc()}",
-                    )
+            return LDAPRequestMessage.from_err(data, err).encode()
 
-                    error_response = LDAPRequestMessage.from_err(data, err)
-                    return error_response.encode()
-
-                # Handle request
-                async with session_scope(scope=Scope.REQUEST) as request_scope:
-                    handler = request.context.handle_tcp(request_scope)
-
-                    async for response in request.create_response(handler):
-                        self.logger.rsp_log(addr_str, response)
-                        # CLDAP typically expects single response
-                        return response.encode()
-
-        except asyncio.CancelledError:
-            log.debug(f"UDP handler cancelled for {addr_str}")
-            raise
-        except Exception as err:
-            log.error(f"UDP handler error for {addr_str}: {err}")
-            log.debug(f"UDP handler traceback: {format_exc()}")
-
-        raise
+        # Handle request
+        handler = request.context.handle_tcp(container)
+        response = await anext(request.create_response(handler))
+        return response.encode()
 
     async def start(self) -> None:
         """Start UDP server for CLDAP protocol."""
         sock = await create_udp_socket(
             local_addr=(str(self.settings.HOST), self.settings.PORT),
         )
-        log.info("started DEBUG CLDAP server")
+
+        stype = "DEBUG" if self.settings.DEBUG else "PROD"
+        log.info(f"started {stype} CLDAP server")
+
         try:
             while True:
-                p = await sock.recvfrom()
-                d = await self._handle(p.data, p.addr)
-                sock.sendto(d, p.addr)
+                packet = await sock.recvfrom()
+
+                async with self.container(scope=Scope.REQUEST) as container:
+                    try:
+                        d = await self._handle(
+                            packet.data,
+                            packet.addr,
+                            container,
+                        )
+                    except ConnectionAbortedError:
+                        continue
+                    else:
+                        sock.sendto(d, packet.addr)
+
         except Exception as err:
             log.critical(err)
+            log.trace("UDP handler traceback failed")
         finally:
             await self.stop()
 

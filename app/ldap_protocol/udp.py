@@ -1,3 +1,26 @@
+"""UDP socket implementation.
+
+usage example:
+>>> import asyncio
+>>> async def udp_server():
+>>>     sock = await create_udp_socket(local_addr=('127.0.0.1', 9999))
+>>>     while True:
+>>>         packet = await sock.recvfrom()
+>>>         print(packet.data, packet.addr)
+>>>         sock.sendto(packet.data, packet.addr)
+>>> asyncio.run(udp_server())
+
+>>> async def udp_client():
+>>>     sock = await create_udp_socket(remote_addr=('127.0.0.1', 9999))
+>>>     sock.sendto(b'Hello!')
+>>>     print(await sock.recvfrom())
+>>>     sock.close()
+>>> asyncio.run(udp_client())
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
 import asyncio
 from dataclasses import dataclass
 
@@ -6,11 +29,13 @@ type Addr = tuple[str, int]
 
 @dataclass(frozen=True, slots=True)
 class Packet:
+    """UDP incoming Packet."""
+
     addr: Addr
     data: bytes
 
 
-class _SocketProtocol(asyncio.BaseProtocol):
+class _SocketProtocol(asyncio.DatagramProtocol):
     def __init__(self, max_size: int):
         self.__error: Exception | None = None
         self.__q: asyncio.Queue[Packet | None] = asyncio.Queue(max_size)
@@ -25,18 +50,17 @@ class _SocketProtocol(asyncio.BaseProtocol):
         self.__q.put_nowait(Packet(addr, data))
 
     def error_received(self, exc: Exception) -> None:
-        self._error = exc
+        self.__error = exc
         self.__q.put_nowait(None)
 
     async def recvfrom(self) -> Packet | None:
         return await self.__q.get()
 
-    def raise_if_error(self) -> None:
+    def raise_on_error(self) -> None:
         if self.__error is None:
             return
 
-        error = self.__error
-        self.__error = None
+        error, self.__error = self.__error, None
 
         raise error
 
@@ -49,41 +73,20 @@ class UDPSocket:
         transport: asyncio.DatagramTransport,
         protocol: _SocketProtocol,
     ) -> None:
-        """Init."""
+        """Init transport."""
         self._transport = transport
         self._protocol = protocol
 
     def close(self) -> None:
-        """Close the socket."""
         self._transport.close()
 
     def sendto(self, data: bytes, addr: Addr) -> None:
-        """Send given packet to given address ``addr``.
-
-        Sends to
-        ``remote_addr`` given to the constructor if ``addr`` is
-        ``None``.
-
-        Raises an error if a connection error has occurred.
-
-        >>> sock.sendto(b"Hi!")
-
-        """
         self._transport.sendto(data, addr)
-        self._protocol.raise_if_error()
+        self._protocol.raise_on_error()
 
     async def recvfrom(self) -> Packet:
-        """Receive a UDP packet.
-
-        Raises ClosedError on connection error, often by calling the
-        close() method from another task. May raise other errors as
-        well.
-
-        >>> data, addr = sock.recvfrom()
-
-        """
         packet = await self._protocol.recvfrom()
-        self._protocol.raise_if_error()
+        self._protocol.raise_on_error()
 
         if packet is None:
             raise ConnectionAbortedError()
@@ -91,7 +94,6 @@ class UDPSocket:
         return packet
 
     def getsockname(self) -> Addr:
-        """Get bound infomation."""
         return self._transport.get_extra_info("sockname")
 
 
