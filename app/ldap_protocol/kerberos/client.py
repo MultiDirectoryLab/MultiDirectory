@@ -25,11 +25,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         max_tries=30,
     )
     async def get_status(self, wait_for_positive: bool = False) -> bool:
-        """Get status of setup.
-
-        :param bool wait_for_positive: wait for positive status
-        :return bool | None: status or None if max tries achieved
-        """
+        """Get status of setup."""
         response = await self.client.get("/setup/status")
         status = response.json()
         if wait_for_positive and not status:
