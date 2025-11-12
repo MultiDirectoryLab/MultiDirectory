@@ -17,6 +17,7 @@ from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIChangePasswordError,
     KRBAPIConnectionError,
+    KRBAPIPrincipalNotFoundError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.exceptions import (
@@ -250,7 +251,11 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                     user.get_upn_prefix(),
                     new_password,
                 )
-            except (KRBAPIChangePasswordError, KRBAPIConnectionError):
+            except (
+                KRBAPIChangePasswordError,
+                KRBAPIConnectionError,
+                KRBAPIPrincipalNotFoundError,
+            ):
                 await ctx.session.rollback()
                 raise PasswordModifyKadminError("Kadmin Error")
 
