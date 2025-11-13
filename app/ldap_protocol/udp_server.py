@@ -49,7 +49,6 @@ class CLDAPUDPServer:
         ldap_session = await container.get(LDAPSession)
         ldap_session.ip = ip_address(addr[0])
 
-        # Validate connection if needed
         try:
             session = await container.get(AsyncSession)
             await ldap_session.validate_conn(ldap_session.ip, session)
@@ -73,7 +72,6 @@ class CLDAPUDPServer:
 
             return LDAPRequestMessage.from_err(data, err).encode()
 
-        # Handle request
         handler = request.context.handle_udp(container)
         return b"".join(
             [
