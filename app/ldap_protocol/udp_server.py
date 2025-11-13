@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import ip_address
-from traceback import format_exc
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
@@ -16,7 +15,7 @@ from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 
 from .data_logger import DataLogger
-from .udp import create_udp_socket
+from .utils.udp import create_udp_socket
 
 log = logger.bind(name="cldap")
 log.add(
@@ -69,16 +68,18 @@ class CLDAPUDPServer:
             KeyError,
             ValueError,
         ) as err:
-            log.error(
-                f"Invalid UDP schema from {addr_str}: {format_exc()}",
-            )
+            log.trace(f"Invalid LDAP schema from {addr_str}")
 
             return LDAPRequestMessage.from_err(data, err).encode()
 
         # Handle request
-        handler = request.context.handle_tcp(container)
-        response = await anext(request.create_response(handler))
-        return response.encode()
+        handler = request.context.handle_udp(container)
+        return b"".join(
+            [
+                response.encode()
+                async for response in request.create_response(handler)
+            ],
+        )
 
     async def start(self) -> None:
         """Start UDP server for CLDAP protocol."""
@@ -95,7 +96,7 @@ class CLDAPUDPServer:
 
                 async with self.container(scope=Scope.REQUEST) as container:
                     try:
-                        d = await self._handle(
+                        response = await self._handle(
                             packet.data,
                             packet.addr,
                             container,
@@ -103,7 +104,7 @@ class CLDAPUDPServer:
                     except ConnectionAbortedError:
                         continue
                     else:
-                        sock.sendto(d, packet.addr)
+                        sock.sendto(response, packet.addr)
 
         except Exception as err:
             log.critical(err)
