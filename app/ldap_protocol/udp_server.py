@@ -21,7 +21,7 @@ from .utils.udp import create_udp_socket
 log = logger.bind(name="cldap")
 log.add(
     "logs/cldap_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == "ldap",
+    filter=lambda rec: rec["extra"].get("name") == "cldap",
     retention="10 days",
     rotation="1d",
     colorize=False,
