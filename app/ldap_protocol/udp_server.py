@@ -88,8 +88,8 @@ class CLDAPUDPServer:
             local_addr=(str(self.settings.HOST), self.settings.PORT),
         )
 
-        stype = "DEBUG" if self.settings.DEBUG else "PROD"
-        log.info(f"started {stype} CLDAP server")
+        mode = "DEBUG" if self.settings.DEBUG else "PROD"
+        log.info(f"started {mode} CLDAP server")
 
         try:
             while True:
