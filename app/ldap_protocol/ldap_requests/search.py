@@ -45,6 +45,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.netlogon import NetLogonAttributeHandler
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.user_account_control import check_user_active
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -333,11 +334,12 @@ class SearchRequest(BaseRequest):
                 yield await self._get_subschema(ctx.session)
             elif is_netlogon:
                 root_dse = await self.get_root_dse(ctx.session, ctx.settings)
-                nl = NetLogonAttributeHandler.from_filter(self.filter)
-                net_logon = await nl.get_netlogon_attr(
-                    ctx.session,
+                nl = NetLogonAttributeHandler.from_filter(
                     root_dse,
+                    self.filter,
                 )
+                acc = await check_user_active(ctx.session, nl.user, nl.aac)
+                net_logon = nl.get_attr(acc)
                 yield SearchResultEntry(
                     object_name="",
                     partial_attributes=[

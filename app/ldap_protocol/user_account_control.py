@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute
+from ldap_protocol.utils.queries import get_user
 
 
 class UserAccountControlFlag(IntFlag):
@@ -118,3 +119,33 @@ async def get_check_uac(
         return bool(int(value) & flag)
 
     return is_flag_true
+
+
+async def check_user_active(
+    session: AsyncSession,
+    upn: str | None,
+    uac: int | None,
+) -> bool:
+    """Check external aac for internal match."""
+    if not upn:
+        return False
+
+    user_obj = await get_user(session, upn)
+    if user_obj is None:
+        return False
+
+    uac_check = await get_check_uac(session, user_obj.directory_id)
+
+    if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
+        return False
+
+    acc_flag = (
+        uac_check(UserAccountControlFlag.TEMP_DUPLICATE_ACCOUNT)
+        or uac_check(UserAccountControlFlag.NORMAL_ACCOUNT)
+        or uac_check(UserAccountControlFlag.INTERDOMAIN_TRUST_ACCOUNT)
+        or uac_check(UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT)
+        or uac_check(UserAccountControlFlag.SERVER_TRUST_ACCOUNT)
+    )
+    uac = uac if uac is not None else 0
+
+    return not (uac and acc_flag)
