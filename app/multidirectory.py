@@ -227,7 +227,7 @@ async def ldap_factory(settings: Settings) -> None:
 
 
 async def cldap_factory(settings: Settings) -> None:
-    """Run LDAP server factory."""
+    """Run CLDAP server factory."""
     container = make_async_container(
         LDAPServerProvider(),
         MainProvider(),
