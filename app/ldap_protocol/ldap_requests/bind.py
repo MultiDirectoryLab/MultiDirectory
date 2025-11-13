@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import contextlib
 from typing import AsyncGenerator, ClassVar
 
-import httpx
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +14,10 @@ from entities import NetworkPolicy, User
 from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos.exceptions import KRBAPIAddPrincipalError
+from ldap_protocol.kerberos.exceptions import (
+    KRBAPIAddPrincipalError,
+    KRBAPIConnectionError,
+)
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.bind_methods import (
     AbstractLDAPAuth,
@@ -216,7 +218,7 @@ class BindRequest(BaseRequest):
 
         with contextlib.suppress(
             KRBAPIAddPrincipalError,
-            httpx.TimeoutException,
+            KRBAPIConnectionError,
         ):
             await ctx.kadmin.add_principal(
                 user.get_upn_prefix(),
