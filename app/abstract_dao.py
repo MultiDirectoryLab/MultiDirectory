@@ -36,22 +36,20 @@ class AbstractDAO(Protocol[_T, _A]):
 
 
 class AbstractService(ABC):
-    """Abstract Service/Manager base class for nominal typing.
+    """Abstract Service/Manager base class for nominal typing."""
 
-    Intentionally empty:
-    concrete services may define arbitrary attributes/methods.
-    """
-
-    _usecase_api_permissions: dict[str, ApiPermissionsType]
+    @classmethod
+    @abstractmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]: ...
 
     def __getattribute__(self, name: str) -> Any:
         """Intercept attribute access."""
         attr = super().__getattribute__(name)
-        if not callable(attr):
+        if not callable(attr) or name.startswith("_"):
             return attr
 
         if hasattr(self, "_perm_check") and (
-            permission := self._usecase_api_permissions.get(name)
+            permission := self._usecase_api_permissions().get(attr)
         ):
             return self._perm_check.wrap_use_case(permission, attr)
         return attr

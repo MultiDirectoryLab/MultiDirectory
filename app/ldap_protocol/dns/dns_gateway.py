@@ -9,7 +9,6 @@ from typing import Awaitable
 from sqlalchemy import case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
 from entities import CatalogueSetting
 from ldap_protocol.dns.base import (
     DNS_MANAGER_IP_ADDRESS_NAME,
@@ -23,7 +22,7 @@ from ldap_protocol.dns.dto import DNSSettingDTO
 from repo.pg.tables import queryable_attr as qa
 
 
-class DNSStateGateway(AbstractService):
+class DNSStateGateway:
     """DNS gateway."""
 
     def __init__(self, session: AsyncSession) -> None:

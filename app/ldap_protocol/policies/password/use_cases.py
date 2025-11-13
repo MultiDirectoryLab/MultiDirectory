@@ -23,18 +23,20 @@ class PasswordPolicyUseCases(AbstractService):
     _password_policy_validator: PasswordPolicyValidator
     _perm_checker: ApiPermissionsChecker
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "get_all": ApiPermissionsType.PASSWORD_POLICY_GET_ALL,
-        "get": ApiPermissionsType.PASSWORD_POLICY_GET,
-        "get_password_policy_by_dir_path_dn": (
-            ApiPermissionsType.PASSWORD_POLICY_GET_BY_DIR
-        ),
-        "update": ApiPermissionsType.PASSWORD_POLICY_UPDATE,
-        "reset_domain_policy_to_default_config": (
-            ApiPermissionsType.PASSWORD_POLICY_RESET_DOMAIN_POLICY
-        ),
-        "turnoff": ApiPermissionsType.PASSWORD_POLICY_TURNOFF,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.get_all.__name__: ApiPermissionsType.PASSWORD_POLICY_GET_ALL,
+            cls.get.__name__: ApiPermissionsType.PASSWORD_POLICY_GET,
+            cls.get_password_policy_by_dir_path_dn.__name__: (
+                ApiPermissionsType.PASSWORD_POLICY_GET_BY_DIR
+            ),
+            cls.update.__name__: ApiPermissionsType.PASSWORD_POLICY_UPDATE,
+            cls.reset_domain_policy_to_default_config.__name__: (
+                ApiPermissionsType.PASSWORD_POLICY_RESET_DOMAIN_POLICY
+            ),
+            cls.turnoff.__name__: ApiPermissionsType.PASSWORD_POLICY_TURNOFF,
+        }
 
     def __init__(
         self,

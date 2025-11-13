@@ -49,9 +49,11 @@ from repo.pg.tables import queryable_attr as qa
 class AuthManager(AbstractService):
     """Authentication manager."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "reset_password": ApiPermissionsType.AUTH_RESET_PASSWORD,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.reset_password.__name__: ApiPermissionsType.AUTH_RESET_PASSWORD,  # noqa: E501
+        }
 
     def __init__(
         self,

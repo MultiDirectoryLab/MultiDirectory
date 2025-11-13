@@ -15,13 +15,15 @@ from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 class AttributeTypeUseCase(AbstractService):
     """AttributeTypeUseCase."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "get": ApiPermissionsType.ATTRIBUTE_TYPE_GET,
-        "create": ApiPermissionsType.ATTRIBUTE_TYPE_CREATE,
-        "get_paginator": ApiPermissionsType.ATTRIBUTE_TYPE_GET_PAGINATOR,
-        "update": ApiPermissionsType.ATTRIBUTE_TYPE_UPDATE,
-        "delete_all_by_names": ApiPermissionsType.ATTRIBUTE_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.get.__name__: ApiPermissionsType.ATTRIBUTE_TYPE_GET,
+            cls.create.__name__: ApiPermissionsType.ATTRIBUTE_TYPE_CREATE,
+            cls.get_paginator.__name__: ApiPermissionsType.ATTRIBUTE_TYPE_GET_PAGINATOR,  # noqa: E501
+            cls.update.__name__: ApiPermissionsType.ATTRIBUTE_TYPE_UPDATE,
+            cls.delete_all_by_names.__name__: ApiPermissionsType.ATTRIBUTE_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
+        }
 
     def __init__(
         self,

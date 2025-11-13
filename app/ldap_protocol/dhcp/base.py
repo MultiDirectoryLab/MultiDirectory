@@ -118,23 +118,25 @@ class AbstractDHCPManager(AbstractService):
     _api_repository: DHCPAPIRepository
     _manager_repository: DHCPManagerRepository
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "change_state": ApiPermissionsType.DHCP_CHANGE_STATE,
-        "get_state": ApiPermissionsType.DHCP_GET_STATE,
-        "create_subnet": ApiPermissionsType.DHCP_CREATE_SUBNET,
-        "delete_subnet": ApiPermissionsType.DHCP_DELETE_SUBNET,
-        "get_subnets": ApiPermissionsType.DHCP_GET_SUBNETS,
-        "update_subnet": ApiPermissionsType.DHCP_UPDATE_SUBNET,
-        "create_lease": ApiPermissionsType.DHCP_CREATE_LEASE,
-        "release_lease": ApiPermissionsType.DHCP_RELEASE_LEASE,
-        "list_active_leases": ApiPermissionsType.DHCP_LIST_ACTIVE_LEASES,
-        "find_lease": ApiPermissionsType.DHCP_FIND_LEASE,
-        "lease_to_reservation": ApiPermissionsType.DHCP_LEASE_TO_RESERVATION,
-        "add_reservation": ApiPermissionsType.DHCP_ADD_RESERVATION,
-        "get_reservations": ApiPermissionsType.DHCP_GET_RESERVATIONS,
-        "update_reservation": ApiPermissionsType.DHCP_UPDATE_RESERVATION,
-        "delete_reservation": ApiPermissionsType.DHCP_DELETE_RESERVATION,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.change_state.__name__: ApiPermissionsType.DHCP_CHANGE_STATE,
+            cls.get_state.__name__: ApiPermissionsType.DHCP_GET_STATE,
+            cls.create_subnet.__name__: ApiPermissionsType.DHCP_CREATE_SUBNET,
+            cls.delete_subnet.__name__: ApiPermissionsType.DHCP_DELETE_SUBNET,
+            cls.get_subnets.__name__: ApiPermissionsType.DHCP_GET_SUBNETS,
+            cls.update_subnet.__name__: ApiPermissionsType.DHCP_UPDATE_SUBNET,
+            cls.create_lease.__name__: ApiPermissionsType.DHCP_CREATE_LEASE,
+            cls.release_lease.__name__: ApiPermissionsType.DHCP_RELEASE_LEASE,
+            cls.list_active_leases.__name__: ApiPermissionsType.DHCP_LIST_ACTIVE_LEASES,  # noqa: E501
+            cls.find_lease.__name__: ApiPermissionsType.DHCP_FIND_LEASE,
+            cls.lease_to_reservation.__name__: ApiPermissionsType.DHCP_LEASE_TO_RESERVATION,  # noqa: E501
+            cls.add_reservation.__name__: ApiPermissionsType.DHCP_ADD_RESERVATION,  # noqa: E501
+            cls.get_reservations.__name__: ApiPermissionsType.DHCP_GET_RESERVATIONS,  # noqa: E501
+            cls.update_reservation.__name__: ApiPermissionsType.DHCP_UPDATE_RESERVATION,  # noqa: E501
+            cls.delete_reservation.__name__: ApiPermissionsType.DHCP_DELETE_RESERVATION,  # noqa: E501
+        }
 
     def __init__(
         self,

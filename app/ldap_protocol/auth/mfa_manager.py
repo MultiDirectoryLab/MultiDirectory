@@ -60,11 +60,13 @@ ALGORITHM = "HS256"
 class MFAManager(AbstractService):
     """MFA manager."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "setup_mfa": ApiPermissionsType.MFA_SETUP,
-        "remove_mfa": ApiPermissionsType.MFA_REMOVE,
-        "get_mfa": ApiPermissionsType.MFA_GET,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.setup_mfa.__name__: ApiPermissionsType.MFA_SETUP,
+            cls.remove_mfa.__name__: ApiPermissionsType.MFA_REMOVE,
+            cls.get_mfa.__name__: ApiPermissionsType.MFA_GET,
+        }
 
     def __init__(
         self,

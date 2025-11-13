@@ -26,24 +26,26 @@ from ldap_protocol.dns.dns_gateway import DNSStateGateway
 class DNSUseCase(AbstractService):
     """DNS use case."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "setup_dns": ApiPermissionsType.DNS_SETUP_DNS,
-        "create_record": ApiPermissionsType.DNS_CREATE_RECORD,
-        "delete_record": ApiPermissionsType.DNS_DELETE_RECORD,
-        "update_record": ApiPermissionsType.DNS_UPDATE_RECORD,
-        "get_all_records": ApiPermissionsType.DNS_GET_ALL_RECORDS,
-        "get_dns_status": ApiPermissionsType.DNS_GET_DNS_STATUS,
-        "get_all_zones_records": ApiPermissionsType.DNS_GET_ALL_ZONES_RECORDS,
-        "get_forward_zones": ApiPermissionsType.DNS_GET_FORWARD_ZONES,
-        "create_zone": ApiPermissionsType.DNS_CREATE_ZONE,
-        "update_zone": ApiPermissionsType.DNS_UPDATE_ZONE,
-        "delete_zone": ApiPermissionsType.DNS_DELETE_ZONE,
-        "check_dns_forward_zone": ApiPermissionsType.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
-        "reload_zone": ApiPermissionsType.DNS_RELOAD_ZONE,
-        "update_server_options": ApiPermissionsType.DNS_UPDATE_SERVER_OPTIONS,
-        "get_server_options": ApiPermissionsType.DNS_GET_SERVER_OPTIONS,
-        "restart_server": ApiPermissionsType.DNS_RESTART_SERVER,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.setup_dns.__name__: ApiPermissionsType.DNS_SETUP_DNS,
+            cls.create_record.__name__: ApiPermissionsType.DNS_CREATE_RECORD,
+            cls.delete_record.__name__: ApiPermissionsType.DNS_DELETE_RECORD,
+            cls.update_record.__name__: ApiPermissionsType.DNS_UPDATE_RECORD,
+            cls.get_all_records.__name__: ApiPermissionsType.DNS_GET_ALL_RECORDS,  # noqa: E501
+            cls.get_dns_status.__name__: ApiPermissionsType.DNS_GET_DNS_STATUS,
+            cls.get_all_zones_records.__name__: ApiPermissionsType.DNS_GET_ALL_ZONES_RECORDS,  # noqa: E501
+            cls.get_forward_zones.__name__: ApiPermissionsType.DNS_GET_FORWARD_ZONES,  # noqa: E501
+            cls.create_zone.__name__: ApiPermissionsType.DNS_CREATE_ZONE,
+            cls.update_zone.__name__: ApiPermissionsType.DNS_UPDATE_ZONE,
+            cls.delete_zone.__name__: ApiPermissionsType.DNS_DELETE_ZONE,
+            cls.check_dns_forward_zone.__name__: ApiPermissionsType.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
+            cls.reload_zone.__name__: ApiPermissionsType.DNS_RELOAD_ZONE,
+            cls.update_server_options.__name__: ApiPermissionsType.DNS_UPDATE_SERVER_OPTIONS,  # noqa: E501
+            cls.get_server_options.__name__: ApiPermissionsType.DNS_GET_SERVER_OPTIONS,  # noqa: E501
+            cls.restart_server.__name__: ApiPermissionsType.DNS_RESTART_SERVER,
+        }
 
     def __init__(
         self,

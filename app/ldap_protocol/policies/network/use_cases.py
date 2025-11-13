@@ -58,14 +58,16 @@ _convert_dto_to_model = get_converter(
 class NetworkPolicyUseCase(AbstractService):
     """Network policies use cases."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "create": ApiPermissionsType.NETWORK_POLICY_CREATE,
-        "get_list_policies": ApiPermissionsType.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
-        "delete": ApiPermissionsType.NETWORK_POLICY_DELETE,
-        "switch_network_policy": ApiPermissionsType.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
-        "update": ApiPermissionsType.NETWORK_POLICY_UPDATE,
-        "swap_priorities": ApiPermissionsType.NETWORK_POLICY_SWAP_PRIORITIES,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.create.__name__: ApiPermissionsType.NETWORK_POLICY_CREATE,
+            cls.get_list_policies.__name__: ApiPermissionsType.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
+            cls.delete.__name__: ApiPermissionsType.NETWORK_POLICY_DELETE,
+            cls.switch_network_policy.__name__: ApiPermissionsType.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
+            cls.update.__name__: ApiPermissionsType.NETWORK_POLICY_UPDATE,
+            cls.swap_priorities.__name__: ApiPermissionsType.NETWORK_POLICY_SWAP_PRIORITIES,  # noqa: E501
+        }
 
     def __init__(
         self,

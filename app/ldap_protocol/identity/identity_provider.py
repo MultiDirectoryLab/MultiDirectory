@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abstract_dao import AbstractService
 from config import Settings
 from entities import User
 from ldap_protocol.dialogue import UserSchema
@@ -23,7 +22,7 @@ from ldap_protocol.session_storage.exceptions import (
 )
 
 
-class IdentityProvider(AbstractService):
+class IdentityProvider:
     """Coordinate session validation and user retrieval for requests."""
 
     _ip_from_request: str

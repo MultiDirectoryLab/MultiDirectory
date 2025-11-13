@@ -18,14 +18,16 @@ from .policies_dao import AuditPoliciesDAO
 class AuditService(AbstractService):
     """Audit service class for managing audit policies."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "get_policies": ApiPermissionsType.AUDIT_GET_POLICIES,
-        "update_policy": ApiPermissionsType.AUDIT_UPDATE_POLICY,
-        "get_destinations": ApiPermissionsType.AUDIT_GET_DESTINATIONS,
-        "create_destination": ApiPermissionsType.AUDIT_CREATE_DESTINATION,
-        "delete_destination": ApiPermissionsType.AUDIT_DELETE_DESTINATION,
-        "update_destination": ApiPermissionsType.AUDIT_UPDATE_DESTINATION,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.get_policies.__name__: ApiPermissionsType.AUDIT_GET_POLICIES,
+            cls.update_policy.__name__: ApiPermissionsType.AUDIT_UPDATE_POLICY,
+            cls.get_destinations.__name__: ApiPermissionsType.AUDIT_GET_DESTINATIONS,  # noqa: E501
+            cls.create_destination.__name__: ApiPermissionsType.AUDIT_CREATE_DESTINATION,  # noqa: E501
+            cls.delete_destination.__name__: ApiPermissionsType.AUDIT_DELETE_DESTINATION,  # noqa: E501
+            cls.update_destination.__name__: ApiPermissionsType.AUDIT_UPDATE_DESTINATION,  # noqa: E501
+        }
 
     def __init__(
         self,

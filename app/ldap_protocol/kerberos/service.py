@@ -49,16 +49,18 @@ from .utils import KerberosState, get_krb_server_state, set_state
 class KerberosService(AbstractService):
     """Kerberos business logic coordinator for KDC and LDAP operations."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "setup_krb_catalogue": ApiPermissionsType.KRB_SETUP_CATALOGUE,
-        "setup_kdc": ApiPermissionsType.KRB_SETUP_KDC,
-        "ktadd": ApiPermissionsType.KRB_KTADD,
-        "get_status": ApiPermissionsType.KRB_GET_STATUS,
-        "add_principal": ApiPermissionsType.KRB_ADD_PRINCIPAL,
-        "rename_principal": ApiPermissionsType.KRB_RENAME_PRINCIPAL,
-        "reset_principal_pw": ApiPermissionsType.KRB_RESET_PRINCIPAL_PW,
-        "delete_principal": ApiPermissionsType.KRB_DELETE_PRINCIPAL,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.setup_krb_catalogue.__name__: ApiPermissionsType.KRB_SETUP_CATALOGUE,  # noqa: E501
+            cls.setup_kdc.__name__: ApiPermissionsType.KRB_SETUP_KDC,
+            cls.ktadd.__name__: ApiPermissionsType.KRB_KTADD,
+            cls.get_status.__name__: ApiPermissionsType.KRB_GET_STATUS,
+            cls.add_principal.__name__: ApiPermissionsType.KRB_ADD_PRINCIPAL,
+            cls.rename_principal.__name__: ApiPermissionsType.KRB_RENAME_PRINCIPAL,  # noqa: E501
+            cls.reset_principal_pw.__name__: ApiPermissionsType.KRB_RESET_PRINCIPAL_PW,  # noqa: E501
+            cls.delete_principal.__name__: ApiPermissionsType.KRB_DELETE_PRINCIPAL,  # noqa: E501
+        }
 
     def __init__(
         self,

@@ -47,11 +47,13 @@ class AllUserSessionsDTO:
 class SessionRepository(AbstractService):
     """Repository for managing user sessions."""
 
-    _usecase_api_permissions: dict[str, ApiPermissionsType] = {
-        "get_user_sessions": ApiPermissionsType.SESSION_GET_USE_SESSIONS,
-        "clear_user_sessions": ApiPermissionsType.SESSION_CLEAR_USE_SESSIONS,
-        "delete_session": ApiPermissionsType.SESSSION_DELETE,
-    }
+    @classmethod
+    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
+        return {
+            cls.get_user_sessions.__name__: ApiPermissionsType.SESSION_GET_USE_SESSIONS,  # noqa: E501
+            cls.clear_user_sessions.__name__: ApiPermissionsType.SESSION_CLEAR_USE_SESSIONS,  # noqa: E501
+            cls.delete_session.__name__: ApiPermissionsType.SESSSION_DELETE,
+        }
 
     def __init__(
         self,
