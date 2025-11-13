@@ -254,7 +254,6 @@ class NetLogonAttributeHandler:
             ds_flags |= flag
 
         domain_guid = uuid.UUID(self.__root_dse["domainGuid"][0])
-        socket.gethostname()
 
         return self._pack_value(
             (
