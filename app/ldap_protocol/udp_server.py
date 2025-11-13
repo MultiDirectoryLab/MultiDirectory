@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import ip_address
+from traceback import format_exc
 
 from dishka import AsyncContainer, Scope
 from loguru import logger
@@ -107,8 +108,8 @@ class CLDAPUDPServer:
                         sock.sendto(response, packet.addr)
 
         except Exception as err:
-            log.critical(err)
-            log.trace("UDP handler traceback failed")
+            log.critical(f"Error in cldap: {err}")
+            log.error(f"UDP handler traceback failed: {format_exc()}")
         finally:
             await self.stop()
 
