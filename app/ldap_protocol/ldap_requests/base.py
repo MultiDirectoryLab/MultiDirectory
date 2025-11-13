@@ -201,3 +201,13 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
     ) -> LDAPResult:
         """Get single response."""
         return (await self._handle_api(container))[0]  # type: ignore
+
+    async def handle_udp(
+        self,
+        container: AsyncContainer,
+    ) -> AsyncIterator[BaseResponse]:
+        """Hanlde response with tcp."""
+        kwargs = await resolve_deps(func=self.handle, container=container)
+
+        async for response in self.handle(**kwargs):
+            yield response
