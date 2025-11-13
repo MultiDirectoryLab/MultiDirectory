@@ -42,6 +42,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
+from ldap_protocol.netlogon import NetLogonAttributeHandler
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.utils.cte import get_all_parent_group_directories
@@ -239,6 +240,9 @@ class SearchRequest(BaseRequest):
         data["serviceName"].append(domain.name)
         data["dsServiceName"].append(domain.name)
         data["LDAPServiceName"].append(domain.name)
+        data["dnsForestName"].append(domain.name)
+        data["dnsDomainName"].append(domain.name)
+        data["domainGuid"].append(str(domain.object_guid))
         data["vendorName"].append(settings.VENDOR_NAME)
         data["vendorVersion"].append(settings.VENDOR_VERSION)
         data["namingContexts"].append(domain.path_dn)
@@ -301,6 +305,10 @@ class SearchRequest(BaseRequest):
         async for response in self.get_result(ctx):
             yield response
 
+    def check_netlogon_filter(self) -> bool:
+        """Check if search request is for netLogon."""
+        return "netlogon" in self.requested_attrs
+
     async def get_result(
         self,
         ctx: LDAPSearchRequestContext,
@@ -312,6 +320,7 @@ class SearchRequest(BaseRequest):
         :yield SearchResult: search result
         """
         is_root_dse = self.scope == Scope.BASE_OBJECT and not self.base_object
+        is_netlogon = is_root_dse and self.check_netlogon_filter()
         is_schema = self.base_object.lower() == "cn=schema"
         user = ctx.ldap_session.user
 
@@ -322,6 +331,19 @@ class SearchRequest(BaseRequest):
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
             if is_schema:
                 yield await self._get_subschema(ctx.session)
+            elif is_netlogon:
+                root_dse = await self.get_root_dse(ctx.session, ctx.settings)
+                nl = NetLogonAttributeHandler.from_filter(self.filter)
+                net_logon = await nl.get_netlogon_attr(
+                    ctx.session,
+                    root_dse,
+                )
+                yield SearchResultEntry(
+                    object_name="",
+                    partial_attributes=[
+                        PartialAttribute(type="NetLogon", vals=[net_logon]),
+                    ],
+                )
             elif is_root_dse:
                 attrs = await self.get_root_dse(ctx.session, ctx.settings)
                 yield SearchResultEntry(
