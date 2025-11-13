@@ -206,7 +206,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         self,
         container: AsyncContainer,
     ) -> AsyncIterator[BaseResponse]:
-        """Hanlde response with tcp."""
+        """Handle response with UDP."""
         kwargs = await resolve_deps(func=self.handle, container=container)
 
         async for response in self.handle(**kwargs):
