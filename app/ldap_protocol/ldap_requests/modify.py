@@ -21,6 +21,7 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, unlock_principal
 from ldap_protocol.kerberos.exceptions import (
+    KRBAPIConnectionError,
     KRBAPIForcePasswordChangeError,
     KRBAPILockPrincipalError,
     KRBAPIPrincipalNotFoundError,
@@ -307,6 +308,9 @@ class ModifyRequest(BaseRequest):
                 return LDAPCodes.OPERATIONS_ERROR, str(err)
 
             case KRBAPIPrincipalNotFoundError():
+                return LDAPCodes.UNAVAILABLE, "Kerberos error"
+
+            case KRBAPIConnectionError():
                 return LDAPCodes.UNAVAILABLE, "Kerberos error"
 
             case KRBAPILockPrincipalError():
