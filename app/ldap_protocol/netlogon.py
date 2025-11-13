@@ -5,12 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import ipaddress
-import socket
 import struct
 import uuid
 from collections import defaultdict
 from enum import IntEnum, IntFlag
-from typing import Any
+from typing import Any, Self
 
 from ldap_protocol.asn1parser import ASN1Row
 
@@ -86,7 +85,7 @@ class NetLogonAttributeHandler:
         cls,
         root_dse: defaultdict[str, list[str]],
         expr: ASN1Row,
-    ) -> "NetLogonAttributeHandler":
+    ) -> Self:
         """Parse NetLogon filter."""
         obj = cls(root_dse)
         for item in expr.value:
