@@ -236,15 +236,6 @@ async def cldap_factory(settings: Settings) -> None:
         context={Settings: settings},
     )
 
-    container = make_async_container(
-        LDAPServerProvider(),
-        MainProvider(),
-        MFAProvider(),
-        MFACredsProvider(),
-        context={Settings: settings},
-    )
-
-    settings = await container.get(Settings)
     await CLDAPUDPServer(settings, container).start()
 
 
