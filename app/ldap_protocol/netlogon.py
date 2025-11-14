@@ -269,7 +269,7 @@ class NetLogonAttributeHandler:
         )
 
     def _get_netlogon_response_5_ex(self) -> bytes:
-        """Get NetLogon response for extended version 5."""
+        """Get NetLogon response for extended version 5 ex."""
         if self.__info.user and not self.__info.has_user:
             op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN_EX
         else:
@@ -314,7 +314,7 @@ class NetLogonAttributeHandler:
         )
 
     def _get_netlogon_response_nt40(self) -> bytes:
-        """Get NetLogon response for version 5."""
+        """Get NetLogon response for version nt40."""
         if self.__info.user and not self.__info.has_user:
             op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
         else:
