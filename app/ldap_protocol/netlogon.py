@@ -15,7 +15,7 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum, IntFlag
-from typing import Self
+from typing import Any, Self
 
 from ldap_protocol.asn1parser import ASN1Row
 
@@ -198,13 +198,14 @@ class NetLogonAttributeHandler:
 
         return self._get_netlogon_response_nt40()
 
-    def _pack_value(self, values: tuple) -> bytes:
+    def _pack_value(
+        self,
+        values: list[tuple[Any, str | None]],
+    ) -> bytes:
         """Pack values."""
         packed_value = b""
         for value in values:
-            if value[0] is None:
-                continue
-            if value[1] in ["utf-8", "unicode"]:
+            if value[1] == "utf-8":
                 packed_string = self._pack_string(value[0], value[1])
                 if len(value[1]) > 0:
                     packed_string += struct.pack("<B", 0)
@@ -231,9 +232,9 @@ class NetLogonAttributeHandler:
         return struct.pack(">H", 0xC000 | pointer)
 
     @staticmethod
-    def _pack_string(value: str, string_type: str) -> bytes:
+    def _pack_string(value: str, encoding: str) -> bytes:
         """Pack utf-8 string."""
-        bytes_value = value.encode(string_type)
+        bytes_value = value.encode(encoding)
         value_length = len(bytes_value)
 
         return struct.pack("<B", value_length) + bytes_value
@@ -246,16 +247,16 @@ class NetLogonAttributeHandler:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
 
         return self._pack_value(
-            (
+            [
                 (op_code, "<H"),
-                (self.__root_dse["serverName"], "unicode"),
-                (self.__info.user, "unicode"),
-                (self.__root_dse["dnsHostName"][0], "unicode"),
+                (self.__root_dse["serverName"][0], "utf-8"),
+                (self.__info.user, "utf-8"),
+                (self.__root_dse["dnsHostName"][0], "utf-8"),
                 (self.__info.domain_guid, "uuid"),
                 (uuid.UUID(int=0), "uuid"),
-                (self.__root_dse["dnsForestName"][0], "unicode"),
-                (self.__root_dse["dnsDomainName"][0], "unicode"),
-                (self.__root_dse["dnsHostName"][0], "unicode"),
+                (self.__root_dse["dnsForestName"][0], "utf-8"),
+                (self.__root_dse["dnsDomainName"][0], "utf-8"),
+                (self.__root_dse["dnsHostName"][0], "utf-8"),
                 (ipaddress.IPv4Address("127.0.0.1").packed, None),
                 (DSFlag.PDC_FLAG | DSFlag.DS_FLAG, "<I"),
                 (
@@ -265,7 +266,7 @@ class NetLogonAttributeHandler:
                 ),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
-            ),
+            ],
         )
 
     def _get_netlogon_response_5_ex(self) -> bytes:
@@ -290,7 +291,7 @@ class NetLogonAttributeHandler:
         domain_guid = uuid.UUID(self.__root_dse["domainGuid"][0])
 
         return self._pack_value(
-            (
+            [
                 (op_code, "<H"),
                 (0, "<H"),
                 (ds_flags, "<I"),
@@ -310,7 +311,7 @@ class NetLogonAttributeHandler:
                 ),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
-            ),
+            ],
         )
 
     def _get_netlogon_response_nt40(self) -> bytes:
@@ -320,13 +321,13 @@ class NetLogonAttributeHandler:
         else:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
         return self._pack_value(
-            (
+            [
                 (op_code, "<H"),
-                (self.__root_dse["serverName"], "unicode"),
-                (self.__info.user, "unicode"),
-                (self.__root_dse["dnsHostName"][0], "unicode"),
+                (self.__root_dse["serverName"][0], "utf-8"),
+                (self.__info.user, "utf-8"),
+                (self.__root_dse["dnsHostName"][0], "utf-8"),
                 (NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1, "<I"),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
-            ),
+            ],
         )
