@@ -68,12 +68,12 @@ _NAME_TO_CODE: dict[str, ErrorCode] = {
     "_MFAMissconfiguredError": ErrorCode.MFA_MISCONFIGURED,
     "_MultifactorError": ErrorCode.MULTIFACTOR_ERROR,
     "NetworkPolicyError": ErrorCode.NETWORK_POLICY_ERROR,
-    "PasswordPolicyAlreadyExistsError": ErrorCode.PASSWORD_POLICY_ALREADY_EXISTS,
+    "PasswordPolicyAlreadyExistsError": ErrorCode.PASSWORD_POLICY_ALREADY_EXISTS,  # noqa: E501
     "PasswordPolicyBaseError": ErrorCode.PASSWORD_POLICY_BASE_ERROR,
     "PasswordPolicyError": ErrorCode.PASSWORD_POLICY_ERROR,
     "PasswordPolicyNotFoundError": ErrorCode.PASSWORD_POLICY_NOT_FOUND,
     "AccessControlEntryAddError": ErrorCode.ACCESS_CONTROL_ENTRY_ADD,
-    "AccessControlEntryNotFoundError": ErrorCode.ACCESS_CONTROL_ENTRY_NOT_FOUND,
+    "AccessControlEntryNotFoundError": ErrorCode.ACCESS_CONTROL_ENTRY_NOT_FOUND,  # noqa: E501
     "AccessControlEntryUpdateError": ErrorCode.ACCESS_CONTROL_ENTRY_UPDATE,
     "RoleError": ErrorCode.ROLE_ERROR,
     "RoleNotFoundError": ErrorCode.ROLE_NOT_FOUND,

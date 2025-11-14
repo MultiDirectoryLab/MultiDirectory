@@ -135,7 +135,6 @@ class IdentityProvider(AbstractService):
             SessionStorageInvalidSignatureError,
             SessionStorageInvalidDataError,
         ) as err:
-            # raise UnauthorizedError("Could not validate credentials") from err
             raise ErrorCodeCarrierError(
                 UnauthorizedError("Could not validate credentials"),
                 ErrorCode.UNAUTHORIZED,
