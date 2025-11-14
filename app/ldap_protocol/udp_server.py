@@ -33,9 +33,9 @@ class CLDAPUDPServer:
 
     def __init__(self, settings: Settings, container: AsyncContainer):
         """Initialize UDP server."""
-        self.settings = settings
-        self.container = container
-        self.logger = DataLogger(log, is_full=self.settings.DEBUG)
+        self._settings = settings
+        self._container = container
+        self._logger = DataLogger(log, is_full=self._settings.DEBUG)
 
     async def _handle(
         self,
@@ -60,7 +60,7 @@ class CLDAPUDPServer:
 
         try:
             request = LDAPRequestMessage.from_bytes(data)
-            self.logger.req_log(addr_str, request)
+            self._logger.req_log(addr_str, request)
 
         except (
             ValidationError,
@@ -83,17 +83,17 @@ class CLDAPUDPServer:
     async def start(self) -> None:
         """Start UDP server for CLDAP protocol."""
         sock = await create_udp_socket(
-            local_addr=(str(self.settings.HOST), self.settings.PORT),
+            local_addr=(str(self._settings.HOST), self._settings.PORT),
         )
 
-        mode = "DEBUG" if self.settings.DEBUG else "PROD"
+        mode = "DEBUG" if self._settings.DEBUG else "PROD"
         log.info(f"started {mode} CLDAP server")
 
         try:
             while True:
                 packet = await sock.recvfrom()
 
-                async with self.container(scope=Scope.REQUEST) as container:
+                async with self._container(scope=Scope.REQUEST) as container:
                     try:
                         response = await self._handle(
                             packet.data,
@@ -115,7 +115,7 @@ class CLDAPUDPServer:
         """Stop UDP server gracefully."""
         log.info("Stopping CLDAP server...")
 
-        if self.container:
-            await self.container.close()
+        if self._container:
+            await self._container.close()
 
         log.info("CLDAP server stopped")
