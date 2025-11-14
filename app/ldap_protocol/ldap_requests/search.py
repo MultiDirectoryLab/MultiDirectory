@@ -28,6 +28,7 @@ from entities import (
     User,
 )
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.filter_interpreter import (
@@ -47,6 +48,7 @@ from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.user_account_control import check_service_account_active
 from ldap_protocol.utils.cte import get_all_parent_group_directories
+from ldap_protocol.utils.error_codes import format_ldap_error_message
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
     get_generalized_now,
@@ -361,6 +363,11 @@ class SearchRequest(BaseRequest):
         if not user:
             yield SearchResultDone(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                errorMessage=format_ldap_error_message(
+                    get_error_code_from_ldap_code(
+                        LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                    ),
+                ),
             )
             return
 
@@ -376,7 +383,13 @@ class SearchRequest(BaseRequest):
         except Exception as err:
             logger.exception("Error occurred while filtering query")
             logger.error(f"Filter syntax error {err}, {type(err)}")
-            yield SearchResultDone(result_code=LDAPCodes.PROTOCOL_ERROR)
+            yield SearchResultDone(
+                result_code=LDAPCodes.PROTOCOL_ERROR,
+                errorMessage=format_ldap_error_message(
+                    get_error_code_from_ldap_code(LDAPCodes.PROTOCOL_ERROR),
+                    str(err),
+                ),
+            )
             return
 
         query, pages_total, count = await self.paginate_query(

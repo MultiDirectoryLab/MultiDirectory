@@ -14,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractService
 from config import Settings
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos.exceptions import (
@@ -116,8 +118,11 @@ class KerberosService(AbstractService):
         """Get LDAP root DN and domain."""
         base_dn_list = await get_base_directories(self._session)
         if not base_dn_list:
-            raise KerberosBaseDnNotFoundError(
-                "No base DN found in the LDAP directory.",
+            raise ErrorCodeCarrierError(
+                KerberosBaseDnNotFoundError(
+                    "No base DN found in the LDAP directory.",
+                ),
+                ErrorCode.KERBEROS_BASE_DN_NOT_FOUND,
             )
         return base_dn_list[0].path_dn, base_dn_list[0].name
 
@@ -258,7 +263,10 @@ class KerberosService(AbstractService):
                 context.krbgroup,
             )
             await self._kadmin.reset_setup()
-            raise KerberosDependencyError(str(err))
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(str(err)),
+                ErrorCode.KERBEROS_DEPENDENCY,
+            )
         else:
             await set_state(self._session, KerberosState.READY)
             await self._session.commit()
@@ -307,7 +315,10 @@ class KerberosService(AbstractService):
             password,
             self._password_validator,
         ):
-            raise KerberosDependencyError("Incorrect password")
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError("Incorrect password"),
+                ErrorCode.KERBEROS_DEPENDENCY,
+            )
 
     async def _schedule_principal_task(
         self,
@@ -349,8 +360,9 @@ class KerberosService(AbstractService):
             principal_name = f"{primary}/{instance}"
             await self._kadmin.add_principal(principal_name, None)
         except KRBAPIAddPrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error adding principal: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(f"Error adding principal: {exc}"),
+                ErrorCode.KERBEROS_DEPENDENCY,
             ) from exc
 
     async def rename_principal(
@@ -368,8 +380,11 @@ class KerberosService(AbstractService):
         try:
             await self._kadmin.rename_princ(principal_name, principal_new_name)
         except KRBAPIRenamePrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error renaming principal: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(
+                    f"Error renaming principal: {exc}",
+                ),
+                ErrorCode.KERBEROS_DEPENDENCY,
             ) from exc
 
     async def reset_principal_pw(
@@ -390,8 +405,11 @@ class KerberosService(AbstractService):
                 new_password,
             )
         except Exception as exc:
-            raise KerberosDependencyError(
-                f"Error resetting principal password: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(
+                    f"Error resetting principal password: {exc}",
+                ),
+                ErrorCode.KERBEROS_DEPENDENCY,
             ) from exc
 
     async def delete_principal(self, principal_name: str) -> None:
@@ -404,8 +422,11 @@ class KerberosService(AbstractService):
         try:
             await self._kadmin.del_principal(principal_name)
         except KRBAPIDeletePrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error deleting principal: {exc}",
+            raise ErrorCodeCarrierError(
+                KerberosDependencyError(
+                    f"Error deleting principal: {exc}",
+                ),
+                ErrorCode.KERBEROS_DEPENDENCY,
             ) from exc
 
     async def ktadd(
@@ -421,7 +442,10 @@ class KerberosService(AbstractService):
         try:
             response = await self._kadmin.ktadd(names)
         except KRBAPIPrincipalNotFoundError:
-            raise KerberosNotFoundError("Principal not found")
+            raise ErrorCodeCarrierError(
+                KerberosNotFoundError("Principal not found"),
+                ErrorCode.KERBEROS_NOT_FOUND,
+            )
         aiter_bytes = response.aiter_bytes()
         func = response.aclose
         return aiter_bytes, TaskStruct(func=func)
@@ -436,8 +460,10 @@ class KerberosService(AbstractService):
         try:
             server_state = await self._kadmin.get_status()
         except KRBAPIStatusNotFoundError:
-            raise KerberosUnavailableError("Kerberos server unavailable")
-
+            raise ErrorCodeCarrierError(
+                KerberosUnavailableError("Kerberos server unavailable"),
+                ErrorCode.KERBEROS_UNAVAILABLE,
+            )
         if server_state is False and db_state == KerberosState.READY:
             return KerberosState.WAITING_FOR_RELOAD
         return db_state

@@ -19,7 +19,8 @@ from starlette.datastructures import URL
 from abstract_dao import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
-from enums import MFAChallengeStatuses, MFAFlags
+from enums import ErrorCode, MFAChallengeStatuses, MFAFlags
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -189,7 +190,10 @@ class MFAManager(AbstractService):
         :raises MFATokenError: if token is invalid or user not found
         """
         if not mfa_creds or not mfa_creds.secret:
-            raise ForbiddenError("MFA credentials missing")
+            raise ErrorCodeCarrierError(
+                ForbiddenError("MFA credentials missing"),
+                ErrorCode.UNAUTHORIZED,
+            )
         try:
             payload = jwt.decode(
                 access_token,
@@ -199,12 +203,18 @@ class MFAManager(AbstractService):
             )
         except (JWTError, AttributeError, JWKError) as err:
             logger.error(f"Invalid MFA token: {err}")
-            raise MFATokenError("Invalid MFA token")
+            raise ErrorCodeCarrierError(
+                MFATokenError("Invalid MFA token"),
+                ErrorCode.INVALID_CREDENTIALS,
+            )
 
         user_id: int = int(payload.get("uid"))
         user = await self._session.get(User, user_id)
         if user_id is None or not user:
-            raise MFATokenError("User not found")
+            raise ErrorCodeCarrierError(
+                MFATokenError("User not found"),
+                ErrorCode.ENTITY_NOT_FOUND,
+            )
 
         return await self._repository.create_session_key(
             user,
@@ -264,7 +274,10 @@ class MFAManager(AbstractService):
         :raises NetworkPolicyError: if network policy is not passed
         """
         if not self._mfa_api.is_initialized:
-            raise MissingMFACredentialsError()
+            raise ErrorCodeCarrierError(
+                MissingMFACredentialsError(),
+                ErrorCode.UNAUTHORIZED,
+            )
 
         bypass_coro = self._create_bypass_data(
             user,
@@ -285,7 +298,10 @@ class MFAManager(AbstractService):
             if network_policy.bypass_no_connection:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
-            raise MFAConnectError("Multifactor error")
+            raise ErrorCodeCarrierError(
+                MFAConnectError("Multifactor error"),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
         except self._mfa_api.MFAMissconfiguredError:
             return await bypass_coro
@@ -294,7 +310,10 @@ class MFAManager(AbstractService):
             if network_policy.bypass_service_failure:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
-            raise MFAAPIError(str(error))
+            raise ErrorCodeCarrierError(
+                MFAAPIError(str(error)),
+                ErrorCode.UNHANDLED_ERROR,
+            )
 
         else:
             weakref.finalize(bypass_coro, bypass_coro.close)
@@ -335,8 +354,11 @@ class MFAManager(AbstractService):
         )
 
         if network_policy is None or not network_policy.is_kerberos:
-            raise NetworkPolicyError(
-                f"Network policy not found for user {principal}.",
+            raise ErrorCodeCarrierError(
+                NetworkPolicyError(
+                    f"Network policy not found for user {principal}.",
+                ),
+                ErrorCode.NETWORK_POLICY_ERROR,
             )
 
         if (
@@ -376,7 +398,10 @@ class MFAManager(AbstractService):
                 if network_policy.bypass_service_failure:
                     return
 
-        raise AuthenticationError("Authentication failed.")
+        raise ErrorCodeCarrierError(
+            AuthenticationError("Authentication failed."),
+            ErrorCode.UNAUTHORIZED,
+        )
 
     def set_new_session_key(self, key: str) -> None:
         """Set a new session key."""

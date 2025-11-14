@@ -7,6 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy.exc import IntegrityError
 
 from abstract_dao import AbstractService
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 
 from .dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from .destination_dao import AuditDestinationDAO
@@ -51,8 +53,11 @@ class AuditService(AbstractService):
                 policy_id,
                 policy_dto,
             )
-        except IntegrityError:
-            raise AuditAlreadyExistsError("Audit policy already exists")
+        except IntegrityError as err:
+            raise ErrorCodeCarrierError(
+                AuditAlreadyExistsError("Audit policy already exists"),
+                ErrorCode.AUDIT_ALREADY_EXISTS,
+            ) from err
 
     async def get_destinations(self) -> list[AuditDestinationDTO]:
         """Get all audit destinations."""
@@ -73,8 +78,11 @@ class AuditService(AbstractService):
         """
         try:
             return await self._destination_dao.create(destination_dto)
-        except IntegrityError:
-            raise AuditAlreadyExistsError("Audit destination already exists")
+        except IntegrityError as err:
+            raise ErrorCodeCarrierError(
+                AuditAlreadyExistsError("Audit destination already exists"),
+                ErrorCode.AUDIT_ALREADY_EXISTS,
+            ) from err
 
     async def update_destination(
         self,
@@ -97,8 +105,11 @@ class AuditService(AbstractService):
                 destination_id,
                 destination_dto,
             )
-        except IntegrityError:
-            raise AuditAlreadyExistsError("Audit destination already exists")
+        except IntegrityError as err:
+            raise ErrorCodeCarrierError(
+                AuditAlreadyExistsError("Audit destination already exists"),
+                ErrorCode.AUDIT_ALREADY_EXISTS,
+            ) from err
 
     async def delete_destination(
         self,

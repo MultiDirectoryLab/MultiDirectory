@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from entities import Attribute, Directory, Group, User
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -29,6 +30,7 @@ from ldap_protocol.utils.const import (
     DOMAIN_COMPUTERS_GROUP_NAME,
     DOMAIN_USERS_GROUP_NAME,
 )
+from ldap_protocol.utils.error_codes import format_ldap_error_message
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
     create_user_name,
@@ -180,9 +182,15 @@ class AddRequest(BaseRequest):
             )
 
             if errors:
+                error_msg = "; ".join(errors)
                 yield AddResponse(
                     result_code=LDAPCodes.OPERATIONS_ERROR,
-                    errorMessage="; ".join(errors),
+                    errorMessage=format_ldap_error_message(
+                        get_error_code_from_ldap_code(
+                            LDAPCodes.OPERATIONS_ERROR,
+                        ),
+                        error_msg,
+                    ),
                 )
                 return
 
@@ -438,7 +446,10 @@ class AddRequest(BaseRequest):
                 await ctx.session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
-                    errorMessage="KerberosError",
+                    errorMessage=format_ldap_error_message(
+                        get_error_code_from_ldap_code(LDAPCodes.UNAVAILABLE),
+                        "KerberosError",
+                    ),
                 )
                 return
 
