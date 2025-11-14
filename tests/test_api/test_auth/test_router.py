@@ -372,6 +372,88 @@ async def test_update_password_with_incorrect_old_password(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
+async def test_update_password_with_empty_old_password(
+    http_client: AsyncClient,
+) -> None:
+    """Update password with empty old password."""
+    response = await http_client.patch(
+        "auth/user/password",
+        json={
+            "identity": "user0",
+            "new_password": "Password123",
+            "old_password": None,
+        },
+    )
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    new_auth = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "Password123",
+        },
+    )
+    assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
+
+    new_auth = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+
+    assert new_auth.status_code == status.HTTP_200_OK
+    token = new_auth.cookies.get("id")
+    assert token
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_admin_update_password_another_user(
+    admin_http_client: AsyncClient,
+    http_client: AsyncClient,
+) -> None:
+    """Update password with incorrect old password."""
+    response = await admin_http_client.patch(
+        "auth/user/password",
+        json={
+            "identity": "user0",
+            "new_password": "Password123",
+            "old_password": None,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() is None
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() is None
+
+    new_auth = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "password",
+        },
+    )
+    assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
+
+    new_auth = await http_client.post(
+        "auth/",
+        data={
+            "username": "user0",
+            "password": "Password123",
+        },
+    )
+    assert new_auth.status_code == status.HTTP_200_OK
+    token = new_auth.cookies.get("id")
+    assert token
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
 async def test_auth_disabled_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,

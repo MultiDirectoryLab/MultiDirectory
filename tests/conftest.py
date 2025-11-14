@@ -627,6 +627,13 @@ class TestCreds:
     pw: str
 
 
+@dataclass
+class TestAdminCreds(TestCreds):
+    """Test admin credentials class."""
+
+    __test__ = False
+
+
 @pytest_asyncio.fixture(scope="session")
 async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     """Create test container."""
@@ -1035,6 +1042,34 @@ async def http_client(
     return unbound_http_client
 
 
+@pytest_asyncio.fixture(scope="function")
+async def admin_http_client(
+    app: FastAPI,
+    admin_creds: TestAdminCreds,
+    setup_session: None,  # noqa: ARG001
+) -> AsyncIterator[httpx.AsyncClient]:
+    """Authenticate as admin and return client with cookies.
+
+    :param httpx.AsyncClient unbound_http_client: client w/o cookies
+    :param None setup_session: just a fixture call
+    :return httpx.AsyncClient: bound client with cookies
+    """
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app, root_path="/api"),
+        timeout=3,
+        base_url="http://test",
+    ) as unbound_http_client:
+        response = await unbound_http_client.post(
+            "auth/",
+            data={"username": admin_creds.un, "password": admin_creds.pw},
+        )
+
+        assert response.status_code == 200
+        assert unbound_http_client.cookies.get("id")
+
+        yield unbound_http_client
+
+
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
     """Get creds from test data."""
@@ -1045,6 +1080,21 @@ def creds(user: dict) -> TestCreds:
 def user() -> dict:
     """Get user data."""
     return TEST_DATA[1]["children"][0]["organizationalPerson"]  # type: ignore
+
+
+@pytest.fixture
+def admin_creds(admin_user: dict) -> TestAdminCreds:
+    """Get admin creds from test data."""
+    return TestAdminCreds(
+        admin_user["sam_account_name"],
+        admin_user["password"],
+    )
+
+
+@pytest.fixture
+def admin_user() -> dict:
+    """Get admin user data."""
+    return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore
 
 
 @pytest.fixture
