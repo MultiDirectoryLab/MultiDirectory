@@ -1,5 +1,10 @@
 """NetLogon attribute handler.
 
+Docs:
+
+https://learn.microsoft.com/en-us/openspecs/windows_protocols/
+
+
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
@@ -15,7 +20,10 @@ from ldap_protocol.asn1parser import ASN1Row
 
 
 class NetLogonOPCode(IntEnum):
-    """NetLogon operational codes."""
+    """NetLogon operational codes.
+
+    ms-adts/07133ff2-a9a3-4aa9-8896-a7dcb53bdfe9
+    """
 
     LOGON_PRIMARY_RESPONSE = 12
     LOGON_SAM_LOGON_RESPONSE = 19
@@ -27,7 +35,10 @@ class NetLogonOPCode(IntEnum):
 
 
 class DSFlag(IntFlag):
-    """Domain controller flags mapping."""
+    """Domain controller flags mapping.
+
+    ms-adts/f55d3f53-351d-4407-940e-f53eb6154af0
+    """
 
     PDC_FLAG = 0x00000001
     GC_FLAG = 0x00000004
@@ -49,7 +60,10 @@ class DSFlag(IntFlag):
 
 
 class NetLogonNtVersionFlag(IntFlag):
-    """Netlogon NT version flags mapping."""
+    """Netlogon NT version flags mapping.
+
+    ms-adts/8e6a9efa-6312-44e2-af12-06ad73afbfa5
+    """
 
     NETLOGON_NT_VERSION_1 = 0x00000001
     NETLOGON_NT_VERSION_5 = 0x00000002
@@ -64,7 +78,10 @@ class NetLogonNtVersionFlag(IntFlag):
 
 
 class NetLogonAttributeHandler:
-    """NetLogon attribute handler."""
+    """NetLogon attribute handler.
+
+    ms-adts/895a7744-aff3-4f64-bcfa-f8c05915d2e9
+    """
 
     dnsdomain: str | None = None
     host: str | None = None
