@@ -29,7 +29,7 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from multidirectory import _create_basic_app
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -57,6 +57,13 @@ from config import Settings
 from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
+from ldap_protocol.auth import AuthManager, MFAManager
+from ldap_protocol.auth.setup_gateway import SetupGateway
+from ldap_protocol.auth.use_cases import SetupUseCase
+from ldap_protocol.auth.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -67,13 +74,6 @@ from ldap_protocol.dns import (
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.dto import DNSSettingDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
-from ldap_protocol.auth import AuthManager, MFAManager
-from ldap_protocol.auth.setup_gateway import SetupGateway
-from ldap_protocol.auth.use_cases import SetupUseCase
-from ldap_protocol.auth.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.identity_provider_gateway import (
     IdentityProviderGateway,
@@ -103,6 +103,7 @@ from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.permissions_checker import ApiPermissionsChecker
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import (
@@ -616,6 +617,11 @@ class TestProvider(Provider):
     )
     network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
+    api_permissions_checker = provide(
+        ApiPermissionsChecker,
+        scope=Scope.REQUEST,
+    )
+
 
 @dataclass
 class TestCreds:
@@ -775,6 +781,7 @@ async def setup_session(
     await setup_gateway.setup_enviroment(
         dn="md.test",
         data=TEST_DATA,
+        username="user0",
     )
 
     # NOTE: after setup environment we need base DN to be created
@@ -1048,6 +1055,43 @@ def user() -> dict:
 
 
 @pytest.fixture
+async def api_permissions_checker(
+    request_container: AsyncContainer,
+) -> AsyncIterator[ApiPermissionsChecker]:
+    """Get all api permissions."""
+    return await request_container.get(ApiPermissionsChecker)
+
+
+@pytest_asyncio.fixture
+async def request_params() -> dict:
+    """Return minimal ASGI scope plus response for request-scoped providers."""
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [],
+        "client": ("127.0.0.1", 0),
+        "server": ("testserver", 80),
+    }
+    request = Request(scope)
+    response = Response()
+    return {Request: request, Response: response}
+
+
+@pytest_asyncio.fixture
+async def request_container(
+    container: AsyncContainer,
+    request_params: dict,
+) -> AsyncIterator[AsyncContainer]:
+    """Create request scope with Request context."""
+    async with container(scope=Scope.REQUEST, context=request_params) as cont:
+        yield cont
+
+
+@pytest.fixture
 def _force_override_tls(settings: Settings) -> Iterator:
     """Override tls status for tests."""
     current_status = settings.USE_CORE_TLS
@@ -1067,11 +1111,10 @@ async def dns_manager(
 
 @pytest_asyncio.fixture
 async def dhcp_manager(
-    container: AsyncContainer,
+    request_container: AsyncContainer,
 ) -> AsyncIterator[AbstractDHCPManager]:
     """Get DI DHCP manager."""
-    async with container(scope=Scope.REQUEST) as container:
-        yield await container.get(AbstractDHCPManager)
+    yield await request_container.get(AbstractDHCPManager)
 
 
 @pytest.fixture

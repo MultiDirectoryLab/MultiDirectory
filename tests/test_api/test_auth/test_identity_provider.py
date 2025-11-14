@@ -16,16 +16,16 @@ from dishka import (
 from fastapi import HTTPException, status
 from httpx import AsyncClient
 from starlette.requests import Request
-from starlette.responses import Response
 
 from config import Settings
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.identity_exceptions import UnauthorizedError
+from enums import ApiPermissionsType
 from ldap_protocol.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
 )
+from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.identity_exceptions import UnauthorizedError
 from ldap_protocol.identity.identity_provider_gateway import (
     IdentityProviderGateway,
 )
@@ -79,25 +79,6 @@ async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
 
 
 @pytest_asyncio.fixture
-async def request_params() -> dict:
-    """Return minimal ASGI scope plus response for request-scoped providers."""
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "scheme": "http",
-        "path": "/",
-        "query_string": b"",
-        "root_path": "",
-        "headers": [],
-        "client": ("127.0.0.1", 0),
-        "server": ("testserver", 80),
-    }
-    request = Request(scope)
-    response = Response()
-    return {Request: request, Response: response}
-
-
-@pytest_asyncio.fixture
 async def current_user_provider(
     container: AsyncContainer,
     request_params: dict,
@@ -119,7 +100,7 @@ async def current_user_provider(
             dn="CN=User Zero,CN=Users,DC=example,DC=com",
             account_exp=datetime.datetime.max,
             role_ids=[1],
-            api_permissions=[],
+            api_permissions=[perm for perm in ApiPermissionsType],
         )
         provider.get_user_id = AsyncMock(return_value=1)  # type: ignore
         provider.get = AsyncMock(return_value=user)  # type: ignore

@@ -469,6 +469,8 @@ async def test_lock_and_unlock_user(
 
     assert "nsAccountLock" not in attrs
     assert "shadowExpire" not in attrs
+    assert dir_
+    assert dir_.user
     assert not await storage.get_user_sessions(dir_.user.id)
 
 

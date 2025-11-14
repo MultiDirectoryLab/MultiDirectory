@@ -22,12 +22,19 @@ from ldap_protocol.dhcp.schemas import (
     DHCPReservationSchemaRequest,
     DHCPSubnetSchemaAddRequest,
 )
+from ldap_protocol.permissions_checker import ApiPermissionsChecker
 
 
 @pytest.fixture
-def dhcp_adapter(dhcp_manager: Mock) -> DHCPAdapter:
+def dhcp_adapter(
+    dhcp_manager: Mock,
+    api_permissions_checker: ApiPermissionsChecker,
+) -> DHCPAdapter:
     """Create DHCP adapter with mocked service."""
-    adapter = DHCPAdapter(service=dhcp_manager)
+    adapter = DHCPAdapter(
+        service=dhcp_manager,
+        perm_check=api_permissions_checker,
+    )
     return adapter
 
 
@@ -363,6 +370,7 @@ async def test_lease_to_reservation(
     assert call_args.ip_address == data.ip_address
     assert call_args.mac_address == data.mac_address
     assert call_args.hostname == data.hostname
+
 
 @pytest.mark.asyncio
 async def test_update_reservations(

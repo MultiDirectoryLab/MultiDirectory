@@ -61,6 +61,7 @@ from enums import (
     MFAFlags,
     RoleScope,
 )
+from repo.pg.types import ApiPermissionsArray
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
@@ -232,6 +233,7 @@ users_table = Table(
     Index("idx_user_hash_dir_id", "directory_id", postgresql_using="hash"),
 )
 
+
 user_api_permissions_table = Table(
     "UserApiPermissions",
     metadata,
@@ -243,7 +245,7 @@ user_api_permissions_table = Table(
     ),
     Column(
         "permissions",
-        ARRAY(String),
+        ApiPermissionsArray,
         server_default="{}",
     ),
 )
