@@ -201,27 +201,17 @@ async def ldap_factory(settings: Settings) -> None:
     """Run LDAP server factory."""
     servers = []
 
-    for s in (settings, settings.get_copy_4_tls()):
+    for setting in (settings, settings.get_copy_4_tls()):
         container = make_async_container(
             LDAPServerProvider(),
             MainProvider(),
             MFAProvider(),
             MFACredsProvider(),
-            context={Settings: s},
+            context={Settings: setting},
         )
 
-        s2 = await container.get(Settings)
-        servers.append(PoolClientHandler(s2, container).start())
-
-    container = make_async_container(
-        LDAPServerProvider(),
-        MainProvider(),
-        MFAProvider(),
-        MFACredsProvider(),
-        context={Settings: settings},
-    )
-
-    settings = await container.get(Settings)
+        settings = await container.get(Settings)
+        servers.append(PoolClientHandler(settings, container).start())
 
     await asyncio.gather(*servers)
 
