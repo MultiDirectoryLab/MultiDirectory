@@ -310,6 +310,12 @@ class SearchRequest(BaseRequest):
         """Check if search request is for netLogon."""
         return "netlogon" in self.requested_attrs
 
+    async def _get_netlogon(self, ctx: LDAPSearchRequestContext) -> bytes:
+        rootdse = await self.get_root_dse(ctx.session, ctx.settings)
+        nl = NetLogonAttributeHandler.from_filter(rootdse, self.filter)
+        acc = await check_user_active(ctx.session, nl.user, nl.aac)
+        return nl.get_attr(acc)
+
     async def get_result(
         self,
         ctx: LDAPSearchRequestContext,
@@ -333,17 +339,11 @@ class SearchRequest(BaseRequest):
             if is_schema:
                 yield await self._get_subschema(ctx.session)
             elif is_netlogon:
-                root_dse = await self.get_root_dse(ctx.session, ctx.settings)
-                nl = NetLogonAttributeHandler.from_filter(
-                    root_dse,
-                    self.filter,
-                )
-                acc = await check_user_active(ctx.session, nl.user, nl.aac)
-                net_logon = nl.get_attr(acc)
+                nl_attr = self._get_netlogon(ctx)
                 yield SearchResultEntry(
                     object_name="",
                     partial_attributes=[
-                        PartialAttribute(type="NetLogon", vals=[net_logon]),
+                        PartialAttribute(type="NetLogon", vals=[nl_attr]),
                     ],
                 )
             elif is_root_dse:
