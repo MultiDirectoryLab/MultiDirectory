@@ -11,11 +11,12 @@ services:
       - "80:80"
       - "8080:8080"
       - "389:389"
+      - "389:389/udp"
       - "636:636"
       - "749:749"
       - "464:464"
-      - "530:53"
-      - "530:53/udp"
+      - "53:53"
+      - "53:53/udp"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./certs:/certs"
@@ -38,8 +39,7 @@ services:
       - ./app:/app
       - ./certs:/certs
       - ldap_keytab:/LDAP_keytab/
-    env_file:
-      local.env
+    env_file: local.env
     command: python -OO multidirectory.py --ldap
     tty: true
     depends_on:
@@ -53,7 +53,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 100M
     labels:
       - traefik.enable=true
@@ -77,6 +77,43 @@ services:
       retries: 10
       start_period: 3s
 
+  cldap_server:
+    build:
+      context: .
+      dockerfile: ./.docker/dev.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
+    image: multidirectory
+    user: root
+    restart: unless-stopped
+    environment:
+      - SERVICE_NAME=ldap_server
+    # container_name: multidirectory
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - ldap_keytab:/LDAP_keytab/
+    env_file: local.env
+    command: python -OO multidirectory.py --cldap
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      cert_local_check:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 100M
+    labels:
+      - traefik.enable=true
+
+      - traefik.udp.routers.cldap.entrypoints=cldap
+      - traefik.udp.routers.cldap.service=cldap
+      - traefik.udp.services.cldap.loadbalancer.server.port=389
+
   api:
     image: multidirectory
     container_name: multidirectory_api
@@ -86,8 +123,7 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
-    env_file:
-      local.env
+    env_file: local.env
     command: python multidirectory.py --http
     environment:
       - SERVICE_NAME=multidirectory_api
@@ -109,7 +145,7 @@ services:
       mode: global
       resources:
         limits:
-          cpus: '0.50'
+          cpus: "0.50"
           memory: 500M
 
   pre_run_manager:
@@ -133,8 +169,7 @@ services:
     restart: "no"
     volumes:
       - ./app:/app
-    env_file:
-      local.env
+    env_file: local.env
     command: python multidirectory.py --migrate
     depends_on:
       postgres:
@@ -142,7 +177,6 @@ services:
         restart: true
       pre_run_manager:
         condition: service_completed_successfully
-
 
   cert_check:
     image: multidirectory
@@ -155,7 +189,6 @@ services:
     depends_on:
       pre_run_manager:
         condition: service_completed_successfully
-
 
   cert_local_check:
     image: multidirectory
@@ -176,7 +209,7 @@ services:
       POSTGRES_PASSWORD: password123
       PGDATA: /data/postgres
     volumes:
-       - postgres:/data/postgres
+      - postgres:/data/postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U user1"]
       interval: 1s
@@ -190,9 +223,9 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
-       - pgadmin:/var/lib/pgadmin
+      - pgadmin:/var/lib/pgadmin
     restart: unless-stopped
     logging:
       driver: "none"
@@ -223,9 +256,9 @@ services:
       - 8000:8000
     working_dir: /server
     command: uvicorn --factory config_server:create_app
-             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
-             --ssl-certfile=/certs/krbcert.pem
-             --reload
+      --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
+      --ssl-certfile=/certs/krbcert.pem
+      --reload
 
   bind_dns:
     build:
@@ -352,8 +385,7 @@ services:
     volumes:
       - ./app:/app
       - ./certs:/certs
-    env_file:
-      local.env
+    env_file: local.env
     command: python multidirectory.py --shadow
     ports:
       - 8001:8000
@@ -366,8 +398,7 @@ services:
       - ./certs:/certs
       - ./app:/app
       - ldap_keytab:/LDAP_keytab/
-    env_file:
-      local.env
+    env_file: local.env
     command: python multidirectory.py --scheduler
     tty: true
     depends_on:
@@ -376,10 +407,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 300M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 6M
 
   interface:
@@ -389,7 +420,7 @@ services:
       dockerfile: configurations/docker/Dockerfile.dev
       args:
         API_URL: http://md.localhost/api
-    restart: 'no'
+    restart: "no"
     environment:
       - HUSKY=0
       - API_URL=https://md.localhost/api
@@ -398,24 +429,23 @@ services:
       - 9080:80
     working_dir: /app
     labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.multidirectory-app.rule=Host(`md.localhost`)'
-      - 'traefik.http.routers.multidirectory-app.entrypoints=web'
-    command:
-      ng serve --host 0.0.0.0 --port 80 --poll 2000
+      - "traefik.enable=true"
+      - "traefik.http.routers.multidirectory-app.rule=Host(`md.localhost`)"
+      - "traefik.http.routers.multidirectory-app.entrypoints=web"
+    command: ng serve --host 0.0.0.0 --port 80 --poll 2000
 
   dragonfly:
-    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    image: "docker.dragonflydb.io/dragonflydb/dragonfly"
     container_name: dragonfly
     expose:
       - 6379
     deploy:
       resources:
         limits:
-          cpus: '4.0'
+          cpus: "4.0"
           memory: 6GiB
         reservations:
-          cpus: '0.75'
+          cpus: "0.75"
           memory: 1.5GiB
 
   redis-commander:
@@ -438,8 +468,7 @@ services:
     container_name: event_handler
     restart: unless-stopped
     tty: true
-    env_file:
-      local.env
+    env_file: local.env
     volumes:
       - ./app:/app
     command: python multidirectory.py --event_handler
@@ -460,8 +489,7 @@ services:
     volumes:
       - ./app:/app
       - ./audit:/audit
-    env_file:
-      local.env
+    env_file: local.env
     command: python multidirectory.py --event_sender
     environment:
       HANDLER_NAME: event_sender-1
@@ -474,7 +502,6 @@ services:
       - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
     privileged: true
     restart: always
-
 
 volumes:
   postgres:

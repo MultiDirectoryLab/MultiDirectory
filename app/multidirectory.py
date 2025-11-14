@@ -61,6 +61,7 @@ from ldap_protocol.dns import (
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
+from ldap_protocol.udp_server import CLDAPUDPServer
 from schedule import scheduler_factory
 
 
@@ -215,6 +216,19 @@ async def ldap_factory(settings: Settings) -> None:
     await asyncio.gather(*servers)
 
 
+async def cldap_factory(settings: Settings) -> None:
+    """Run CLDAP server factory."""
+    container = make_async_container(
+        LDAPServerProvider(),
+        MainProvider(),
+        MFAProvider(),
+        MFACredsProvider(),
+        context={Settings: settings},
+    )
+
+    await CLDAPUDPServer(settings, container).start()
+
+
 async def event_handler_factory(settings: Settings) -> None:
     """Run event handler."""
     main_container = make_async_container(
@@ -244,6 +258,7 @@ async def event_sender_factory(settings: Settings) -> None:
 
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
+cldap = partial(run_entrypoint, factory=cldap_factory)
 scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 event_handler = partial(run_entrypoint, factory=event_handler_factory)
@@ -256,6 +271,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run ldap or http")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--ldap", action="store_true", help="Run ldap")
+    group.add_argument("--cldap", action="store_true", help="Run cldap")
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
@@ -284,6 +300,9 @@ if __name__ == "__main__":
 
     if args.ldap:
         ldap(settings=settings)
+
+    if args.cldap:
+        cldap(settings=settings)
 
     elif args.event_sender:
         event_sender(settings=settings)
