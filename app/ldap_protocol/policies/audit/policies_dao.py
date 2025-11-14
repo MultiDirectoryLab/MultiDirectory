@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
 from entities import AuditPolicy, AuditPolicyTrigger
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 
 from .dataclasses import AuditPolicyDTO, AuditPolicySetupDTO
 from .exception import AuditNotFoundError
@@ -50,7 +52,10 @@ class AuditPoliciesDAO(AbstractDAO[AuditPolicyDTO, int]):
         """
         policy = await self._session.get(AuditPolicy, _id)
         if not policy:
-            raise AuditNotFoundError(f"Policy with id {_id} not found.")
+            raise ErrorCodeCarrierError(
+                AuditNotFoundError(f"Policy with id {_id} not found."),
+                ErrorCode.AUDIT_NOT_FOUND,
+            )
         return policy
 
     async def get(self, _id: int) -> AuditPolicyDTO:

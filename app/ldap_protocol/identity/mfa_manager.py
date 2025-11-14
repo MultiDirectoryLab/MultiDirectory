@@ -354,8 +354,11 @@ class MFAManager(AbstractService):
         )
 
         if network_policy is None or not network_policy.is_kerberos:
-            raise NetworkPolicyError(
-                f"Network policy not found for user {principal}.",
+            raise ErrorCodeCarrierError(
+                NetworkPolicyError(
+                    f"Network policy not found for user {principal}.",
+                ),
+                ErrorCode.NETWORK_POLICY_ERROR,
             )
 
         if (

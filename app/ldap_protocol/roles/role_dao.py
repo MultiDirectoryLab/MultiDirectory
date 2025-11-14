@@ -12,6 +12,8 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
 from entities import AccessControlEntry, Group, Role
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.utils.queries import get_groups
 from repo.pg.tables import queryable_attr as qa
 
@@ -83,7 +85,10 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         )
         retval = await self._session.scalar(query)
         if not retval:
-            raise RoleNotFoundError(f"Role with ID {_id} does not exist.")
+            raise ErrorCodeCarrierError(
+                RoleNotFoundError(f"Role with ID {_id} does not exist."),
+                ErrorCode.ROLE_NOT_FOUND,
+            )
         return retval
 
     async def get(self, _id: int) -> RoleDTO:
@@ -116,8 +121,11 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         )
         retval = await self._session.scalar(query)
         if not retval:
-            raise RoleNotFoundError(
-                f"Role with name {role_name} does not exist.",
+            raise ErrorCodeCarrierError(
+                RoleNotFoundError(
+                    f"Role with name {role_name} does not exist.",
+                ),
+                ErrorCode.ROLE_NOT_FOUND,
             )
         return _convert(retval)
 
@@ -147,7 +155,10 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
             session=self._session,
         )
         if not groups:
-            raise NoValidGroupsError("No valid groups provided for the role.")
+            raise ErrorCodeCarrierError(
+                NoValidGroupsError("No valid groups provided for the role."),
+                ErrorCode.NO_VALID_GROUPS,
+            )
 
         role = Role(
             name=dto.name,
@@ -184,7 +195,10 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         )
 
         if not groups:
-            raise NoValidGroupsError("No valid groups provided for the role.")
+            raise ErrorCodeCarrierError(
+                NoValidGroupsError("No valid groups provided for the role."),
+                ErrorCode.NO_VALID_GROUPS,
+            )
 
         role.name = dto.name
         role.creator_upn = dto.creator_upn

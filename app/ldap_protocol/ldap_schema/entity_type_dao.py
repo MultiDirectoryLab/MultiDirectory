@@ -16,6 +16,8 @@ from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Directory, EntityType, ObjectClass
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeAlreadyExistsError,
@@ -73,10 +75,13 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             )
             self.__session.add(entity_type)
             await self.__session.flush()
-        except IntegrityError:
-            raise EntityTypeAlreadyExistsError(
-                f"Entity Type with name '{dto.name}' already exists.",
-            )
+        except IntegrityError as err:
+            raise ErrorCodeCarrierError(
+                EntityTypeAlreadyExistsError(
+                    f"Entity Type with name '{dto.name}' already exists.",
+                ),
+                ErrorCode.ENTITY_TYPE_ALREADY_EXISTS,
+            ) from err
 
     async def update(self, _id: str, dto: EntityTypeDTO[int]) -> None:
         """Update an Entity Type."""
@@ -129,13 +134,16 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
                     )
 
             await self.__session.flush()
-        except IntegrityError:
+        except IntegrityError as err:
             # NOTE: Session has autoflush, so we can fall in select requests
             await self.__session.rollback()
-            raise EntityTypeCantModifyError(
-                f"Entity Type with name '{dto.name}' and object class "
-                f"names {dto.object_class_names} already exists.",
-            )
+            raise ErrorCodeCarrierError(
+                EntityTypeCantModifyError(
+                    f"Entity Type with name '{dto.name}' and object class "
+                    f"names {dto.object_class_names} already exists.",
+                ),
+                ErrorCode.ENTITY_TYPE_CANT_MODIFY,
+            ) from err
 
     async def delete(self, _id: str) -> None:
         """Delete an Entity Type."""
@@ -182,8 +190,11 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
         )  # fmt: skip
 
         if not entity_type:
-            raise EntityTypeNotFoundError(
-                f"Entity Type with name '{name}' not found.",
+            raise ErrorCodeCarrierError(
+                EntityTypeNotFoundError(
+                    f"Entity Type with name '{name}' not found.",
+                ),
+                ErrorCode.ENTITY_TYPE_NOT_FOUND,
             )
         return entity_type
 

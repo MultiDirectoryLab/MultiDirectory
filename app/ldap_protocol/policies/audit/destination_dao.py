@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
 from entities import AuditDestination
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 
 from .dataclasses import AuditDestinationDTO
 from .exception import AuditNotFoundError
@@ -29,8 +31,11 @@ class AuditDestinationDAO(AbstractDAO[AuditDestinationDTO, int]):
     async def _get_raw(self, _id: int) -> AuditDestination:
         destination = await self._session.get(AuditDestination, _id)
         if not destination:
-            raise AuditNotFoundError(
-                f"Destination with id {_id} not found.",
+            raise ErrorCodeCarrierError(
+                AuditNotFoundError(
+                    f"Destination with id {_id} not found.",
+                ),
+                ErrorCode.AUDIT_NOT_FOUND,
             )
         return destination
 

@@ -8,6 +8,8 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Directory
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.kerberos.exceptions import KerberosConflictError
 from ldap_protocol.ldap_requests import AddRequest
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
@@ -66,8 +68,11 @@ class KRBLDAPStructureManager:
 
             if not all(result.result_code == 0 for result in results):
                 await self._session.rollback()
-                raise KerberosConflictError(
-                    "Error creating Kerberos structure in directory",
+                raise ErrorCodeCarrierError(
+                    KerberosConflictError(
+                        "Error creating Kerberos structure in directory",
+                    ),
+                    ErrorCode.KERBEROS_CONFLICT,
                 )
             await self._role_use_case.create_kerberos_system_role()
             await self._session.commit()

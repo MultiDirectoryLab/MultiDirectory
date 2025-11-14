@@ -129,7 +129,7 @@ class IdentityManager(AbstractService):
         if not user:
             raise ErrorCodeCarrierError(
                 UnauthorizedError("Incorrect username or password"),
-                ErrorCode.INVALID_CREDENTIALS,
+                ErrorCode.UNAUTHORIZED,
             )
 
         query = (
@@ -150,7 +150,7 @@ class IdentityManager(AbstractService):
         if not is_part_of_admin_group:
             raise ErrorCodeCarrierError(
                 LoginFailedError("User not part of domain admins"),
-                ErrorCode.PERMISSION_DENIED,
+                ErrorCode.LOGIN_FAILED,
             )
 
         uac_check = await get_check_uac(self._session, user.directory_id)
@@ -158,13 +158,13 @@ class IdentityManager(AbstractService):
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             raise ErrorCodeCarrierError(
                 LoginFailedError("User account is disabled"),
-                ErrorCode.PERMISSION_DENIED,
+                ErrorCode.LOGIN_FAILED,
             )
 
         if user.is_expired():
             raise ErrorCodeCarrierError(
                 LoginFailedError("User account is expired"),
-                ErrorCode.PERMISSION_DENIED,
+                ErrorCode.LOGIN_FAILED,
             )
 
         network_policy = await get_user_network_policy(
@@ -176,7 +176,7 @@ class IdentityManager(AbstractService):
         if network_policy is None:
             raise ErrorCodeCarrierError(
                 LoginFailedError("User not part of network policy"),
-                ErrorCode.PERMISSION_DENIED,
+                ErrorCode.LOGIN_FAILED,
             )
 
         if self._mfa_api.is_initialized and network_policy.mfa_status in (
@@ -238,7 +238,7 @@ class IdentityManager(AbstractService):
                 UserNotFoundError(
                     f"User {identity} not found in the database.",
                 ),
-                ErrorCode.ENTITY_NOT_FOUND,
+                ErrorCode.USER_NOT_FOUND,
             )
 
         if await self._password_use_cases.is_password_change_restricted(
@@ -248,7 +248,7 @@ class IdentityManager(AbstractService):
                 PermissionError(
                     f"User {identity} is not allowed to change the password.",
                 ),
-                ErrorCode.PERMISSION_DENIED,
+                ErrorCode.PERMISSION_ERROR,
             )
 
         errors = await self._password_use_cases.check_password_violations(
@@ -259,7 +259,7 @@ class IdentityManager(AbstractService):
         if errors:
             raise ErrorCodeCarrierError(
                 PasswordPolicyError(errors),
-                ErrorCode.PASSWORD_POLICY_VIOLATION,
+                ErrorCode.PASSWORD_POLICY_ERROR,
             )
 
         if include_krb:

@@ -9,6 +9,9 @@ from typing import Any, Callable
 
 from dns.asyncresolver import Resolver as AsyncResolver
 
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
+
 from .base import DNSConnectionError, log
 
 
@@ -45,5 +48,8 @@ async def resolve_dns_server_ip(host: str) -> str:
     async_resolver = AsyncResolver()
     dns_server_ip_resolve = await async_resolver.resolve(host)
     if dns_server_ip_resolve is None or dns_server_ip_resolve.rrset is None:
-        raise DNSConnectionError
+        raise ErrorCodeCarrierError(
+            DNSConnectionError("DNS connection error"),
+            ErrorCode.DNS_CONNECTION_ERROR,
+        )
     return dns_server_ip_resolve.rrset[0].address

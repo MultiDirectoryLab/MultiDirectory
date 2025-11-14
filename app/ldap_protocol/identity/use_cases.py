@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractService
 from constants import FIRST_SETUP_DATA
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
     AlreadyConfiguredError,
@@ -58,7 +60,10 @@ class SetupUseCase(AbstractService):
         :return: None.
         """
         if await self.is_setup():
-            raise AlreadyConfiguredError("Setup already performed")
+            raise ErrorCodeCarrierError(
+                AlreadyConfiguredError("Setup already performed"),
+                ErrorCode.ALREADY_CONFIGURED,
+            )
         await self._entity_type_use_case.create_for_first_setup()
 
         data = copy.deepcopy(FIRST_SETUP_DATA)
@@ -145,8 +150,11 @@ class SetupUseCase(AbstractService):
             await self._role_use_case.create_read_only_role()
             await self._audit_use_case.create_policies()
             await self._session.commit()
-        except IntegrityError:
+        except IntegrityError as err:
             await self._session.rollback()
-            raise AlreadyConfiguredError(
-                "Setup already performed (locked)",
-            )
+            raise ErrorCodeCarrierError(
+                AlreadyConfiguredError(
+                    "Setup already performed (locked)",
+                ),
+                ErrorCode.ALREADY_CONFIGURED,
+            ) from err

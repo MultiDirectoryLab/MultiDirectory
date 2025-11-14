@@ -7,6 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from abstract_dao import AbstractService
 from config import Settings
 from entities import User
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions.auth import UnauthorizedError
 from ldap_protocol.identity.identity_provider_gateway import (
@@ -89,7 +91,10 @@ class IdentityProvider(AbstractService):
         """
         user = await self._identity_provider_gateway.get_user(user_id)
         if user is None:
-            raise UnauthorizedError("Could not validate credentials")
+            raise ErrorCodeCarrierError(
+                UnauthorizedError("Could not validate credentials"),
+                ErrorCode.UNAUTHORIZED,
+            )
 
         session_id, _ = self._session_key.split(".")
         return await self.to_schema(user, session_id)
@@ -130,7 +135,11 @@ class IdentityProvider(AbstractService):
             SessionStorageInvalidSignatureError,
             SessionStorageInvalidDataError,
         ) as err:
-            raise UnauthorizedError("Could not validate credentials") from err
+            # raise UnauthorizedError("Could not validate credentials") from err
+            raise ErrorCodeCarrierError(
+                UnauthorizedError("Could not validate credentials"),
+                ErrorCode.UNAUTHORIZED,
+            ) from err
 
         return user_id
 

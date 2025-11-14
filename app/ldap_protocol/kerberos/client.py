@@ -3,6 +3,8 @@
 import httpx
 
 import ldap_protocol.kerberos.exceptions as krb_exc
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 
 from .base import AbstractKadmin
 from .utils import logger_wraps
@@ -68,7 +70,10 @@ class KerberosMDAPIClient(AbstractKadmin):
             json={"name": name, "password": password},
         )
         if response.status_code != 201:
-            raise krb_exc.KRBAPIChangePasswordError(response.text)
+            raise ErrorCodeCarrierError(
+                krb_exc.KRBAPIChangePasswordError(response.text),
+                ErrorCode.KERBEROS_CHANGE_PASSWORD_ERROR,
+            )
 
     @logger_wraps()
     async def create_or_update_principal_pw(
@@ -86,7 +91,10 @@ class KerberosMDAPIClient(AbstractKadmin):
             raise krb_exc.KRBAPIPrincipalNotFoundError
 
         if response.status_code != 201:
-            raise krb_exc.KRBAPIChangePasswordError(response.text)
+            raise ErrorCodeCarrierError(
+                krb_exc.KRBAPIChangePasswordError(response.text),
+                ErrorCode.KERBEROS_CHANGE_PASSWORD_ERROR,
+            )
 
     @logger_wraps()
     async def rename_princ(self, name: str, new_name: str) -> None:

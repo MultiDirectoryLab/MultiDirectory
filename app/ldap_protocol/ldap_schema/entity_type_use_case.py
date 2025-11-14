@@ -6,6 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abstract_dao import AbstractService
 from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -45,10 +47,16 @@ class EntityTypeUseCase(AbstractService):
             entity_type = await self.get(_id)
 
         except EntityTypeNotFoundError:
-            raise EntityTypeCantModifyError
+            raise ErrorCodeCarrierError(
+                EntityTypeCantModifyError("Entity Type not found"),
+                ErrorCode.ENTITY_TYPE_CANT_MODIFY,
+            )
         if entity_type.is_system:
-            raise EntityTypeCantModifyError(
-                f"Entity Type '{dto.name}' is system and cannot be modified.",
+            raise ErrorCodeCarrierError(
+                EntityTypeCantModifyError(
+                    f"Entity Type '{dto.name}' is system and cannot be modified.",
+                ),
+                ErrorCode.ENTITY_TYPE_CANT_MODIFY,
             )
         if _id != dto.name:
             await self._validate_name(name=_id)
@@ -63,8 +71,11 @@ class EntityTypeUseCase(AbstractService):
         name: str,
     ) -> None:
         if name in PRIMARY_ENTITY_TYPE_NAMES:
-            raise EntityTypeCantModifyError(
-                f"Can't change entity type name {name}",
+            raise ErrorCodeCarrierError(
+                EntityTypeCantModifyError(
+                    f"Can't change entity type name {name}",
+                ),
+                ErrorCode.ENTITY_TYPE_CANT_MODIFY,
             )
 
     async def get_paginator(
