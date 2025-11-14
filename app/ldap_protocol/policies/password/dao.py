@@ -11,7 +11,6 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy import Integer, String, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.sql.base import ExecutableOption
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
@@ -291,10 +290,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         await self._session.flush()
 
-    async def _get_password_policy_for_user(
+    async def get_password_policy_for_user(
         self,
         user: User,
-        options: list[ExecutableOption] | None = None,
     ) -> PasswordPolicyDTO[int, int]:
         """Get Password Policy with options for the User."""
         query = (
@@ -305,8 +303,11 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             .order_by(qa(PasswordPolicy.priority).asc())
             .limit(1)
         )
-        if options:
-            query = query.options(*options)
+
+        query = query.options(
+            selectinload(qa(PasswordPolicy.groups))
+            .joinedload(qa(Group.directory)),
+        )  # fmt: skip
 
         if policy := await self._session.scalar(query):
             dto = _convert_model_to_dto(policy)
@@ -316,29 +317,8 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         return dto
 
     async def get_max_age_days_for_user(self, user: User) -> int:
-        dto = await self._get_password_policy_for_user(user)
+        dto = await self.get_password_policy_for_user(user)
         return dto.max_age_days
-
-    async def get_password_policy_for_user(
-        self,
-        user: User,
-    ) -> PasswordPolicyDTO[int, int]:
-        """Get one Password Policy for one User.
-
-        The password policy is calculated only for the "User" entity
-        based on its [the user's] groups with the lowest priority value.
-
-        If no policy is assigned, the DefaultDomainPasswordPolicy is applied.
-        """
-        dto = await self._get_password_policy_for_user(
-            user,
-            options=[
-                selectinload(qa(PasswordPolicy.groups)).joinedload(
-                    qa(Group.directory),
-                ),
-            ],
-        )
-        return dto
 
     async def get_or_create_pwd_last_set(
         self,
