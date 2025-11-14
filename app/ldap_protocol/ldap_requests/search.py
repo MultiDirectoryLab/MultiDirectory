@@ -339,7 +339,7 @@ class SearchRequest(BaseRequest):
             if is_schema:
                 yield await self._get_subschema(ctx.session)
             elif is_netlogon:
-                nl_attr = self._get_netlogon(ctx)
+                nl_attr = await self._get_netlogon(ctx)
                 yield SearchResultEntry(
                     object_name="",
                     partial_attributes=[
