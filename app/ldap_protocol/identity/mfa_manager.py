@@ -24,11 +24,13 @@ from ldap_protocol.identity.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
-    MFAError,
+    MFAAPIError,
+    MFAConnectError,
     MFATokenError,
     MissingMFACredentialsError,
     NetworkPolicyError,
 )
+from ldap_protocol.identity.identity_provider import IdentityProvider
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,
     MFACreateRequest,
@@ -68,6 +70,7 @@ class MFAManager(AbstractService):
         repository: SessionRepository,
         monitor: AuditMonitorUseCase,
         password_validator: PasswordValidator,
+        identity_provider: IdentityProvider,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -85,6 +88,7 @@ class MFAManager(AbstractService):
         self._repository = repository
         self._monitor = monitor
         self._password_validator = password_validator
+        self._identity_provider = identity_provider
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -258,7 +262,6 @@ class MFAManager(AbstractService):
         :raises MissingMFACredentialsError: if MFA is not initialized
         :raises InvalidCredentialsError: if credentials are invalid
         :raises NetworkPolicyError: if network policy is not passed
-        :raises MFAError: for MFA-specific errors
         """
         if not self._mfa_api.is_initialized:
             raise MissingMFACredentialsError()
@@ -282,7 +285,7 @@ class MFAManager(AbstractService):
             if network_policy.bypass_no_connection:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
-            raise MFAError("Multifactor error")
+            raise MFAConnectError("Multifactor error")
 
         except self._mfa_api.MFAMissconfiguredError:
             return await bypass_coro
@@ -291,7 +294,7 @@ class MFAManager(AbstractService):
             if network_policy.bypass_service_failure:
                 return await bypass_coro
             logger.critical(f"API error {traceback.format_exc()}")
-            raise MFAError(str(error))
+            raise MFAAPIError(str(error))
 
         else:
             weakref.finalize(bypass_coro, bypass_coro.close)
@@ -374,3 +377,7 @@ class MFAManager(AbstractService):
                     return
 
         raise AuthenticationError("Authentication failed.")
+
+    def set_new_session_key(self, key: str) -> None:
+        """Set a new session key."""
+        self._identity_provider.set_new_session_key(key)

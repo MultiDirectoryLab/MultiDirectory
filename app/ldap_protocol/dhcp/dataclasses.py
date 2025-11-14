@@ -64,3 +64,12 @@ class DHCPLease:
         """Calculate the expiration time of the lease."""
         if self.cltt and self.lifetime:
             self.expires = datetime.fromtimestamp(self.cltt + self.lifetime)
+
+
+@dataclass
+class DHCPLeaseToReservationError:
+    """Data class for lease to reservation operation error."""
+
+    text: str
+    ip_address: IPv4Address | None = None
+    mac_address: str | None = None

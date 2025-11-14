@@ -8,7 +8,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, status
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 from ldap_protocol.policies.audit.schemas import (
     AuditDestinationResponse,
     AuditDestinationSchemaRequest,
@@ -21,7 +21,7 @@ from .adapter import AuditPoliciesAdapter
 audit_router = APIRouter(
     prefix="/audit",
     tags=["Audit policy"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
     route_class=DishkaRoute,
 )
 

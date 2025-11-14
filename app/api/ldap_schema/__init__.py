@@ -10,7 +10,7 @@ from annotated_types import Len
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 
 LimitedListType = Annotated[
     list[str],
@@ -21,6 +21,6 @@ LimitedListType = Annotated[
 ldap_schema_router = APIRouter(
     prefix="/schema",
     tags=["Schema"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
     route_class=DishkaRoute,
 )

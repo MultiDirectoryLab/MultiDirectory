@@ -10,9 +10,10 @@ from ipaddress import IPv4Address, IPv6Address
 
 import dns.asyncresolver
 
+import ldap_protocol.dns.exceptions as dns_exc
+
 from .base import (
     AbstractDNSManager,
-    DNSError,
     DNSForwarderServerStatus,
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -51,7 +52,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise DNSError(response.text)
+            raise dns_exc.DNSRecordCreateError(response.text)
 
     @logger_wraps()
     async def update_record(
@@ -74,7 +75,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise DNSError(response.text)
+            raise dns_exc.DNSRecordUpdateError(response.text)
 
     @logger_wraps()
     async def delete_record(
@@ -96,7 +97,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise DNSError(response.text)
+            raise dns_exc.DNSRecordDeleteError(response.text)
 
     @logger_wraps()
     async def get_all_records(self) -> list[DNSRecords]:
@@ -144,7 +145,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise DNSError(response.text)
+            raise dns_exc.DNSZoneCreateError(response.text)
 
     @logger_wraps()
     async def update_zone(
@@ -161,7 +162,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise DNSError(response.text)
+            raise dns_exc.DNSZoneUpdateError(response.text)
 
     @logger_wraps()
     async def delete_zone(
@@ -176,7 +177,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
             )
 
             if response.status_code != 200:
-                raise DNSError(response.text)
+                raise dns_exc.DNSZoneDeleteError(response.text)
 
     @logger_wraps()
     async def find_forward_dns_fqdn(
@@ -263,7 +264,7 @@ class SelfHostedDNSManager(AbstractDNSManager):
         )
 
         if response.status_code != 200:
-            raise DNSError(response.text)
+            raise dns_exc.DNSUpdateServerOptionsError(response.text)
 
     @logger_wraps()
     async def get_server_options(self) -> list[DNSServerParam]:

@@ -5,7 +5,12 @@ from abc import ABC, abstractmethod
 import backoff
 import httpx
 
-from .exceptions import KRBAPIError
+from .exceptions import (
+    KRBAPISetupConfigsError,
+    KRBAPISetupStashError,
+    KRBAPISetupTreeError,
+    KRBAPIStatusNotFoundError,
+)
 from .utils import log, logger_wraps
 
 
@@ -38,7 +43,7 @@ class AbstractKadmin(ABC):
         )
 
         if response.status_code != 201:
-            raise KRBAPIError(response.text)
+            raise KRBAPISetupConfigsError(response.text)
 
     @logger_wraps()
     async def setup_stash(
@@ -67,7 +72,7 @@ class AbstractKadmin(ABC):
         )
 
         if response.status_code != 201:
-            raise KRBAPIError(response.text)
+            raise KRBAPISetupStashError(response.text)
 
     @logger_wraps()
     async def setup_subtree(
@@ -96,7 +101,7 @@ class AbstractKadmin(ABC):
         )
 
         if response.status_code != 201:
-            raise KRBAPIError(response.text)
+            raise KRBAPISetupTreeError(response.text)
 
     @logger_wraps()
     async def reset_setup(self) -> None:
@@ -182,22 +187,18 @@ class AbstractKadmin(ABC):
             httpx.ConnectError,
             httpx.ConnectTimeout,
             httpx.RemoteProtocolError,
-            ValueError,
+            KRBAPIStatusNotFoundError,
         ),
         jitter=None,
         raise_on_giveup=False,
         max_tries=30,
     )
-    async def get_status(self, wait_for_positive: bool = False) -> bool | None:
-        """Get status of setup.
-
-        :param bool wait_for_positive: wait for positive status
-        :return bool | None: status or None if max tries achieved
-        """
+    async def get_status(self, wait_for_positive: bool = False) -> bool:
+        """Get status of setup."""
         response = await self.client.get("/setup/status")
         status = response.json()
         if wait_for_positive and not status:
-            raise ValueError
+            raise KRBAPIStatusNotFoundError
         return status
 
     @abstractmethod

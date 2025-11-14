@@ -15,10 +15,11 @@ from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
 
-from api.auth import get_current_user
+from api.auth import verify_auth
+from api.auth.adapters.identity import IdentityFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
-from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.utils.const import EmailStr
@@ -36,7 +37,7 @@ KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 @krb5_router.post(
     "/setup/tree",
     response_class=Response,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def setup_krb_catalogue(
     mail: Annotated[EmailStr, Body()],
@@ -63,7 +64,7 @@ async def setup_krb_catalogue(
 @krb5_router.post("/setup", response_class=Response)
 async def setup_kdc(
     data: KerberosSetupRequest,
-    user: Annotated[UserSchema, Depends(get_current_user)],
+    identity_adapter: FromDishka[IdentityFastAPIAdapter],
     request: Request,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> Response:
@@ -80,6 +81,7 @@ async def setup_kdc(
     :param Annotated[AsyncSession, Depends session: db
     :param Annotated[LDAPSession, Depends ldap_session: ldap session
     """
+    user = await identity_adapter.get_current_user()
     return await kerberos_adapter.setup_kdc(data, user, request)
 
 
@@ -90,7 +92,7 @@ LIMITED_LIST = Annotated[
 ]
 
 
-@krb5_router.post("/ktadd", dependencies=[Depends(get_current_user)])
+@krb5_router.post("/ktadd", dependencies=[Depends(verify_auth)])
 async def ktadd(
     names: Annotated[LIMITED_LIST, Body()],
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
@@ -103,7 +105,7 @@ async def ktadd(
     return await kerberos_adapter.ktadd(names)
 
 
-@krb5_router.get("/status", dependencies=[Depends(get_current_user)])
+@krb5_router.get("/status", dependencies=[Depends(verify_auth)])
 async def get_krb_status(
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> KerberosState:
@@ -116,7 +118,7 @@ async def get_krb_status(
     return await kerberos_adapter.get_status()
 
 
-@krb5_router.post("/principal/add", dependencies=[Depends(get_current_user)])
+@krb5_router.post("/principal/add", dependencies=[Depends(verify_auth)])
 async def add_principal(
     primary: Annotated[LIMITED_STR, Body()],
     instance: Annotated[LIMITED_STR, Body()],
@@ -134,7 +136,7 @@ async def add_principal(
 
 @krb5_router.patch(
     "/principal/rename",
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -157,7 +159,7 @@ async def rename_principal(
 
 @krb5_router.patch(
     "/principal/reset",
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -177,7 +179,7 @@ async def reset_principal_pw(
 
 @krb5_router.delete(
     "/principal/delete",
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],

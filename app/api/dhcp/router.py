@@ -10,11 +10,12 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, status
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 from ldap_protocol.dhcp.schemas import (
     DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
+    DHCPLeaseToReservationErrorResponse,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
     DHCPStateSchemaResponse,
@@ -27,7 +28,7 @@ from .adapter import DHCPAdapter
 dhcp_router = APIRouter(
     prefix="/dhcp",
     tags=["DHCP"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
     route_class=DishkaRoute,
 )
 
@@ -122,6 +123,15 @@ async def delete_dhcp_lease(
     await dhcp_adapter.release_lease(ip_address)
 
 
+@dhcp_router.patch("/lease/to_reservation")
+async def lease_to_reservation(
+    data: list[DHCPReservationSchemaRequest],
+    dhcp_adapter: FromDishka[DHCPAdapter],
+) -> None | list[DHCPLeaseToReservationErrorResponse]:
+    """Transform lease to reservation."""
+    return await dhcp_adapter.lease_to_reservation(data)
+
+
 @dhcp_router.post("/reservation", status_code=status.HTTP_201_CREATED)
 async def create_dhcp_reservation(
     reservation_data: DHCPReservationSchemaRequest,
@@ -138,6 +148,15 @@ async def get_dhcp_reservation(
 ) -> list[DHCPReservationSchemaResponse]:
     """Get a reservation."""
     return await dhcp_adapter.get_reservations(subnet_id)
+
+
+@dhcp_router.put("/reservation")
+async def update_dhcp_reservation(
+    data: DHCPReservationSchemaRequest,
+    dhcp_adapter: FromDishka[DHCPAdapter],
+) -> None:
+    """Update a reservation."""
+    await dhcp_adapter.update_reservation(data)
 
 
 @dhcp_router.delete("/reservation")

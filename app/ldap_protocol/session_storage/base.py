@@ -11,6 +11,15 @@ from typing import Literal, Self
 
 from config import Settings
 
+from .exceptions import (
+    SessionStorageInvalidDataError,
+    SessionStorageInvalidIpError,
+    SessionStorageInvalidKeyError,
+    SessionStorageInvalidSignatureError,
+    SessionStorageInvalidUserAgentError,
+    SessionStorageMissingDataError,
+)
+
 ProtocolType = Literal["http", "ldap"]
 
 
@@ -161,27 +170,31 @@ class SessionStorage(ABC):
         try:
             session_id, signature = session_key.split(".")
         except (ValueError, AttributeError):
-            raise KeyError("Invalid payload key")
+            raise SessionStorageInvalidKeyError("Invalid payload key")
 
-        data = await self.get(session_id)
+        try:
+            data = await self.get(session_id)
+        except KeyError:
+            raise SessionStorageInvalidKeyError("Invalid session key")
+
         expected_ua_hash = self.get_user_agent_hash(user_agent)
         expected_signature = self._sign(session_id, settings)
 
         if data is None:
-            raise KeyError("Session data is missing")
+            raise SessionStorageMissingDataError("Session data is missing")
 
         if data.get("ip") != ip:
-            raise KeyError("Invalid ip")
+            raise SessionStorageInvalidIpError("Invalid ip")
 
         if data.get("user_agent") != expected_ua_hash:
-            raise KeyError("Invalid user agent")
+            raise SessionStorageInvalidUserAgentError("Invalid user agent")
 
         if not (data.get("sign") == signature == expected_signature):
-            raise KeyError("Invalid signature")
+            raise SessionStorageInvalidSignatureError("Invalid signature")
 
         user_id = data.get("id")
         if user_id is None:
-            raise KeyError("Invalid data")
+            raise SessionStorageInvalidDataError("Invalid data")
 
         return user_id
 

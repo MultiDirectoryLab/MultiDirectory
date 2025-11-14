@@ -19,11 +19,14 @@ from ldap_protocol.dhcp import (
     DHCPEntryUpdateError,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
+    DHCPLeaseToReservationErrorResponse,
+    DHCPOperationError,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
     DHCPStateSchemaResponse,
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
+    DHCPValidatonError,
 )
 from ldap_protocol.dhcp.dataclasses import (
     DHCPLease,
@@ -43,6 +46,8 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         DHCPEntryAddError: status.HTTP_409_CONFLICT,
         DHCPEntryUpdateError: status.HTTP_409_CONFLICT,
         DHCPAPIError: status.HTTP_400_BAD_REQUEST,
+        DHCPValidatonError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        DHCPOperationError: status.HTTP_400_BAD_REQUEST,
     }
 
     async def create_subnet(
@@ -183,6 +188,36 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             else None
         )
 
+    async def lease_to_reservation(
+        self,
+        data: list[DHCPReservationSchemaRequest],
+    ) -> None | list[DHCPLeaseToReservationErrorResponse]:
+        """Transform lease to reservation."""
+        errors_info = await self._service.lease_to_reservation(
+            [
+                DHCPReservation(
+                    subnet_id=reservation_data.subnet_id,
+                    ip_address=reservation_data.ip_address,
+                    mac_address=reservation_data.mac_address,
+                    hostname=reservation_data.hostname,
+                )
+                for reservation_data in data
+            ],
+        )
+
+        return (
+            [
+                DHCPLeaseToReservationErrorResponse(
+                    ip_address=error.ip_address,
+                    mac_address=error.mac_address,
+                    text=error.text,
+                )
+                for error in errors_info
+            ]
+            if errors_info is not None
+            else None
+        )
+
     async def add_reservation(
         self,
         reservation_data: DHCPReservationSchemaRequest,
@@ -208,6 +243,19 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             mac_address,
             ip_address,
             subnet_id,
+        )
+
+    async def update_reservation(
+        self,
+        data: DHCPReservationSchemaRequest,
+    ) -> None:
+        await self._service.update_reservation(
+            DHCPReservation(
+                subnet_id=data.subnet_id,
+                ip_address=data.ip_address,
+                mac_address=data.mac_address,
+                hostname=data.hostname,
+            ),
         )
 
     async def get_reservations(

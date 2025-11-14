@@ -13,10 +13,13 @@ from fastapi import Depends, Form, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from api.auth import get_current_user
+from api.auth import verify_auth
 from api.auth.adapters import MFAFastAPIAdapter
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.identity.schemas import MFACreateRequest, MFAGetResponse
+from ldap_protocol.identity.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 mfa_router = APIRouter(
@@ -29,7 +32,7 @@ mfa_router = APIRouter(
 @mfa_router.post(
     "/setup",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def setup_mfa(
     mfa: MFACreateRequest,
@@ -47,7 +50,7 @@ async def setup_mfa(
 
 @mfa_router.delete(
     "/keys",
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def remove_mfa(
     scope: Literal["ldap", "http"],
@@ -57,7 +60,7 @@ async def remove_mfa(
     await mfa_manager.remove_mfa(scope)
 
 
-@mfa_router.post("/get", dependencies=[Depends(get_current_user)])
+@mfa_router.post("/get", dependencies=[Depends(verify_auth)])
 async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],

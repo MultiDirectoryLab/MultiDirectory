@@ -12,16 +12,19 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, Request, Response, status
 
 from api.auth.adapters import IdentityFastAPIAdapter
-from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
+from ldap_protocol.identity.utils import (
+    get_ip_from_request,
+    get_user_agent_from_request,
+)
 from ldap_protocol.session_storage import SessionStorage
 
-from .oauth2 import get_current_user
+from .oauth2 import verify_auth
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
@@ -30,7 +33,6 @@ auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 async def login(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
-    response: Response,
     ip: Annotated[IPv4Address | IPv6Address, Depends(get_ip_from_request)],
     user_agent: Annotated[str, Depends(get_user_agent_from_request)],
     auth_manager: FromDishka[IdentityFastAPIAdapter],
@@ -58,7 +60,6 @@ async def login(
     return await auth_manager.login(
         form=form,
         request=request,
-        response=response,
         ip=ip,
         user_agent=user_agent,
     )
@@ -66,21 +67,22 @@ async def login(
 
 @auth_router.get("/me")
 async def users_me(
-    user: Annotated[UserSchema, Depends(get_current_user)],
+    identity_adapter: FromDishka[IdentityFastAPIAdapter],
 ) -> UserSchema:
     """Get current logged-in user data.
 
-    :param user: UserSchema (current user)
+    :param identity_adapter: IdentityFastAPIAdapter instance for user
+        identity operations
     :return: UserSchema
     """
-    return user
+    return await identity_adapter.get_current_user()
 
 
 @auth_router.delete("/", response_class=Response)
 async def logout(
     response: Response,
     storage: FromDishka[SessionStorage],
-    user: Annotated[UserSchema, Depends(get_current_user)],
+    identity_adapter: FromDishka[IdentityFastAPIAdapter],
 ) -> None:
     """Delete token cookies and user session.
 
@@ -89,6 +91,7 @@ async def logout(
     :param user: UserSchema (current user)
     :return: None
     """
+    user = await identity_adapter.get_current_user()
     response.delete_cookie("id", httponly=True)
     await storage.delete_user_session(user.session_id)
 
@@ -96,7 +99,7 @@ async def logout(
 @auth_router.patch(
     "/user/password",
     status_code=200,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_auth)],
 )
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],

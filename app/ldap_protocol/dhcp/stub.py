@@ -8,7 +8,12 @@ from ipaddress import IPv4Address
 from typing import NoReturn
 
 from .base import AbstractDHCPManager, DHCPAPIRepository
-from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
+from .dataclasses import (
+    DHCPLease,
+    DHCPLeaseToReservationError,
+    DHCPReservation,
+    DHCPSubnet,
+)
 from .exceptions import DHCPAPIError
 from .utils import logger_wraps
 
@@ -71,6 +76,10 @@ class StubDHCPAPIRepository(DHCPAPIRepository):
         self,
         reservation: DHCPReservation,
     ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def update_reservation(self, reservation: DHCPReservation) -> None:
+        """Update a reservation."""
 
     @logger_wraps(is_stub=True)
     async def delete_reservation(self, reservation: DHCPReservation) -> None:
@@ -137,7 +146,19 @@ class StubDHCPManager(AbstractDHCPManager):
         raise DHCPAPIError
 
     @logger_wraps(is_stub=True)
+    async def lease_to_reservation(
+        self,
+        reservations: list[DHCPReservation],
+    ) -> None | list[DHCPLeaseToReservationError]: ...
+
+    @logger_wraps(is_stub=True)
     async def add_reservation(
+        self,
+        reservation: DHCPReservation,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def update_reservation(
         self,
         reservation: DHCPReservation,
     ) -> None: ...

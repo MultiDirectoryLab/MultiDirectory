@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from fastapi import status
 
+import ldap_protocol.dns.exceptions as dns_exc
 from api.base_adapter import BaseAdapter
 from api.main.schema import (
     DNSServiceForwardZoneCheckRequest,
@@ -25,14 +26,22 @@ from ldap_protocol.dns.base import (
     DNSServerParam,
     DNSZone,
 )
-from ldap_protocol.dns.exceptions import DNSSetupError
 from ldap_protocol.dns.use_cases import DNSUseCase
 
 
 class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
     """DNS adapter."""
 
-    _exceptions_map = {DNSSetupError: status.HTTP_424_FAILED_DEPENDENCY}
+    _exceptions_map = {
+        dns_exc.DNSSetupError: status.HTTP_424_FAILED_DEPENDENCY,
+        dns_exc.DNSRecordCreateError: status.HTTP_400_BAD_REQUEST,
+        dns_exc.DNSRecordUpdateError: status.HTTP_400_BAD_REQUEST,
+        dns_exc.DNSRecordDeleteError: status.HTTP_400_BAD_REQUEST,
+        dns_exc.DNSZoneCreateError: status.HTTP_400_BAD_REQUEST,
+        dns_exc.DNSZoneUpdateError: status.HTTP_400_BAD_REQUEST,
+        dns_exc.DNSZoneDeleteError: status.HTTP_400_BAD_REQUEST,
+        dns_exc.DNSUpdateServerOptionsError: status.HTTP_400_BAD_REQUEST,
+    }
 
     async def create_record(
         self,
