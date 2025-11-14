@@ -287,12 +287,12 @@ class IdentityManager(AbstractService):
 
         if not is_old_password_verified:
             raise UnauthorizedError("Old password is incorrect.")
-        else:
-            await self._update_password(
-                identity,
-                new_password,
-                include_krb=True,
-            )
+
+        await self._update_password(
+            identity,
+            new_password,
+            include_krb=True,
+        )
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
