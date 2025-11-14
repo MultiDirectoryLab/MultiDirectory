@@ -54,7 +54,8 @@ class EntityTypeUseCase(AbstractService):
         if entity_type.is_system:
             raise ErrorCodeCarrierError(
                 EntityTypeCantModifyError(
-                    f"Entity Type '{dto.name}' is system and cannot be modified.",
+                    f"Entity Type '{dto.name}' is system and "
+                    "cannot be modified.",
                 ),
                 ErrorCode.ENTITY_TYPE_CANT_MODIFY,
             )
