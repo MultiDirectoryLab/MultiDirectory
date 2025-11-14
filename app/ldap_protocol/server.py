@@ -110,8 +110,8 @@ class PoolClientHandler:
                         ldap_session.cancel_ensure_task(ensure_task),
                     )
 
-            except* RuntimeError:
-                log.exception(f"The connection {addr} raised")
+            except* RuntimeError as err:
+                log.error(f"Response handling error {err}: {format_exc()}")
 
             finally:
                 await session_scope.close()
