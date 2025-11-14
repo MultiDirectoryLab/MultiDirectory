@@ -415,7 +415,7 @@ async def test_admin_update_password_another_user(
     admin_http_client: AsyncClient,
     http_client: AsyncClient,
 ) -> None:
-    """Update password with incorrect old password."""
+    """Admin updates another user's password without requiring old password."""
     response = await admin_http_client.patch(
         "auth/user/password",
         json={
@@ -424,9 +424,6 @@ async def test_admin_update_password_another_user(
             "old_password": None,
         },
     )
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json() is None
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is None

@@ -115,7 +115,6 @@ async def password_reset(
     :param identity: user identity (userPrincipalName, saMAccountName or DN)
     :param new_password: new password
     :param old_password: old password (if verifying)
-    :param kadmin: kadmin api
     :param auth_manager: IdentityFastAPIAdapter
     :raises HTTPException: 404 if user not found
     :raises HTTPException: 422 if password is invalid
