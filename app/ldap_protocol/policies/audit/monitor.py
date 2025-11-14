@@ -280,6 +280,7 @@ class AuditMonitorUseCase:
         async def wrapped_reset_password(
             identity: str,
             new_password: str,
+            old_password: str | None = None,
         ) -> None:
             self._monitor.event_type = OperationEvent.CHANGE_PASSWORD
             self._monitor.target = identity
@@ -288,6 +289,7 @@ class AuditMonitorUseCase:
                 return await attr(
                     identity=identity,
                     new_password=new_password,
+                    old_password=old_password,
                 )
             except (
                 UserNotFoundError,

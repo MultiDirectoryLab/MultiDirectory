@@ -17,6 +17,7 @@ from enums import MFAFlags
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
+    AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
@@ -262,8 +263,44 @@ class IdentityManager(AbstractService):
         self,
         identity: str,
         new_password: str,
+        old_password: str | None,
     ) -> None:
         """Change the user's password and update Kerberos."""
+        skip_old_password_verification = True
+        is_old_password_verified = False
+
+        current_user_schema = await self.get_current_user()
+        resolved_identity = await get_user(
+            self._session,
+            identity,
+        )
+
+        if resolved_identity is None:
+            raise UserNotFoundError(
+                f"User {identity} not found in the database.",
+            )
+
+        if current_user_schema.id == resolved_identity.id:
+            if old_password is None:
+                raise AuthValidationError(
+                    "Old password must be provided "
+                    "when changing your own password.",
+                )
+
+            skip_old_password_verification = False
+            is_old_password_verified = (
+                await authenticate_user(
+                    self._session,
+                    current_user_schema.dn,
+                    old_password,
+                    self._password_validator,
+                )
+                is not None
+            )
+
+        if not is_old_password_verified and not skip_old_password_verification:
+            raise UnauthorizedError("Old password is incorrect.")
+
         await self._update_password(
             identity,
             new_password,

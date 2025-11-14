@@ -31,3 +31,7 @@ class PasswordPolicyError(IdentityError):
 
 class UserNotFoundError(IdentityError):
     """Raised when a user is not found in the system."""
+
+
+class AuthValidationError(IdentityError):
+    """Raised when there is a validation error during authentication."""
