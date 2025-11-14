@@ -37,3 +37,23 @@ async def test_ldap3_search_memberof(ldap_client: LDAPConnection) -> None:
     assert result
     assert result.entries
     assert result.entries[0]["dn"] == member
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_ldap3_search_netlogon(ldap_client: LDAPConnection) -> None:
+    """Test ldap3 search netlogon."""
+    result = await ldap_client.search(
+        search_base="",
+        search_filter="(objectClass=*)",
+        search_scope=0,
+        types_only=True,
+        time_limit=1000,
+        size_limit=1000,
+        attributes=["NetLogon"],
+    )
+
+    assert result
+    assert result.entries
+    assert result.entries[0]["attributes"]["NetLogon"]
