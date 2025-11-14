@@ -67,7 +67,11 @@ class UserSchema:
             role_ids=[
                 role.id for group in user.groups for role in group.roles
             ],
-            api_permissions=user.api_permissions.permissions,
+            api_permissions=(
+                user.api_permissions.permissions
+                if user.api_permissions
+                else []
+            ),
         )
 
 

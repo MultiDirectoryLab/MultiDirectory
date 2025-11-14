@@ -337,7 +337,7 @@ class User:
     accountexpires: datetime | None = field(init=False)
 
     groups: list[Group] = field(default_factory=list, repr=False)
-    api_permissions: UserApiPermissions = field(init=False, repr=False)
+    api_permissions: UserApiPermissions | None = None
 
     search_fields: ClassVar[dict[str, str]] = {
         "mail": "mail",

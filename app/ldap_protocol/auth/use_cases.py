@@ -126,6 +126,7 @@ class SetupUseCase:
             await self._setup_gateway.setup_enviroment(
                 data=data,
                 dn=dto.domain,
+                username=dto.username,
             )
             await self._password_use_cases.create_default_domain_policy()
 

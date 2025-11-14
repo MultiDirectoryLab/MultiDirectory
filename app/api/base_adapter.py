@@ -23,7 +23,6 @@ class BaseAdapter(Protocol[_T]):
 
     _exceptions_map: dict[type[Exception], int]
     _service: _T
-    _perm_check: ApiPermissionsChecker
 
     def __init__(self, service: _T, perm_check: ApiPermissionsChecker) -> None:
         """Set service."""
