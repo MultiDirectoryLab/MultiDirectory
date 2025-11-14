@@ -24,7 +24,6 @@ from ldap_protocol.netlogon import (
 )
 
 
-# Unit tests
 def test_netlogon_info_initialization() -> None:
     """Test NetLogonInfo dataclass initialization."""
     info = _NetLogonInfo(
@@ -141,7 +140,7 @@ def test_set_acc() -> None:
 def test_convert_little_endian_string_to_int() -> None:
     """Test _convert_little_endian_string_to_int method."""
     test_value = "\x01\x00\x00\x00"
-    result = NetLogonAttributeHandler._convert_little_endian_string_to_int(
+    result = NetLogonAttributeHandler._convert_little_endian_string_to_int(  # noqa:SLF001
         test_value,
     )
 
@@ -150,7 +149,7 @@ def test_convert_little_endian_string_to_int() -> None:
 
 def test_pack_string() -> None:
     """Test _pack_string method."""
-    result = NetLogonAttributeHandler._pack_string("test", "utf-8")
+    result = NetLogonAttributeHandler._pack_string("test", "utf-8")  # noqa:SLF001
 
     assert result == b"\x04test"
 
@@ -167,7 +166,7 @@ def test_get_netlogon_response_5() -> None:
     handler.set_info()
     handler.set_acc(True)
 
-    response = handler._get_netlogon_response_5()
+    response = handler._get_netlogon_response_5()  # noqa:SLF001
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -191,7 +190,7 @@ def test_get_netlogon_response_5_ex() -> None:
     handler.set_info()
     handler.set_acc(True)
 
-    response = handler._get_netlogon_response_5_ex()
+    response = handler._get_netlogon_response_5_ex()  # noqa:SLF001
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -213,7 +212,7 @@ def test_get_netlogon_response_nt40() -> None:
     handler.set_info()
     handler.set_acc(False)
 
-    response = handler._get_netlogon_response_nt40()
+    response = handler._get_netlogon_response_nt40()  # noqa:SLF001
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -290,7 +289,7 @@ def test_user_unknown_response() -> None:
     handler.set_info()
     handler.set_acc(False)
 
-    response = handler._get_netlogon_response_5()
+    response = handler._get_netlogon_response_5()  # noqa:SLF001
     op_code = struct.unpack("<H", response[:2])[0]
 
     assert op_code == NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
@@ -307,7 +306,7 @@ def test_ds_flags_combination() -> None:
     handler = NetLogonAttributeHandler(root_dse)
     handler.set_info()
 
-    response = handler._get_netlogon_response_5_ex()
+    response = handler._get_netlogon_response_5_ex()  # noqa:SLF001
 
     # Extract DS flags (bytes 4-7)
     ds_flags = struct.unpack("<I", response[4:8])[0]
