@@ -15,6 +15,7 @@ from sqlalchemy.sql.base import ExecutableOption
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
+from ldap_protocol.objects import UserAccountControlFlag as UacFlag
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyBaseDnNotFoundError,
@@ -22,10 +23,7 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyDirIsNotUserError,
     PasswordPolicyNotFoundError,
 )
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag as UacFlag,
-    get_check_uac,
-)
+from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.helpers import ft_now
 from ldap_protocol.utils.queries import (
     get_base_directories,

@@ -33,15 +33,12 @@ from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import (
 )
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import MultifactorAPI
-from ldap_protocol.objects import ProtocolRequests
+from ldap_protocol.objects import ProtocolRequests, UserAccountControlFlag
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
     is_user_group_valid,
 )
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag,
-    get_check_uac,
-)
+from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import set_user_logon_attrs
 
 from .base import BaseRequest

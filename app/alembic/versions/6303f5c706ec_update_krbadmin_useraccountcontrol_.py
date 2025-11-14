@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.utils.helpers import create_integer_hash
 from repo.pg.tables import queryable_attr as qa
 
