@@ -29,6 +29,7 @@ from ldap_protocol.identity.use_cases import SetupUseCase
 from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
@@ -37,10 +38,7 @@ from ldap_protocol.policies.network_policy import (
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag,
-    get_check_uac,
-)
+from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import get_user
 from password_manager import PasswordValidator
 from repo.pg.tables import queryable_attr as qa

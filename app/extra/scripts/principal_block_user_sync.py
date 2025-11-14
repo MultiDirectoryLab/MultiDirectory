@@ -12,10 +12,8 @@ from sqlalchemy.sql import select
 
 from config import Settings
 from entities import Attribute, Directory, User
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag,
-    get_check_uac,
-)
+from ldap_protocol.objects import UserAccountControlFlag
+from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
     get_principal_directory,
