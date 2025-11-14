@@ -19,6 +19,8 @@ from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
 from entities import AttributeType, EntityType, ObjectClass
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
@@ -135,9 +137,12 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
                 )  # fmt: skip
 
             if dto.superior_name and not superior:
-                raise ObjectClassNotFoundError(
-                    f"Superior (parent) Object class {dto.superior_name} "
-                    "not found in schema.",
+                raise ErrorCodeCarrierError(
+                    ObjectClassNotFoundError(
+                        f"Superior (parent) Object class {dto.superior_name} "
+                        "not found in schema.",
+                    ),
+                    ErrorCode.OBJECT_CLASS_NOT_FOUND,
                 )
 
             attribute_types_may_filtered = [
@@ -178,11 +183,14 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             )
             self.__session.add(object_class)
             await self.__session.flush()
-        except IntegrityError:
-            raise ObjectClassAlreadyExistsError(
-                f"Object Class with oid '{dto.oid}' and name"
-                + f" '{dto.name}' already exists.",
-            )
+        except IntegrityError as err:
+            raise ErrorCodeCarrierError(
+                ObjectClassAlreadyExistsError(
+                    f"Object Class with oid '{dto.oid}' and name"
+                    + f" '{dto.name}' already exists.",
+                ),
+                ErrorCode.OBJECT_CLASS_ALREADY_EXISTS,
+            ) from err
 
     async def _count_exists_object_class_by_names(
         self,
@@ -218,9 +226,12 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         )
 
         if count_ != len(names):
-            raise ObjectClassNotFoundError(
-                f"Not all Object Classes\
+            raise ErrorCodeCarrierError(
+                ObjectClassNotFoundError(
+                    f"Not all Object Classes\
                     with names {names} found.",
+                ),
+                ErrorCode.OBJECT_CLASS_NOT_FOUND,
             )
 
         return True
@@ -240,8 +251,11 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         )  # fmt: skip
 
         if not object_class:
-            raise ObjectClassNotFoundError(
-                f"Object Class with name '{name}' not found.",
+            raise ErrorCodeCarrierError(
+                ObjectClassNotFoundError(
+                    f"Object Class with name '{name}' not found.",
+                ),
+                ErrorCode.OBJECT_CLASS_NOT_FOUND,
             )
         return object_class
 
@@ -284,8 +298,11 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         """
         obj = await self._get_one_raw_by_name(_id)
         if obj.is_system:
-            raise ObjectClassCantModifyError(
-                "System Object Class cannot be modified.",
+            raise ErrorCodeCarrierError(
+                ObjectClassCantModifyError(
+                    "System Object Class cannot be modified.",
+                ),
+                ErrorCode.OBJECT_CLASS_CANT_MODIFY,
             )
 
         obj.attribute_types_must.clear()

@@ -13,6 +13,8 @@ from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 
 from entities import Directory, User
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import LDAPOID, ASN1Row, asn1todict
 from ldap_protocol.kerberos.exceptions import (
@@ -259,7 +261,10 @@ class PasswdModifyRequestValue(BaseExtendedValue):
                 KRBAPIPrincipalNotFoundError,
             ):
                 await ctx.session.rollback()
-                raise PasswordModifyKadminError("Kadmin Error")
+                raise ErrorCodeCarrierError(
+                    PasswordModifyKadminError("Kadmin Error"),
+                    ErrorCode.KERBEROS_CHANGE_PASSWORD_ERROR,
+                )
 
             user.password = ctx.password_validator.get_password_hash(
                 new_password,

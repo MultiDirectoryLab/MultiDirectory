@@ -76,8 +76,11 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         )
         retval = await self._session.scalar(query)
         if not retval:
-            raise AccessControlEntryNotFoundError(
-                f"AccessControlEntry with ID {_id} does not exist.",
+            raise ErrorCodeCarrierError(
+                AccessControlEntryNotFoundError(
+                    f"AccessControlEntry with ID {_id} does not exist.",
+                ),
+                ErrorCode.ACCESS_CONTROL_ENTRY_NOT_FOUND,
             )
         return retval
 
@@ -279,10 +282,13 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
 
         try:
             await self._session.flush()
-        except IntegrityError:
-            raise AccessControlEntryUpdateError(
-                "Failed to update access control entry.",
-            )
+        except IntegrityError as err:
+            raise ErrorCodeCarrierError(
+                AccessControlEntryUpdateError(
+                    "Failed to update access control entry.",
+                ),
+                ErrorCode.ACCESS_CONTROL_ENTRY_UPDATE,
+            ) from err
 
     async def delete(self, _id: int) -> None:
         """Delete an existing access control entry.

@@ -108,7 +108,7 @@ async def test_modify_system_object_class(http_client: AsyncClient) -> None:
                 f"/schema/object_class/{object_class_name}",
                 json=request_data.model_dump(),
             )
-            assert response.status_code == 400
+            assert response.status_code == 401
             break
     else:
         pytest.fail("No system object class")

@@ -9,6 +9,7 @@ from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
 from fastapi import HTTPException
+from loguru import logger
 
 from abstract_dao import AbstractDAO, AbstractService
 from errors.catalog import ErrorCatalog
@@ -83,11 +84,14 @@ class BaseAdapter(Protocol[_T]):
 
     def _reraise(self, exc: Exception) -> NoReturn:
         """Reraise exception with standardized HTTP status code."""
+        logger.error(f"Error: {exc}")
         if isinstance(exc, HasErrorCode):
+            logger.error(f"Error code: {exc.get_error_code()}")
             http = _http_mapper.to_http(exc.get_error_code())
             raise HTTPException(status_code=http, detail=str(exc)) from exc
 
         elif (mapped := _catalog.resolve(exc)) is not None:
+            logger.error(f"Error code: {mapped}")
             http = _http_mapper.to_http(mapped)
             raise HTTPException(status_code=http, detail=str(exc)) from exc
 
