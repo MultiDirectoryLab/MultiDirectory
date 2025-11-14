@@ -127,14 +127,17 @@ class NetLogonAttributeHandler:
         obj = cls(root_dse)
 
         if isinstance(expr, ASN1Row):
-            for item in expr.value:
-                attr, value = item.value
+            try:
+                for item in expr.value:
+                    attr, value = item.value
 
-                if hasattr(obj, attr.value.lower()):
-                    obj.__setattr__(
-                        attr.value.lower(),
-                        value.value,
-                    )
+                    if hasattr(obj, attr.value.lower()):
+                        obj.__setattr__(
+                            attr.value.lower(),
+                            value.value,
+                        )
+            except (TypeError, AttributeError):
+                pass  # malformed filter, ignore and use defaults
 
         obj.set_info()
         return obj
