@@ -35,7 +35,7 @@ class CLDAPUDPServer:
         """Initialize UDP server."""
         self.settings = settings
         self.container = container
-        self.logger = DataLogger(log, full=self.settings.DEBUG)
+        self.logger = DataLogger(log, is_full=self.settings.DEBUG)
 
     async def _handle(
         self,

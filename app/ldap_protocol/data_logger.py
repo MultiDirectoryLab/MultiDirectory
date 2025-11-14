@@ -28,13 +28,13 @@ class DataLogger:
     def __init__(
         self,
         logger: _LoggingProtocol,
-        full: bool = False,
+        is_full: bool = False,
         prefix: str = "",
     ) -> None:
         """Set logging mode."""
         self.l = logger
         self.prefix = prefix
-        if full:
+        if is_full:
             self.req_log = self._req_log_full
             self.rsp_log = self._resp_log_full
         else:
