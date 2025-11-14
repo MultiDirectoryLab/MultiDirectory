@@ -88,6 +88,7 @@ class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
         self,
         identity: str,
         new_password: str,
+        old_password: str | None,
     ) -> None:
         """Reset a user's password and update Kerberos principal.
 
@@ -100,7 +101,11 @@ class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
         :raises HTTPException: 424 if Kerberos password update failed
         :return: None
         """
-        await self._service.reset_password(identity, new_password)
+        await self._service.reset_password(
+            identity,
+            new_password,
+            old_password,
+        )
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is required.

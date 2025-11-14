@@ -104,6 +104,7 @@ async def logout(
 async def password_reset(
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
+    old_password: Annotated[str | None, Body(examples=["old_password"])],
     auth_manager: FromDishka[IdentityFastAPIAdapter],
 ) -> None:
     """Reset user's (entry) password.
@@ -117,7 +118,7 @@ async def password_reset(
     :raises HTTPException: 424 if kerberos password update failed
     :return: None
     """
-    await auth_manager.reset_password(identity, new_password)
+    await auth_manager.reset_password(identity, new_password, old_password)
 
 
 @auth_router.get("/setup")

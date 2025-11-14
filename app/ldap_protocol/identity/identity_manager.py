@@ -264,13 +264,35 @@ class IdentityManager(AbstractService):
         self,
         identity: str,
         new_password: str,
+        old_password: str | None,
     ) -> None:
         """Change the user's password and update Kerberos."""
-        await self._update_password(
-            identity,
-            new_password,
-            include_krb=True,
-        )
+        is_old_password_verified = True
+
+        current_user_schema = await self.get_current_user()
+
+        if current_user_schema.sam_account_name == identity:
+            if old_password:
+                is_old_password_verified = (
+                    await authenticate_user(
+                        self._session,
+                        current_user_schema.dn,
+                        old_password,
+                        self._password_validator,
+                    )
+                    is not None
+                )
+            else:
+                is_old_password_verified = False
+
+        if not is_old_password_verified:
+            raise UnauthorizedError("Old password is incorrect.")
+        else:
+            await self._update_password(
+                identity,
+                new_password,
+                include_krb=True,
+            )
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
