@@ -15,6 +15,7 @@ from ldap_protocol.identity import IdentityManager
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
     AlreadyConfiguredError,
+    AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
@@ -44,6 +45,7 @@ class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
         LoginFailedError: status.HTTP_403_FORBIDDEN,
         MFARequiredError: status.HTTP_426_UPGRADE_REQUIRED,
         PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        AuthValidationError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         PermissionError: status.HTTP_403_FORBIDDEN,
         UserNotFoundError: status.HTTP_404_NOT_FOUND,
         KRBAPIChangePasswordError: status.HTTP_424_FAILED_DEPENDENCY,

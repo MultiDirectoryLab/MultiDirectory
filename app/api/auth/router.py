@@ -102,15 +102,19 @@ async def logout(
     dependencies=[Depends(verify_auth)],
 )
 async def password_reset(
+    auth_manager: FromDishka[IdentityFastAPIAdapter],
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
-    old_password: Annotated[str | None, Body(examples=["old_password"])],
-    auth_manager: FromDishka[IdentityFastAPIAdapter],
+    old_password: Annotated[
+        str | None,
+        Body(examples=["old_password"]),
+    ] = None,
 ) -> None:
     """Reset user's (entry) password.
 
     :param identity: user identity (userPrincipalName, saMAccountName or DN)
     :param new_password: new password
+    :param old_password: old password (if verifying)
     :param kadmin: kadmin api
     :param auth_manager: IdentityFastAPIAdapter
     :raises HTTPException: 404 if user not found
