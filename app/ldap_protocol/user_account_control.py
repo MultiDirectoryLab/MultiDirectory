@@ -130,11 +130,11 @@ async def check_user_active(
     if not upn:
         return False
 
-    user_obj = await get_user(session, upn)
-    if user_obj is None:
+    user = await get_user(session, upn)
+    if user is None:
         return False
 
-    uac_check = await get_check_uac(session, user_obj.directory_id)
+    uac_check = await get_check_uac(session, user.directory_id)
 
     if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
         return False
