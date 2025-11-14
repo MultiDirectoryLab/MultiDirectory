@@ -13,10 +13,15 @@ import ipaddress
 import struct
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass
 from enum import IntEnum, IntFlag
-from typing import Any, Self
+from typing import Self
 
 from ldap_protocol.asn1parser import ASN1Row
+
+_NL_DEFAULT_SITE = "Default-First-Site-Name"
+_ZERO_UUID = uuid.UUID(int=0)
+_ZERO_VER = 0x00000000.to_bytes(4, byteorder="big").decode()  # ASN.1 oct zero
 
 
 class NetLogonOPCode(IntEnum):
@@ -77,6 +82,20 @@ class NetLogonNtVersionFlag(IntFlag):
     NETLOGON_NT_VERSION_GC = 0x80000000
 
 
+@dataclass
+class _NetLogonInfo:
+    """NetLogon information dataclass."""
+
+    domain_guid: uuid.UUID
+    domain_dns: str
+    nc_used: str | uuid.UUID
+    domain_sid: str
+    user: str
+    site: str
+    ntver: str
+    has_user: bool = False
+
+
 class NetLogonAttributeHandler:
     """NetLogon attribute handler.
 
@@ -90,66 +109,67 @@ class NetLogonAttributeHandler:
     aac: int | None = None  # uac in netlogon for specific account
     domainsid: str | None = None
     domainguid: uuid.UUID | None = None
-    ntver: int = 0x00000000
+    ntver: str = _ZERO_VER
+
+    __info: _NetLogonInfo
 
     def __init__(self, root_dse: defaultdict[str, list[str]]) -> None:
         """Init base info."""
-        self.__info: dict[str, Any] = {}
         self.__root_dse = root_dse
 
     @classmethod
     def from_filter(
         cls,
         root_dse: defaultdict[str, list[str]],
-        expr: ASN1Row,
+        expr: ASN1Row | str,
     ) -> Self:
         """Parse NetLogon filter."""
         obj = cls(root_dse)
-        for item in expr.value:
-            attr, value = item.value
 
-            if hasattr(obj, attr.value.lower()):
-                obj.__setattr__(
-                    attr.value.lower(),
-                    value.value,
-                )
+        if isinstance(expr, ASN1Row):
+            for item in expr.value:
+                attr, value = item.value
 
+                if hasattr(obj, attr.value.lower()):
+                    obj.__setattr__(
+                        attr.value.lower(),
+                        value.value,
+                    )
+
+        obj.set_info()
         return obj
 
-    def set_info(self, uac: bool) -> None:
+    def set_info(self) -> None:
         """Get info from filter."""
-        if self.domainguid is not None:
-            self.__info["domain_guid"] = self.domainguid
-        else:
-            self.__info["domain_guid"] = uuid.UUID(int=0)
+        domain_guid = (
+            self.domainguid if self.domainguid is not None else _ZERO_UUID
+        )
+
+        is_domain_zero = domain_guid == _ZERO_UUID
 
         if self.dnsdomain is not None:
-            self.__info["domain_dns"] = self.dnsdomain
+            domain_dns = self.dnsdomain
         else:
-            if self.__info["domain_guid"] == uuid.UUID(int=0):
-                self.__info["domain_dns"] = self.__root_dse["dnsHostName"][0]
-            else:
-                self.__info["domain_dns"] = ""
+            domain_dns = (
+                self.__root_dse["dnsHostName"][0] if is_domain_zero else ""
+            )
 
-        if self.__info["domain_guid"] == uuid.UUID(int=0):
-            self.__info["nc_used"] = self.__info["domain_dns"]
-        else:
-            self.__info["nc_used"] = self.__info["domain_guid"]
+        nc_used = domain_dns if is_domain_zero else str(domain_guid)
+        domain_sid = self.domainsid if self.domainsid is not None else ""
+        user = self.user if self.user is not None else ""
 
-        if self.domainsid is not None:
-            self.__info["domain_sid"] = self.domainsid
-        else:
-            self.__info["domain_sid"] = ""
+        self.__info = _NetLogonInfo(
+            domain_guid=domain_guid,
+            domain_dns=domain_dns,
+            nc_used=nc_used,
+            domain_sid=domain_sid,
+            user=user,
+            site=_NL_DEFAULT_SITE,
+            ntver=self.ntver,
+        )
 
-        if self.user is not None:
-            self.__info["user"] = self.user
-        else:
-            self.__info["user"] = ""
-
-        self.__info["has_user"] = uac
-
-        self.__info["site"] = "Default-First-Site-Name"
-        self.__info["ntver"] = self.ntver
+    def set_acc(self, acc: bool) -> None:
+        self.__info.has_user = acc
 
     @staticmethod
     def _convert_little_endian_string_to_int(value: str) -> int:
@@ -160,22 +180,20 @@ class NetLogonAttributeHandler:
             signed=False,
         )
 
-    def get_attr(self, uac: bool) -> bytes:
+    def get_attr(self, acc: bool) -> bytes:
         """Get NetLogon response."""
-        self.set_info(uac)
+        self.set_acc(acc)
+
+        ntver = self._convert_little_endian_string_to_int(self.__info.ntver)
+
         if bool(
-            self._convert_little_endian_string_to_int(self.__info["ntver"])
-            & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
+            ntver & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
         ) or bool(
-            self._convert_little_endian_string_to_int(self.__info["ntver"])
-            & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
+            ntver & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
         ):
             return self._get_netlogon_response_5_ex()
 
-        if bool(
-            self._convert_little_endian_string_to_int(self.__info["ntver"])
-            & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
-        ):
+        if bool(ntver & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5):
             return self._get_netlogon_response_5()
 
         return self._get_netlogon_response_nt40()
@@ -222,7 +240,7 @@ class NetLogonAttributeHandler:
 
     def _get_netlogon_response_5(self) -> bytes:
         """Get NetLogon response for version 5."""
-        if self.__info["user"] and not self.__info["has_user"]:
+        if self.__info.user and not self.__info.has_user:
             op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
         else:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
@@ -231,9 +249,9 @@ class NetLogonAttributeHandler:
             (
                 (op_code, "<H"),
                 (self.__root_dse["serverName"], "unicode"),
-                (self.__info["user"], "unicode"),
+                (self.__info.user, "unicode"),
                 (self.__root_dse["dnsHostName"][0], "unicode"),
-                (self.__info["domain_guid"], "uuid"),
+                (self.__info.domain_guid, "uuid"),
                 (uuid.UUID(int=0), "uuid"),
                 (self.__root_dse["dnsForestName"][0], "unicode"),
                 (self.__root_dse["dnsDomainName"][0], "unicode"),
@@ -252,7 +270,7 @@ class NetLogonAttributeHandler:
 
     def _get_netlogon_response_5_ex(self) -> bytes:
         """Get NetLogon response for extended version 5."""
-        if self.__info["user"] and not self.__info["has_user"]:
+        if self.__info.user and not self.__info.has_user:
             op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN_EX
         else:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE_EX
@@ -282,9 +300,9 @@ class NetLogonAttributeHandler:
                 (self.__root_dse["dnsHostName"][0], "utf-8"),
                 ("DC", "utf-8"),
                 ("DC.ad.local", "utf-8"),
-                (self.__info["user"], "utf-8"),
-                (self.__info["site"], "utf-8"),
-                (self.__info["site"], "utf-8"),
+                (self.__info.user, "utf-8"),
+                (self.__info.site, "utf-8"),
+                (self.__info.site, "utf-8"),
                 (
                     NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1
                     | NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
@@ -297,7 +315,7 @@ class NetLogonAttributeHandler:
 
     def _get_netlogon_response_nt40(self) -> bytes:
         """Get NetLogon response for version 5."""
-        if self.__info["user"] and not self.__info["has_user"]:
+        if self.__info.user and not self.__info.has_user:
             op_code = NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
         else:
             op_code = NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
@@ -305,7 +323,7 @@ class NetLogonAttributeHandler:
             (
                 (op_code, "<H"),
                 (self.__root_dse["serverName"], "unicode"),
-                (self.__info["user"], "unicode"),
+                (self.__info.user, "unicode"),
                 (self.__root_dse["dnsHostName"][0], "unicode"),
                 (NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1, "<I"),
                 (0xFFFF, "<H"),
