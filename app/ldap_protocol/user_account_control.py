@@ -121,7 +121,7 @@ async def get_check_uac(
     return is_flag_true
 
 
-async def check_user_active(
+async def check_service_account_active(
     session: AsyncSession,
     upn: str | None,
     uac: int | None,

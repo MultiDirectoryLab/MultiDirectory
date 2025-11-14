@@ -45,7 +45,7 @@ from ldap_protocol.ldap_responses import (
 from ldap_protocol.netlogon import NetLogonAttributeHandler
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.user_account_control import check_user_active
+from ldap_protocol.user_account_control import check_service_account_active
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
@@ -313,7 +313,7 @@ class SearchRequest(BaseRequest):
     async def _get_netlogon(self, ctx: LDAPSearchRequestContext) -> bytes:
         rootdse = await self.get_root_dse(ctx.session, ctx.settings)
         nl = NetLogonAttributeHandler.from_filter(rootdse, self.filter)
-        acc = await check_user_active(ctx.session, nl.user, nl.aac)
+        acc = await check_service_account_active(ctx.session, nl.user, nl.aac)
         return nl.get_attr(acc)
 
     async def get_result(
