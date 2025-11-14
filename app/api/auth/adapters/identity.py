@@ -92,9 +92,15 @@ class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
     ) -> None:
         """Reset a user's password and update Kerberos principal.
 
+        If the current user is changing their own password,
+        the old password must be provided and correct.
+        If an administrator is changing another user's password,
+        the old password is not required.
+
         :param identity: User identity
             (userPrincipalName, sAMAccountName, or DN)
         :param new_password: New password string
+        :param old_password: Old password string (if verifying)
         :param kadmin: Kerberos kadmin client
         :raises HTTPException: 404 if user not found
         :raises HTTPException: 422 if password is invalid
