@@ -16,6 +16,8 @@ entryPoints:
     address: ":389"
     proxyProtocol:
       insecure: true
+  cldap:
+    address: ":389/udp"
   ldaps:
     address: ":636"
     proxyProtocol:
