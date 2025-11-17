@@ -11,6 +11,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from tests.test_api.test_main.test_router.test_search_datasets import (
     test_api_search_by_rule_bit_and_dataset,
     test_api_search_by_rule_bit_or_dataset,
+    test_api_search_filter_anr_dataset,
 )
 
 
@@ -309,6 +310,40 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     data = response.json()
     assert len(data["search_result"]) == len(members)
     assert all(obj["object_name"] in members for obj in data["search_result"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "dataset",
+    test_api_search_filter_anr_dataset,
+)
+async def test_api_search_filter_anr(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test api search."""
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": dataset["filter"],
+            "attributes": ["brbrbr"],
+            "page_number": 1,
+        },
+    )
+    response = raw_response.json()
+    assert response["resultCode"] == LDAPCodes.SUCCESS
+    assert len(response["search_result"]) == len(
+        dataset["objects"]
+    )  # TODO вроде у response есть прям count или че-то типа того
+    for obj in response["search_result"]:
+        assert obj["object_name"] in dataset["objects"]
 
 
 @pytest.mark.asyncio

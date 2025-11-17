@@ -6,6 +6,32 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 
 from ldap_protocol.objects import UserAccountControlFlag
 
+test_api_search_filter_anr_dataset = [
+    # {"filter": "(anr=user zero)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # TODO чини это
+    # {"filter": "(anr=zero user)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # TODO чини это
+    {"filter": "(anr=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr>=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr<=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr~=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr==user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=groups,dc=md,dc=test"]},
+    {
+        "filter": "(anr=user_admin_*)",
+        "objects": [
+            "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+            "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
+        ],
+    },
+    {
+        "filter": "(anr=user_admin_3@mail.com)",
+        "objects": ["cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test"],
+    },
+]  # fmt: skip
+
 test_api_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501

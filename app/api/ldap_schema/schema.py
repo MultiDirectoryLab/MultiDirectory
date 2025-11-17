@@ -29,7 +29,8 @@ class AttributeTypeSchema(BaseModel, Generic[_IdT]):
     single_value: bool
     no_user_modification: bool
     is_system: bool
-    object_class_names: set[str] = field(default_factory=set)
+    is_included_anr: bool = False
+    object_class_names: list[str] = field(default_factory=list)
 
 
 class AttributeTypeUpdateSchema(BaseModel):
@@ -38,6 +39,7 @@ class AttributeTypeUpdateSchema(BaseModel):
     syntax: str
     single_value: bool
     no_user_modification: bool
+    is_included_anr: bool
 
 
 class AttributeTypePaginationSchema(

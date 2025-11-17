@@ -50,6 +50,7 @@ def _convert_update_uschema_to_dto(
         single_value=request.single_value,
         no_user_modification=request.no_user_modification,
         is_system=False,
+        is_included_anr=request.is_included_anr,
     )
 
 

@@ -19,7 +19,6 @@ from entities import AttributeType
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
-    AttributeTypeCantModifyError,
     AttributeTypeNotFoundError,
 )
 from ldap_protocol.utils.pagination import (
@@ -86,18 +85,16 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
     async def update(self, _id: str, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type.
 
-        NOTE: Only 3 attrs can be updated.
+        NOTE: Only 4 attrs can be updated.
         """
         obj = await self._get_one_raw_by_name(_id)
 
-        if obj.is_system:
-            raise AttributeTypeCantModifyError(
-                "System Attribute Type cannot be modified.",
-            )
+        obj.is_included_anr = dto.is_included_anr
 
-        obj.syntax = dto.syntax
-        obj.single_value = dto.single_value
-        obj.no_user_modification = dto.no_user_modification
+        if not obj.is_system:
+            obj.syntax = dto.syntax
+            obj.single_value = dto.single_value
+            obj.no_user_modification = dto.no_user_modification
 
         await self.__session.flush()
 

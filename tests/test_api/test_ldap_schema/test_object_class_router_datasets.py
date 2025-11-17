@@ -12,6 +12,7 @@ test_create_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
             {
                 "oid": "1.2.3.4.5",
@@ -20,6 +21,7 @@ test_create_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
             {
                 "oid": "1.2.3.4.5.6",
@@ -28,6 +30,7 @@ test_create_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
         ],
         "object_class": {
@@ -96,6 +99,7 @@ test_modify_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
         ],
         "object_class_data": {
@@ -121,6 +125,7 @@ test_modify_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
             {
                 "oid": "1.2.3.4.5",
@@ -129,6 +134,7 @@ test_modify_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
         ],
         "object_class_data": {
@@ -157,6 +163,7 @@ test_modify_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
             {
                 "oid": "1.2.3.4.5",
@@ -165,6 +172,7 @@ test_modify_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
             {
                 "oid": "1.2.3.4.5.6",
@@ -173,6 +181,7 @@ test_modify_one_object_class_dataset = [
                 "single_value": True,
                 "no_user_modification": False,
                 "is_system": False,
+                "is_included_anr": False,
             },
         ],
         "object_class_data": {

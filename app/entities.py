@@ -68,6 +68,7 @@ class AttributeType:
     single_value: bool = False
     no_user_modification: bool = False
     is_system: bool = False
+    is_included_anr: bool = False
 
     def get_raw_definition(self) -> str:
         if not self.oid or not self.name or not self.syntax:

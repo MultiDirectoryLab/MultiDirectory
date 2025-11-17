@@ -30,6 +30,7 @@ from tests.conftest import TestCreds
 from tests.test_ldap.test_util.test_search_datasets import (
     test_ldap_search_by_rule_bit_and_dataset,
     test_ldap_search_by_rule_bit_or_dataset,
+    test_ldap_search_filter_anr_dataset,
 )
 
 
@@ -106,6 +107,49 @@ async def test_ldap_search_filter(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+@pytest.mark.parametrize(
+    "dataset",
+    test_ldap_search_filter_anr_dataset,
+)
+async def test_ldap_search_filter_anr(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test ldapsearch with filter rule "BIT_AND"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        f"{dataset['filter']}",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )  # fmt: skip
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert f"dn: {object_dn}" in data
+    else:
+        assert "dn: " not in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("dataset", test_ldap_search_by_rule_bit_and_dataset)
 async def test_ldap_search_by_rule_bit_and(
     dataset: dict,
@@ -141,7 +185,7 @@ async def test_ldap_search_by_rule_bit_and(
     assert data
     if dataset["objects"]:
         for object_dn in dataset["objects"]:
-            assert object_dn in data
+            assert f"dn: {object_dn}" in data
     else:
         assert "dn: " not in data
 
@@ -181,7 +225,7 @@ async def test_ldap_search_by_rule_bit_or(
     assert data
     if dataset["objects"]:
         for object_dn in dataset["objects"]:
-            assert object_dn in data
+            assert f"dn: {object_dn}" in data
     else:
         assert "dn: " not in data
 
