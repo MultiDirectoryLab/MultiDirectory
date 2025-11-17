@@ -297,16 +297,15 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         """Get Password Policy with options for the User."""
         query = (
             select(PasswordPolicy)
+            .options(
+                selectinload(qa(PasswordPolicy.groups))
+                .joinedload(qa(Group.directory)),
+            )
             .join(qa(PasswordPolicy.groups))
             .join(qa(Group.users))
             .where(qa(Group.users).contains(user))
             .order_by(qa(PasswordPolicy.priority).asc())
             .limit(1)
-        )
-
-        query = query.options(
-            selectinload(qa(PasswordPolicy.groups))
-            .joinedload(qa(Group.directory)),
         )  # fmt: skip
 
         if policy := await self._session.scalar(query):
