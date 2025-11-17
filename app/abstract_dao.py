@@ -49,7 +49,7 @@ class AbstractService(ABC):
             return attr
 
         if hasattr(self, "_perm_check") and (
-            permission := self._usecase_api_permissions().get(attr)
+            permission := self._usecase_api_permissions().get(name)
         ):
             return self._perm_check.wrap_use_case(permission, attr)
         return attr

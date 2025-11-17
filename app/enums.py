@@ -83,7 +83,6 @@ class ApiPermissionsType(StrEnum):
     PASSWORD_POLICY_UPDATE = "password_policy_update"  # noqa: S105
     PASSWORD_POLICY_RESET_DOMAIN_POLICY = "password_policy_reset_domain_policy"  # noqa: S105
     PASSWORD_POLICY_TURNOFF = "password_policy_turnoff"  # noqa: S105
-
     NETWORK_POLICY_CREATE = "network_policy_create"
     NETWORK_POLICY_GET_LIST_POLICIES = "network_policy_get_list_policies"
     NETWORK_POLICY_DELETE = "network_policy_delete"
@@ -92,7 +91,6 @@ class ApiPermissionsType(StrEnum):
     )
     NETWORK_POLICY_SWAP_PRIORITIES = "network_policy_swap_priorities"
     NETWORK_POLICY_UPDATE = "network_policy_update"
-
     DHCP_CHANGE_STATE = "dhcp_change_state"
     DHCP_GET_STATE = "dhcp_get_state"
     DHCP_CREATE_SUBNET = "dhcp_create_subnet"
@@ -108,26 +106,22 @@ class ApiPermissionsType(StrEnum):
     DHCP_GET_RESERVATIONS = "dhcp_get_reservations"
     DHCP_UPDATE_RESERVATION = "dhcp_update_reservation"
     DHCP_DELETE_RESERVATION = "dhcp_delete_reservation"
-
     ATTRIBUTE_TYPE_GET = "attribute_type_get"
     ATTRIBUTE_TYPE_CREATE = "attribute_type_create"
     ATTRIBUTE_TYPE_GET_PAGINATOR = "attribute_type_get_paginator"
     ATTRIBUTE_TYPE_UPDATE = "attribute_type_update"
     ATTRIBUTE_TYPE_DELETE_ALL_BY_NAMES = "attribute_type_delete_all_by_names"
-
     ENTITY_TYPE_GET = "entity_type_get"
     ENTITY_TYPE_CREATE = "entity_type_create"
     ENTITY_TYPE_GET_PAGINATOR = "entity_type_get_paginator"
     ENTITY_TYPE_UPDATE = "entity_type_update"
     ENTITY_TYPE_DELETE_ALL_BY_NAMES = "entity_type_delete_all_by_names"
     ENTITY_TYPE_GET_ATTRIBUTES = "entity_type_get_attributes"
-
     OBJECT_CLASS_GET = "object_class_get"
     OBJECT_CLASS_CREATE = "object_class_create"
     OBJECT_CLASS_GET_PAGINATOR = "object_class_get_paginator"
     OBJECT_CLASS_UPDATE = "object_class_update"
     OBJECT_CLASS_DELETE_ALL_BY_NAMES = "object_class_delete_all_by_names"
-
     DNS_SETUP_DNS = "dns_setup_dns"
     DNS_CREATE_RECORD = "dns_create_record"
     DNS_DELETE_RECORD = "dns_delete_record"
@@ -144,7 +138,6 @@ class ApiPermissionsType(StrEnum):
     DNS_UPDATE_SERVER_OPTIONS = "dns_update_server_options"
     DNS_GET_SERVER_OPTIONS = "dns_get_server_options"
     DNS_RESTART_SERVER = "dns_restart_server"
-
     KRB_SETUP_CATALOGUE = "krb_setup_catalogue"
     KRB_SETUP_KDC = "krb_setup_kdc"
     KRB_KTADD = "krb_ktadd"
@@ -153,20 +146,16 @@ class ApiPermissionsType(StrEnum):
     KRB_RENAME_PRINCIPAL = "krb_rename_principal"
     KRB_RESET_PRINCIPAL_PW = "krb_reset_principal_pw"
     KRB_DELETE_PRINCIPAL = "krb_delete_principal"
-
     AUDIT_GET_POLICIES = "audit_get_policies"
     AUDIT_UPDATE_POLICY = "audit_update_policy"
     AUDIT_GET_DESTINATIONS = "audit_get_destinations"
     AUDIT_CREATE_DESTINATION = "audit_create_destination"
     AUDIT_DELETE_DESTINATION = "audit_delete_destination"
     AUDIT_UPDATE_DESTINATION = "audit_update_destination"
-
     AUTH_RESET_PASSWORD = "auth_reset_password"  # noqa: S105
-
     MFA_SETUP = "mfa_setup"
     MFA_REMOVE = "mfa_remove"
     MFA_GET = "mfa_get"
-
     SESSION_GET_USE_SESSIONS = "session_get_use_sessions"
     SESSION_CLEAR_USE_SESSIONS = "session_clear_use_sessions"
-    SESSSION_DELETE = "sesssion_delete"
+    SESSION_DELETE = "session_delete"
