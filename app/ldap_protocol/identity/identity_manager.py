@@ -199,7 +199,7 @@ class IdentityManager(AbstractService):
 
     async def _update_password(
         self,
-        identity: str,
+        identity: str | User,
         new_password: str,
         include_krb: bool,
     ) -> None:
@@ -213,7 +213,11 @@ class IdentityManager(AbstractService):
         :raises KRBAPIChangePasswordError: if Kerberos password update failed
         :return: None.
         """
-        user = await get_user(self._session, identity)
+        user = (
+            await get_user(self._session, identity)
+            if isinstance(identity, str)
+            else identity
+        )
 
         if not user:
             raise UserNotFoundError(
@@ -268,8 +272,7 @@ class IdentityManager(AbstractService):
         old_password: str | None,
     ) -> None:
         """Change the user's password and update Kerberos."""
-        skip_old_password_verification = True
-        is_old_password_verified = False
+        raise_not_verified = False
 
         current_user_schema = await self.get_current_user()
         resolved_identity = await get_user(
@@ -289,18 +292,19 @@ class IdentityManager(AbstractService):
                     "when changing your own password.",
                 )
 
-            skip_old_password_verification = False
-            is_old_password_verified = (
-                await authenticate_user(
-                    self._session,
-                    current_user_schema.dn,
-                    old_password,
-                    self._password_validator,
+            if resolved_identity.password is None:
+                raise AuthValidationError(
+                    "Cannot change password for user without a set password.",
                 )
-                is not None
+
+            raise_not_verified = (
+                self._password_validator.verify_password(
+                    old_password,
+                    resolved_identity.password,
+                ) is False
             )
 
-        if not is_old_password_verified and not skip_old_password_verification:
+        if raise_not_verified:
             raise UnauthorizedError("Old password is incorrect.")
 
         await self._update_password(

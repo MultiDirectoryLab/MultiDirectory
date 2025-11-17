@@ -16,6 +16,7 @@ from starlette.datastructures import URL
 from config import Settings
 from entities import User
 from ldap_protocol.identity.exceptions.auth import (
+    AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
@@ -295,6 +296,7 @@ class AuditMonitorUseCase:
                 UserNotFoundError,
                 PasswordPolicyError,
                 KRBAPIChangePasswordError,
+                AuthValidationError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc

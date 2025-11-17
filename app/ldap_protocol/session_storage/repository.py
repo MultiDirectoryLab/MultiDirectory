@@ -107,13 +107,17 @@ class SessionRepository(AbstractService):
 
         return {k: SessionContentDTO(**v) for k, v in sessions.items()}
 
-    async def clear_user_sessions(self, upn: str) -> None:
+    async def clear_user_sessions(self, identity: str | User) -> None:
         """Clear user sessions by user ID.
 
         :param str upn: user principal name
         :raises KeyError: if user not found
         """
-        user = await get_user(self.session, upn)
+        user = (
+            await get_user(self.session, identity)
+            if isinstance(identity, str)
+            else identity
+        )
 
         if not user:
             raise LookupError("User not found.")
