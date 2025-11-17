@@ -301,7 +301,8 @@ class IdentityManager(AbstractService):
                 self._password_validator.verify_password(
                     old_password,
                     resolved_identity.password,
-                ) is False
+                )
+                is False
             )
 
         if raise_not_verified:
