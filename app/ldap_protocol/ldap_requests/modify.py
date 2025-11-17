@@ -28,10 +28,14 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
-from ldap_protocol.objects import Changes, Operation, ProtocolRequests
+from ldap_protocol.objects import (
+    Changes,
+    Operation,
+    ProtocolRequests,
+    UserAccountControlFlag,
+)
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import get_members_root_group
 from ldap_protocol.utils.helpers import (
     create_user_name,

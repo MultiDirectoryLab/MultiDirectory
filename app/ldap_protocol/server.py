@@ -23,11 +23,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
-from ldap_protocol.messages import LDAPMessage, LDAPResponseMessage
+
+from .data_logger import DataLogger
 
 log = logger.bind(name="ldap")
-
-
 log.add(
     "logs/ldap_{time:DD-MM-YYYY}.log",
     filter=lambda rec: rec["extra"].get("name") == "ldap",
@@ -35,7 +34,6 @@ log.add(
     rotation="1d",
     colorize=False,
 )
-
 
 infinity = cast("int", math.inf)
 pp_v2 = ProxyProtocolV2()
@@ -58,17 +56,12 @@ class PoolClientHandler:
         """Set workers number for single client concurrent handling."""
         self.container = container
         self.settings = settings
-
         self.num_workers = self.settings.COROUTINES_NUM_PER_CLIENT
         self._size = self.settings.TCP_PACKET_SIZE
 
-        self._load_ssl_context()
+        self.logger = DataLogger(log, is_full=self.settings.DEBUG)
 
-        if settings.DEBUG:
-            self.req_log = self._req_log_full
-            self.rsp_log = self._resp_log_full
-        else:
-            self.req_log = self.rsp_log = self._log_short
+        self._load_ssl_context()
 
     async def __call__(
         self,
@@ -117,8 +110,8 @@ class PoolClientHandler:
                         ldap_session.cancel_ensure_task(ensure_task),
                     )
 
-            except* RuntimeError:
-                log.exception(f"The connection {addr} raised")
+            except* RuntimeError as err:
+                log.error(f"Response handling error {err}: {format_exc()}")
 
             finally:
                 await session_scope.close()
@@ -330,24 +323,6 @@ class PoolClientHandler:
 
         return data
 
-    @staticmethod
-    def _req_log_full(addr: str, msg: LDAPRequestMessage) -> None:
-        log.debug(
-            f"\nFrom: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}\n",
-        )
-
-    @staticmethod
-    def _resp_log_full(addr: str, msg: LDAPResponseMessage) -> None:
-        log.debug(
-            f"\nTo: {addr!r}\n{msg.name}[{msg.message_id}]: "
-            f"{msg.model_dump_json()}"[:3000],
-        )
-
-    @staticmethod
-    def _log_short(addr: str, msg: LDAPMessage) -> None:
-        log.info(f"\n{addr!r}: {msg.name}[{msg.message_id}]\n")
-
     async def _handle_single_response(
         self,
         writer: asyncio.StreamWriter,
@@ -366,13 +341,13 @@ class PoolClientHandler:
                     ldap_session.queue.get(),
                     timeout=1.0,
                 )
-                self.req_log(addr, message)
+                self.logger.req_log(addr, message)
 
                 async with container(scope=Scope.REQUEST) as request_container:
                     handler = message.context.handle_tcp(request_container)
 
                     async for response in message.create_response(handler):
-                        self.rsp_log(addr, response)
+                        self.logger.rsp_log(addr, response)
 
                         data = await self._wrap_response(
                             response.encode(),

@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.objects import UserAccountControlFlag
 
 TEST_DATA = [
     {

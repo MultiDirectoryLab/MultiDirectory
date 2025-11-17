@@ -31,7 +31,7 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPBindRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.objects import UserAccountControlFlag
 from password_manager import PasswordValidator
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
