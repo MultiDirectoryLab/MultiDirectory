@@ -62,9 +62,7 @@ def upgrade() -> None:
         .returning(qa(AttributeType.name)),
     )
     if len(updated_attrs.all()) != len(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES):
-        raise ValueError(
-            "Not all expected attributes were found in the database.",
-        )
+        raise ValueError("Not all expected attributes were found in the DB.")
 
     session.commit()
 

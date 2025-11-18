@@ -388,7 +388,7 @@ def upgrade() -> None:
 
     op.run_async(_modify_object_classes)
 
-    # NOTE: added in f24ed0e49df2_add_filter_anr.py  # noqa: ERA001
+    # NOTE: it added in f24ed0e49df2_add_filter_anr.py
     op.drop_column("AttributeTypes", "is_included_anr")
     session.commit()
 

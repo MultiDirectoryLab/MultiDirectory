@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import field
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel, Field
@@ -30,7 +29,7 @@ class AttributeTypeSchema(BaseModel, Generic[_IdT]):
     no_user_modification: bool
     is_system: bool
     is_included_anr: bool = False
-    object_class_names: list[str] = field(default_factory=list)
+    object_class_names: list[str] = Field(default_factory=list)
 
 
 class AttributeTypeUpdateSchema(BaseModel):
@@ -61,7 +60,7 @@ class ObjectClassSchema(BaseModel, Generic[_IdT]):
     attribute_type_names_must: list[str]
     attribute_type_names_may: list[str]
     is_system: bool = False
-    entity_type_names: set[str] = field(default_factory=set)
+    entity_type_names: set[str] = Field(default_factory=set)
 
 
 class ObjectClassPaginationSchema(

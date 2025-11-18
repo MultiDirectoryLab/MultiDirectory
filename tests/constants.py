@@ -82,7 +82,7 @@ TEST_DATA = [
                 },
                 "attributes": {
                     "givenName": ["John"],
-                    "surname": ["Lenon"],
+                    "surname": ["Lennon"],
                     "objectClass": [
                         "top",
                         "person",

@@ -327,9 +327,7 @@ async def test_api_search_by_rule_anr(
     )
     response = raw_response.json()
     assert response["resultCode"] == LDAPCodes.SUCCESS
-    assert len(response["search_result"]) == len(
-        dataset["objects"],
-    )  # TODO вроде у response есть прям count или че-то типа того
+    assert int(response.get("total_objects")) == len(dataset["objects"])
     for obj in response["search_result"]:
         assert obj["object_name"] in dataset["objects"]
 

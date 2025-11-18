@@ -145,7 +145,7 @@ async def test_ldap_search_by_rule_anr(
             [d for d in data if d.startswith("dn:")],
         )
     else:
-        assert "dn: " not in data
+        assert not any(d.startswith("dn:") for d in data)
 
 
 @pytest.mark.asyncio
@@ -191,7 +191,7 @@ async def test_ldap_search_by_rule_bit_and(
             [d for d in data if d.startswith("dn:")],
         )
     else:
-        assert "dn: " not in data
+        assert not any(d.startswith("dn:") for d in data)
 
 
 @pytest.mark.asyncio
@@ -231,10 +231,10 @@ async def test_ldap_search_by_rule_bit_or(
         for object_dn in dataset["objects"]:
             assert f"dn: {object_dn}" in data
         assert len(dataset["objects"]) == len(
-            [d for d in data if d.startswith("dn: ")],
+            [d for d in data if d.startswith("dn:")],
         )
     else:
-        assert "dn: " not in data
+        assert not any(d.startswith("dn:") for d in data)
 
 
 @pytest.mark.asyncio

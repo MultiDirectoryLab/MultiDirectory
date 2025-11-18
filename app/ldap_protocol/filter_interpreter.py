@@ -86,7 +86,7 @@ class FilterInterpreterProtocol(Protocol):
         return f
 
     def _get_anr_filter(self, value: str) -> ColumnElement[bool]:
-        """Get query expresions by rule aNR. Let P1=False and let P2=False.
+        """Get query expressions by rule aNR. Let P1=False and let P2=False.
 
         Docs:
             ms-adts/1a9177f4-0272-4ab8-aa22-3c3eafd39e4b
@@ -200,7 +200,7 @@ class FilterInterpreterProtocol(Protocol):
                         qa(AttributeType.is_included_anr).is_(True),
                     ),
                 ),
-                qa(Attribute.value) == vl,
+                qa(Attribute.value) == _vl.replace("=", ""),
             ),
         )
 

@@ -17,11 +17,11 @@ test_search_filter_account_expires_dataset = [
 
 test_search_by_rule_anr_dataset = [
     # with split by space
-    {"filter": "(anr=Joh Leno)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=Lenon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=John Lenon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=john lenon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr==Lenon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=Joh Lenno)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=Lennon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=John Lennon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=john lennon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr==Lennon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
     # without split by space
     {"filter": "(anr=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
