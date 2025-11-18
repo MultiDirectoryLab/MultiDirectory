@@ -38,6 +38,7 @@ test_search_by_rule_anr_dataset = [
         "filter": "(anr=user_admin_*)",
         "objects": [
             "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
