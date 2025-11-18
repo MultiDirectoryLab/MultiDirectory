@@ -26,6 +26,7 @@ from ldap_protocol.auth.schemas import (
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.identity_exceptions import (
     AlreadyConfiguredError,
+    AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
@@ -45,6 +46,7 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         LoginFailedError: status.HTTP_403_FORBIDDEN,
         MFARequiredError: status.HTTP_426_UPGRADE_REQUIRED,
         PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        AuthValidationError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         PermissionError: status.HTTP_403_FORBIDDEN,
         UserNotFoundError: status.HTTP_404_NOT_FOUND,
         KRBAPIChangePasswordError: status.HTTP_424_FAILED_DEPENDENCY,
@@ -90,19 +92,30 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         self,
         identity: str,
         new_password: str,
+        old_password: str | None,
     ) -> None:
         """Reset a user's password and update Kerberos principal.
+
+        If the current user is changing their own password,
+        the old password must be provided and correct.
+        If an administrator is changing another user's password,
+        the old password is not required.
 
         :param identity: User identity
             (userPrincipalName, sAMAccountName, or DN)
         :param new_password: New password string
+        :param old_password: Old password string (if verifying)
         :param kadmin: Kerberos kadmin client
         :raises HTTPException: 404 if user not found
         :raises HTTPException: 422 if password is invalid
         :raises HTTPException: 424 if Kerberos password update failed
         :return: None
         """
-        await self._service.reset_password(identity, new_password)
+        await self._service.reset_password(
+            identity,
+            new_password,
+            old_password,
+        )
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is required.

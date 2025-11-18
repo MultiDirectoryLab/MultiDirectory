@@ -23,8 +23,7 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
-from ldap_protocol.objects import ProtocolRequests
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.objects import ProtocolRequests, UserAccountControlFlag
 from ldap_protocol.utils.const import (
     DOMAIN_COMPUTERS_GROUP_NAME,
     DOMAIN_USERS_GROUP_NAME,

@@ -102,22 +102,26 @@ async def logout(
     dependencies=[Depends(verify_auth)],
 )
 async def password_reset(
+    auth_manager: FromDishka[AuthFastAPIAdapter],
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
-    auth_manager: FromDishka[AuthFastAPIAdapter],
+    old_password: Annotated[
+        str | None,
+        Body(examples=["old_password"]),
+    ] = None,
 ) -> None:
     """Reset user's (entry) password.
 
     :param identity: user identity (userPrincipalName, saMAccountName or DN)
     :param new_password: new password
-    :param kadmin: kadmin api
+    :param old_password: old password (if verifying)
     :param auth_manager: IdentityFastAPIAdapter
     :raises HTTPException: 404 if user not found
     :raises HTTPException: 422 if password is invalid
     :raises HTTPException: 424 if kerberos password update failed
     :return: None
     """
-    await auth_manager.reset_password(identity, new_password)
+    await auth_manager.reset_password(identity, new_password, old_password)
 
 
 @auth_router.get("/setup")

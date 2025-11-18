@@ -22,6 +22,7 @@ from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.identity_exceptions import (
+    AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
@@ -29,6 +30,7 @@ from ldap_protocol.identity.identity_exceptions import (
 )
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
+from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network_policy import (
     check_mfa_group,
@@ -37,10 +39,7 @@ from ldap_protocol.policies.network_policy import (
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from ldap_protocol.user_account_control import (
-    UserAccountControlFlag,
-    get_check_uac,
-)
+from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import get_user
 from password_manager import PasswordValidator
 from repo.pg.tables import queryable_attr as qa
@@ -204,7 +203,7 @@ class AuthManager(AbstractService):
 
     async def _update_password(
         self,
-        identity: str,
+        identity: str | User,
         new_password: str,
         include_krb: bool,
     ) -> None:
@@ -218,7 +217,11 @@ class AuthManager(AbstractService):
         :raises KRBAPIChangePasswordError: if Kerberos password update failed
         :return: None.
         """
-        user = await get_user(self._session, identity)
+        user = (
+            await get_user(self._session, identity)
+            if isinstance(identity, str)
+            else identity
+        )
 
         if not user:
             raise UserNotFoundError(
@@ -270,8 +273,45 @@ class AuthManager(AbstractService):
         self,
         identity: str,
         new_password: str,
+        old_password: str | None,
     ) -> None:
         """Change the user's password and update Kerberos."""
+        raise_not_verified = False
+
+        current_user_schema = await self.get_current_user()
+        resolved_identity = await get_user(
+            self._session,
+            identity,
+        )
+
+        if resolved_identity is None:
+            raise UserNotFoundError(
+                f"User {identity} not found in the database.",
+            )
+
+        if current_user_schema.id == resolved_identity.id:
+            if old_password is None:
+                raise AuthValidationError(
+                    "Old password must be provided "
+                    "when changing your own password.",
+                )
+
+            if resolved_identity.password is None:
+                raise AuthValidationError(
+                    "Cannot change password for user without a set password.",
+                )
+
+            raise_not_verified = (
+                self._password_validator.verify_password(
+                    old_password,
+                    resolved_identity.password,
+                )
+                is False
+            )
+
+        if raise_not_verified:
+            raise UnauthorizedError("Old password is incorrect.")
+
         await self._update_password(
             identity,
             new_password,

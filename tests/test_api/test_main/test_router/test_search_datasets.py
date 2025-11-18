@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
-from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.objects import UserAccountControlFlag
 
 test_api_search_by_rule_bit_and_dataset = [
     {

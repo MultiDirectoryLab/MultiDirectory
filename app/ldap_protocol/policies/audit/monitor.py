@@ -15,6 +15,13 @@ from starlette.datastructures import URL
 
 from config import Settings
 from entities import User
+from ldap_protocol.identity.identity_exceptions import (
+    AuthValidationError,
+    LoginFailedError,
+    PasswordPolicyError,
+    UnauthorizedError,
+    UserNotFoundError,
+)
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -291,6 +298,7 @@ class AuditMonitorUseCase:
         async def wrapped_reset_password(
             identity: str,
             new_password: str,
+            old_password: str | None = None,
         ) -> None:
             self._monitor.event_type = OperationEvent.CHANGE_PASSWORD
             self._monitor.target = identity
@@ -299,12 +307,14 @@ class AuditMonitorUseCase:
                 return await attr(
                     identity=identity,
                     new_password=new_password,
+                    old_password=old_password,
                 )
             except (
                 UserNotFoundError,
                 PasswordPolicyError,
                 KRBAPIChangePasswordError,
                 ApiPermissionError,
+                AuthValidationError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
