@@ -23,7 +23,7 @@ class ApiPermissionsArray(TypeDecorator):
         """Convert strings to ApiPermissionsType enums when loading from DB."""
         if value is None:
             return []
-        return [ApiPermissionsType(v) for v in value]
+        return [ApiPermissionsType(int(v)) for v in value]
 
     def process_bind_param(self, value, dialect) -> list:  # type: ignore  # noqa: ARG002
         """Convert enums to strings when saving to DB."""
