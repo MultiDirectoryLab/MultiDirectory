@@ -50,8 +50,8 @@ class SessionRepository(AbstractService):
     @classmethod
     def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
         return {
-            cls.get_user_sessions.__name__: ApiPermissionsType.SESSION_GET_USE_SESSIONS,  # noqa: E501
-            cls.clear_user_sessions.__name__: ApiPermissionsType.SESSION_CLEAR_USE_SESSIONS,  # noqa: E501
+            cls.get_user_sessions.__name__: ApiPermissionsType.SESSION_GET_USER_SESSIONS,  # noqa: E501
+            cls.clear_user_sessions.__name__: ApiPermissionsType.SESSION_CLEAR_USER_SESSIONS,  # noqa: E501
             cls.delete_session.__name__: ApiPermissionsType.SESSION_DELETE,
         }
 

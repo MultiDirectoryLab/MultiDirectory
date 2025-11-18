@@ -7,7 +7,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import String, TypeDecorator
+from sqlalchemy import Integer, TypeDecorator
 from sqlalchemy.dialects.postgresql import ARRAY
 
 from enums import ApiPermissionsType
@@ -16,7 +16,7 @@ from enums import ApiPermissionsType
 class ApiPermissionsArray(TypeDecorator):
     """Custom type for API permissions array."""
 
-    impl = ARRAY(String)
+    impl = ARRAY(Integer)
     cache_ok = True
 
     def process_result_value(self, value, dialect) -> list:  # type: ignore  # noqa: ARG002
