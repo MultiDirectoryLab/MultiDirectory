@@ -6,11 +6,10 @@ services:
   pre_run_manager:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: pre_run_manager
-    user: root
     restart: "no"
     volumes:
       - certs:/certs
-      - ./entrypoint.sh:/app/entrypoint.sh
+      - ./entrypoint.sh:/app/entrypoint.sh # отдать волюм для bind
     command: sh -c "/app/extra/pre_run_setup.sh"
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta

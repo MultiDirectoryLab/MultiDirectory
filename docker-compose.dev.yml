@@ -90,7 +90,6 @@ services:
   pre_run_manager:
     image: multidirectory
     container_name: pre_run_manager
-    user: root
     restart: "no"
     volumes:
       - ./app:/app
@@ -128,7 +127,6 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
-    user: root
     restart: unless-stopped
     hostname: multidirectory
     volumes:
