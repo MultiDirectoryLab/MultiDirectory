@@ -17,6 +17,7 @@ from enums import MFAFlags
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.dto import SetupDTO
 from ldap_protocol.identity.exceptions.auth import (
+    AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
@@ -196,7 +197,7 @@ class IdentityManager(AbstractService):
 
     async def _update_password(
         self,
-        identity: str,
+        identity: str | User,
         new_password: str,
         include_krb: bool,
     ) -> None:
@@ -210,7 +211,11 @@ class IdentityManager(AbstractService):
         :raises KRBAPIChangePasswordError: if Kerberos password update failed
         :return: None.
         """
-        user = await get_user(self._session, identity)
+        user = (
+            await get_user(self._session, identity)
+            if isinstance(identity, str)
+            else identity
+        )
 
         if not user:
             raise UserNotFoundError(
@@ -262,8 +267,45 @@ class IdentityManager(AbstractService):
         self,
         identity: str,
         new_password: str,
+        old_password: str | None,
     ) -> None:
         """Change the user's password and update Kerberos."""
+        raise_not_verified = False
+
+        current_user_schema = await self.get_current_user()
+        resolved_identity = await get_user(
+            self._session,
+            identity,
+        )
+
+        if resolved_identity is None:
+            raise UserNotFoundError(
+                f"User {identity} not found in the database.",
+            )
+
+        if current_user_schema.id == resolved_identity.id:
+            if old_password is None:
+                raise AuthValidationError(
+                    "Old password must be provided "
+                    "when changing your own password.",
+                )
+
+            if resolved_identity.password is None:
+                raise AuthValidationError(
+                    "Cannot change password for user without a set password.",
+                )
+
+            raise_not_verified = (
+                self._password_validator.verify_password(
+                    old_password,
+                    resolved_identity.password,
+                )
+                is False
+            )
+
+        if raise_not_verified:
+            raise UnauthorizedError("Old password is incorrect.")
+
         await self._update_password(
             identity,
             new_password,

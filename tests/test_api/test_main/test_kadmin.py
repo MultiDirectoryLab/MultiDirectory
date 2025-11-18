@@ -503,7 +503,11 @@ async def test_api_update_password(
     """Update policy."""
     await http_client.patch(
         "auth/user/password",
-        json={"identity": "user0", "new_password": "Password123"},
+        json={
+            "identity": "user0",
+            "new_password": "Password123",
+            "old_password": "password",
+        },
     )
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
     assert kadmin_args == ("user0", "Password123")
@@ -521,6 +525,10 @@ async def test_update_password(
     ) = KRBAPIChangePasswordError()
     response = await http_client.patch(
         "auth/user/password",
-        json={"identity": "user0", "new_password": "Password123"},
+        json={
+            "identity": "user0",
+            "new_password": "Password123",
+            "old_password": "password",
+        },
     )
     assert response.status_code == status.HTTP_424_FAILED_DEPENDENCY
