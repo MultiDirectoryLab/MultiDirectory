@@ -55,7 +55,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column(
             "permissions",
-            postgresql.ARRAY(sa.String()),
+            postgresql.ARRAY(sa.Integer()),
             server_default="{}",
             nullable=False,
         ),
