@@ -15,13 +15,6 @@ from starlette.datastructures import URL
 
 from config import Settings
 from entities import User
-from ldap_protocol.identity.identity_exceptions import (
-    AuthValidationError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
-)
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -36,6 +29,7 @@ from ldap_protocol.auth.utils import (
     get_user_agent_from_request,
 )
 from ldap_protocol.identity.identity_exceptions import (
+    AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
