@@ -85,6 +85,138 @@ class FilterInterpreterProtocol(Protocol):
 
         return f
 
+    def _get_anr_filter(self, value: str) -> ColumnElement[bool]:
+        """Get query expresions by rule aNR. Let P1=False and let P2=False.
+
+        Docs:
+            ms-adts/1a9177f4-0272-4ab8-aa22-3c3eafd39e4b
+        """
+        if value.startswith("*"):
+            return sql_false()
+
+        attributes_expr = []
+        dir_user_expr = []
+        _vl: str = value.lower().replace("*", "")
+
+        is_first_char_equal = _vl.startswith("=")  # NOTE: algorithm 6.a.
+        is_space_contains = bool(" " in value)  # NOTE: algorithm 6.c.ii.i.
+
+        if is_first_char_equal:
+            vl = _vl.replace("=", "")
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name).in_(
+                        select(qa(AttributeType.name))
+                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                    ),
+                    func.lower(Attribute.value) == vl,
+                ),
+            )  # fmt: skip
+
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name) == "cn",
+                    func.lower(Attribute.value) == vl,
+                ),
+            )  # fmt: skip
+
+            dir_user_expr.extend(
+                [
+                    qa(Directory.name) == vl,
+                    qa(User.mail) == vl,
+                    qa(User.samaccountname) == vl,
+                    qa(User.displayname) == vl,
+                ],
+            )  # fmt: skip
+        else:
+            vl = f"{_vl}%"
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name).in_(
+                        select(qa(AttributeType.name))
+                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                    ),
+                    qa(Attribute.value).ilike(vl),
+                ),
+            )  # fmt: skip
+
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name) == "cn",
+                    qa(Attribute.value).ilike(vl),
+                ),
+            )  # fmt: skip
+
+            dir_user_expr.extend(
+                [
+                    qa(Directory.name).ilike(vl),
+                    qa(User.mail).ilike(vl),
+                    qa(User.samaccountname).ilike(vl),
+                    qa(User.displayname).ilike(vl),
+                ],
+            )  # fmt: skip
+
+        if is_space_contains:
+            _vl = _vl.replace("=", "")
+            fn, sn = _vl.split(" ")[:2]
+
+            givenname_fn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "givenname",
+                    qa(Attribute.value).ilike(f"{fn}%"),
+                ),
+            )
+            surname_sn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "surname",
+                    qa(Attribute.value).ilike(f"{sn}%"),
+                ),
+            )
+            givenname_sn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "givenname",
+                    qa(Attribute.value).ilike(f"{sn}%"),
+                ),
+            )
+            surname_fn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "surname",
+                    qa(Attribute.value).ilike(f"{fn}%"),
+                ),
+            )
+
+            attributes_expr.append(
+                or_(
+                    and_(givenname_fn, surname_sn),
+                    and_(givenname_sn, surname_fn),
+                ),
+            )
+
+        attributes_expr.append(
+            and_(
+                qa(Attribute.name).in_(
+                    select(qa(AttributeType.name)).where(
+                        qa(AttributeType.name) == "legacyExchangeDN",
+                        qa(AttributeType.is_included_anr).is_(True),
+                    ),
+                ),
+                qa(Attribute.value) == vl,
+            ),
+        )
+
+        return and_(
+            or_(
+                qa(Directory).attributes.any(or_(*attributes_expr)),
+                or_(*dir_user_expr),
+            ),
+            qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "objectclass",
+                    func.lower(Attribute.value).in_(("user", "contact", "group", "person")),  # noqa: E501
+                ),
+            ),
+        )  # fmt: skip
+
     def _get_bit_filter_function(
         self,
         oid: str,
@@ -230,7 +362,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
         return self._cast_item(expr)
 
-    def _cast_item(self, item: ASN1Row) -> UnaryExpression | ColumnElement:
+    def _cast_item(self, item: ASN1Row) -> UnaryExpression | ColumnElement:  # noqa: C901
         # present, for e.g. `attibuteName=*`, `(attibuteName)`
         if item.tag_id == TagNumbers.PRESENT:
             attr = item.value.lower().replace("objectcategory", "objectclass")
@@ -272,21 +404,16 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
         is_substring = item.tag_id == TagNumbers.SUBSTRING
 
         if attr == "anr":
-            # TODO
-            # user (пользователи) - основные учетные записи
-            # contact (контакты) - контакты адресной книги
-            # group (группы) - security groups и distribution groups
-            # person (родительский класс для user и contact)
-            # user_admin_3@mail.com%
-            return qa(Directory).attributes.any(
-                and_(
-                    qa(Attribute.name).in_(
-                        select(qa(AttributeType.name))
-                        .where(qa(AttributeType.is_included_anr).is_(True)),
-                    ),
-                    func.lower(Attribute.value).ilike(self._get_substring(right).lower()),
-                ),
-            )  # fmt: skip
+            if is_substring:
+                expr = right.value[0]
+                value = expr.value
+                if isinstance(value, bytes):
+                    with suppress(UnicodeDecodeError):
+                        value = value.decode()
+            else:
+                value = right.value
+
+            return self._get_anr_filter(value)
         if attr in User.search_fields:
             return self._from_filter(User, item, attr, right)
         elif attr in Directory.search_fields:
@@ -414,112 +541,7 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
         is_substring = item.val.startswith("*") or item.val.endswith("*")
 
         if item.attr == "anr":
-            if item.val.startswith("*") or item.val == "*":
-                return sql_false()
-
-            expr = []
-            expr2 = []
-            _vl: str = item.val.lower().replace("*", "")
-
-            if item.comp == "=" and _vl.startswith("="):
-                vl = _vl.replace("=", "")
-                expr.append(
-                    and_(
-                        qa(Attribute.name).in_(
-                            select(qa(AttributeType.name))
-                            .where(qa(AttributeType.is_included_anr).is_(True)),
-                        ),
-                        func.lower(Attribute.value) == vl,
-                    ),
-                )  # fmt: skip
-
-                expr2.extend(
-                    [
-                        qa(Directory.name) == vl,  # TODO у этого атрибут типа должен быть is_included_anr=True
-                        qa(User.mail) == vl,  # TODO у этого атрибут типа должен быть is_included_anr=True
-                        qa(User.samaccountname) == vl,  # TODO у этого атрибут типа должен быть is_included_anr=True
-                        qa(User.displayname) == vl,  # TODO у этого атрибут типа должен быть is_included_anr=True
-                    ],
-                )  # fmt: skip
-            else:
-                vl = f"{_vl}%"
-                expr.append(
-                    and_(
-                        qa(Attribute.name).in_(
-                            select(qa(AttributeType.name))
-                            .where(qa(AttributeType.is_included_anr).is_(True)),
-                        ),
-                        func.lower(Attribute.value).ilike(vl),
-                    ),
-                )  # fmt: skip
-
-                expr2.extend(
-                    [
-                        qa(Directory.name).ilike(vl),  # TODO у этого атрибут типа должен быть is_included_anr=True
-                        qa(User.mail).ilike(vl),  # TODO у этого атрибут типа должен быть is_included_anr=True
-                        qa(User.samaccountname).ilike(vl),  # TODO у этого атрибут типа должен быть is_included_anr=True
-                        qa(User.displayname).ilike(vl),  # TODO у этого атрибут типа должен быть is_included_anr=True
-                    ],
-                )  # fmt: skip
-
-            if " " in item.val:
-                # NOTE: ms-adts/1a9177f4-0272-4ab8-aa22-3c3eafd39e4b
-                # P1=False and P2=False
-                # P1 be the value of the fSupFirstLastANR heuristic
-                # of the dSHeuristics attribute (see section 6.1.1.2.4.1.2).
-                # Let P2 be the value of the fSupLastFirstANR heuristic
-                # of the dSHeuristics attribute (see section 6.1.1.2.4.1.2).
-                fn, sn = _vl.split(" ")[:2]
-                expr.append(
-                    and_(
-                        and_(
-                            qa(Attribute.name) == "givenName",
-                            func.lower(Attribute.value).ilike(f"{fn}%"),
-                        ),
-                        and_(
-                            qa(Attribute.name) == "sn",
-                            func.lower(Attribute.value).ilike(f"{sn}%"),
-                        ),
-                    ),
-                )
-                expr.append(
-                    and_(
-                        and_(
-                            qa(Attribute.name) == "givenName",
-                            func.lower(Attribute.value).ilike(f"{sn}%"),
-                        ),
-                        and_(
-                            qa(Attribute.name) == "sn",
-                            func.lower(Attribute.value).ilike(f"{fn}%"),
-                        ),
-                    ),
-                )
-
-            expr.append(
-                and_(
-                    qa(Attribute.name).in_(
-                        select(qa(AttributeType.name)).where(
-                            qa(AttributeType.name) == "legacyExchangeDN",
-                            qa(AttributeType.is_included_anr).is_(True),
-                        ),
-                    ),
-                    qa(Attribute.value) == vl,
-                ),
-            )
-
-            return or_(
-                and_(
-                    qa(Directory).attributes.any(or_(*expr)),
-                    qa(Directory).attributes.any(
-                        and_(
-                            func.lower(Attribute.name) == "objectclass",
-                            func.lower(Attribute.value).in_(("user", "contact", "group", "person")),
-                        ),
-                    ),
-                ),
-                or_(*expr2),
-            )  # fmt: skip
-
+            return self._get_anr_filter(item.val)
         elif (
             LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND in item.attr
             or LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR in item.attr

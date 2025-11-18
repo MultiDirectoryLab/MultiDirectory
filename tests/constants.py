@@ -81,8 +81,8 @@ TEST_DATA = [
                     ],
                 },
                 "attributes": {
-                    "givenName": ["user"],
-                    "sn": ["zero"],
+                    "givenName": ["сутулая"],
+                    "surname": ["собака"],
                     "objectClass": [
                         "top",
                         "person",
