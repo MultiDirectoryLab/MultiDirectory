@@ -48,7 +48,7 @@ class AbstractService(ABC):
         if not callable(attr) or name.startswith("_"):
             return attr
 
-        if hasattr(self, "_perm_check") and (
+        if getattr(self, "_perm_check", None) and (
             permission := self._usecase_api_permissions().get(name)
         ):
             return self._perm_check.wrap_use_case(permission, attr)

@@ -52,7 +52,7 @@ class SessionRepository(AbstractService):
         return {
             cls.get_user_sessions.__name__: ApiPermissionsType.SESSION_GET_USE_SESSIONS,  # noqa: E501
             cls.clear_user_sessions.__name__: ApiPermissionsType.SESSION_CLEAR_USE_SESSIONS,  # noqa: E501
-            cls.delete_session.__name__: ApiPermissionsType.SESSSION_DELETE,
+            cls.delete_session.__name__: ApiPermissionsType.SESSION_DELETE,
         }
 
     def __init__(
