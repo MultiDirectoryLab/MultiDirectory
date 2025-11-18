@@ -17,10 +17,11 @@ test_search_filter_account_expires_dataset = [
 
 test_search_by_rule_anr_dataset = [
     # with split by space
-    {"filter": "(anr=сутула собак)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr=собака сутулая)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr=сутулая собака)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr==собака сутулая)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr=Joh Leno)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=Lenon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=John Lenon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=john lenon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr==Lenon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
     # without split by space
     {"filter": "(anr=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
@@ -31,8 +32,8 @@ test_search_by_rule_anr_dataset = [
     {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=groups,dc=md,dc=test"]},
-    {"filter": "(anr=user_admin_3@mail.com)", "objects": ["cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test"]},
+    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=groups,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=user_admin_3@mail.com)", "objects": ["cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test"]},  # noqa: E501
     {
         "filter": "(anr=user_admin_*)",
         "objects": [
