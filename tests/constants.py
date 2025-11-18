@@ -81,6 +81,8 @@ TEST_DATA = [
                     ],
                 },
                 "attributes": {
+                    "givenName": ["John"],
+                    "surname": ["Lennon"],
                     "objectClass": [
                         "top",
                         "person",
@@ -169,7 +171,7 @@ TEST_DATA = [
                 "attributes": {
                     "objectClass": [
                         "top",
-                        # "user",
+                        "user",
                         "person",
                         "organizationalPerson",
                         "posixAccount",

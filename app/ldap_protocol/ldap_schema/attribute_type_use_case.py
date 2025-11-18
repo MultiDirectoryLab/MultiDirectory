@@ -51,10 +51,7 @@ class AttributeTypeUseCase(AbstractService):
         await self._attribute_type_dao.create(dto)
 
     async def update(self, _id: str, dto: AttributeTypeDTO) -> None:
-        """Update Attribute Type.
-
-        NOTE: Only 3 attrs can be updated.
-        """
+        """Update Attribute Type."""
         await self._attribute_type_dao.update(_id, dto)
 
     async def delete(self, _id: str) -> None:

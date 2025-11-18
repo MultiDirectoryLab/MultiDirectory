@@ -285,9 +285,7 @@ class SearchRequest(BaseRequest):
     def _cast_filter(self) -> UnaryExpression | ColumnElement:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
-        :param ASN1Row filter_: requested filter_
-        :param AsyncSession session: sa session
-        :return UnaryExpression: condition
+        :return UnaryExpression | ColumnElement: condition
         """
         return self._filter_interpreter.cast_to_sql(self.filter)
 

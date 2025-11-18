@@ -366,6 +366,7 @@ attribute_types_table = Table(
     Column("single_value", Boolean, nullable=False),
     Column("no_user_modification", Boolean, nullable=False),
     Column("is_system", Boolean, nullable=False),
+    Column("is_included_anr", Boolean, nullable=False),
     Index("idx_attribute_types_name_gin_trgm", "name", postgresql_using="gin"),
 )
 
