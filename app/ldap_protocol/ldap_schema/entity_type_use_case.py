@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
 from enums import ApiPermissionsType
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO

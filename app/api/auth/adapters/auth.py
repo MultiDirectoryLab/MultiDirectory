@@ -24,7 +24,7 @@ from ldap_protocol.auth.schemas import (
     SetupRequest,
 )
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.identity_exceptions import (
+from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     AuthValidationError,
     LoginFailedError,

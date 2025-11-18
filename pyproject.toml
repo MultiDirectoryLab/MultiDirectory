@@ -197,6 +197,7 @@ known-first-party = [
     "password_manager",
     "ldap_protocol",
     "abstract_dao",
+    "abstract_service",
     "client",
     "config",
     "constants",

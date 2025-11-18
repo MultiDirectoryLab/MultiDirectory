@@ -6,7 +6,7 @@ from typing import Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
 from entities import User
 from enums import ApiPermissionsType

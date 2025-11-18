@@ -75,7 +75,7 @@ from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.dto import DNSSettingDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.identity_provider_gateway import (
+from ldap_protocol.identity.provider_gateway import (
     IdentityProviderGateway,
 )
 from ldap_protocol.kerberos import AbstractKadmin

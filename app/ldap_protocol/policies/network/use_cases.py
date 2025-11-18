@@ -8,7 +8,7 @@ from adaptix import P
 from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from entities import NetworkPolicy
 from enums import ApiPermissionsType
 from ldap_protocol.policies.network.dto import (

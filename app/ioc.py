@@ -58,9 +58,7 @@ from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.dns.utils import resolve_dns_server_ip
 from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.identity_provider_gateway import (
-    IdentityProviderGateway,
-)
+from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService

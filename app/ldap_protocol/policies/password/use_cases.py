@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from itertools import islice
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from entities import User
 from enums import ApiPermissionsType
 from ldap_protocol.permissions_checker import ApiPermissionsChecker

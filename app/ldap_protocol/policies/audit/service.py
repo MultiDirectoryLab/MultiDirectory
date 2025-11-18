@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy.exc import IntegrityError
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from enums import ApiPermissionsType
 
 from .dataclasses import AuditDestinationDTO, AuditPolicyDTO

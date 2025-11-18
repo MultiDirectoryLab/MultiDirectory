@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from constants import FIRST_SETUP_DATA
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
-from ldap_protocol.identity.identity_exceptions import (
+from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     ForbiddenError,
 )

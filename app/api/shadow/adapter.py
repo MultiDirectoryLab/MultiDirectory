@@ -16,7 +16,7 @@ from ldap_protocol.auth.exceptions.mfa import (
     InvalidCredentialsError,
     NetworkPolicyError,
 )
-from ldap_protocol.identity.identity_exceptions import PasswordPolicyError
+from ldap_protocol.identity.exceptions import PasswordPolicyError
 
 P = ParamSpec("P")
 R = TypeVar("R")

@@ -1,4 +1,6 @@
-from .identity_exceptions import (
+"""Identity package."""
+
+from .exceptions import (
     AlreadyConfiguredError,
     ForbiddenError,
     LoginFailedError,
@@ -6,7 +8,7 @@ from .identity_exceptions import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from .identity_provider import IdentityProvider
+from .provider import IdentityProvider
 
 __all__ = [
     "IdentityProvider",

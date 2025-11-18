@@ -10,7 +10,7 @@ from ipaddress import IPv4Address
 import httpx
 from loguru import logger as loguru_logger
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from enums import ApiPermissionsType
 
 from .dataclasses import (

@@ -16,7 +16,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
 from enums import ApiPermissionsType, MFAChallengeStatuses, MFAFlags

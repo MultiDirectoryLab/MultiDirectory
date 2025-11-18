@@ -43,7 +43,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :param str name: any name: dn, email or upn
     :return User | None: user from db
     """
-    dependencies = [
+    options = [
         selectinload(qa(User.groups)).selectinload(qa(Group.roles)),
         joinedload(qa(User.api_permissions)),
     ]
@@ -55,13 +55,13 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
             cond = qa(User.sam_account_name).ilike(name)
 
         return await session.scalar(
-            select(User).where(cond).options(*dependencies),
+            select(User).where(cond).options(*options),
         )
 
     return await session.scalar(
         select(User)
         .join(qa(User.directory))
-        .options(*dependencies)
+        .options(*options)
         .where(get_filter_from_path(name)),
     )
 

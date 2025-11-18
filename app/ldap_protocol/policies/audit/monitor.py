@@ -28,7 +28,7 @@ from ldap_protocol.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
 )
-from ldap_protocol.identity.identity_exceptions import (
+from ldap_protocol.identity.exceptions import (
     AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,

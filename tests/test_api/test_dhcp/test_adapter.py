@@ -33,7 +33,7 @@ def dhcp_adapter(
     """Create DHCP adapter with mocked service."""
     adapter = DHCPAdapter(
         service=dhcp_manager,
-        perm_check=api_permissions_checker,
+        perm_checker=api_permissions_checker,
     )
     return adapter
 

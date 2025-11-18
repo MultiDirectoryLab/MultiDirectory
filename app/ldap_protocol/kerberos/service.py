@@ -12,7 +12,7 @@ from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
 from enums import ApiPermissionsType
 from ldap_protocol.auth.utils import authenticate_user

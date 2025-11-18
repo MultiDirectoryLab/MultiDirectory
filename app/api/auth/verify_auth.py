@@ -25,9 +25,5 @@ async def verify_auth(
             instance injected from Dishka DI container, used for
             user operations.
 
-    Returns:
-        UserSchema: The schema representation of the currently
-            authenticated user.
-
     """
     await identity_adapter.get_current_user()

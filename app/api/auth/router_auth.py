@@ -24,7 +24,7 @@ from ldap_protocol.auth.utils import (
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
 
-from .utils import verify_auth
+from .verify_auth import verify_auth
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 

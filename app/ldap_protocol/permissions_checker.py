@@ -28,7 +28,7 @@ class ApiPermissionsChecker:
     async def _has_permission(self, permission: ApiPermissionsType) -> bool:
         """Check if current user has permission.
 
-        :param str permission: permission to check
+        :param ApiPermissionsType permission: permission to check
         :return: bool
         """
         user = await self._idp.get_current_user()
@@ -37,7 +37,7 @@ class ApiPermissionsChecker:
     async def check_permission(self, permission: ApiPermissionsType) -> None:
         """Check if current user has permission, raise error if not.
 
-        :param str permission: permission to check
+        :param ApiPermissionsType permission: permission to check
         :raises ApiPermissionError: if user does not have permission
         :return: None
         """

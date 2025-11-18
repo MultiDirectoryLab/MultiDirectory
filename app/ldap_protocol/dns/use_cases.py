@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
 from enums import ApiPermissionsType
 from ldap_protocol.dns.base import (

@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
 from entities import Directory, Group, User
 from enums import ApiPermissionsType, MFAFlags
@@ -21,7 +21,7 @@ from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.identity_exceptions import (
+from ldap_protocol.identity.exceptions import (
     AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
