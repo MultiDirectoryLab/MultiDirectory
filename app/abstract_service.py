@@ -5,10 +5,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from enums import ApiPermissionsType
-from ldap_protocol.permissions_checker import ApiPermissionsChecker
+
+if TYPE_CHECKING:
+    from ldap_protocol.permissions_checker import ApiPermissionsChecker
 
 
 class AbstractService(ABC):
@@ -34,7 +36,7 @@ class AbstractService(ABC):
 
     def set_permissions_checker(
         self,
-        perm_checker: ApiPermissionsChecker,
+        perm_checker: "ApiPermissionsChecker",
     ) -> None:
         """Set permissions checker.
 
