@@ -85,7 +85,15 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
     async def update(self, _id: str, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type.
 
-        NOTE: Only 4 attrs can be updated.
+        Docs:
+            ANR (Ambiguous Name Resolution) inclusion can be modified for
+            all attributes, including system ones, as it's a search
+            optimization setting that doesn't affect the LDAP schema
+            structure or data integrity.
+
+            Other properties (`syntax`, `single_value`, `no_user_modification`)
+            can only be modified for non-system attributes to preserve
+            LDAP schema integrity.
         """
         obj = await self._get_one_raw_by_name(_id)
 

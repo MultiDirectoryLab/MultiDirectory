@@ -85,24 +85,24 @@ class FilterInterpreterProtocol(Protocol):
 
         return f
 
-    def _get_anr_filter(self, value: str) -> ColumnElement[bool]:
+    def _get_anr_filter(self, val: str) -> ColumnElement[bool]:
         """Get query expressions by rule aNR. Let P1=False and let P2=False.
 
         Docs:
             ms-adts/1a9177f4-0272-4ab8-aa22-3c3eafd39e4b
         """
-        if value.startswith("*"):
+        if val.startswith("*"):
             return sql_false()
 
         attributes_expr = []
         dir_user_expr = []
-        _vl: str = value.lower().replace("*", "")
+        normalized: str = val.strip().lower().replace("*", "")
 
-        is_first_char_equal = _vl.startswith("=")  # NOTE: algorithm 6.a.
-        is_space_contains = bool(" " in value)  # NOTE: algorithm 6.c.ii.i.
+        is_first_char_equal = normalized.startswith("=")  # NOTE: algorithm 6.a
+        is_space_contains = bool(" " in normalized)  # NOTE: algorithm 6.c.ii.i
 
         if is_first_char_equal:
-            vl = _vl.replace("=", "")
+            vl = normalized.replace("=", "")
             attributes_expr.append(
                 and_(
                     qa(Attribute.name).in_(
@@ -129,7 +129,7 @@ class FilterInterpreterProtocol(Protocol):
                 ],
             )  # fmt: skip
         else:
-            vl = f"{_vl}%"
+            vl = f"{normalized}%"
             attributes_expr.append(
                 and_(
                     qa(Attribute.name).in_(
@@ -157,8 +157,7 @@ class FilterInterpreterProtocol(Protocol):
             )  # fmt: skip
 
         if is_space_contains:
-            _vl = _vl.replace("=", "")
-            fn, sn = _vl.split(" ")[:2]
+            fn, sn = normalized.replace("=", "").split(" ")[:2]
 
             givenname_fn = qa(Directory).attributes.any(
                 and_(
@@ -200,7 +199,7 @@ class FilterInterpreterProtocol(Protocol):
                         qa(AttributeType.is_included_anr).is_(True),
                     ),
                 ),
-                qa(Attribute.value) == _vl.replace("=", ""),
+                qa(Attribute.value) == normalized.replace("=", ""),
             ),
         )
 
