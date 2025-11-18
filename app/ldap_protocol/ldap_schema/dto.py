@@ -22,6 +22,7 @@ class AttributeTypeDTO(Generic[_IdT]):
     single_value: bool
     no_user_modification: bool
     is_system: bool
+    is_included_anr: bool
     id: _IdT = None  # type: ignore
     object_class_names: set[str] = field(default_factory=set)
 

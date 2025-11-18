@@ -1,4 +1,4 @@
-"""Datasets for test API search.
+"""Datasets for test Search Requests.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
@@ -6,7 +6,46 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 
 from ldap_protocol.objects import UserAccountControlFlag
 
-test_api_search_by_rule_bit_and_dataset = [
+test_search_filter_account_expires_dataset = [
+    "(accountExpires=*)",
+    "(accountExpires=134006890408650000)",
+    "(accountExpires<=134006890408650000)",
+    "(accountExpires>=134006890408650000)",
+    "(accountExpires>=0)",  # NOTE: mindate
+    "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
+]
+
+test_search_by_rule_anr_dataset = [
+    # with split by space
+    {"filter": "(anr=Joh Lenno)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=Lennon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=John Lennon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=john lennon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr==Lennon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    # without split by space
+    {"filter": "(anr=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr>=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr<=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr~=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr==user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=groups,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=user_admin_3@mail.com)", "objects": ["cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test"]},  # noqa: E501
+    {
+        "filter": "(anr=user_admin_*)",
+        "objects": [
+            "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
+            "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
+            "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
+        ],
+    },
+]  # fmt: skip
+
+test_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
         "objects": [
@@ -55,7 +94,7 @@ test_api_search_by_rule_bit_and_dataset = [
     },
 ]
 
-test_api_search_by_rule_bit_or_dataset = [
+test_search_by_rule_bit_or_dataset = [
     {
         "filter": f"(useraccountcontrol:1.2.840.113556.1.4.804:={
             UserAccountControlFlag.ACCOUNTDISABLE

@@ -20,8 +20,16 @@ from sqlalchemy.sql.elements import (
     ColumnElement,
     UnaryExpression,
 )
+from sqlalchemy.sql.expression import false as sql_false
 
-from entities import Attribute, Directory, EntityType, Group, User
+from entities import (
+    Attribute,
+    AttributeType,
+    Directory,
+    EntityType,
+    Group,
+    User,
+)
 from ldap_protocol.utils.helpers import ft_to_dt
 from repo.pg.tables import groups_table, queryable_attr as qa, users_table
 
@@ -76,6 +84,133 @@ class FilterInterpreterProtocol(Protocol):
             )
 
         return f
+
+    def _get_anr_filter(self, val: str) -> ColumnElement[bool]:
+        """Get query expressions by rule aNR. Let P1=False and let P2=False.
+
+        Docs:
+            ms-adts/1a9177f4-0272-4ab8-aa22-3c3eafd39e4b
+        """
+        if val.startswith("*"):
+            return sql_false()
+
+        attributes_expr = []
+        dir_user_expr = []
+        normalized: str = val.strip().lower().replace("*", "")
+
+        is_first_char_equal = normalized.startswith("=")  # NOTE: algorithm 6.a
+        is_space_contains = bool(" " in normalized)  # NOTE: algorithm 6.c.ii.i
+
+        if is_first_char_equal:
+            vl = normalized.replace("=", "")
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name).in_(
+                        select(qa(AttributeType.name))
+                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                    ),
+                    func.lower(Attribute.value) == vl,
+                ),
+            )  # fmt: skip
+
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name) == "cn",
+                    func.lower(Attribute.value) == vl,
+                ),
+            )  # fmt: skip
+
+            dir_user_expr.extend(
+                [
+                    qa(Directory.name) == vl,
+                    qa(User.mail) == vl,
+                    qa(User.samaccountname) == vl,
+                    qa(User.displayname) == vl,
+                ],
+            )  # fmt: skip
+        else:
+            vl = f"{normalized}%"
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name).in_(
+                        select(qa(AttributeType.name))
+                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                    ),
+                    qa(Attribute.value).ilike(vl),
+                ),
+            )  # fmt: skip
+
+            attributes_expr.append(
+                and_(
+                    qa(Attribute.name) == "cn",
+                    qa(Attribute.value).ilike(vl),
+                ),
+            )  # fmt: skip
+
+            dir_user_expr.extend(
+                [
+                    qa(Directory.name).ilike(vl),
+                    qa(User.mail).ilike(vl),
+                    qa(User.samaccountname).ilike(vl),
+                    qa(User.displayname).ilike(vl),
+                ],
+            )  # fmt: skip
+
+        if is_space_contains:
+            # NOTE: algorithm 6.c.i
+            fn, sn = normalized.replace("=", "").split(" ")[:2]
+
+            givenname_fn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "givenname",
+                    qa(Attribute.value).ilike(f"{fn}%"),
+                ),
+            )
+            surname_sn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "surname",
+                    qa(Attribute.value).ilike(f"{sn}%"),
+                ),
+            )
+            givenname_sn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "givenname",
+                    qa(Attribute.value).ilike(f"{sn}%"),
+                ),
+            )
+            surname_fn = qa(Directory).attributes.any(
+                and_(
+                    func.lower(Attribute.name) == "surname",
+                    qa(Attribute.value).ilike(f"{fn}%"),
+                ),
+            )
+
+            attributes_expr.append(
+                or_(
+                    and_(givenname_fn, surname_sn),
+                    and_(givenname_sn, surname_fn),
+                ),
+            )
+
+        # NOTE: algorithm 6.c.iii.i
+        attributes_expr.append(
+            and_(
+                qa(Attribute.name).in_(
+                    select(qa(AttributeType.name)).where(
+                        qa(AttributeType.name) == "legacyExchangeDN",
+                        qa(AttributeType.is_included_anr).is_(True),
+                    ),
+                ),
+                qa(Attribute.value) == normalized.replace("=", ""),
+            ),
+        )
+
+        return and_(
+            or_(
+                qa(Directory).attributes.any(or_(*attributes_expr)),
+                or_(*dir_user_expr),
+            ),
+        )  # fmt: skip
 
     def _get_bit_filter_function(
         self,
@@ -135,7 +270,7 @@ class FilterInterpreterProtocol(Protocol):
             ),
         )
 
-    def _get_filter_function(
+    def _get_member_filter_function(
         self,
         column: str,
     ) -> Callable[[str], UnaryExpression]:
@@ -222,7 +357,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
         return self._cast_item(expr)
 
-    def _cast_item(self, item: ASN1Row) -> UnaryExpression | ColumnElement:
+    def _cast_item(self, item: ASN1Row) -> UnaryExpression | ColumnElement:  # noqa: C901
         # present, for e.g. `attibuteName=*`, `(attibuteName)`
         if item.tag_id == TagNumbers.PRESENT:
             attr = item.value.lower().replace("objectcategory", "objectclass")
@@ -263,6 +398,17 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
         is_substring = item.tag_id == TagNumbers.SUBSTRING
 
+        if attr == "anr":
+            if is_substring:
+                expr = right.value[0]
+                value = expr.value
+                if isinstance(value, bytes):
+                    with suppress(UnicodeDecodeError):
+                        value = value.decode()
+            else:
+                value = right.value
+
+            return self._get_anr_filter(value)
         if attr in User.search_fields:
             return self._from_filter(User, item, attr, right)
         elif attr in Directory.search_fields:
@@ -306,7 +452,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
         self.attributes.add(attribute)
 
         value = search_value.value
-        filter_func = self._get_filter_function(attribute)
+        filter_func = self._get_member_filter_function(attribute)
         return filter_func(value)
 
     def _get_substring(self, right: ASN1Row) -> str:  # RFC 4511
@@ -389,7 +535,9 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
 
         is_substring = item.val.startswith("*") or item.val.endswith("*")
 
-        if (
+        if item.attr == "anr":
+            return self._get_anr_filter(item.val)
+        elif (
             LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND in item.attr
             or LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_OR in item.attr
         ):
@@ -440,5 +588,5 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
 
     def _api_filter(self, item: Filter) -> UnaryExpression:
         """Retrieve query conditions based on the specified LDAP attribute."""
-        filter_func = self._get_filter_function(item.attr)
+        filter_func = self._get_member_filter_function(item.attr)
         return filter_func(item.val)

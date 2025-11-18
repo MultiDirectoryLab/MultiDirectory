@@ -8,9 +8,11 @@ import pytest
 from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
-from tests.test_api.test_main.test_router.test_search_datasets import (
-    test_api_search_by_rule_bit_and_dataset,
-    test_api_search_by_rule_bit_or_dataset,
+from tests.search_request_datasets import (
+    test_search_by_rule_anr_dataset,
+    test_search_by_rule_bit_and_dataset,
+    test_search_by_rule_bit_or_dataset,
+    test_search_filter_account_expires_dataset,
 )
 
 
@@ -210,17 +212,7 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize(
-    "filter_",
-    [
-        "(accountExpires=*)",
-        "(accountExpires=134006890408650000)",
-        "(accountExpires<=134006890408650000)",
-        "(accountExpires>=134006890408650000)",
-        "(accountExpires>=0)",  # NOTE: mindate
-        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
-    ],
-)
+@pytest.mark.parametrize("filter_", test_search_filter_account_expires_dataset)
 async def test_api_search_filter_account_expires(
     filter_: str,
     http_client: AsyncClient,
@@ -313,12 +305,41 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize("dataset", test_api_search_by_rule_bit_and_dataset)
+@pytest.mark.parametrize("dataset", test_search_by_rule_anr_dataset)
+async def test_api_search_by_rule_anr(
+    dataset: dict,
+    http_client: AsyncClient,
+) -> None:
+    """Test api search filter by rule "aNR"."""
+    raw_response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": dataset["filter"],
+            "attributes": ["non_existent_attribute_name"],
+            "page_number": 1,
+        },
+    )
+    response = raw_response.json()
+    assert response["resultCode"] == LDAPCodes.SUCCESS
+    assert int(response.get("total_objects")) == len(dataset["objects"])
+    for obj in response["search_result"]:
+        assert obj["object_name"] in dataset["objects"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("dataset", test_search_by_rule_bit_and_dataset)
 async def test_api_search_by_rule_bit_and(
     dataset: dict,
     http_client: AsyncClient,
 ) -> None:
-    """Test api search."""
+    """Test api search filter by rule "BIT_AND"."""
     response = await http_client.post(
         "entry/search",
         json={
@@ -346,12 +367,12 @@ async def test_api_search_by_rule_bit_and(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize("dataset", test_api_search_by_rule_bit_or_dataset)
+@pytest.mark.parametrize("dataset", test_search_by_rule_bit_or_dataset)
 async def test_api_search_by_rule_bit_or(
     dataset: dict,
     http_client: AsyncClient,
 ) -> None:
-    """Test api search."""
+    """Test api search filter by rule "BIT_OR"."""
     response = await http_client.post(
         "entry/search",
         json={

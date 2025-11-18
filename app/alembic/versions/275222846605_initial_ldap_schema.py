@@ -50,6 +50,11 @@ def upgrade() -> None:
         sa.Column("single_value", sa.Boolean(), nullable=False),
         sa.Column("no_user_modification", sa.Boolean(), nullable=False),
         sa.Column("is_system", sa.Boolean(), nullable=False),
+        sa.Column(
+            "is_included_anr",
+            sa.Boolean(),
+            nullable=True,
+        ),  # NOTE: added in f24ed0e49df2_add_filter_anr.py
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -354,6 +359,7 @@ def upgrade() -> None:
                     single_value=True,
                     no_user_modification=False,
                     is_system=True,
+                    is_included_anr=False,
                 ),
             )
 
@@ -381,6 +387,10 @@ def upgrade() -> None:
         await session.commit()
 
     op.run_async(_modify_object_classes)
+
+    # NOTE: it added in f24ed0e49df2_add_filter_anr.py
+    op.drop_column("AttributeTypes", "is_included_anr")
+    session.commit()
 
 
 def downgrade() -> None:

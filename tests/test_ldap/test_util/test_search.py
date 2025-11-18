@@ -27,9 +27,11 @@ from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.utils.queries import get_group, get_groups
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
-from tests.test_ldap.test_util.test_search_datasets import (
-    test_ldap_search_by_rule_bit_and_dataset,
-    test_ldap_search_by_rule_bit_or_dataset,
+from tests.search_request_datasets import (
+    test_search_by_rule_anr_dataset,
+    test_search_by_rule_bit_and_dataset,
+    test_search_by_rule_bit_or_dataset,
+    test_search_filter_account_expires_dataset,
 )
 
 
@@ -106,13 +108,56 @@ async def test_ldap_search_filter(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize("dataset", test_ldap_search_by_rule_bit_and_dataset)
+@pytest.mark.parametrize("dataset", test_search_by_rule_anr_dataset)
+async def test_ldap_search_by_rule_anr(
+    dataset: dict,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test LDAP search filter by rule "aNR"."""
+    proc = await asyncio.create_subprocess_exec(
+        "ldapsearch",
+        "-vvv",
+        "-x",
+        "-H",
+        f"ldap://{settings.HOST}:{settings.PORT}",
+        "-D",
+        creds.un,
+        "-w",
+        creds.pw,
+        "-b",
+        "dc=md,dc=test",
+        f"{dataset['filter']}",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )  # fmt: skip
+
+    raw_data, _ = await proc.communicate()
+    data = raw_data.decode().split("\n")
+    result = await proc.wait()
+
+    assert result == 0
+    assert data
+    if dataset["objects"]:
+        for object_dn in dataset["objects"]:
+            assert f"dn: {object_dn}" in data
+        assert len(dataset["objects"]) == len(
+            [d for d in data if d.startswith("dn:")],
+        )
+    else:
+        assert not any(d.startswith("dn:") for d in data)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.parametrize("dataset", test_search_by_rule_bit_and_dataset)
 async def test_ldap_search_by_rule_bit_and(
     dataset: dict,
     settings: Settings,
     creds: TestCreds,
 ) -> None:
-    """Test ldapsearch with filter rule "BIT_AND"."""
+    """Test LDAP search filter by rule "BIT_AND"."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
         "-vvv",
@@ -141,21 +186,24 @@ async def test_ldap_search_by_rule_bit_and(
     assert data
     if dataset["objects"]:
         for object_dn in dataset["objects"]:
-            assert object_dn in data
+            assert f"dn: {object_dn}" in data
+        assert len(dataset["objects"]) == len(
+            [d for d in data if d.startswith("dn:")],
+        )
     else:
-        assert "dn: " not in data
+        assert not any(d.startswith("dn:") for d in data)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize("dataset", test_ldap_search_by_rule_bit_or_dataset)
+@pytest.mark.parametrize("dataset", test_search_by_rule_bit_or_dataset)
 async def test_ldap_search_by_rule_bit_or(
     dataset: dict,
     settings: Settings,
     creds: TestCreds,
 ) -> None:
-    """Test ldapsearch with filter rule "BIT_OR"."""
+    """Test LDAP search filter by rule "BIT_OR"."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
         "-vvv",
@@ -181,25 +229,18 @@ async def test_ldap_search_by_rule_bit_or(
     assert data
     if dataset["objects"]:
         for object_dn in dataset["objects"]:
-            assert object_dn in data
+            assert f"dn: {object_dn}" in data
+        assert len(dataset["objects"]) == len(
+            [d for d in data if d.startswith("dn:")],
+        )
     else:
-        assert "dn: " not in data
+        assert not any(d.startswith("dn:") for d in data)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-@pytest.mark.parametrize(
-    "filter_",
-    [
-        "(accountExpires=*)",
-        "(accountExpires=134006890408650000)",
-        "(accountExpires<=134006890408650000)",
-        "(accountExpires>=134006890408650000)",
-        "(accountExpires>=0)",  # NOTE: mindate
-        "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
-    ],
-)
+@pytest.mark.parametrize("filter_", test_search_filter_account_expires_dataset)
 async def test_ldap_search_filter_account_expires(
     filter_: str,
     settings: Settings,
