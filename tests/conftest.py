@@ -1042,6 +1042,33 @@ async def http_client(
     return unbound_http_client
 
 
+@pytest_asyncio.fixture(scope="function")
+async def http_client_without_perms(
+    unbound_http_client: httpx.AsyncClient,
+    # creds_without_api_perms: TestCreds,
+    setup_session: None,  # noqa: ARG001
+) -> httpx.AsyncClient:
+    """Authenticate and return client with cookies.
+
+    :param httpx.AsyncClient unbound_http_client: client w/o cookies
+    :param TestCreds creds: creds to authn
+    :param None setup_session: just a fixture call
+    :return httpx.AsyncClient: bound client with cookies
+    """
+    response = await unbound_http_client.post(
+        "auth/",
+        data={
+            "username": "user_admin",
+            "password": "password",
+        },
+    )
+
+    assert response.status_code == 200
+    assert unbound_http_client.cookies.get("id")
+
+    return unbound_http_client
+
+
 @pytest.fixture
 def creds(user: dict) -> TestCreds:
     """Get creds from test data."""
@@ -1052,6 +1079,21 @@ def creds(user: dict) -> TestCreds:
 def user() -> dict:
     """Get user data."""
     return TEST_DATA[1]["children"][0]["organizationalPerson"]  # type: ignore
+
+
+@pytest.fixture
+def creds_without_api_perms(user_without_api_perms: dict) -> TestCreds:
+    """Get creds from test data."""
+    return TestCreds(
+        user_without_api_perms["sam_account_name"],
+        user_without_api_perms["password"],
+    )
+
+
+@pytest.fixture
+def user_without_api_perms() -> dict:
+    """Get user data."""
+    return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore
 
 
 @pytest.fixture
