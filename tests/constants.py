@@ -127,6 +127,35 @@ TEST_DATA = [
                 },
             },
             {
+                "name": "user_admin_for_roles",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_account_name": "user_admin_for_roles",
+                    "user_principal_name": "user_admin_for_roles",
+                    "mail": "user_admin_for_roles@mail.com",
+                    "display_name": "user_admin_for_roles",
+                    "password": "password",
+                    "groups": [
+                        "domain admins",
+                    ],
+                },
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "inetOrgPerson",
+                        "shadowAccount",
+                    ],
+                    "posixEmail": ["abctest@mail.com"],
+                    "attr_with_bvalue": [b"any"],
+                    "userAccountControl": [
+                        str(UserAccountControlFlag.NORMAL_ACCOUNT),
+                    ],
+                },
+            },
+            {
                 "name": "user_non_admin",
                 "object_class": "user",
                 "organizationalPerson": {

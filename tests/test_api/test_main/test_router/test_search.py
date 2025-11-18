@@ -290,6 +290,7 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
         "cn=developers,cn=groups,dc=md,dc=test",
         "cn=user0,cn=users,dc=md,dc=test",
         "cn=user_admin,cn=users,dc=md,dc=test",
+        "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
         "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
     ]
     response = await http_client.post(

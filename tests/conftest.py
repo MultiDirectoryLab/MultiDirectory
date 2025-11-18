@@ -790,6 +790,10 @@ async def setup_session(
         data=TEST_DATA,
         username="user0",
     )
+    await setup_gateway.create_api_permissions("user_admin")
+    await setup_gateway.create_api_permissions("user_admin_1")
+    await setup_gateway.create_api_permissions("user_admin_2")
+    await setup_gateway.create_api_permissions("user_admin_3")
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
@@ -1052,7 +1056,7 @@ async def http_client(
 @pytest_asyncio.fixture(scope="function")
 async def http_client_without_perms(
     unbound_http_client: httpx.AsyncClient,
-    # creds_without_api_perms: TestCreds,
+    creds_without_api_perms: TestCreds,
     setup_session: None,  # noqa: ARG001
 ) -> httpx.AsyncClient:
     """Authenticate and return client with cookies.
@@ -1065,8 +1069,8 @@ async def http_client_without_perms(
     response = await unbound_http_client.post(
         "auth/",
         data={
-            "username": "user_admin",
-            "password": "password",
+            "username": creds_without_api_perms.un,
+            "password": creds_without_api_perms.pw,
         },
     )
 
@@ -1137,7 +1141,7 @@ def admin_creds(admin_user: dict) -> TestAdminCreds:
 @pytest.fixture
 def user_without_api_perms() -> dict:
     """Get user data."""
-    return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore
+    return TEST_DATA[1]["children"][2]["organizationalPerson"]  # type: ignore
 
 
 @pytest.fixture
