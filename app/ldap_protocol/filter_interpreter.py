@@ -157,6 +157,7 @@ class FilterInterpreterProtocol(Protocol):
             )  # fmt: skip
 
         if is_space_contains:
+            # NOTE: algorithm 6.c.i
             fn, sn = normalized.replace("=", "").split(" ")[:2]
 
             givenname_fn = qa(Directory).attributes.any(
@@ -191,6 +192,7 @@ class FilterInterpreterProtocol(Protocol):
                 ),
             )
 
+        # NOTE: algorithm 6.c.iii.i
         attributes_expr.append(
             and_(
                 qa(Attribute.name).in_(
@@ -207,12 +209,6 @@ class FilterInterpreterProtocol(Protocol):
             or_(
                 qa(Directory).attributes.any(or_(*attributes_expr)),
                 or_(*dir_user_expr),
-            ),
-            qa(Directory).attributes.any(
-                and_(
-                    func.lower(Attribute.name) == "objectclass",
-                    func.lower(Attribute.value).in_(("user", "contact", "group", "person")),  # noqa: E501
-                ),
             ),
         )  # fmt: skip
 
