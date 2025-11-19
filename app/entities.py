@@ -14,10 +14,10 @@ from typing import ClassVar, Literal
 
 from enums import (
     AceType,
-    AuthoruzationRules,
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
+    AuthoruzationRules,
     KindType,
     MFAFlags,
     RoleScope,

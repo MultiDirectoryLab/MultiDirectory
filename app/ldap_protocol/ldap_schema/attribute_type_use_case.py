@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from typing import ClassVar
+
 from abstract_service import AbstractService
 from enums import AuthoruzationRules
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO

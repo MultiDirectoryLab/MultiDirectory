@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from typing import ClassVar
+
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession

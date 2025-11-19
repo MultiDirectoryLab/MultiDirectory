@@ -6,9 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
-from typing import ClassVar
 import weakref
 from ipaddress import IPv4Address, IPv6Address
+from typing import ClassVar
 
 from jose import jwt
 from jose.exceptions import JWKError, JWTError

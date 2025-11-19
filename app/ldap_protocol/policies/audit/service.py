@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from typing import ClassVar
+
 from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService

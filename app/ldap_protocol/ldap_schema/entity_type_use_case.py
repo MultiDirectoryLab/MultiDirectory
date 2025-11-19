@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from typing import ClassVar
+
 from abstract_service import AbstractService
 from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
 from enums import AuthoruzationRules
