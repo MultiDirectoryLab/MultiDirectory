@@ -11,7 +11,7 @@ from typing import Any, Callable, Coroutine, Iterable, Self
 from passlib.exc import UnknownHashError
 
 from ldap_protocol.policies.password.ban_word_repository import (
-    PasswordBanWordRepository,  # TODO
+    PasswordBanWordRepository,
 )
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from password_manager import PasswordValidator
