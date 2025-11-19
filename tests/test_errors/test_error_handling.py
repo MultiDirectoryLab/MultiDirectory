@@ -9,6 +9,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from fastapi import HTTPException, status
 
+from abstract_dao import AbstractService
+from api.base_adapter import BaseAdapter
 from enums import ErrorCode
 from errors.catalog import ErrorCatalog
 from errors.contracts import ErrorCodeCarrierError, HasErrorCode
@@ -222,8 +224,6 @@ class TestBaseAdapterReraise:
 
     def test_falls_back_to_catalog(self) -> None:
         """Test that ErrorCatalog is checked if not HasErrorCode."""
-        from abstract_dao import AbstractService
-        from api.base_adapter import BaseAdapter
 
         class TestService(AbstractService):
             pass
@@ -298,8 +298,6 @@ class TestBaseAdapterReraise:
 
     def test_handles_error_code_carrier_with_original_message(self) -> None:
         """Test that ErrorCodeCarrierError uses original exception message."""
-        from abstract_dao import AbstractService
-        from api.base_adapter import BaseAdapter
 
         class TestService(AbstractService):
             pass
@@ -322,8 +320,6 @@ class TestBaseAdapterReraise:
 
     def test_normalizes_http_codes(self) -> None:
         """Test that HTTP codes are normalized through mapper."""
-        from abstract_dao import AbstractService
-        from api.base_adapter import BaseAdapter
 
         class TestService(AbstractService):
             pass
@@ -347,9 +343,6 @@ class TestBaseAdapterReraise:
 
     def test_handles_kerberos_change_password_error(self) -> None:
         """Test that KRBAPIChangePasswordError is handled correctly."""
-        from abstract_dao import AbstractService
-        from api.base_adapter import BaseAdapter
-        from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 
         class TestService(AbstractService):
             pass
@@ -373,8 +366,6 @@ class TestBaseAdapterReraise:
 
     def test_priority_order_has_error_code_over_catalog(self) -> None:
         """Test that HasErrorCode takes priority over ErrorCatalog."""
-        from abstract_dao import AbstractService
-        from api.base_adapter import BaseAdapter
 
         class TestService(AbstractService):
             pass
@@ -396,8 +387,6 @@ class TestBaseAdapterReraise:
 
     def test_priority_order_catalog_over_exceptions_map(self) -> None:
         """Test that ErrorCatalog takes priority over _exceptions_map."""
-        from abstract_dao import AbstractService
-        from api.base_adapter import BaseAdapter
 
         class TestService(AbstractService):
             pass
@@ -420,8 +409,6 @@ class TestBaseAdapterReraise:
 
     def test_exception_chaining_preserved(self) -> None:
         """Test that exception chaining is preserved in HTTPException."""
-        from abstract_dao import AbstractService
-        from api.base_adapter import BaseAdapter
 
         class TestService(AbstractService):
             pass
