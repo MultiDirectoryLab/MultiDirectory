@@ -4,10 +4,17 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from itertools import islice
+from typing import Iterable
 
 from abstract_dao import AbstractService
 from entities import User
+from ldap_protocol.policies.password.ban_word_repository import (
+    PasswordBanWordRepository,
+)
+from ldap_protocol.policies.password.constants import (
+    MAX_BANWORD_LENGTH,
+    MIN_LENGTH_FOR_TRGM,
+)
 
 from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO, PriorityT
@@ -19,15 +26,18 @@ class PasswordPolicyUseCases(AbstractService):
 
     _password_policy_dao: PasswordPolicyDAO
     _password_policy_validator: PasswordPolicyValidator
+    _password_ban_word_repository: PasswordBanWordRepository
 
     def __init__(
         self,
         password_policy_dao: PasswordPolicyDAO,
         password_policy_validator: PasswordPolicyValidator,
+        password_ban_word_repository: PasswordBanWordRepository,
     ) -> None:
         """Initialize Password Policy Use Cases."""
         self._password_policy_dao = password_policy_dao
         self._password_policy_validator = password_policy_validator
+        self._password_ban_word_repository = password_ban_word_repository
 
     async def get_all(self) -> list[PasswordPolicyDTO[int, int]]:
         """Get all Password Policies."""
@@ -67,10 +77,6 @@ class PasswordPolicyUseCases(AbstractService):
     async def reset_domain_policy_to_default_config(self) -> None:
         """Reset domain Password Policy to default configuration."""
         await self._password_policy_dao.reset_domain_policy_to_default_config()
-
-    async def turnoff(self, id_: int) -> None:
-        """Turn off one Password Policy."""
-        await self._password_policy_dao.turnoff(id_)
 
     async def get_password_policy_for_user(
         self,
@@ -136,6 +142,9 @@ class PasswordPolicyUseCases(AbstractService):
                 await self._password_policy_dao.get_domain_password_policy()
             )
 
+        self._password_policy_validator.setup_language(
+            password_policy.language,
+        )
         return await self.validate_password(
             password,
             password_policy,
@@ -145,40 +154,98 @@ class PasswordPolicyUseCases(AbstractService):
     async def validate_password(
         self,
         password: str,
-        pwd_policy_dto: PasswordPolicyDTO,
+        password_policy: PasswordPolicyDTO,
         user: User | None = None,
     ) -> list[str]:
-        """Validate password with given Password Policy."""
+        """Validate password with chosen policy.
+
+        :param PasswordPolicyDTO password_policy: Password Policy
+        :param str password: new raw password
+        :return list[str]: error messages
+        """
+        self._password_policy_validator.language()
         self._password_policy_validator.not_otp_like_suffix()
 
-        if user and pwd_policy_dto.history_length:
-            history = islice(
-                reversed(user.password_history),
-                pwd_policy_dto.history_length,
+        if password_policy.is_exact_match:
+            self._password_policy_validator.not_equal_any_ban_word(
+                self._password_ban_word_repository,
+            )
+        else:
+            self._password_policy_validator.not_contain_any_ban_word(
+                self._password_ban_word_repository,
             )
 
+        if user and password_policy.history_length:
             self._password_policy_validator.reuse_prevention(
-                password_history=history,
+                password_history=user.password_history,
             )
 
-        if user and pwd_policy_dto.min_age_days:
+        if user and password_policy.min_age_days:
             pwd_last_set = (
                 await self._password_policy_dao.get_or_create_pwd_last_set(
                     user.directory_id,
                 )
             )
             self._password_policy_validator.min_age(
-                pwd_policy_dto.min_age_days,
+                password_policy.min_age_days,
                 pwd_last_set,
             )
 
-        if pwd_policy_dto.min_length:
-            self._password_policy_validator.min_length(
-                pwd_policy_dto.min_length,
+        password_min_length = password_policy.min_length or MIN_LENGTH_FOR_TRGM
+        self._password_policy_validator.min_length(password_min_length)
+        if password_policy.max_length:
+            self._password_policy_validator.max_length(
+                password_policy.max_length,
             )
 
-        if pwd_policy_dto.password_must_meet_complexity_requirements:
-            self._password_policy_validator.min_complexity()
+        if password_policy.min_lowercase_letters_count:
+            self._password_policy_validator.min_lowercase_letters_count(
+                password_policy.min_lowercase_letters_count,
+            )
+
+        if password_policy.min_uppercase_letters_count:
+            self._password_policy_validator.min_uppercase_letters_count(
+                password_policy.min_uppercase_letters_count,
+            )
+
+        if (
+            password_policy.min_lowercase_letters_count
+            and password_policy.min_uppercase_letters_count
+        ):
+            self._password_policy_validator.min_letters_count(
+                password_policy.min_lowercase_letters_count
+                + password_policy.min_uppercase_letters_count,
+            )
+
+        if password_policy.min_special_symbols_count:
+            self._password_policy_validator.min_special_symbols_count(
+                password_policy.min_special_symbols_count,
+            )
+
+        if password_policy.min_digits_count:
+            self._password_policy_validator.min_digits_count(
+                password_policy.min_digits_count,
+            )
+
+        if password_policy.min_unique_symbols_count:
+            self._password_policy_validator.min_unique_symbols_count(
+                password_policy.min_unique_symbols_count,
+            )
+
+        if password_policy.max_repeating_symbols_in_row_count:
+            self._password_policy_validator.max_repeating_symbols_in_row_count(
+                password_policy.max_repeating_symbols_in_row_count,
+            )
+
+        if password_policy.max_sequential_keyboard_symbols_count:
+            self._password_policy_validator.max_sequential_keyboard_symbols_count(
+                password_policy.max_sequential_keyboard_symbols_count,
+            )
+
+        if password_policy.max_sequential_alphabet_symbols_count:
+            self._password_policy_validator.max_sequential_alphabet_symbols_count(
+                password_policy.max_sequential_alphabet_symbols_count,
+            )
 
         await self._password_policy_validator.validate(password)
         return self._password_policy_validator.error_messages
@@ -213,3 +280,37 @@ class PasswordPolicyUseCases(AbstractService):
         )
 
         return bool(pwd_last_set == "0" or is_pwd_expired)  # noqa: S105
+
+
+class PasswordBanWordUseCases(AbstractService):
+    """Password Ban Word Use Cases."""
+
+    def __init__(
+        self,
+        password_ban_word_repository: PasswordBanWordRepository,
+    ) -> None:
+        """Initialize Password Ban Word Use Cases."""
+        self.password_ban_word_repository = password_ban_word_repository
+
+    async def get_all(self) -> Iterable[str]:
+        """Get all Password Ban Words."""
+        return await self.password_ban_word_repository.get_all()
+
+    async def replace_all_ban_words(
+        self,
+        ban_words: Iterable[str],
+    ) -> None:
+        """Replace all Password Ban Words."""
+        await self.password_ban_word_repository.replace(ban_words)
+
+    def filter_ban_words(self, lines: list[str]) -> list[str]:
+        res = []
+        for line in lines:
+            new_word = line.strip()
+            if (
+                new_word
+                and MIN_LENGTH_FOR_TRGM <= len(new_word) <= MAX_BANWORD_LENGTH
+            ):
+                res.append(new_word)
+
+        return res

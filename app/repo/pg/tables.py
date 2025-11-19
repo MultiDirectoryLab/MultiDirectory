@@ -47,6 +47,7 @@ from entities import (
     Group,
     NetworkPolicy,
     ObjectClass,
+    PasswordBanWord,
     PasswordPolicy,
     Role,
     User,
@@ -456,17 +457,33 @@ password_policies_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("name", String(255), nullable=False, unique=True),
-    Column("priority", Integer, nullable=False, unique=True),
+    Column("language", String(255), nullable=False),
+    Column("priority", Integer, nullable=False),
+    Column("is_exact_match", Boolean, nullable=False),
     Column("history_length", Integer, nullable=False),
     Column("min_age_days", Integer, nullable=False),
     Column("max_age_days", Integer, nullable=False),
     Column("min_length", Integer, nullable=False),
-    Column(
-        "password_must_meet_complexity_requirements",
-        Boolean,
-        nullable=False,
-    ),
+    Column("max_length", Integer, nullable=False),
+    Column("min_lowercase_letters_count", Integer, nullable=False),
+    Column("min_uppercase_letters_count", Integer, nullable=False),
+    Column("min_special_symbols_count", Integer, nullable=False),
+    Column("min_digits_count", Integer, nullable=False),
+    Column("min_unique_symbols_count", Integer, nullable=False),
+    Column("max_repeating_symbols_in_row_count", Integer, nullable=False),
+    Column("max_sequential_keyboard_symbols_count", Integer, nullable=False),
+    Column("max_sequential_alphabet_symbols_count", Integer, nullable=False),
+    Column("max_failed_attempts", Integer, nullable=False),
+    Column("failed_attempts_reset_sec", Integer, nullable=False),
+    Column("lockout_duration_sec", Integer, nullable=False),
+    Column("fail_delay_sec", Integer, nullable=False),
     Index("idx_password_policies_name", "name", postgresql_using="hash"),
+    UniqueConstraint(
+        "priority",
+        name="PasswordPolicies_priority_uc",
+        deferrable=True,
+        initially="DEFERRED",
+    ),
 )
 
 roles_table = Table(
@@ -638,6 +655,12 @@ audit_destinations_table = Table(
     Column("host", String(255), nullable=False),
     Column("port", Integer, nullable=False),
     Column("protocol", Enum(AuditDestinationProtocolType), nullable=False),
+)
+
+password_ban_word_table = Table(
+    "PasswordBanWords",
+    metadata,
+    Column("word", String(255), primary_key=True),
 )
 
 dedicated_servers_table = Table(
@@ -1008,10 +1031,9 @@ mapper_registry.map_imperatively(
     },
 )
 
-mapper_registry.map_imperatively(
-    AuditDestination,
-    audit_destinations_table,
-)
+mapper_registry.map_imperatively(AuditDestination, audit_destinations_table)
+
+mapper_registry.map_imperatively(PasswordBanWord, password_ban_word_table)
 
 mapper_registry.map_imperatively(
     DedicatedServer,

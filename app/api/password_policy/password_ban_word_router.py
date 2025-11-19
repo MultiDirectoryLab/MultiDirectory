@@ -1,0 +1,51 @@
+"""Password Ban Word router.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
+from dishka import FromDishka
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Depends, UploadFile, status
+from fastapi.responses import StreamingResponse
+
+from api.auth import verify_auth
+from api.password_policy.adapter import PasswordBanWordsFastAPIAdapter
+
+password_ban_word_router = APIRouter(
+    prefix="/password_ban_word",
+    tags=["Password Ban Word"],
+    dependencies=[Depends(verify_auth)],
+    route_class=DishkaRoute,
+)
+
+
+@password_ban_word_router.post(
+    "/upload_txt",
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_ban_words_txt(
+    file: UploadFile,
+    password_ban_word_adapter: FromDishka[PasswordBanWordsFastAPIAdapter],
+) -> None:
+    """Upload .txt file with ban words (one per line) and create them in batch.
+
+    \f
+    Args:
+        file (UploadFile): Uploaded .txt file.
+        password_ban_word_adapter (FromDishka[PasswordBanWordsAdapter]):
+        Ban Words adapter.
+    """
+    await password_ban_word_adapter.upload_ban_words_txt(file)
+
+
+@password_ban_word_router.get(
+    "/download_txt",
+    response_class=StreamingResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def download_ban_words_txt(
+    password_ban_word_adapter: FromDishka[PasswordBanWordsFastAPIAdapter],
+) -> StreamingResponse:
+    """Download all ban words as a .txt file, each word on a new line."""
+    return await password_ban_word_adapter.download_ban_words_txt()

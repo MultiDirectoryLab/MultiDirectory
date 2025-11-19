@@ -11,7 +11,6 @@ import pytest
 from ldap_protocol.policies.password.dataclasses import (
     DefaultDomainPasswordPolicyPreset,
     PasswordPolicyDTO,
-    TurnoffPasswordPolicyPreset,
 )
 from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
 
@@ -48,13 +47,27 @@ async def test_get_password_policy_by_dir_path_dn(
     """Test get Password Policy by directory path endpoint."""
     dto = PasswordPolicyDTO[None, int](
         priority=1,
-        name="Test Password Policy",
         group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
+        name="Test Password Policy",
+        language="Latin",
+        is_exact_match=True,
         history_length=5,
         min_age_days=1,
         max_age_days=90,
         min_length=8,
-        password_must_meet_complexity_requirements=True,
+        max_length=32,
+        min_lowercase_letters_count=0,
+        min_uppercase_letters_count=0,
+        min_special_symbols_count=0,
+        min_unique_symbols_count=0,
+        max_repeating_symbols_in_row_count=0,
+        min_digits_count=0,
+        max_sequential_keyboard_symbols_count=0,
+        max_sequential_alphabet_symbols_count=0,
+        max_failed_attempts=6,
+        failed_attempts_reset_sec=60,
+        lockout_duration_sec=600,
+        fail_delay_sec=5,
     )  # fmt: skip
     await password_use_cases.create(dto)
 
@@ -100,13 +113,27 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
     """Test update one Password Policy endpoint."""
     dto = PasswordPolicyDTO[None, int](
         priority=1,
-        name="Test Password Policy",
         group_paths=[],
+        name="Test Password Policy",
+        language="Latin",
+        is_exact_match=True,
         history_length=5,
         min_age_days=1,
         max_age_days=90,
         min_length=8,
-        password_must_meet_complexity_requirements=True,
+        max_length=32,
+        min_lowercase_letters_count=0,
+        min_uppercase_letters_count=0,
+        min_special_symbols_count=0,
+        min_unique_symbols_count=0,
+        max_repeating_symbols_in_row_count=0,
+        min_digits_count=0,
+        max_sequential_keyboard_symbols_count=0,
+        max_sequential_alphabet_symbols_count=0,
+        max_failed_attempts=6,
+        failed_attempts_reset_sec=60,
+        lockout_duration_sec=600,
+        fail_delay_sec=5,
     )  # fmt: skip
     await password_use_cases.create(dto)
 
@@ -120,13 +147,27 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
     dto_upd = PasswordPolicyDTO[int, int](
         id=id_,
         priority=2,
-        name="NOT Test Password Policy",
         group_paths=[],
+        name="NOT Test Password Policy",
+        language="Latin",
+        is_exact_match=True,
         history_length=5,
         min_age_days=1,
         max_age_days=90,
         min_length=8,
-        password_must_meet_complexity_requirements=True,
+        max_length=32,
+        min_lowercase_letters_count=0,
+        min_uppercase_letters_count=0,
+        min_special_symbols_count=0,
+        min_unique_symbols_count=0,
+        max_repeating_symbols_in_row_count=0,
+        min_digits_count=0,
+        max_sequential_keyboard_symbols_count=0,
+        max_sequential_alphabet_symbols_count=0,
+        max_failed_attempts=6,
+        failed_attempts_reset_sec=60,
+        lockout_duration_sec=600,
+        fail_delay_sec=5,
     )  # fmt: skip
     await password_use_cases.update(id_, dto_upd)
 
@@ -150,7 +191,6 @@ async def test_reset_domain_policy_to_default_config(
     assert policy_data.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days  # noqa: E501  # fmt: skip
     assert policy_data.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days  # noqa: E501  # fmt: skip
     assert policy_data.min_length == DefaultDomainPasswordPolicyPreset.min_length  # noqa: E501  # fmt: skip
-    assert policy_data.password_must_meet_complexity_requirements == DefaultDomainPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
 
     changed_data = copy.deepcopy(policy_data)
     changed_data.min_age_days = 30
@@ -169,39 +209,3 @@ async def test_reset_domain_policy_to_default_config(
     assert policy_upd.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days  # noqa: E501  # fmt: skip
     assert policy_upd.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days  # noqa: E501  # fmt: skip
     assert policy_upd.min_length == DefaultDomainPasswordPolicyPreset.min_length  # noqa: E501  # fmt: skip
-    assert policy_upd.password_must_meet_complexity_requirements == DefaultDomainPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_turnoff(password_use_cases: PasswordPolicyUseCases) -> None:
-    """Test turn off one Password Policy endpoint."""
-    dto = PasswordPolicyDTO[None, int](
-        priority=1,
-        name="Test Password Policy",
-        group_paths=[],
-        history_length=5,
-        min_age_days=1,
-        max_age_days=90,
-        min_length=8,
-        password_must_meet_complexity_requirements=True,
-    )
-    await password_use_cases.create(dto)
-
-    response = await password_use_cases.get_all()
-    id_ = next(policy.id for policy in response if policy.name == dto.name)
-    assert id_ is not None
-
-    await password_use_cases.turnoff(id_)
-
-    policy = await password_use_cases.get(id_)
-    assert id_ is not None
-    assert policy.id == id_
-    assert policy.name == dto.name
-    assert policy.priority == dto.priority
-    assert policy.group_paths == dto.group_paths
-    assert policy.history_length == TurnoffPasswordPolicyPreset.history_length
-    assert policy.min_age_days == TurnoffPasswordPolicyPreset.min_age_days
-    assert policy.max_age_days == TurnoffPasswordPolicyPreset.max_age_days
-    assert policy.min_length == TurnoffPasswordPolicyPreset.min_length
-    assert policy.password_must_meet_complexity_requirements is TurnoffPasswordPolicyPreset.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip

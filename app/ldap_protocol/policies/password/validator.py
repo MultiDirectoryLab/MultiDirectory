@@ -10,16 +10,16 @@ from typing import Any, Callable, Coroutine, Iterable, Self
 
 from passlib.exc import UnknownHashError
 
-from config import Settings
+from ldap_protocol.policies.password.ban_word_repository import (
+    PasswordBanWordRepository,  # TODO
+)
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from password_manager import PasswordValidator
 
 from .error_messages import ErrorMessages
+from .settings import PasswordValidatorLanguageType
 
 type _CheckType = Callable[..., Coroutine[Any, Any, bool]]
-
-with open("extra/common_pwds.txt") as f:
-    _COMMON_PASSWORDS = set(f.read().split("\n"))
 
 
 @dataclass
@@ -50,6 +50,10 @@ class PasswordPolicyValidator:
         self._password_validator_settings = password_validator_settings
         self._password_validator = password_validator
         self.error_messages: list[str] = []
+
+    def setup_language(self, language: PasswordValidatorLanguageType) -> None:
+        """Set up language for password policy validation."""
+        self._password_validator_settings.setup_language(language)
 
     def __add_checker(
         self,
@@ -100,6 +104,27 @@ class PasswordPolicyValidator:
 
         return not bool(self.error_messages)
 
+    def language(self) -> Self:
+        """Require password letters to be from the configured language.
+
+        :return PasswordPolicyValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_language,
+            error_message=ErrorMessages.UNAUTHORIZED_LANGUAGE,
+            args=[],
+        )
+        return self
+
+    async def _validate_language(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+    ) -> bool:
+        """Validate password letters language."""
+        matches = re.findall(settings.regexp_not_valid_letters, password)
+        return not matches
+
     def min_length(self, length: int) -> Self:
         """Require minimum password length.
 
@@ -121,7 +146,7 @@ class PasswordPolicyValidator:
                 )
         """  # fmt: skip
         self.__add_checker(
-            check=self.validate_min_length,
+            check=self._validate_min_length,
             error_message=ErrorMessages.LONGER,
             args=[length],
         )
@@ -139,7 +164,7 @@ class PasswordPolicyValidator:
         :return: PasswordPolicyValidator.
         """
         self.__add_checker(
-            check=self.validate_reuse_prevention,
+            check=self._validate_reuse_prevention,
             error_message=ErrorMessages.NOT_IN_HISTORY,
             args=[password_history],
         )
@@ -165,7 +190,7 @@ class PasswordPolicyValidator:
                 )
         """  # fmt: skip
         self.__add_checker(
-            check=self.validate_not_otp_like_suffix,
+            check=self._validate_not_otp_like_suffix,
             error_message=ErrorMessages.NOT_LIKE_OTP,
             args=[],
         )
@@ -189,48 +214,21 @@ class PasswordPolicyValidator:
             the check passes.
         """
         self.__add_checker(
-            check=self.validate_min_age,
+            check=self._validate_min_age,
             error_message=ErrorMessages.NOT_OLD_ENOUGH,
             args=[min_age_days, value],
         )
         return self
 
-    def min_complexity(self) -> Self:
-        """Require minimum password complexity.
-
-        :return: PasswordPolicyValidator.
-        """
-        self.__add_checker(
-            check=self.validate_min_complexity,
-            error_message=ErrorMessages.NOT_COMPLEX_ENOUGH,
-            args=[],
-        )
-        return self
-
     @staticmethod
-    async def validate_min_complexity(password: str, _: Any) -> bool:
-        """Validate minimum password complexity.
-
-        :param str password: Password to validate.
-        :return: bool
-        """
-        regex = (
-            re.search("[A-ZА-Я]", password) is not None,
-            re.search("[a-zа-я]", password) is not None,
-            re.search("[0-9]", password) is not None,
-            password.lower() not in _COMMON_PASSWORDS,
-        )
-        return all(regex)
-
-    @staticmethod
-    async def validate_min_length(password: str, _: Any, length: int) -> bool:
+    async def _validate_min_length(password: str, _: Any, length: int) -> bool:
         """Validate minimum password length."""
         return len(password) >= length
 
-    async def validate_reuse_prevention(
+    async def _validate_reuse_prevention(
         self,
         password: str,
-        _: Settings,
+        _: PasswordValidatorSettings,
         password_history: Iterable[str],
     ) -> bool:
         """Check if password is not in the password history."""
@@ -246,7 +244,7 @@ class PasswordPolicyValidator:
 
         return True
 
-    async def validate_not_otp_like_suffix(
+    async def _validate_not_otp_like_suffix(
         self,
         password: str,
         settings: PasswordValidatorSettings,
@@ -256,10 +254,10 @@ class PasswordPolicyValidator:
         res = tail.isdecimal()
         return not res
 
-    async def validate_min_age(
+    async def _validate_min_age(
         self,
         _: str,
-        __: Settings,
+        __: PasswordValidatorSettings,
         min_age_days: int,
         value: str | None,
     ) -> bool:
@@ -273,4 +271,317 @@ class PasswordPolicyValidator:
         return (
             self._password_validator.count_password_age_days(value)
             >= min_age_days
+        )
+
+    def min_lowercase_letters_count(self, count: int) -> Self:
+        """Require minimum count of lowercase letters.
+
+        :param int count: Number of lowercase letters required.
+
+        :return PasswordValidator: Updated validator object.
+
+        """
+        self.__add_checker(
+            check=self._validate_min_lowercase_letters_count,
+            error_message=ErrorMessages.MORE_LOWERCASE_LETTERS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_min_lowercase_letters_count(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate minimum lowercase letters count in password."""
+        matches = re.findall(settings.regexp_lowercase_letters, password)
+        res = len(matches)
+        return res >= count
+
+    def min_uppercase_letters_count(self, count: int) -> Self:
+        """Require minimum count of uppercase letters.
+
+        :param int count: Number of uppercase letters required.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_min_uppercase_letters_count,
+            error_message=ErrorMessages.MORE_UPPERCASE_LETTERS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_min_uppercase_letters_count(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate minimum uppercase letters count in password."""
+        matches = re.findall(settings.regexp_uppercase_letters, password)
+        res = len(matches)
+        return res >= count
+
+    def min_letters_count(self, count: int) -> Self:
+        """Require minimum count of any letters.
+
+        :param int count: Number of letters required.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_min_letters_count,
+            error_message=ErrorMessages.MORE_LETTERS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_min_letters_count(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate minimum letters count in password."""
+        matches = re.findall(settings.regexp_letters, password)
+        res = len(matches)
+        return res >= count
+
+    def min_digits_count(self, count: int) -> Self:
+        """Require minimum count of digits.
+
+        :param int count: Number of digits required.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_min_digits_count,
+            error_message=ErrorMessages.MORE_DIGITS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_min_digits_count(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate minimum digits count in password."""
+        matches = re.findall(settings.regexp_digits, password)
+        res = len(matches)
+        return res >= count
+
+    def max_length(self, length: int) -> Self:
+        """Require maximum count of characters.
+
+        :param int length: Maximum length allowed.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_max_length,
+            error_message=ErrorMessages.SHORTER,
+            args=[length],
+        )
+        return self
+
+    async def _validate_max_length(
+        self,
+        password: str,
+        _: PasswordValidatorSettings,
+        length: int,
+    ) -> bool:
+        """Validate maximum password length."""
+        return len(password) <= length
+
+    def min_unique_symbols_count(self, count: int) -> Self:
+        """Require minimum count of unique symbols.
+
+        :param int count: Number of unique symbols required.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_min_unique_symbols_count,
+            error_message=ErrorMessages.MORE_UNIQUE_SYMBOLS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_min_unique_symbols_count(
+        self,
+        password: str,
+        _: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate minimum unique symbols count in password."""
+        return len(set(password)) >= count
+
+    def max_sequential_alphabet_symbols_count(self, count: int) -> Self:
+        """Require maximum count of sequential alphabet symbols in row.
+
+        :param int count: Number of sequential alphabet symbols in a row.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_max_sequential_alphabet_symbols_count,
+            error_message=ErrorMessages.FEWER_ALPHABET_LETTERS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_max_sequential_alphabet_symbols_count(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate maximum sequential alphabet symbols count in password.
+
+        Slice lower password and slice alphabet sequence.
+        Then check if there is an intersection between two sets of slices.
+        If there is an intersection, return False.
+        If there is no intersection, return True.
+        """
+        pwd = password.lower()
+        subpwd = set(pwd[i : i + count] for i in range(len(pwd) - count + 1))
+        subseq = set(
+            settings.alphabet_sequence[i : i + count]
+            for i in range(len(settings.alphabet_sequence) - count + 1)
+        )
+
+        res = subpwd & subseq
+        return not res
+
+    def max_sequential_keyboard_symbols_count(self, count: int) -> Self:
+        """Require maximum count of sequential keyboard symbols in row.
+
+        :param int count: Number of sequential keyboard symbols in a row.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_max_sequential_keyboard_symbols_count,
+            error_message=ErrorMessages.FEWER_KEYBOARD_CHARACTERS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_max_sequential_keyboard_symbols_count(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate maximum sequential keyboard symbols count in password.
+
+        Slice lower password and slice keyboard sequences.
+        Then check if there is an intersection between two sets of slices.
+        If there is an intersection, return False.
+        If there is no intersection, return True.
+        """
+        pwd = password.lower()
+        subpwd = set(pwd[i : i + count] for i in range(len(pwd) - count + 1))
+
+        for seq in settings.keyboard_sequences:
+            subseq = set(
+                seq[i : i + count] for i in range(len(seq) - count + 1)
+            )
+            if subpwd & subseq:
+                return False
+
+        return True
+
+    def max_repeating_symbols_in_row_count(self, count: int) -> Self:
+        """Require maximum count of repeating symbols in row.
+
+        :param int count: Number of repeating symbols in a row.
+        :return PasswordValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_max_repeating_symbols_in_row_count,
+            error_message=ErrorMessages.FEWER_REPEATING_CHARACTERS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_max_repeating_symbols_in_row_count(
+        self,
+        password: str,
+        _: Any,
+        count: int,
+    ) -> bool:
+        """Validate maximum repeating symbols in row count in password."""
+        matches = re.findall(rf"(.)\1{{{count - 1}}}+", password)
+        return not matches
+
+    def min_special_symbols_count(self, count: int) -> Self:
+        """Count minimum of special symbols (neither letters nor numbers)."""
+        self.__add_checker(
+            check=self._validate_min_special_symbols_count,
+            error_message=ErrorMessages.MORE_SPECIAL_SYMBOLS,
+            args=[count],
+        )
+        return self
+
+    async def _validate_min_special_symbols_count(
+        self,
+        password: str,
+        settings: PasswordValidatorSettings,
+        count: int,
+    ) -> bool:
+        """Validate minimum special symbols count in password."""
+        matches = re.findall(settings.regexp_special_symbols, password)
+        res = len(matches)
+        return res >= count
+
+    def not_equal_any_ban_word(
+        self,
+        password_ban_word_repository: PasswordBanWordRepository,
+    ) -> Self:
+        """Require the password to not be in a common password list."""
+        self.__add_checker(
+            check=self._validate_not_equal_any_ban_word,
+            error_message=ErrorMessages.NOT_EQUAL_BAN_WORD,
+            args=[password_ban_word_repository],
+        )
+        return self
+
+    async def _validate_not_equal_any_ban_word(
+        self,
+        password: str,
+        _: PasswordValidatorSettings,
+        password_ban_word_repository: PasswordBanWordRepository,
+    ) -> bool:
+        """Check if password is not equal to any banned word."""
+        res = await password_ban_word_repository.get_by_word(password)
+        return not res
+
+    def not_contain_any_ban_word(
+        self,
+        password_ban_word_repository: PasswordBanWordRepository,
+    ) -> Self:
+        """Require the password to not contain any common password words.
+
+        :param PasswordBanWordRepository password_ban_word_repository:
+            repository to interact with PasswordBanWord
+        :return PasswordPolicyValidator: Updated validator object.
+        """
+        self.__add_checker(
+            check=self._validate_not_contain_any_ban_word,
+            error_message=ErrorMessages.NOT_CONTAIN_BAN_WORD,
+            args=[
+                password_ban_word_repository,
+            ],
+        )
+        return self
+
+    async def _validate_not_contain_any_ban_word(
+        self,
+        password: str,
+        _: PasswordValidatorSettings,
+        password_ban_word_repository: PasswordBanWordRepository,
+    ) -> bool:
+        """Check if password not contain any banned words."""
+        return not (
+            await password_ban_word_repository.is_ban_word_contains_in_pattern(
+                password,
+            )
         )
