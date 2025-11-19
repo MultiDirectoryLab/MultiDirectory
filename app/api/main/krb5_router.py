@@ -15,8 +15,8 @@ from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
 
-from api.auth import verify_auth
 from api.auth.adapters.auth import AuthFastAPIAdapter
+from api.auth.utils import verify_auth
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession
