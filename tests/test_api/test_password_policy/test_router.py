@@ -25,7 +25,7 @@ async def test_get_all_with_error(
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.get_all.assert_not_called()
 
 
@@ -39,7 +39,7 @@ async def test_get_all(
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.get_all.assert_called_once()
 
 
@@ -53,7 +53,7 @@ async def test_get_with_error(
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.get.assert_not_called()
 
 
@@ -67,7 +67,7 @@ async def test_get(
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.get.assert_called_once_with(1)
 
 
@@ -84,7 +84,7 @@ async def test_get_password_policy_by_dir_path_dn_with_error(
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.get_password_policy_by_dir_path_dn.assert_not_called()
 
 
@@ -101,7 +101,7 @@ async def test_get_password_policy_by_dir_path_dn(
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.get_password_policy_by_dir_path_dn.assert_called_once()
 
 
@@ -120,7 +120,7 @@ async def test_update(
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.update.assert_called_once()
 
 
@@ -139,7 +139,7 @@ async def test_update_with_error(
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.update.assert_not_called()
 
 
@@ -155,7 +155,7 @@ async def test_reset_domain_policy_to_default_config_with_error(
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.reset_domain_policy_to_default_config.assert_not_called()
 
 
@@ -169,7 +169,7 @@ async def test_reset_domain_policy_to_default_config(
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.reset_domain_policy_to_default_config.assert_called_once()
 
 
@@ -185,7 +185,7 @@ async def test_turnoff_with_error(
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.turnoff.assert_not_called()
 
 
@@ -199,5 +199,5 @@ async def test_turnoff(
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_check = None  # noqa: SLF001
+    password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.turnoff.assert_called_once_with(1)

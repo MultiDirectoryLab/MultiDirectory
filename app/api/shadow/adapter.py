@@ -36,11 +36,11 @@ class ShadowAdapter(BaseAdapter):
     def __init__(
         self,
         mfa_manager: MFAManager,
-        identity_manager: AuthManager,
+        auth_manager: AuthManager,
     ) -> None:
         """Initialize the adapter."""
         self._mfa_manager = mfa_manager
-        self._identity_manager = identity_manager
+        self._auth_manager = auth_manager
 
     async def proxy_request(
         self,
@@ -52,7 +52,7 @@ class ShadowAdapter(BaseAdapter):
 
     async def change_password(self, principal: str, new_password: str) -> None:
         """Change the password for a user."""
-        return await self._identity_manager.sync_password_from_service(
+        return await self._auth_manager.sync_password_from_service(
             principal,
             new_password,
         )

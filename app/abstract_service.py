@@ -1,4 +1,4 @@
-"""Abstract Data Access Object (DAO) interface.
+"""Abstract Service/Manager interface.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -28,10 +28,10 @@ class AbstractService(ABC):
         if not callable(attr) or name.startswith("_"):
             return attr
 
-        if getattr(self, "_perm_check", None) and (
+        if getattr(self, "_perm_checker", None) and (
             permission := self._usecase_api_permissions().get(name)
         ):
-            return self._perm_check.wrap_use_case(permission, attr)
+            return self._perm_checker.wrap_use_case(permission, attr)
         return attr
 
     def set_permissions_checker(
@@ -43,4 +43,4 @@ class AbstractService(ABC):
         :param object perm_checker: permissions checker
         :return: None
         """
-        self._perm_check = perm_checker
+        self._perm_checker = perm_checker

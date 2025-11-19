@@ -540,7 +540,7 @@ class HTTPProvider(LDAPContextProvider):
         AuthFastAPIAdapter,
         scope=Scope.REQUEST,
     )
-    identity_manager = provide(
+    auth_manager = provide(
         AuthManager,
         scope=Scope.REQUEST,
     )

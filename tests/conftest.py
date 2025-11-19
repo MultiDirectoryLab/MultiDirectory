@@ -75,9 +75,7 @@ from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.dto import DNSSettingDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.provider_gateway import (
-    IdentityProviderGateway,
-)
+from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
@@ -426,7 +424,7 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
 
-    identity_manager = provide(
+    auth_manager = provide(
         AuthManager,
         scope=Scope.REQUEST,
     )
