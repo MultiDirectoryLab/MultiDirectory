@@ -69,22 +69,14 @@ class TestLocalProvider(Provider):
             password_use_cases.get_password_policy_by_dir_path_dn = AsyncMock(
                 return_value=dto,
             )
-            password_use_cases.create = AsyncMock(return_value=None)
             password_use_cases.create_default_domain_policy = AsyncMock(
                 return_value=None,
             )
             password_use_cases.update = AsyncMock(return_value=None)
-            password_use_cases.delete = AsyncMock(return_value=None)
             password_use_cases.reset_domain_policy_to_default_config = (
                 AsyncMock(
                     return_value=None,
                 )
-            )
-            password_use_cases.update_priorities = AsyncMock(
-                return_value=None,
-            )
-            password_use_cases.get_or_create_pwd_last_set = AsyncMock(
-                return_value=None,
             )
             password_use_cases.get_password_policy_for_user = AsyncMock(
                 return_value=dto,

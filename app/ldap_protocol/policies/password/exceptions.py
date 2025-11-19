@@ -29,14 +29,6 @@ class PasswordPolicyCantChangeDefaultDomainError(PasswordPolicyBaseError):
     """Cannot change the name of the default domain Password Policy."""
 
 
-class PasswordPolicyCantDeleteError(PasswordPolicyBaseError):
-    """Cannot delete the last Password Policy."""
-
-
-class PasswordPolicyUpdatePrioritiesError(PasswordPolicyBaseError):
-    """Not all priorities set."""
-
-
 class PasswordPolicyPriorityError(PasswordPolicyBaseError):
     """Exception raised when there is a priority error."""
 

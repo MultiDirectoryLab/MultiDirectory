@@ -20,11 +20,9 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyBaseDnNotFoundError,
     PasswordPolicyCantChangeDefaultDomainError,
-    PasswordPolicyCantDeleteError,
     PasswordPolicyDirIsNotUserError,
     PasswordPolicyNotFoundError,
     PasswordPolicyPriorityError,
-    PasswordPolicyUpdatePrioritiesError,
 )
 from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
@@ -47,8 +45,6 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         PasswordPolicyDirIsNotUserError: status.HTTP_404_NOT_FOUND,
         PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
         PasswordPolicyCantChangeDefaultDomainError: status.HTTP_400_BAD_REQUEST,  # noqa: E501
-        PasswordPolicyCantDeleteError: status.HTTP_400_BAD_REQUEST,
-        PasswordPolicyUpdatePrioritiesError: status.HTTP_400_BAD_REQUEST,
         PasswordPolicyPriorityError: status.HTTP_400_BAD_REQUEST,
         PasswordPolicyAgeDaysError: status.HTTP_400_BAD_REQUEST,
     }
