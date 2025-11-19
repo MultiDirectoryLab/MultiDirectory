@@ -58,10 +58,6 @@ class PasswordPolicyUseCases(AbstractService):
             )
         )
 
-    async def create(self, dto: PasswordPolicyDTO[None, PriorityT]) -> None:
-        """Create one Password Policy."""
-        await self._password_policy_dao.create(dto)
-
     async def create_default_domain_policy(self) -> None:
         """Create default domain Password Policy with default configuration."""
         await self._password_policy_dao.create_default_domain_policy()
