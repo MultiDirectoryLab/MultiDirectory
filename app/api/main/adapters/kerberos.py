@@ -25,7 +25,6 @@ from ldap_protocol.kerberos.exceptions import (
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 
-
 P = ParamSpec("P")
 R = TypeVar("R")
 

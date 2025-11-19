@@ -9,7 +9,6 @@ from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.password_policy.schemas import PasswordPolicySchema, PriorityT
-
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAgeDaysError,

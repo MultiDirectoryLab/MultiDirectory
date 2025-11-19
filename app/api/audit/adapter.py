@@ -9,7 +9,6 @@ from typing import ParamSpec, TypeVar
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-
 from ldap_protocol.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
