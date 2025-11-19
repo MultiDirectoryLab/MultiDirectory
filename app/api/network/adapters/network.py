@@ -19,7 +19,7 @@ from api.network.schema import (
     PolicyUpdate,
     SwapResponse,
 )
-from ldap_protocol.permissions_checker import ApiPermissionError
+
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -73,7 +73,6 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
         NetworkPolicyAlreadyExistsError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         LastActivePolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         NetworkPolicyNotFoundError: status.HTTP_404_NOT_FOUND,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def create(self, policy: Policy) -> PolicyResponse:

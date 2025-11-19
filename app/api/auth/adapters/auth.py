@@ -33,7 +33,6 @@ from ldap_protocol.identity.exceptions import (
     UserNotFoundError,
 )
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
-from ldap_protocol.permissions_checker import ApiPermissionError
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
@@ -54,7 +53,6 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         MissingMFACredentialsError: status.HTTP_403_FORBIDDEN,
         MFAAPIError: status.HTTP_406_NOT_ACCEPTABLE,
         MFAConnectError: status.HTTP_406_NOT_ACCEPTABLE,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def login(

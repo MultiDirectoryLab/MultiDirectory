@@ -24,7 +24,7 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
-from ldap_protocol.permissions_checker import ApiPermissionError
+
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -39,7 +39,6 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
         KerberosDependencyError: status.HTTP_424_FAILED_DEPENDENCY,
         KerberosNotFoundError: status.HTTP_404_NOT_FOUND,
         KerberosUnavailableError: status.HTTP_503_SERVICE_UNAVAILABLE,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def setup_krb_catalogue(

@@ -24,7 +24,6 @@ from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeNotFoundError,
     ObjectClassNotFoundError,
 )
-from ldap_protocol.permissions_checker import ApiPermissionError
 
 
 def _convert_update_chema_to_dto(
@@ -71,7 +70,6 @@ class LDAPEntityTypeFastAPIAdapter(
         EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
         EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
         ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def get_entity_type_attributes(self, name: str) -> list[str]:

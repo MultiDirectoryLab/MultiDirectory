@@ -9,7 +9,7 @@ from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.password_policy.schemas import PasswordPolicySchema, PriorityT
-from ldap_protocol.permissions_checker import ApiPermissionError
+
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAgeDaysError,
@@ -44,7 +44,6 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         PasswordPolicyUpdatePrioritiesError: status.HTTP_400_BAD_REQUEST,
         PasswordPolicyPriorityError: status.HTTP_400_BAD_REQUEST,
         PasswordPolicyAgeDaysError: status.HTTP_400_BAD_REQUEST,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def get_all(self) -> list[PasswordPolicySchema[int, int]]:

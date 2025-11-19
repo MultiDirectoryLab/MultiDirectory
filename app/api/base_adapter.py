@@ -8,10 +8,13 @@ from asyncio import iscoroutinefunction
 from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 from abstract_service import AbstractService
-from ldap_protocol.permissions_checker import ApiPermissionsChecker
+from ldap_protocol.permissions_checker import (
+    ApiPermissionsChecker,
+    AuthorizationError,
+)
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -82,7 +85,11 @@ class BaseAdapter(Protocol[_T]):
         return instance
 
     def _reraise(self, exc: Exception) -> NoReturn:
-        code = self._exceptions_map.get(type(exc))
+        """Reraise exception with mapped HTTPException."""
+        exceptions_map = self._exceptions_map | {
+            AuthorizationError: status.HTTP_403_FORBIDDEN,
+        }
+        code = exceptions_map.get(type(exc))
 
         if code is None:
             raise

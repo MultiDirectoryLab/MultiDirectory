@@ -27,7 +27,6 @@ from ldap_protocol.dns.base import (
     DNSZone,
 )
 from ldap_protocol.dns.use_cases import DNSUseCase
-from ldap_protocol.permissions_checker import ApiPermissionError
 
 
 class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
@@ -42,7 +41,6 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
         dns_exc.DNSZoneUpdateError: status.HTTP_400_BAD_REQUEST,
         dns_exc.DNSZoneDeleteError: status.HTTP_400_BAD_REQUEST,
         dns_exc.DNSUpdateServerOptionsError: status.HTTP_400_BAD_REQUEST,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def create_record(

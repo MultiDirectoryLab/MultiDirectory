@@ -9,7 +9,7 @@ from typing import ParamSpec, TypeVar
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.permissions_checker import ApiPermissionError
+
 from ldap_protocol.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
@@ -36,7 +36,6 @@ class AuditPoliciesAdapter(BaseAdapter[AuditService]):
     _exceptions_map: dict[type[Exception], int] = {
         AuditNotFoundError: status.HTTP_404_NOT_FOUND,
         AuditAlreadyExistsError: status.HTTP_409_CONFLICT,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def get_policies(self) -> list[AuditPolicyResponse]:

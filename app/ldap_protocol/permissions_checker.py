@@ -10,7 +10,7 @@ _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
 
-class ApiPermissionError(Exception):
+class AuthorizationError(Exception):
     """API permission error."""
 
 
@@ -38,11 +38,11 @@ class ApiPermissionsChecker:
         """Check if current user has permission, raise error if not.
 
         :param AuthoruzationRules permission: permission to check
-        :raises ApiPermissionError: if user does not have permission
+        :raises AuthorizationError: if user does not have permission
         :return: None
         """
         if not await self._has_permission(permission):
-            raise ApiPermissionError(
+            raise AuthorizationError(
                 f"User does not have permission: {permission}",
             )
 

@@ -23,7 +23,6 @@ from ldap_protocol.auth.exceptions.mfa import (
 )
 from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
-from ldap_protocol.permissions_checker import ApiPermissionError
 
 
 class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
@@ -37,7 +36,6 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
         NotFoundError: status.HTTP_404_NOT_FOUND,
         MFAAPIError: status.HTTP_406_NOT_ACCEPTABLE,
         MFAConnectError: status.HTTP_406_NOT_ACCEPTABLE,
-        ApiPermissionError: status.HTTP_403_FORBIDDEN,
     }
 
     async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
