@@ -552,7 +552,30 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     request = from_context(provides=Request, scope=Scope.REQUEST)
-    audit_monitor = provide(AuditMonitor, scope=Scope.REQUEST)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_audit_monitor(
+        self,
+        session: AsyncSession,
+        audit_use_case: "AuditUseCase",
+        session_storage: SessionStorage,
+        settings: Settings,
+        request: Request,
+    ) -> AuditMonitor:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        session_key = request.cookies.get("id", "")
+
+        return AuditMonitor(
+            session=session,
+            audit_use_case=audit_use_case,
+            session_storage=session_storage,
+            settings=settings,
+            ip_from_request=ip_from_request,
+            user_agent=user_agent,
+            session_key=session_key,
+        )
 
     add_request_context = provide(
         LDAPAddRequestContext,
