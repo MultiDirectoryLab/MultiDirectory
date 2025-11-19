@@ -4,10 +4,11 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import ClassVar
 from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 
 from .dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from .destination_dao import AuditDestinationDAO
@@ -17,17 +18,6 @@ from .policies_dao import AuditPoliciesDAO
 
 class AuditService(AbstractService):
     """Audit service class for managing audit policies."""
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.get_policies.__name__: ApiPermissionsType.AUDIT_GET_POLICIES,
-            cls.update_policy.__name__: ApiPermissionsType.AUDIT_UPDATE_POLICY,
-            cls.get_destinations.__name__: ApiPermissionsType.AUDIT_GET_DESTINATIONS,  # noqa: E501
-            cls.create_destination.__name__: ApiPermissionsType.AUDIT_CREATE_DESTINATION,  # noqa: E501
-            cls.delete_destination.__name__: ApiPermissionsType.AUDIT_DELETE_DESTINATION,  # noqa: E501
-            cls.update_destination.__name__: ApiPermissionsType.AUDIT_UPDATE_DESTINATION,  # noqa: E501
-        }
 
     def __init__(
         self,
@@ -126,3 +116,12 @@ class AuditService(AbstractService):
 
         """
         await self._destination_dao.delete(destination_id)
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        get_policies.__name__: AuthoruzationRules.AUDIT_GET_POLICIES,
+        update_policy.__name__: AuthoruzationRules.AUDIT_UPDATE_POLICY,
+        get_destinations.__name__: AuthoruzationRules.AUDIT_GET_DESTINATIONS,
+        create_destination.__name__: AuthoruzationRules.AUDIT_CREATE_DESTINATION,  # noqa: E501
+        delete_destination.__name__: AuthoruzationRules.AUDIT_DELETE_DESTINATION,  # noqa: E501
+        update_destination.__name__: AuthoruzationRules.AUDIT_UPDATE_DESTINATION,  # noqa: E501
+    }

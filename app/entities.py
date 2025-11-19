@@ -14,7 +14,7 @@ from typing import ClassVar, Literal
 
 from enums import (
     AceType,
-    ApiPermissionsType,
+    AuthoruzationRules,
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
@@ -571,4 +571,4 @@ class UserApiPermissions:
 
     user_id: int
     user: User = field(repr=False, init=False)
-    permissions: list[ApiPermissionsType]
+    permissions: list[AuthoruzationRules]

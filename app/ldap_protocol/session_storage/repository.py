@@ -2,14 +2,14 @@
 
 from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address
-from typing import Literal
+from typing import ClassVar, Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
 from config import Settings
 from entities import User
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.utils.queries import get_user, set_user_logon_attrs
 
 from .redis import SessionStorage
@@ -46,14 +46,6 @@ class AllUserSessionsDTO:
 
 class SessionRepository(AbstractService):
     """Repository for managing user sessions."""
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.get_user_sessions.__name__: ApiPermissionsType.SESSION_GET_USER_SESSIONS,  # noqa: E501
-            cls.clear_user_sessions.__name__: ApiPermissionsType.SESSION_CLEAR_USER_SESSIONS,  # noqa: E501
-            cls.delete_session.__name__: ApiPermissionsType.SESSION_DELETE,
-        }
 
     def __init__(
         self,
@@ -139,3 +131,9 @@ class SessionRepository(AbstractService):
         :param str session_id: session id
         """
         await self.storage.delete_user_session(session_id)
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        get_user_sessions.__name__: AuthoruzationRules.SESSION_GET_USER_SESSIONS,  # noqa: E501
+        clear_user_sessions.__name__: AuthoruzationRules.SESSION_CLEAR_USER_SESSIONS,  # noqa: E501
+        delete_session.__name__: AuthoruzationRules.SESSION_DELETE,
+    }

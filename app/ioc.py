@@ -23,6 +23,7 @@ from api.auth.adapters import (
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -36,10 +37,6 @@ from config import Settings
 from ldap_protocol.auth import AuthManager, MFAManager
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.auth.use_cases import SetupUseCase
-from ldap_protocol.auth.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
 from ldap_protocol.dhcp import (
     AbstractDHCPManager,
     DHCPAPIRepository,
@@ -475,10 +472,31 @@ class HTTPProvider(LDAPContextProvider):
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
-    audit_monitor = provide(
-        AuditMonitor,
-        scope=Scope.REQUEST,
-    )
+
+    @provide()
+    async def get_audit_monitor(
+        self,
+        session: AsyncSession,
+        audit_use_case: "AuditUseCase",
+        session_storage: SessionStorage,
+        settings: Settings,
+        request: Request,
+    ) -> AuditMonitor:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        session_key = request.cookies.get("id", "")
+
+        return AuditMonitor(
+            session=session,
+            audit_use_case=audit_use_case,
+            session_storage=session_storage,
+            settings=settings,
+            ip_from_request=ip_from_request,
+            user_agent=user_agent,
+            session_key=session_key,
+        )
+
     identity_provider_gateway = provide(
         IdentityProviderGateway,
         scope=Scope.REQUEST,

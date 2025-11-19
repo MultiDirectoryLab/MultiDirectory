@@ -4,10 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from abc import ABC
+from typing import TYPE_CHECKING, Any, ClassVar
 
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 
 if TYPE_CHECKING:
     from ldap_protocol.permissions_checker import ApiPermissionsChecker
@@ -16,11 +16,7 @@ if TYPE_CHECKING:
 class AbstractService(ABC):
     """Abstract Service/Manager base class."""
 
-    @classmethod
-    @abstractmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        """Define use case and permission map for access check."""
-        ...
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]]
 
     def __getattribute__(self, name: str) -> Any:
         """Intercept attribute access."""
@@ -29,7 +25,7 @@ class AbstractService(ABC):
             return attr
 
         if getattr(self, "_perm_checker", None) and (
-            permission := self._usecase_api_permissions().get(name)
+            permission := self.PERMISSIONS.get(name)
         ):
             return self._perm_checker.wrap_use_case(permission, attr)
         return attr

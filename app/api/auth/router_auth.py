@@ -12,19 +12,16 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends, Request, Response, status
 
 from api.auth.adapters import AuthFastAPIAdapter
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from ldap_protocol.auth.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
-from ldap_protocol.auth.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.session_storage import SessionStorage
 
-from .verify_auth import verify_auth
+from .utils import verify_auth
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 

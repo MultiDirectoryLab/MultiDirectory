@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import IPv4Address, IPv6Address
+from typing import ClassVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ from starlette.datastructures import URL
 from abstract_service import AbstractService
 from config import Settings
 from entities import Directory, Group, User
-from enums import ApiPermissionsType, MFAFlags
+from enums import AuthoruzationRules, MFAFlags
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.mfa_manager import MFAManager
 from ldap_protocol.auth.schemas import LoginDTO, OAuth2Form
@@ -47,12 +48,6 @@ from repo.pg.tables import queryable_attr as qa
 
 class AuthManager(AbstractService):
     """Authentication manager."""
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.reset_password.__name__: ApiPermissionsType.AUTH_RESET_PASSWORD,  # noqa: E501
-        }
 
     def __init__(
         self,
@@ -347,3 +342,7 @@ class AuthManager(AbstractService):
 
         """
         self._identity_provider.set_new_session_key(key)
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        reset_password.__name__: AuthoruzationRules.AUTH_RESET_PASSWORD,
+    }

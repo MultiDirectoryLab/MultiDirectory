@@ -4,13 +4,14 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import ClassVar
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
 from entities import NetworkPolicy
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -57,17 +58,6 @@ _convert_dto_to_model = get_converter(
 
 class NetworkPolicyUseCase(AbstractService):
     """Network policies use cases."""
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.create.__name__: ApiPermissionsType.NETWORK_POLICY_CREATE,
-            cls.get_list_policies.__name__: ApiPermissionsType.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
-            cls.delete.__name__: ApiPermissionsType.NETWORK_POLICY_DELETE,
-            cls.switch_network_policy.__name__: ApiPermissionsType.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
-            cls.update.__name__: ApiPermissionsType.NETWORK_POLICY_UPDATE,
-            cls.swap_priorities.__name__: ApiPermissionsType.NETWORK_POLICY_SWAP_PRIORITIES,  # noqa: E501
-        }
 
     def __init__(
         self,
@@ -197,3 +187,12 @@ class NetworkPolicyUseCase(AbstractService):
             priority1=policy1.priority,
             priority2=policy2.priority,
         )
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        create.__name__: AuthoruzationRules.NETWORK_POLICY_CREATE,
+        get_list_policies.__name__: AuthoruzationRules.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
+        delete.__name__: AuthoruzationRules.NETWORK_POLICY_DELETE,
+        switch_network_policy.__name__: AuthoruzationRules.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
+        update.__name__: AuthoruzationRules.NETWORK_POLICY_UPDATE,
+        swap_priorities.__name__: AuthoruzationRules.NETWORK_POLICY_SWAP_PRIORITIES,  # noqa: E501
+    }

@@ -19,7 +19,7 @@ import gssapi
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy, User
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.policies.network_policy import build_policy_query
 
 from .session_storage import SessionStorage
@@ -45,7 +45,7 @@ class UserSchema:
 
     account_exp: datetime | None
     role_ids: list[int]
-    api_permissions: list[ApiPermissionsType]
+    api_permissions: list[AuthoruzationRules]
 
     @classmethod
     async def from_db(

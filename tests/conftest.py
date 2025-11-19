@@ -45,6 +45,7 @@ from api.auth.adapters import (
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -60,10 +61,6 @@ from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.auth import AuthManager, MFAManager
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.auth.use_cases import SetupUseCase
-from ldap_protocol.auth.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
 from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (

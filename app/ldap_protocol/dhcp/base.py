@@ -6,12 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abc import ABC, abstractmethod
 from ipaddress import IPv4Address
+from typing import ClassVar
 
 import httpx
 from loguru import logger as loguru_logger
 
 from abstract_service import AbstractService
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 
 from .dataclasses import (
     DHCPLease,
@@ -118,26 +119,6 @@ class AbstractDHCPManager(AbstractService):
     _api_repository: DHCPAPIRepository
     _manager_repository: DHCPManagerRepository
 
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.change_state.__name__: ApiPermissionsType.DHCP_CHANGE_STATE,
-            cls.get_state.__name__: ApiPermissionsType.DHCP_GET_STATE,
-            cls.create_subnet.__name__: ApiPermissionsType.DHCP_CREATE_SUBNET,
-            cls.delete_subnet.__name__: ApiPermissionsType.DHCP_DELETE_SUBNET,
-            cls.get_subnets.__name__: ApiPermissionsType.DHCP_GET_SUBNETS,
-            cls.update_subnet.__name__: ApiPermissionsType.DHCP_UPDATE_SUBNET,
-            cls.create_lease.__name__: ApiPermissionsType.DHCP_CREATE_LEASE,
-            cls.release_lease.__name__: ApiPermissionsType.DHCP_RELEASE_LEASE,
-            cls.list_active_leases.__name__: ApiPermissionsType.DHCP_LIST_ACTIVE_LEASES,  # noqa: E501
-            cls.find_lease.__name__: ApiPermissionsType.DHCP_FIND_LEASE,
-            cls.lease_to_reservation.__name__: ApiPermissionsType.DHCP_LEASE_TO_RESERVATION,  # noqa: E501
-            cls.add_reservation.__name__: ApiPermissionsType.DHCP_ADD_RESERVATION,  # noqa: E501
-            cls.get_reservations.__name__: ApiPermissionsType.DHCP_GET_RESERVATIONS,  # noqa: E501
-            cls.update_reservation.__name__: ApiPermissionsType.DHCP_UPDATE_RESERVATION,  # noqa: E501
-            cls.delete_reservation.__name__: ApiPermissionsType.DHCP_DELETE_RESERVATION,  # noqa: E501
-        }
-
     def __init__(
         self,
         kea_dhcp_repository: DHCPAPIRepository,
@@ -230,3 +211,21 @@ class AbstractDHCPManager(AbstractService):
         self,
         subnet_id: int,
     ) -> list[DHCPReservation]: ...
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        change_state.__name__: AuthoruzationRules.DHCP_CHANGE_STATE,
+        get_state.__name__: AuthoruzationRules.DHCP_GET_STATE,
+        create_subnet.__name__: AuthoruzationRules.DHCP_CREATE_SUBNET,
+        delete_subnet.__name__: AuthoruzationRules.DHCP_DELETE_SUBNET,
+        get_subnets.__name__: AuthoruzationRules.DHCP_GET_SUBNETS,
+        update_subnet.__name__: AuthoruzationRules.DHCP_UPDATE_SUBNET,
+        create_lease.__name__: AuthoruzationRules.DHCP_CREATE_LEASE,
+        release_lease.__name__: AuthoruzationRules.DHCP_RELEASE_LEASE,
+        list_active_leases.__name__: AuthoruzationRules.DHCP_LIST_ACTIVE_LEASES,  # noqa: E501
+        find_lease.__name__: AuthoruzationRules.DHCP_FIND_LEASE,
+        lease_to_reservation.__name__: AuthoruzationRules.DHCP_LEASE_TO_RESERVATION,  # noqa: E501
+        add_reservation.__name__: AuthoruzationRules.DHCP_ADD_RESERVATION,
+        get_reservations.__name__: AuthoruzationRules.DHCP_GET_RESERVATIONS,
+        update_reservation.__name__: AuthoruzationRules.DHCP_UPDATE_RESERVATION,  # noqa: E501
+        delete_reservation.__name__: AuthoruzationRules.DHCP_DELETE_RESERVATION,  # noqa: E501
+    }

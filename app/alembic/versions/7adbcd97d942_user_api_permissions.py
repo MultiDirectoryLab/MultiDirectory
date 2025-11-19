@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory, Group, User, UserApiPermissions
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -38,7 +38,7 @@ def upgrade() -> None:
             )
         )
         users = await session.scalars(query)
-        permissions = [perm for perm in ApiPermissionsType]
+        permissions = [perm for perm in AuthoruzationRules]
 
         for user in users:
             session.add(

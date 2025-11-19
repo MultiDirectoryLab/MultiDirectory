@@ -10,7 +10,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import Integer, TypeDecorator
 from sqlalchemy.dialects.postgresql import ARRAY
 
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 
 
 class ApiPermissionsArray(TypeDecorator):
@@ -20,15 +20,15 @@ class ApiPermissionsArray(TypeDecorator):
     cache_ok = True
 
     def process_result_value(self, value, dialect) -> list:  # type: ignore  # noqa: ARG002
-        """Convert strings to ApiPermissionsType enums when loading from DB."""
+        """Convert strings to AuthoruzationRules enums when loading from DB."""
         if value is None:
             return []
-        return [ApiPermissionsType(int(v)) for v in value]
+        return [AuthoruzationRules(int(v)) for v in value]
 
     def process_bind_param(self, value, dialect) -> list:  # type: ignore  # noqa: ARG002
         """Convert enums to strings when saving to DB."""
         if value is None:
             return []
         return [
-            v.value if isinstance(v, ApiPermissionsType) else v for v in value
+            v.value if isinstance(v, AuthoruzationRules) else v for v in value
         ]

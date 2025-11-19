@@ -5,10 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from itertools import islice
+from typing import ClassVar
 
 from abstract_service import AbstractService
 from entities import User
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.permissions_checker import ApiPermissionsChecker
 
 from .dao import PasswordPolicyDAO
@@ -22,21 +23,6 @@ class PasswordPolicyUseCases(AbstractService):
     _password_policy_dao: PasswordPolicyDAO
     _password_policy_validator: PasswordPolicyValidator
     _perm_checker: ApiPermissionsChecker
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.get_all.__name__: ApiPermissionsType.PASSWORD_POLICY_GET_ALL,
-            cls.get.__name__: ApiPermissionsType.PASSWORD_POLICY_GET,
-            cls.get_password_policy_by_dir_path_dn.__name__: (
-                ApiPermissionsType.PASSWORD_POLICY_GET_BY_DIR
-            ),
-            cls.update.__name__: ApiPermissionsType.PASSWORD_POLICY_UPDATE,
-            cls.reset_domain_policy_to_default_config.__name__: (
-                ApiPermissionsType.PASSWORD_POLICY_RESET_DOMAIN_POLICY
-            ),
-            cls.turnoff.__name__: ApiPermissionsType.PASSWORD_POLICY_TURNOFF,
-        }
 
     def __init__(
         self,
@@ -231,3 +217,16 @@ class PasswordPolicyUseCases(AbstractService):
         )
 
         return bool(pwd_last_set == "0" or is_pwd_expired)  # noqa: S105
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        get_all.__name__: AuthoruzationRules.PASSWORD_POLICY_GET_ALL,
+        get.__name__: AuthoruzationRules.PASSWORD_POLICY_GET,
+        get_password_policy_by_dir_path_dn.__name__: (
+            AuthoruzationRules.PASSWORD_POLICY_GET_BY_DIR
+        ),
+        update.__name__: AuthoruzationRules.PASSWORD_POLICY_UPDATE,
+        reset_domain_policy_to_default_config.__name__: (
+            AuthoruzationRules.PASSWORD_POLICY_RESET_DOMAIN_POLICY
+        ),
+        turnoff.__name__: AuthoruzationRules.PASSWORD_POLICY_TURNOFF,
+    }

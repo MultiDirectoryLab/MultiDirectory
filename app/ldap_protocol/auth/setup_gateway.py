@@ -19,7 +19,7 @@ from entities import (
     User,
     UserApiPermissions,
 )
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
@@ -252,7 +252,7 @@ class SetupGateway:
             self._session.add(
                 UserApiPermissions(
                     user_id=user_id,
-                    permissions=[perm for perm in ApiPermissionsType],
+                    permissions=[perm for perm in AuthoruzationRules],
                 ),
             )
             await self._session.flush()

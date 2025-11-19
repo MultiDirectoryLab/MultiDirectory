@@ -17,18 +17,13 @@ from fastapi import HTTPException, status
 from httpx import AsyncClient
 from starlette.requests import Request
 
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
-from enums import ApiPermissionsType
-from ldap_protocol.auth.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
+from enums import AuthoruzationRules
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.exceptions import UnauthorizedError
-from ldap_protocol.identity.provider_gateway import (
-    IdentityProviderGateway,
-)
+from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.session_storage.base import SessionStorage
 from ldap_protocol.session_storage.exceptions import (
     SessionStorageInvalidDataError,
@@ -100,7 +95,7 @@ async def current_user_provider(
             dn="CN=User Zero,CN=Users,DC=example,DC=com",
             account_exp=datetime.datetime.max,
             role_ids=[1],
-            api_permissions=[perm for perm in ApiPermissionsType],
+            api_permissions=[perm for perm in AuthoruzationRules],
         )
         provider.get_user_id = AsyncMock(return_value=1)  # type: ignore
         provider.get = AsyncMock(return_value=user)  # type: ignore

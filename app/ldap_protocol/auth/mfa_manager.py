@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import operator
 import traceback
+from typing import ClassVar
 import weakref
 from ipaddress import IPv4Address, IPv6Address
 
@@ -19,7 +20,7 @@ from starlette.datastructures import URL
 from abstract_service import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
-from enums import ApiPermissionsType, MFAChallengeStatuses, MFAFlags
+from enums import AuthoruzationRules, MFAChallengeStatuses, MFAFlags
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -59,14 +60,6 @@ ALGORITHM = "HS256"
 
 class MFAManager(AbstractService):
     """MFA manager."""
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.setup_mfa.__name__: ApiPermissionsType.MFA_SETUP,
-            cls.remove_mfa.__name__: ApiPermissionsType.MFA_REMOVE,
-            cls.get_mfa.__name__: ApiPermissionsType.MFA_GET,
-        }
 
     def __init__(
         self,
@@ -389,3 +382,9 @@ class MFAManager(AbstractService):
     def set_new_session_key(self, key: str) -> None:
         """Set a new session key."""
         self._identity_provider.set_new_session_key(key)
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        setup_mfa.__name__: AuthoruzationRules.MFA_SETUP,
+        remove_mfa.__name__: AuthoruzationRules.MFA_REMOVE,
+        get_mfa.__name__: AuthoruzationRules.MFA_GET,
+    }

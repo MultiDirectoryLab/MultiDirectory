@@ -8,7 +8,6 @@ from functools import wraps
 from ipaddress import IPv4Address, IPv6Address
 from typing import Callable, TypeVar
 
-from fastapi import Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
@@ -24,10 +23,6 @@ from ldap_protocol.auth.exceptions.mfa import (
     NetworkPolicyError,
 )
 from ldap_protocol.auth.schemas import OAuth2Form
-from ldap_protocol.auth.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
 from ldap_protocol.identity.exceptions import (
     AuthValidationError,
     LoginFailedError,
@@ -56,8 +51,6 @@ class AuditMonitor:
     target: str | None = None
     error_message: str | None = None
     is_success_operation: bool = True
-    ip: IPv4Address | IPv6Address | None = None
-    user_agent: str | None = None
     is_proc_enabled: bool | None = None
 
     def __init__(
@@ -66,22 +59,24 @@ class AuditMonitor:
         audit_use_case: "AuditUseCase",
         session_storage: SessionStorage,
         settings: Settings,
-        request: Request,
+        ip_from_request: IPv4Address | IPv6Address,
+        user_agent: str,
+        session_key: str,
     ) -> None:
         """Initialize the audit monitor with necessary components."""
         self._session = session
         self._audit_use_case = audit_use_case
         self._session_storage = session_storage
         self._settings = settings
-        self._request = request
+        self.ip = ip_from_request
+        self.user_agent = user_agent
+        self._session_key = session_key
 
     async def set_username(self) -> None:
         """Get the username from the session."""
-        session_key = self._request.cookies.get("id", "")
-
         user_id = await self._session_storage.get_user_id(
             self._settings,
-            session_key,
+            self._session_key,
             self.get_user_agent(),
             str(self.get_ip()),
         )
@@ -97,14 +92,10 @@ class AuditMonitor:
 
     def get_ip(self) -> IPv4Address | IPv6Address:
         """Get the IP address from the request."""
-        if self.ip is None:
-            self.ip = get_ip_from_request(self._request)
         return self.ip
 
     def get_user_agent(self) -> str:
         """Get the User-Agent from the request."""
-        if self.user_agent is None:
-            self.user_agent = get_user_agent_from_request(self._request)
         return self.user_agent
 
     async def get_proc_enabled(self) -> bool:

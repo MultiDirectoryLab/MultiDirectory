@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncIterator
+from typing import AsyncIterator, ClassVar
 
 import backoff
 from dishka import AsyncContainer
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
 from config import Settings
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos.exceptions import (
@@ -48,19 +48,6 @@ from .utils import KerberosState, get_krb_server_state, set_state
 
 class KerberosService(AbstractService):
     """Kerberos business logic coordinator for KDC and LDAP operations."""
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.setup_krb_catalogue.__name__: ApiPermissionsType.KRB_SETUP_CATALOGUE,  # noqa: E501
-            cls.setup_kdc.__name__: ApiPermissionsType.KRB_SETUP_KDC,
-            cls.ktadd.__name__: ApiPermissionsType.KRB_KTADD,
-            cls.get_status.__name__: ApiPermissionsType.KRB_GET_STATUS,
-            cls.add_principal.__name__: ApiPermissionsType.KRB_ADD_PRINCIPAL,
-            cls.rename_principal.__name__: ApiPermissionsType.KRB_RENAME_PRINCIPAL,  # noqa: E501
-            cls.reset_principal_pw.__name__: ApiPermissionsType.KRB_RESET_PRINCIPAL_PW,  # noqa: E501
-            cls.delete_principal.__name__: ApiPermissionsType.KRB_DELETE_PRINCIPAL,  # noqa: E501
-        }
 
     def __init__(
         self,
@@ -455,3 +442,14 @@ class KerberosService(AbstractService):
         if server_state is False and db_state == KerberosState.READY:
             return KerberosState.WAITING_FOR_RELOAD
         return db_state
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        setup_krb_catalogue.__name__: AuthoruzationRules.KRB_SETUP_CATALOGUE,
+        setup_kdc.__name__: AuthoruzationRules.KRB_SETUP_KDC,
+        ktadd.__name__: AuthoruzationRules.KRB_KTADD,
+        get_status.__name__: AuthoruzationRules.KRB_GET_STATUS,
+        add_principal.__name__: AuthoruzationRules.KRB_ADD_PRINCIPAL,
+        rename_principal.__name__: AuthoruzationRules.KRB_RENAME_PRINCIPAL,
+        reset_principal_pw.__name__: AuthoruzationRules.KRB_RESET_PRINCIPAL_PW,
+        delete_principal.__name__: AuthoruzationRules.KRB_DELETE_PRINCIPAL,
+    }

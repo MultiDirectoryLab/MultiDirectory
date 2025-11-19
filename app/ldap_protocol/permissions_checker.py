@@ -3,7 +3,7 @@
 from functools import wraps
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.identity import IdentityProvider
 
 _P = ParamSpec("_P")
@@ -25,19 +25,19 @@ class ApiPermissionsChecker:
         """
         self._idp = identity_provider
 
-    async def _has_permission(self, permission: ApiPermissionsType) -> bool:
+    async def _has_permission(self, permission: AuthoruzationRules) -> bool:
         """Check if current user has permission.
 
-        :param ApiPermissionsType permission: permission to check
+        :param AuthoruzationRules permission: permission to check
         :return: bool
         """
         user = await self._idp.get_current_user()
         return permission in user.api_permissions
 
-    async def check_permission(self, permission: ApiPermissionsType) -> None:
+    async def check_permission(self, permission: AuthoruzationRules) -> None:
         """Check if current user has permission, raise error if not.
 
-        :param ApiPermissionsType permission: permission to check
+        :param AuthoruzationRules permission: permission to check
         :raises ApiPermissionError: if user does not have permission
         :return: None
         """
@@ -48,7 +48,7 @@ class ApiPermissionsChecker:
 
     def wrap_use_case(
         self,
-        permission_name: ApiPermissionsType,
+        permission_name: AuthoruzationRules,
         func: Callable[_P, Awaitable[_R]],
     ) -> Callable[_P, Awaitable[_R]]:
         @wraps(func)

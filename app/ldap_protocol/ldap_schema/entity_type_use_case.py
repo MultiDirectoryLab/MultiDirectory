@@ -4,9 +4,10 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import ClassVar
 from abstract_service import AbstractService
 from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
-from enums import ApiPermissionsType
+from enums import AuthoruzationRules
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -19,17 +20,6 @@ from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 class EntityTypeUseCase(AbstractService):
     """Entity Use Case."""
-
-    @classmethod
-    def _usecase_api_permissions(cls) -> dict[str, ApiPermissionsType]:
-        return {
-            cls.get.__name__: ApiPermissionsType.ENTITY_TYPE_GET,
-            cls.create.__name__: ApiPermissionsType.ENTITY_TYPE_CREATE,
-            cls.get_paginator.__name__: ApiPermissionsType.ENTITY_TYPE_GET_PAGINATOR,  # noqa: E501
-            cls.update.__name__: ApiPermissionsType.ENTITY_TYPE_UPDATE,
-            cls.delete_all_by_names.__name__: ApiPermissionsType.ENTITY_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
-            cls.get_entity_type_attributes.__name__: ApiPermissionsType.ENTITY_TYPE_GET_ATTRIBUTES,  # noqa: E501
-        }
 
     def __init__(
         self,
@@ -109,3 +99,12 @@ class EntityTypeUseCase(AbstractService):
                     is_system=True,
                 ),
             )
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        get.__name__: AuthoruzationRules.ENTITY_TYPE_GET,
+        create.__name__: AuthoruzationRules.ENTITY_TYPE_CREATE,
+        get_paginator.__name__: AuthoruzationRules.ENTITY_TYPE_GET_PAGINATOR,
+        update.__name__: AuthoruzationRules.ENTITY_TYPE_UPDATE,
+        delete_all_by_names.__name__: AuthoruzationRules.ENTITY_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
+        get_entity_type_attributes.__name__: AuthoruzationRules.ENTITY_TYPE_GET_ATTRIBUTES,  # noqa: E501
+    }
