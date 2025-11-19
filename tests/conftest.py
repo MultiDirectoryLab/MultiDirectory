@@ -52,6 +52,10 @@ from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
+from api.password_policy.adapter import (
+    PasswordBanWordsFastAPIAdapter,
+    PasswordPolicyFastAPIAdapter,
+)
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
@@ -122,7 +126,11 @@ from ldap_protocol.policies.password import (
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.ban_word_repository import (
+    PasswordBanWordRepository,
+)
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
+from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -290,6 +298,11 @@ class TestProvider(Provider):
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
+    password_ban_word_repository = provide(
+        PasswordBanWordRepository,
+        scope=Scope.REQUEST,
+    )
+    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
     password_policy_validator = provide(
         PasswordPolicyValidator,
@@ -299,8 +312,20 @@ class TestProvider(Provider):
         PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )
-    password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
+    password_policies_adapter = provide(
+        PasswordPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    password_ban_words_use_cases = provide(
+        PasswordBanWordUseCases,
+        scope=Scope.REQUEST,
+    )
+    password_ban_words_adapter = provide(
+        PasswordBanWordsFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
+
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
@@ -773,9 +798,11 @@ async def setup_session(
         PasswordValidatorSettings(),
         password_validator,
     )
+    password_ban_word_repository = PasswordBanWordRepository(session)
     password_use_cases = PasswordPolicyUseCases(
         password_policy_dao,
         password_policy_validator,
+        password_ban_word_repository,
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
     await audit_use_case.create_policies()
@@ -871,12 +898,38 @@ async def password_policy_dao(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def password_ban_word_repository(
+    container: AsyncContainer,
+) -> AsyncIterator[PasswordBanWordRepository]:
+    """Get password ban word repository."""
+    async with container(scope=Scope.APP) as container:
+        session = await container.get(AsyncSession)
+        yield PasswordBanWordRepository(session)
+
+
+@pytest_asyncio.fixture(scope="function")
 async def password_validator(
     container: AsyncContainer,
 ) -> AsyncIterator[PasswordValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         yield PasswordValidator()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def password_policy_use_cases(
+    container: AsyncContainer,
+    password_policy_dao: PasswordPolicyDAO,
+    password_ban_word_repository: PasswordBanWordRepository,
+    password_policy_validator: PasswordPolicyValidator,
+) -> AsyncIterator[PasswordPolicyUseCases]:
+    """Get session and acquire after completion."""
+    async with container(scope=Scope.APP) as container:
+        yield PasswordPolicyUseCases(
+            password_policy_dao,
+            password_policy_validator,
+            password_ban_word_repository,
+        )
 
 
 @pytest_asyncio.fixture(scope="function")

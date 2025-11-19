@@ -76,14 +76,3 @@ async def test_reset_domain_policy_to_default_config(
     response = await http_client.put("/password-policy/reset/domain_policy")
     assert response.status_code == status.HTTP_200_OK
     password_use_cases.reset_domain_policy_to_default_config.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_turnoff(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
-    """Test turnoff one Password Policy endpoint."""
-    response = await http_client.put("/password-policy/turnoff/1")
-    assert response.status_code == status.HTTP_200_OK
-    password_use_cases.turnoff.assert_called_once_with(1)

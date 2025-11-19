@@ -4,13 +4,18 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import io
+
 from adaptix.conversion import get_converter
-from fastapi import status
+from fastapi import UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from api.base_adapter import BaseAdapter
 from api.password_policy.schemas import PasswordPolicySchema, PriorityT
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
+    PasswordBanWordFileHasDuplicatesError,
+    PasswordBanWordWrongFileExtensionError,
     PasswordPolicyAgeDaysError,
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyBaseDnNotFoundError,
@@ -21,7 +26,10 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyPriorityError,
     PasswordPolicyUpdatePrioritiesError,
 )
-from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
+from ldap_protocol.policies.password.use_cases import (
+    PasswordBanWordUseCases,
+    PasswordPolicyUseCases,
+)
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 _convert_dto_to_schema = get_converter(
@@ -78,6 +86,51 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         """Reset domain Password Policy to default configuration."""
         await self._service.reset_domain_policy_to_default_config()
 
-    async def turnoff(self, id_: int) -> None:
-        """Turn off one Password Policy."""
-        await self._service.turnoff(id_)
+
+class PasswordBanWordsFastAPIAdapter(BaseAdapter[PasswordBanWordUseCases]):
+    """Adapter for password ban words."""
+
+    _exceptions_map: dict[type[Exception], int] = {
+        PasswordBanWordWrongFileExtensionError: status.HTTP_400_BAD_REQUEST,
+        PasswordBanWordFileHasDuplicatesError: status.HTTP_409_CONFLICT,
+    }
+
+    async def upload_ban_words_txt(self, file: UploadFile) -> None:
+        if (
+            file
+            and file.filename
+            and not file.filename.lower().endswith(".txt")
+        ):
+            raise PasswordBanWordWrongFileExtensionError(
+                "Only '.txt' files are allowed",
+            )
+
+        content = await file.read()
+        lines = content.decode("utf-8").splitlines()
+        ban_words = self._service.filter_ban_words(lines)
+        await self._service.replace_all_ban_words(ban_words)
+
+    async def download_ban_words_txt(self) -> StreamingResponse:
+        """Download all ban words as a .txt file, each word on a new line.
+
+        \f
+        Args:
+            password_ban_word_adapter (FromDishka[PasswordBanWordsAdapter]):
+            Ban Words adapter.
+
+        Returns:
+            StreamingResponse: Streaming response containing the .txt file with
+            ban words.
+
+        """
+        ban_words = await self._service.get_all()
+        file_content = "\n".join(ban_words)
+
+        file_like = io.BytesIO(file_content.encode("utf-8"))
+        return StreamingResponse(
+            file_like,
+            media_type="text/plain",
+            headers={
+                "Content-Disposition": "attachment; filename=ban_words.txt",
+            },
+        )

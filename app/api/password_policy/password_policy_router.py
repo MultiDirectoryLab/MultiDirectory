@@ -1,4 +1,4 @@
-"""Password Policy routers.
+"""Password Policy router.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -65,12 +65,3 @@ async def reset_domain_policy_to_default_config(
 ) -> None:
     """Reset domain Password Policy to default configuration."""
     await adapter.reset_domain_policy_to_default_config()
-
-
-@password_policy_router.put("/turnoff/{id_}")
-async def turnoff(
-    id_: int,
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> None:
-    """Turn off one Password Policy."""
-    await adapter.turnoff(id_)

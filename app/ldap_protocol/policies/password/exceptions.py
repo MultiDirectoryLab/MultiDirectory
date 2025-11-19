@@ -43,3 +43,19 @@ class PasswordPolicyPriorityError(PasswordPolicyBaseError):
 
 class PasswordPolicyAgeDaysError(PasswordPolicyBaseError):
     """Exception raised when the age days are invalid."""
+
+
+class PasswordBanWordError(Exception):
+    """Base exception class for password policy service errors."""
+
+
+class PasswordBanWordFileHasDuplicatesError(PasswordBanWordError):
+    """Exception raised when a ban word already exists."""
+
+
+class PasswordBanWordTooLongError(PasswordBanWordError):
+    """Exception raised when a ban word too long."""
+
+
+class PasswordBanWordWrongFileExtensionError(PasswordBanWordError):
+    """Exception raised when a ban words file has wrong extension."""
