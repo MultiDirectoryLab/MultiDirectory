@@ -7,7 +7,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 import pytest_asyncio
 
-from enums import AuditDestinationProtocolType, AuditDestinationServiceType
+from enums import (
+    AuditDestinationProtocolType,
+    AuditDestinationServiceType,
+    ErrorCode,
+)
 from ldap_protocol.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
@@ -66,8 +70,10 @@ async def test_service_update_audit_policy_with_non_existing_id(
     with pytest.raises(
         AuditNotFoundError,
         match=f"Policy with id {possible_id} not found.",
-    ):
+    ) as exc_info:
         await audit_service.update_policy(possible_id, new_policy)
+
+    assert exc_info.value._code == ErrorCode.AUDIT_NOT_FOUND  # type: ignore # noqa: SLF001
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -155,8 +161,10 @@ async def test_service_create_existing_audit_destination(
     with pytest.raises(
         AuditAlreadyExistsError,
         match="Audit destination already exists",
-    ):
+    ) as exc_info:
         await audit_service.create_destination(audit_destination)
+
+    assert exc_info.value._code == ErrorCode.AUDIT_ALREADY_EXISTS  # type: ignore # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -171,11 +179,13 @@ async def test_service_update_non_existing_audit_destination(
     with pytest.raises(
         AuditNotFoundError,
         match=f"Destination with id {provision_id} not found.",
-    ):
+    ) as exc_info:
         await audit_service.update_destination(
             provision_id,
             audit_destination,
         )
+
+    assert exc_info.value._code == ErrorCode.AUDIT_NOT_FOUND  # type: ignore # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -189,5 +199,7 @@ async def test_service_delete_non_existing_audit_destination(
     with pytest.raises(
         AuditNotFoundError,
         match=f"Destination with id {audit_destination.id + 1} not found.",
-    ):
+    ) as exc_info:
         await audit_service.delete_destination(audit_destination.id + 1)
+
+    assert exc_info.value._code == ErrorCode.AUDIT_NOT_FOUND  # type: ignore # noqa: SLF001

@@ -19,6 +19,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from config import Settings
+from enums import ErrorCode
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions.auth import UnauthorizedError
 from ldap_protocol.identity.identity_provider import IdentityProvider
@@ -252,11 +253,15 @@ async def test_identity_provider_errors(settings: Settings) -> None:
     with pytest.raises(
         UnauthorizedError,
         match="Could not validate credentials",
-    ):
+    ) as exc_info:
         await idp.get_user_id()
+
+    assert exc_info.value._code == ErrorCode.UNAUTHORIZED  # type: ignore # noqa: SLF001
 
     with pytest.raises(
         UnauthorizedError,
         match="Could not validate credentials",
-    ):
+    ) as exc_info2:
         await idp.get(123)
+
+    assert exc_info2.value._code == ErrorCode.UNAUTHORIZED  # type: ignore # noqa: SLF001
