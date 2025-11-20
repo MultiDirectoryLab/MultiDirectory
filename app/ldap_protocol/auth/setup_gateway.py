@@ -11,15 +11,7 @@ from loguru import logger
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import (
-    Attribute,
-    Directory,
-    Group,
-    NetworkPolicy,
-    User,
-    UserApiPermissions,
-)
-from enums import AuthoruzationRules
+from entities import Attribute, Directory, Group, NetworkPolicy, User
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
@@ -61,7 +53,6 @@ class SetupGateway:
         self,
         *,
         data: list,
-        username: str,
         dn: str = "multifactor.dev",
     ) -> None:
         """Create directories and users for enviroment."""
@@ -112,7 +103,6 @@ class SetupGateway:
                     domain,
                     domain,
                 )
-            await self.create_api_permissions(username)
 
         except Exception:
             import traceback
@@ -241,18 +231,3 @@ class SetupGateway:
             ),
         )
         return retval.one()
-
-    async def create_api_permissions(self, username: str) -> None:
-        user_id = await self._session.scalar(
-            select(qa(User.id))
-            .where(qa(User.sam_account_name) == username),
-        )  # fmt: skip
-
-        if user_id:
-            self._session.add(
-                UserApiPermissions(
-                    user_id=user_id,
-                    permissions=[perm for perm in AuthoruzationRules],
-                ),
-            )
-            await self._session.flush()

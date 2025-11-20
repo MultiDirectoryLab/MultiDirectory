@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
 from entities import NetworkPolicy
-from enums import AuthoruzationRules
+from enums import AuthorizationRules
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -189,11 +189,11 @@ class NetworkPolicyUseCase(AbstractService):
             priority2=policy2.priority,
         )
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
-        create.__name__: AuthoruzationRules.NETWORK_POLICY_CREATE,
-        get_list_policies.__name__: AuthoruzationRules.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
-        delete.__name__: AuthoruzationRules.NETWORK_POLICY_DELETE,
-        switch_network_policy.__name__: AuthoruzationRules.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
-        update.__name__: AuthoruzationRules.NETWORK_POLICY_UPDATE,
-        swap_priorities.__name__: AuthoruzationRules.NETWORK_POLICY_SWAP_PRIORITIES,  # noqa: E501
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        create.__name__: AuthorizationRules.NETWORK_POLICY_CREATE,
+        get_list_policies.__name__: AuthorizationRules.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
+        delete.__name__: AuthorizationRules.NETWORK_POLICY_DELETE,
+        switch_network_policy.__name__: AuthorizationRules.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
+        update.__name__: AuthorizationRules.NETWORK_POLICY_UPDATE,
+        swap_priorities.__name__: AuthorizationRules.NETWORK_POLICY_SWAP_PRIORITIES,  # noqa: E501
     }

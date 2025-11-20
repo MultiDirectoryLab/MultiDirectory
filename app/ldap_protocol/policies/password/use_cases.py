@@ -8,7 +8,7 @@ from typing import ClassVar, Iterable
 
 from abstract_service import AbstractService
 from entities import User
-from enums import AuthoruzationRules
+from enums import AuthorizationRules
 from ldap_protocol.permissions_checker import ApiPermissionsChecker
 from ldap_protocol.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
@@ -284,15 +284,15 @@ class PasswordPolicyUseCases(AbstractService):
 
         return bool(pwd_last_set == "0" or is_pwd_expired)  # noqa: S105
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
-        get_all.__name__: AuthoruzationRules.PASSWORD_POLICY_GET_ALL,
-        get.__name__: AuthoruzationRules.PASSWORD_POLICY_GET,
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get_all.__name__: AuthorizationRules.PASSWORD_POLICY_GET_ALL,
+        get.__name__: AuthorizationRules.PASSWORD_POLICY_GET,
         get_password_policy_by_dir_path_dn.__name__: (
-            AuthoruzationRules.PASSWORD_POLICY_GET_BY_DIR
+            AuthorizationRules.PASSWORD_POLICY_GET_BY_DIR
         ),
-        update.__name__: AuthoruzationRules.PASSWORD_POLICY_UPDATE,
+        update.__name__: AuthorizationRules.PASSWORD_POLICY_UPDATE,
         reset_domain_policy_to_default_config.__name__: (
-            AuthoruzationRules.PASSWORD_POLICY_RESET_DOMAIN_POLICY
+            AuthorizationRules.PASSWORD_POLICY_RESET_DOMAIN_POLICY
         ),
     }
 
@@ -330,9 +330,9 @@ class PasswordBanWordUseCases(AbstractService):
 
         return res
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
-        get_all.__name__: AuthoruzationRules.PASSWORD_BAN_WORD_GET_ALL,
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get_all.__name__: AuthorizationRules.PASSWORD_BAN_WORD_GET_ALL,
         replace_all_ban_words.__name__: (
-            AuthoruzationRules.PASSWORD_BAN_WORD_REPLACE_ALL
+            AuthorizationRules.PASSWORD_BAN_WORD_REPLACE_ALL
         ),
     }

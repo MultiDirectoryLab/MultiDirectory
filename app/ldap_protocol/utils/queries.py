@@ -43,10 +43,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
     :param str name: any name: dn, email or upn
     :return User | None: user from db
     """
-    options = [
-        selectinload(qa(User.groups)).selectinload(qa(Group.roles)),
-        joinedload(qa(User.api_permissions)),
-    ]
+    options = [selectinload(qa(User.groups)).selectinload(qa(Group.roles))]
 
     if "=" not in name:
         if EMAIL_RE.fullmatch(name):

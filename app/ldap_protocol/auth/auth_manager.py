@@ -7,14 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv6Address
 from typing import ClassVar
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_service import AbstractService
 from config import Settings
-from entities import Directory, Group, User
-from enums import AuthoruzationRules, MFAFlags
+from entities import User
+from enums import AuthorizationRules, MFAFlags
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.mfa_manager import MFAManager
 from ldap_protocol.auth.schemas import LoginDTO, OAuth2Form
@@ -43,7 +42,6 @@ from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import get_user
 from password_manager import PasswordValidator
-from repo.pg.tables import queryable_attr as qa
 
 
 class AuthManager(AbstractService):
@@ -129,23 +127,18 @@ class AuthManager(AbstractService):
         if not user:
             raise UnauthorizedError("Incorrect username or password")
 
-        query = (
-            select(Group)
-            .join(qa(Group.users))
-            .join(qa(Group.directory))
-            .filter(
-                qa(User.id) == user.id,
-                qa(Directory.name) == "domain admins",
-            )
-            .limit(1)
-            .exists()
-        )
-        is_part_of_admin_group = (
-            await self._session.scalars(select(query))
-        ).one()
+        perms = [
+            r.web_permissions
+            for group in user.groups
+            for r in group.roles
+            if r.web_permissions
+        ]
+        full_mask = AuthorizationRules(0)
+        for rule in perms:
+            full_mask |= rule
 
-        if not is_part_of_admin_group:
-            raise LoginFailedError("User not part of domain admins")
+        if not (full_mask & AuthorizationRules.AUTH_LOGIN):
+            raise LoginFailedError("User is not allowed to log in")
 
         uac_check = await get_check_uac(self._session, user.directory_id)
 
@@ -343,6 +336,6 @@ class AuthManager(AbstractService):
         """
         self._identity_provider.set_new_session_key(key)
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
-        reset_password.__name__: AuthoruzationRules.AUTH_RESET_PASSWORD,
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        reset_password.__name__: AuthorizationRules.AUTH_RESET_PASSWORD,
     }

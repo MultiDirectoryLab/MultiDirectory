@@ -39,6 +39,17 @@ TEST_DATA = [
                 },
             },
             {
+                "name": "admin login only",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["admin login only"],
+                    "sAMAccountType": ["268435456"],
+                },
+            },
+            {
                 "name": "domain users",
                 "object_class": "group",
                 "attributes": {
@@ -138,7 +149,7 @@ TEST_DATA = [
                     "display_name": "user_admin_for_roles",
                     "password": "password",
                     "groups": [
-                        "domain admins",
+                        "admin login only",
                     ],
                 },
                 "attributes": {

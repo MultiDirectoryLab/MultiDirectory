@@ -154,6 +154,7 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
             creator_upn=dto.creator_upn,
             is_system=dto.is_system,
             groups=groups,
+            web_permissions=dto.web_permissions,
             access_control_entries=[],
         )
         self._session.add(role)

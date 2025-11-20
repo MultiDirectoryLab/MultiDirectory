@@ -8,7 +8,7 @@ from typing import ClassVar
 
 from abstract_service import AbstractService
 from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
-from enums import AuthoruzationRules
+from enums import AuthorizationRules
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -101,11 +101,11 @@ class EntityTypeUseCase(AbstractService):
                 ),
             )
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
-        get.__name__: AuthoruzationRules.ENTITY_TYPE_GET,
-        create.__name__: AuthoruzationRules.ENTITY_TYPE_CREATE,
-        get_paginator.__name__: AuthoruzationRules.ENTITY_TYPE_GET_PAGINATOR,
-        update.__name__: AuthoruzationRules.ENTITY_TYPE_UPDATE,
-        delete_all_by_names.__name__: AuthoruzationRules.ENTITY_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
-        get_entity_type_attributes.__name__: AuthoruzationRules.ENTITY_TYPE_GET_ATTRIBUTES,  # noqa: E501
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get.__name__: AuthorizationRules.ENTITY_TYPE_GET,
+        create.__name__: AuthorizationRules.ENTITY_TYPE_CREATE,
+        get_paginator.__name__: AuthorizationRules.ENTITY_TYPE_GET_PAGINATOR,
+        update.__name__: AuthorizationRules.ENTITY_TYPE_UPDATE,
+        delete_all_by_names.__name__: AuthorizationRules.ENTITY_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
+        get_entity_type_attributes.__name__: AuthorizationRules.ENTITY_TYPE_GET_ATTRIBUTES,  # noqa: E501
     }

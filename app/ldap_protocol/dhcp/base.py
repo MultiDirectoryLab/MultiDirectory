@@ -12,7 +12,7 @@ import httpx
 from loguru import logger as loguru_logger
 
 from abstract_service import AbstractService
-from enums import AuthoruzationRules
+from enums import AuthorizationRules
 
 from .dataclasses import (
     DHCPLease,
@@ -212,20 +212,20 @@ class AbstractDHCPManager(AbstractService):
         subnet_id: int,
     ) -> list[DHCPReservation]: ...
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
-        change_state.__name__: AuthoruzationRules.DHCP_CHANGE_STATE,
-        get_state.__name__: AuthoruzationRules.DHCP_GET_STATE,
-        create_subnet.__name__: AuthoruzationRules.DHCP_CREATE_SUBNET,
-        delete_subnet.__name__: AuthoruzationRules.DHCP_DELETE_SUBNET,
-        get_subnets.__name__: AuthoruzationRules.DHCP_GET_SUBNETS,
-        update_subnet.__name__: AuthoruzationRules.DHCP_UPDATE_SUBNET,
-        create_lease.__name__: AuthoruzationRules.DHCP_CREATE_LEASE,
-        release_lease.__name__: AuthoruzationRules.DHCP_RELEASE_LEASE,
-        list_active_leases.__name__: AuthoruzationRules.DHCP_LIST_ACTIVE_LEASES,  # noqa: E501
-        find_lease.__name__: AuthoruzationRules.DHCP_FIND_LEASE,
-        lease_to_reservation.__name__: AuthoruzationRules.DHCP_LEASE_TO_RESERVATION,  # noqa: E501
-        add_reservation.__name__: AuthoruzationRules.DHCP_ADD_RESERVATION,
-        get_reservations.__name__: AuthoruzationRules.DHCP_GET_RESERVATIONS,
-        update_reservation.__name__: AuthoruzationRules.DHCP_UPDATE_RESERVATION,  # noqa: E501
-        delete_reservation.__name__: AuthoruzationRules.DHCP_DELETE_RESERVATION,  # noqa: E501
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        change_state.__name__: AuthorizationRules.DHCP_CHANGE_STATE,
+        get_state.__name__: AuthorizationRules.DHCP_GET_STATE,
+        create_subnet.__name__: AuthorizationRules.DHCP_CREATE_SUBNET,
+        delete_subnet.__name__: AuthorizationRules.DHCP_DELETE_SUBNET,
+        get_subnets.__name__: AuthorizationRules.DHCP_GET_SUBNETS,
+        update_subnet.__name__: AuthorizationRules.DHCP_UPDATE_SUBNET,
+        create_lease.__name__: AuthorizationRules.DHCP_CREATE_LEASE,
+        release_lease.__name__: AuthorizationRules.DHCP_RELEASE_LEASE,
+        list_active_leases.__name__: AuthorizationRules.DHCP_LIST_ACTIVE_LEASES,  # noqa: E501
+        find_lease.__name__: AuthorizationRules.DHCP_FIND_LEASE,
+        lease_to_reservation.__name__: AuthorizationRules.DHCP_LEASE_TO_RESERVATION,  # noqa: E501
+        add_reservation.__name__: AuthorizationRules.DHCP_ADD_RESERVATION,
+        get_reservations.__name__: AuthorizationRules.DHCP_GET_RESERVATIONS,
+        update_reservation.__name__: AuthorizationRules.DHCP_UPDATE_RESERVATION,  # noqa: E501
+        delete_reservation.__name__: AuthorizationRules.DHCP_DELETE_RESERVATION,  # noqa: E501
     }

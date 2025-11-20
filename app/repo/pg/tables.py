@@ -51,7 +51,6 @@ from entities import (
     PasswordPolicy,
     Role,
     User,
-    UserApiPermissions,
 )
 from enums import (
     AceType,
@@ -62,7 +61,7 @@ from enums import (
     MFAFlags,
     RoleScope,
 )
-from repo.pg.types import ApiPermissionsArray
+from repo.pg.types import ApiPermissionsType
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
@@ -233,24 +232,6 @@ users_table = Table(
     Index("idx_User_upn_gin", "user_principal_name", postgresql_using="gin"),
     Index("idx_user_hash_dir_id", "directory_id", postgresql_using="hash"),
 )
-
-
-user_api_permissions_table = Table(
-    "UserApiPermissions",
-    metadata,
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("Users.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "permissions",
-        ApiPermissionsArray,
-        server_default="{}",
-    ),
-)
-
 
 directory_memberships_table = Table(
     "DirectoryMemberships",
@@ -520,6 +501,7 @@ roles_table = Table(
         nullable=False,
         key="created_at",
     ),
+    Column("web_permissions", ApiPermissionsType, nullable=True),
 )
 
 access_control_entries_table = Table(
@@ -844,28 +826,11 @@ mapper_registry.map_imperatively(
             lazy="raise",
             overlaps="group,groups,directory",
         ),
-        "api_permissions": relationship(
-            UserApiPermissions,
-            lazy="raise",
-            uselist=False,
-        ),
         "samaccountname": synonym("sam_account_name"),
         "userprincipalname": synonym("user_principal_name"),
         "displayname": synonym("display_name"),
         "uid": synonym("sam_account_name"),
         "accountexpires": synonym("account_exp"),
-    },
-)
-
-mapper_registry.map_imperatively(
-    UserApiPermissions,
-    user_api_permissions_table,
-    properties={
-        "user": relationship(
-            User,
-            back_populates="api_permissions",
-            lazy="raise",
-        ),
     },
 )
 

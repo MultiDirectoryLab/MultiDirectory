@@ -61,6 +61,7 @@ from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
+from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.auth import AuthManager, MFAManager
 from ldap_protocol.auth.setup_gateway import SetupGateway
@@ -129,6 +130,7 @@ from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.dataclasses import RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler
@@ -830,15 +832,7 @@ async def setup_session(
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
     await audit_use_case.create_policies()
-    await setup_gateway.setup_enviroment(
-        dn="md.test",
-        data=TEST_DATA,
-        username="user0",
-    )
-    await setup_gateway.create_api_permissions("user_admin")
-    await setup_gateway.create_api_permissions("user_admin_1")
-    await setup_gateway.create_api_permissions("user_admin_2")
-    await setup_gateway.create_api_permissions("user_admin_3")
+    await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
@@ -847,6 +841,16 @@ async def setup_session(
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
     await role_use_case.create_domain_admins_role()
+
+    await role_use_case._role_dao.create(  # noqa: SLF001
+        dto=RoleDTO(
+            name="TEST ONLY LOGIN ROLE",
+            creator_upn=None,
+            is_system=True,
+            groups=["cn=admin login only,cn=groups,dc=md,dc=test"],
+            web_permissions=AuthorizationRules.AUTH_LOGIN,
+        ),
+    )
 
     session.add(
         AttributeType(

@@ -20,7 +20,7 @@ from starlette.datastructures import URL
 from abstract_service import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
-from enums import AuthoruzationRules, MFAChallengeStatuses, MFAFlags
+from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -383,8 +383,8 @@ class MFAManager(AbstractService):
         """Set a new session key."""
         self._identity_provider.set_new_session_key(key)
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
-        setup_mfa.__name__: AuthoruzationRules.MFA_SETUP,
-        remove_mfa.__name__: AuthoruzationRules.MFA_REMOVE,
-        get_mfa.__name__: AuthoruzationRules.MFA_GET,
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        setup_mfa.__name__: AuthorizationRules.MFA_SETUP,
+        remove_mfa.__name__: AuthorizationRules.MFA_REMOVE,
+        get_mfa.__name__: AuthorizationRules.MFA_GET,
     }

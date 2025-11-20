@@ -7,28 +7,33 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import Integer, TypeDecorator
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import String, TypeDecorator
 
-from enums import AuthoruzationRules
+from enums import AuthorizationRules
 
 
-class ApiPermissionsArray(TypeDecorator):
+class ApiPermissionsType(TypeDecorator):
     """Custom type for API permissions array."""
 
-    impl = ARRAY(Integer)
+    impl = String
     cache_ok = True
 
-    def process_result_value(self, value, dialect) -> list:  # type: ignore  # noqa: ARG002
-        """Convert strings to AuthoruzationRules enums when loading from DB."""
-        if value is None:
-            return []
-        return [AuthoruzationRules(int(v)) for v in value]
+    def process_result_value(  # type: ignore
+        self,
+        value,
+        dialect,  # noqa: ARG002
+    ) -> AuthorizationRules | None:
+        """Convert strings to AuthorizationRules enums when loading from DB."""
+        if not value:
+            return None
+        return AuthorizationRules(int(value))
 
-    def process_bind_param(self, value, dialect) -> list:  # type: ignore  # noqa: ARG002
+    def process_bind_param(self, value, dialect) -> str | None:  # type: ignore  # noqa: ARG002
         """Convert enums to strings when saving to DB."""
-        if value is None:
-            return []
-        return [
-            v.value if isinstance(v, AuthoruzationRules) else v for v in value
-        ]
+        if not value:
+            return None
+        return (
+            str(value.value)
+            if isinstance(value, AuthorizationRules)
+            else str(value)
+        )

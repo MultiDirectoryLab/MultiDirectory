@@ -143,6 +143,7 @@ async def test_role_search_4(
         creds=creds,
         search_base=BASE_DN,
         expected_dn=[
+            "dn: cn=admin login only,cn=groups,dc=md,dc=test",
             "dn: cn=groups,dc=md,dc=test",
             "dn: cn=domain admins,cn=groups,dc=md,dc=test",
             "dn: cn=domain computers,cn=groups,dc=md,dc=test",

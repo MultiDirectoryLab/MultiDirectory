@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from config import Settings
 from entities import User
+from enums import AuthorizationRules
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
@@ -101,6 +102,20 @@ class IdentityProvider:
         user = await self.get(await self.get_user_id())
         await self.rekey_session()
         return user
+
+    async def get_current_user_api_permissions(
+        self,
+        user: UserSchema,
+    ) -> AuthorizationRules:
+        """Return the identifier of the current authenticated user.
+
+        Returns:
+            int: Identifier of the authenticated user.
+
+        """
+        return await self._identity_provider_gateway.get_user_web_permissions(
+            user.role_ids,
+        )
 
     async def get_user_id(self) -> int:
         """Return the user identifier stored in session metadata.

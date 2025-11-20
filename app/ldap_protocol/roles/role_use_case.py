@@ -9,7 +9,7 @@ from enum import StrEnum
 from sqlalchemy import and_, insert, literal, or_, select
 
 from entities import AccessControlEntry, AceType, Directory, Role
-from enums import RoleScope
+from enums import AuthorizationRules, RoleScope
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import (
     access_control_entries_table,
@@ -164,6 +164,7 @@ class RoleUseCase:
                 creator_upn=None,
                 is_system=True,
                 groups=[group_dn],
+                web_permissions=AuthorizationRules(sum(AuthorizationRules)),
             ),
         )
 

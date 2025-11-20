@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from abc import ABC
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from enums import AuthoruzationRules
+from enums import AuthorizationRules
 
 if TYPE_CHECKING:
     from ldap_protocol.permissions_checker import ApiPermissionsChecker
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class AbstractService(ABC):
     """Abstract Service/Manager base class."""
 
-    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]]
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]]
 
     def __getattribute__(self, name: str) -> Any:
         """Intercept attribute access."""

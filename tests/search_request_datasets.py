@@ -29,7 +29,7 @@ test_search_by_rule_anr_dataset = [
     {"filter": "(anr<=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr~=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr==user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
     {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=groups,dc=md,dc=test"]},  # noqa: E501

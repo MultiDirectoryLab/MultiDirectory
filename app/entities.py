@@ -17,7 +17,7 @@ from enums import (
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
-    AuthoruzationRules,
+    AuthorizationRules,
     KindType,
     MFAFlags,
     RoleScope,
@@ -357,7 +357,6 @@ class User:
     accountexpires: datetime | None = field(init=False)
 
     groups: list[Group] = field(default_factory=list, repr=False)
-    api_permissions: UserApiPermissions | None = field(repr=False, init=False)
 
     search_fields: ClassVar[dict[str, str]] = {
         "mail": "mail",
@@ -454,6 +453,7 @@ class Role:
         default_factory=list,
         repr=False,
     )
+    web_permissions: AuthorizationRules | None = None
 
 
 @dataclass
@@ -587,12 +587,3 @@ class DedicatedServer:
     domain_name: str
     use_tls: bool
     bind_type: Literal["SIMPLE", "GSSAPI"]
-
-
-@dataclass
-class UserApiPermissions:
-    """User permissions to UseCases."""
-
-    user_id: int
-    user: User = field(repr=False, init=False)
-    permissions: list[AuthoruzationRules]
