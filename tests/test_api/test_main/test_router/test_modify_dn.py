@@ -255,6 +255,9 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
             old_object_guid = attr["vals"][0]
             break
 
+        if attr["type"] == "cn":
+            assert attr["vals"] == ["user1"]
+
     response = await http_client.put(
         "/entry/update/dn",
         json={
@@ -289,6 +292,9 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
         if attr["type"] == "objectGUID":
             assert attr["vals"][0] == old_object_guid
             break
+
+        if attr["type"] == "cn":
+            assert attr["vals"] == ["new_test2"]
 
     response = await http_client.put(
         "/entry/update/dn",
