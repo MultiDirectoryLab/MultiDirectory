@@ -1,7 +1,7 @@
 """Add user api permissions.
 
 Revision ID: 7adbcd97d942
-Revises: f24ed0e49df2
+Revises: df4c52a613e5
 Create Date: 2025-11-07 15:15:36.727549
 
 """
@@ -18,7 +18,7 @@ from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "7adbcd97d942"
-down_revision: None | str = "f24ed0e49df2"
+down_revision: None | str = "df4c52a613e5"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 

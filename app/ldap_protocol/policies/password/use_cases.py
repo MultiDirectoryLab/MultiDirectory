@@ -329,3 +329,10 @@ class PasswordBanWordUseCases(AbstractService):
                 res.append(new_word)
 
         return res
+
+    PERMISSIONS: ClassVar[dict[str, AuthoruzationRules]] = {
+        get_all.__name__: AuthoruzationRules.PASSWORD_BAN_WORD_GET_ALL,
+        replace_all_ban_words.__name__: (
+            AuthoruzationRules.PASSWORD_BAN_WORD_REPLACE_ALL
+        ),
+    }

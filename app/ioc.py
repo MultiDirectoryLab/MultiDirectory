@@ -428,14 +428,6 @@ class MainProvider(Provider):
         PasswordBanWordUseCases,
         scope=Scope.REQUEST,
     )
-    password_ban_word_adapter = provide(
-        PasswordBanWordsFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
-    password_policies_adapter = provide(
-        PasswordPolicyFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
     password_validator_settings = provide(
         PasswordValidatorSettings,
         scope=Scope.REQUEST,
@@ -528,6 +520,10 @@ class HTTPProvider(LDAPContextProvider):
 
     password_policies_adapter = provide(
         PasswordPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    password_ban_word_adapter = provide(
+        PasswordBanWordsFastAPIAdapter,
         scope=Scope.REQUEST,
     )
     attribute_type_fastapi_adapter = provide(
