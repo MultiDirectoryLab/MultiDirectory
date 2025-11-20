@@ -171,4 +171,3 @@ class AuthorizationRules(IntFlag):
     SESSION_GET_USER_SESSIONS = auto()
     SESSION_CLEAR_USER_SESSIONS = auto()
     SESSION_DELETE = auto()
-
