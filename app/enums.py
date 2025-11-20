@@ -172,7 +172,3 @@ class AuthorizationRules(IntFlag):
     SESSION_CLEAR_USER_SESSIONS = auto()
     SESSION_DELETE = auto()
 
-    @property
-    def admin_role(self) -> int:
-        """Get admin role mask."""
-        return -1
