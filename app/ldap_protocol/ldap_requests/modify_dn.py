@@ -139,8 +139,7 @@ class ModifyDNRequest(BaseRequest):
         directory.name = new_name
 
         old_path = directory.path
-        old_attr_name = old_path[-1].split("=")[0]
-        new_path = directory.path[:-1] + [f"{new_dn}={new_name}"]
+        old_dn = old_path[-1].split("=")[0]
 
         old_depth = directory.depth
 
@@ -204,7 +203,7 @@ class ModifyDNRequest(BaseRequest):
                     update(Attribute)
                     .filter_by(
                         directory_id=directory.id,
-                        name=old_attr_name,
+                        name=old_dn,
                         value=old_name,
                     )
                     .values(name=new_dn, value=new_name),
@@ -219,6 +218,7 @@ class ModifyDNRequest(BaseRequest):
                 )
             await ctx.session.flush()
 
+            new_path = directory.path[:-1] + [f"{new_dn}={new_name}"]
             if old_path != new_path:
                 update_query = (
                     update(Directory)
