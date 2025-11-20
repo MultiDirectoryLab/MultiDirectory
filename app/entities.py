@@ -153,16 +153,33 @@ class PasswordPolicy:
     id: int = field(init=False)
 
     name: str
+    language: str
     priority: int
 
+    is_exact_match: bool
     history_length: int
 
     min_age_days: int
     max_age_days: int
 
     min_length: int
+    max_length: int
 
-    password_must_meet_complexity_requirements: bool
+    min_lowercase_letters_count: int
+    min_uppercase_letters_count: int
+
+    min_special_symbols_count: int
+    min_digits_count: int
+    min_unique_symbols_count: int
+    max_repeating_symbols_in_row_count: int
+
+    max_sequential_keyboard_symbols_count: int
+    max_sequential_alphabet_symbols_count: int
+
+    max_failed_attempts: int
+    failed_attempts_reset_sec: int
+    lockout_duration_sec: int
+    fail_delay_sec: int
 
     groups: list[Group] = field(default_factory=list, repr=False)
 
@@ -547,6 +564,13 @@ class AuditDestination:
     is_enabled: bool = True
     host: str = ""
     port: int = 0
+
+
+@dataclass
+class PasswordBanWord:
+    """List of banned password words."""
+
+    word: str
 
 
 @dataclass

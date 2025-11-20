@@ -14,7 +14,7 @@ from .main.dns_router import dns_router
 from .main.krb5_router import krb5_router
 from .main.router import entry_router
 from .network.router import network_router
-from .password_policy.router import password_policy_router
+from .password_policy import password_ban_word_router, password_policy_router
 from .shadow.router import shadow_router
 
 __all__ = [
@@ -23,6 +23,7 @@ __all__ = [
     "session_router",
     "network_router",
     "mfa_router",
+    "password_ban_word_router",
     "password_policy_router",
     "ldap_schema_router",
     "dns_router",

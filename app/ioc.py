@@ -31,7 +31,10 @@ from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
-from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
+from api.password_policy.adapter import (
+    PasswordBanWordsFastAPIAdapter,
+    PasswordPolicyFastAPIAdapter,
+)
 from api.shadow.adapter import ShadowAdapter
 from config import Settings
 from ldap_protocol.auth import AuthManager, MFAManager
@@ -115,7 +118,11 @@ from ldap_protocol.policies.password import (
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
+from ldap_protocol.policies.password.ban_word_repository import (
+    PasswordBanWordRepository,
+)
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
+from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -413,11 +420,28 @@ class MainProvider(Provider):
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
+    password_ban_word_repository = provide(
+        PasswordBanWordRepository,
+        scope=Scope.REQUEST,
+    )
+    password_ban_word_use_cases = provide(
+        PasswordBanWordUseCases,
+        scope=Scope.REQUEST,
+    )
+    password_ban_word_adapter = provide(
+        PasswordBanWordsFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    password_policies_adapter = provide(
+        PasswordPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
     password_validator_settings = provide(
         PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )
     password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
+
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)

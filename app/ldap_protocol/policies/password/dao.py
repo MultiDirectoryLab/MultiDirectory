@@ -35,7 +35,6 @@ from .dataclasses import (
     DefaultDomainPasswordPolicyPreset as DefaultDomainP,
     PasswordPolicyDTO,
     PriorityT,
-    TurnoffPasswordPolicyPreset as TurnoffP,
 )
 
 
@@ -51,6 +50,10 @@ _convert_model_to_dto = get_converter(
         link_function(
             _make_group_paths,
             P[PasswordPolicyDTO[int, int]].group_paths,
+        ),
+        link_function(
+            lambda pp: pp.language,
+            P[PasswordPolicyDTO[int, int]].language,
         ),
     ],
 )
@@ -132,13 +135,27 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         group_paths = [base_dn_list[0].path_dn]
         return PasswordPolicyDTO[None, None](
             priority=None,
-            name=DefaultDomainP.name,
             group_paths=group_paths,
+            name=DefaultDomainP.name,
+            language=DefaultDomainP.language,
+            is_exact_match=DefaultDomainP.is_exact_match,
             history_length=DefaultDomainP.history_length,
             min_age_days=DefaultDomainP.min_age_days,
             max_age_days=DefaultDomainP.max_age_days,
             min_length=DefaultDomainP.min_length,
-            password_must_meet_complexity_requirements=DefaultDomainP.password_must_meet_complexity_requirements,
+            max_length=DefaultDomainP.max_length,
+            min_lowercase_letters_count=DefaultDomainP.min_lowercase_letters_count,
+            min_uppercase_letters_count=DefaultDomainP.min_uppercase_letters_count,
+            min_special_symbols_count=DefaultDomainP.min_special_symbols_count,
+            min_unique_symbols_count=DefaultDomainP.min_unique_symbols_count,
+            max_repeating_symbols_in_row_count=DefaultDomainP.max_repeating_symbols_in_row_count,
+            min_digits_count=DefaultDomainP.min_digits_count,
+            max_sequential_keyboard_symbols_count=DefaultDomainP.max_sequential_keyboard_symbols_count,
+            max_sequential_alphabet_symbols_count=DefaultDomainP.max_sequential_alphabet_symbols_count,
+            max_failed_attempts=DefaultDomainP.max_failed_attempts,
+            failed_attempts_reset_sec=DefaultDomainP.failed_attempts_reset_sec,
+            lockout_duration_sec=DefaultDomainP.lockout_duration_sec,
+            fail_delay_sec=DefaultDomainP.fail_delay_sec,
         )
 
     async def _is_policy_already_exist(self, name: str) -> bool:
@@ -205,13 +222,27 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         groups = await get_groups(dto.group_paths, self._session)
         password_policy = PasswordPolicy(
             priority=priority,
-            name=dto.name,
             groups=groups,
+            name=dto.name,
+            language=dto.language,
+            is_exact_match=dto.is_exact_match,
             history_length=dto.history_length,
             min_age_days=dto.min_age_days,
             max_age_days=dto.max_age_days,
             min_length=dto.min_length,
-            password_must_meet_complexity_requirements=dto.password_must_meet_complexity_requirements,
+            max_length=dto.max_length,
+            min_lowercase_letters_count=dto.min_lowercase_letters_count,
+            min_uppercase_letters_count=dto.min_uppercase_letters_count,
+            min_special_symbols_count=dto.min_special_symbols_count,
+            min_unique_symbols_count=dto.min_unique_symbols_count,
+            max_repeating_symbols_in_row_count=dto.max_repeating_symbols_in_row_count,
+            min_digits_count=dto.min_digits_count,
+            max_sequential_keyboard_symbols_count=dto.max_sequential_keyboard_symbols_count,
+            max_sequential_alphabet_symbols_count=dto.max_sequential_alphabet_symbols_count,
+            max_failed_attempts=dto.max_failed_attempts,
+            failed_attempts_reset_sec=dto.failed_attempts_reset_sec,
+            lockout_duration_sec=dto.lockout_duration_sec,
+            fail_delay_sec=dto.fail_delay_sec,
         )
         self._session.add(password_policy)
         await self._session.flush()
@@ -238,15 +269,41 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
                 "Cannot change the name of the default domain Password Policy.",  # noqa: E501
             )
 
+        domain_password_policy = await self.get_domain_password_policy()
+        priority = dto.priority or await self._get_total_count()
+        if domain_password_policy.priority < priority:
+            raise PasswordPolicyCantChangeDefaultDomainError(
+                "Domain Password Policy must have the lowest priority.",
+            )
+
+        if priority != policy.priority:
+            policy.priority = priority
+
+            await self._session.execute(
+                update(PasswordPolicy)
+                .values(priority=PasswordPolicy.priority + 1)
+                .where(priority <= qa(PasswordPolicy.priority)),
+            )  # fmt: skip
+
         policy.name = dto.name
         policy.groups = await get_groups(dto.group_paths, self._session)
         policy.history_length = dto.history_length
         policy.min_age_days = dto.min_age_days
         policy.max_age_days = dto.max_age_days
         policy.min_length = dto.min_length
-        policy.password_must_meet_complexity_requirements = (
-            dto.password_must_meet_complexity_requirements
-        )
+        policy.max_length = dto.max_length
+        policy.min_lowercase_letters_count = dto.min_lowercase_letters_count
+        policy.min_uppercase_letters_count = dto.min_uppercase_letters_count
+        policy.min_special_symbols_count = dto.min_special_symbols_count
+        policy.min_unique_symbols_count = dto.min_unique_symbols_count
+        policy.max_repeating_symbols_in_row_count = dto.max_repeating_symbols_in_row_count  # fmt: skip # noqa: E501
+        policy.min_digits_count = dto.min_digits_count
+        policy.max_sequential_keyboard_symbols_count = dto.max_sequential_keyboard_symbols_count  # fmt: skip # noqa: E501
+        policy.max_sequential_alphabet_symbols_count = dto.max_sequential_alphabet_symbols_count  # fmt: skip # noqa: E501
+        policy.max_failed_attempts = dto.max_failed_attempts
+        policy.failed_attempts_reset_sec = dto.failed_attempts_reset_sec
+        policy.lockout_duration_sec = dto.lockout_duration_sec
+        policy.fail_delay_sec = dto.fail_delay_sec
 
         await self._session.flush()
 
@@ -263,28 +320,28 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         dto = await self._build_default_domain_password_policy_dto()
 
-        domain_policy.name = dto.name
         domain_policy.priority = await self._get_total_count()
         domain_policy.groups = await get_groups(dto.group_paths, self._session)
+        domain_policy.name = dto.name
+        domain_policy.language = dto.language
+        domain_policy.is_exact_match = dto.is_exact_match
         domain_policy.history_length = dto.history_length
         domain_policy.min_age_days = dto.min_age_days
         domain_policy.max_age_days = dto.max_age_days
         domain_policy.min_length = dto.min_length
-        domain_policy.password_must_meet_complexity_requirements = (
-            dto.password_must_meet_complexity_requirements
-        )
-
-        await self._session.flush()
-
-    async def turnoff(self, id_: int) -> None:
-        """Turn off one Password Policy using TurnoffPasswordPolicyPreset."""
-        policy = await self._get_raw(id_)
-
-        policy.history_length = TurnoffP.history_length
-        policy.min_age_days = TurnoffP.min_age_days
-        policy.max_age_days = TurnoffP.max_age_days
-        policy.min_length = TurnoffP.min_length
-        policy.password_must_meet_complexity_requirements = TurnoffP.password_must_meet_complexity_requirements  # noqa: E501  # fmt: skip
+        domain_policy.max_length = dto.max_length
+        domain_policy.min_lowercase_letters_count = dto.min_lowercase_letters_count  # fmt: skip # noqa: E501
+        domain_policy.min_uppercase_letters_count = dto.min_uppercase_letters_count  # fmt: skip # noqa: E501
+        domain_policy.min_special_symbols_count = dto.min_special_symbols_count
+        domain_policy.min_unique_symbols_count = dto.min_unique_symbols_count
+        domain_policy.max_repeating_symbols_in_row_count = dto.max_repeating_symbols_in_row_count  # fmt: skip # noqa: E501
+        domain_policy.min_digits_count = dto.min_digits_count
+        domain_policy.max_sequential_keyboard_symbols_count = dto.max_sequential_keyboard_symbols_count  # fmt: skip # noqa: E501
+        domain_policy.max_sequential_alphabet_symbols_count = dto.max_sequential_alphabet_symbols_count  # fmt: skip # noqa: E501
+        domain_policy.max_failed_attempts = dto.max_failed_attempts
+        domain_policy.failed_attempts_reset_sec = dto.failed_attempts_reset_sec
+        domain_policy.lockout_duration_sec = dto.lockout_duration_sec
+        domain_policy.fail_delay_sec = dto.fail_delay_sec
 
         await self._session.flush()
 

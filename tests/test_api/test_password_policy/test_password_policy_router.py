@@ -171,33 +171,3 @@ async def test_reset_domain_policy_to_default_config(
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
     password_use_cases._perm_checker = None  # noqa: SLF001
     password_use_cases.reset_domain_policy_to_default_config.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_turnoff_with_error(
-    http_client_without_perms: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
-    """Test get one Password Policy endpoint."""
-    response = await http_client_without_perms.put(
-        "/password-policy/turnoff/1",
-    )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_checker = None  # noqa: SLF001
-    password_use_cases.turnoff.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_turnoff(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
-    """Test turnoff one Password Policy endpoint."""
-    response = await http_client.put("/password-policy/turnoff/1")
-    assert response.status_code == status.HTTP_200_OK
-
-    # NOTE to password_use_cases.get_all returned Mock, not wrapper
-    password_use_cases._perm_checker = None  # noqa: SLF001
-    password_use_cases.turnoff.assert_called_once_with(1)
