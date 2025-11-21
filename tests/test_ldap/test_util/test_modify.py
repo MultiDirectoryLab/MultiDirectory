@@ -765,6 +765,7 @@ async def test_ldap_modify_with_ap(
     ]
 
     assert attributes["jpegPhoto"] == ["modme.jpeg"]
+    assert directory.user
     assert directory.user.mail == "modme@student.of.life.edu"
 
     assert "posixEmail" not in attributes

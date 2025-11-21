@@ -1,4 +1,4 @@
-"""Auth utils.
+"""OAuth utils.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -6,7 +6,30 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address, ip_address
 
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import HTTPException, Request, status
+
+from api.auth.adapters import AuthFastAPIAdapter
+
+
+@inject
+async def verify_auth(
+    identity_adapter: FromDishka[AuthFastAPIAdapter],
+) -> None:
+    """Retrieve the currently authenticated user and rekey their session.
+
+    This function fetches the current user based on the request's
+    authentication credentials and rekeys the user's session
+    for security purposes.
+
+    Args:
+        identity_adapter (FromDishka[IdentityFastAPIAdapter]): The user adapter
+            instance injected from Dishka DI container, used for
+            user operations.
+
+    """
+    await identity_adapter.get_current_user()
 
 
 def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:

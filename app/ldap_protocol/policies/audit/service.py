@@ -4,9 +4,12 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import ClassVar
+
 from sqlalchemy.exc import IntegrityError
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
+from enums import AuthorizationRules
 
 from .dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from .destination_dao import AuditDestinationDAO
@@ -114,3 +117,12 @@ class AuditService(AbstractService):
 
         """
         await self._destination_dao.delete(destination_id)
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get_policies.__name__: AuthorizationRules.AUDIT_GET_POLICIES,
+        update_policy.__name__: AuthorizationRules.AUDIT_UPDATE_POLICY,
+        get_destinations.__name__: AuthorizationRules.AUDIT_GET_DESTINATIONS,
+        create_destination.__name__: AuthorizationRules.AUDIT_CREATE_DESTINATION,  # noqa: E501
+        delete_destination.__name__: AuthorizationRules.AUDIT_DELETE_DESTINATION,  # noqa: E501
+        update_destination.__name__: AuthorizationRules.AUDIT_UPDATE_DESTINATION,  # noqa: E501
+    }

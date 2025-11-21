@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncIterator
+from typing import AsyncIterator, ClassVar
 
 import backoff
 from dishka import AsyncContainer
@@ -12,10 +12,11 @@ from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
+from enums import AuthorizationRules
+from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos.exceptions import (
     KerberosBaseDnNotFoundError,
     KerberosDependencyError,
@@ -69,6 +70,7 @@ class KerberosService(AbstractService):
                 LDAP structure manager for Kerberos (IoC-injected).
             password_validator (PasswordValidator):
                 Password validator (IoC-injected).
+
 
         """
         self._session = session
@@ -441,3 +443,14 @@ class KerberosService(AbstractService):
         if server_state is False and db_state == KerberosState.READY:
             return KerberosState.WAITING_FOR_RELOAD
         return db_state
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        setup_krb_catalogue.__name__: AuthorizationRules.KRB_SETUP_CATALOGUE,
+        setup_kdc.__name__: AuthorizationRules.KRB_SETUP_KDC,
+        ktadd.__name__: AuthorizationRules.KRB_KTADD,
+        get_status.__name__: AuthorizationRules.KRB_GET_STATUS,
+        add_principal.__name__: AuthorizationRules.KRB_ADD_PRINCIPAL,
+        rename_principal.__name__: AuthorizationRules.KRB_RENAME_PRINCIPAL,
+        reset_principal_pw.__name__: AuthorizationRules.KRB_RESET_PRINCIPAL_PW,
+        delete_principal.__name__: AuthorizationRules.KRB_DELETE_PRINCIPAL,
+    }

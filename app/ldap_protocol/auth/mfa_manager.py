@@ -8,6 +8,7 @@ import operator
 import traceback
 import weakref
 from ipaddress import IPv4Address, IPv6Address
+from typing import ClassVar
 
 from jose import jwt
 from jose.exceptions import JWKError, JWTError
@@ -16,11 +17,11 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
-from enums import MFAChallengeStatuses, MFAFlags
-from ldap_protocol.identity.exceptions.mfa import (
+from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
+from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
     InvalidCredentialsError,
@@ -30,13 +31,13 @@ from ldap_protocol.identity.exceptions.mfa import (
     MissingMFACredentialsError,
     NetworkPolicyError,
 )
-from ldap_protocol.identity.identity_provider import IdentityProvider
-from ldap_protocol.identity.schemas import (
+from ldap_protocol.auth.schemas import (
     MFAChallengeResponse,
     MFACreateRequest,
     MFAGetResponse,
 )
-from ldap_protocol.identity.utils import get_user
+from ldap_protocol.auth.utils import get_user
+from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -381,3 +382,9 @@ class MFAManager(AbstractService):
     def set_new_session_key(self, key: str) -> None:
         """Set a new session key."""
         self._identity_provider.set_new_session_key(key)
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        setup_mfa.__name__: AuthorizationRules.MFA_SETUP,
+        remove_mfa.__name__: AuthorizationRules.MFA_REMOVE,
+        get_mfa.__name__: AuthorizationRules.MFA_GET,
+    }

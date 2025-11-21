@@ -8,13 +8,16 @@ from asyncio import iscoroutinefunction
 from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+from loguru import logger
 
-from abstract_dao import AbstractDAO, AbstractService
+from abstract_service import AbstractService
+from authorization_provider_protocol import AuthorizationProviderProtocol
+from ldap_protocol.permissions_checker import AuthorizationError
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
-_T = TypeVar("_T", bound=AbstractDAO | AbstractService)
+_T = TypeVar("_T", bound=AbstractService)
 
 
 class BaseAdapter(Protocol[_T]):
@@ -23,9 +26,14 @@ class BaseAdapter(Protocol[_T]):
     _exceptions_map: dict[type[Exception], int]
     _service: _T
 
-    def __init__(self, service: _T) -> None:
+    def __init__(
+        self,
+        service: _T,
+        perm_checker: AuthorizationProviderProtocol,
+    ) -> None:
         """Set service."""
         self._service = service
+        self._service.set_permissions_checker(perm_checker)
 
     def __new__(
         cls,
@@ -76,8 +84,12 @@ class BaseAdapter(Protocol[_T]):
         return instance
 
     def _reraise(self, exc: Exception) -> NoReturn:
-        code = self._exceptions_map.get(type(exc))
-
+        """Reraise exception with mapped HTTPException."""
+        exceptions_map = self._exceptions_map | {
+            AuthorizationError: status.HTTP_403_FORBIDDEN,
+        }
+        code = exceptions_map.get(type(exc))
+        logger.debug(f"Reraising exception {exc} with code {code}")
         if code is None:
             raise
 

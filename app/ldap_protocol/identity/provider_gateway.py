@@ -8,7 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from entities import Group, User
+from entities import Group, Role, User
+from enums import AuthorizationRules
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -42,3 +43,14 @@ class IdentityProviderGateway:
                 selectinload(qa(User.groups)).selectinload(qa(Group.roles)),
             ),
         )
+
+    async def get_user_permissions(
+        self,
+        role_ids: list[int],
+    ) -> AuthorizationRules:
+        permissions = await self.session.scalars(
+            select(qa(Role.permissions))
+            .where(qa(Role.id).in_(role_ids)),
+        )  # fmt: skip
+
+        return AuthorizationRules(sum(permissions))

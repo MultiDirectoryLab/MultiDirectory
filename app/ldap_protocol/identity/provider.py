@@ -4,14 +4,14 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abstract_dao import AbstractService
+from loguru import logger
+
 from config import Settings
 from entities import User
+from enums import AuthorizationRules
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.exceptions.auth import UnauthorizedError
-from ldap_protocol.identity.identity_provider_gateway import (
-    IdentityProviderGateway,
-)
+from ldap_protocol.identity.exceptions import UnauthorizedError
+from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.session_storage.base import SessionStorage
 from ldap_protocol.session_storage.exceptions import (
     SessionStorageInvalidDataError,
@@ -23,7 +23,7 @@ from ldap_protocol.session_storage.exceptions import (
 )
 
 
-class IdentityProvider(AbstractService):
+class IdentityProvider:
     """Coordinate session validation and user retrieval for requests."""
 
     _ip_from_request: str
@@ -87,6 +87,7 @@ class IdentityProvider(AbstractService):
             UnauthorizedError: If the user cannot be found by the given ID.
 
         """
+        logger.debug(f"Fetching user with ID: {user_id}")
         user = await self._identity_provider_gateway.get_user(user_id)
         if user is None:
             raise UnauthorizedError("Could not validate credentials")
@@ -104,6 +105,20 @@ class IdentityProvider(AbstractService):
         user = await self.get(await self.get_user_id())
         await self.rekey_session()
         return user
+
+    async def get_current_user_permissions(
+        self,
+        user: UserSchema,
+    ) -> AuthorizationRules:
+        """Return the auth rules of the current authenticated user.
+
+        Returns:
+            AuthorizationRules: Authorization rules of the authenticated user.
+
+        """
+        return await self._identity_provider_gateway.get_user_permissions(
+            user.role_ids,
+        )
 
     async def get_user_id(self) -> int:
         """Return the user identifier stored in session metadata.
@@ -130,6 +145,7 @@ class IdentityProvider(AbstractService):
             SessionStorageInvalidSignatureError,
             SessionStorageInvalidDataError,
         ) as err:
+            logger.debug(f"Session validation failed: {err}")
             raise UnauthorizedError("Could not validate credentials") from err
 
         return user_id

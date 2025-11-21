@@ -19,10 +19,11 @@ from sqlalchemy.ext.asyncio import (
 
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import (
-    IdentityFastAPIAdapter,
+    AuthFastAPIAdapter,
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -35,7 +36,11 @@ from api.password_policy.adapter import (
     PasswordPolicyFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
+from ldap_protocol.auth import AuthManager, MFAManager
+from ldap_protocol.auth.setup_gateway import SetupGateway
+from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.dhcp import (
     AbstractDHCPManager,
     DHCPAPIRepository,
@@ -53,17 +58,8 @@ from ldap_protocol.dns import (
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.dns.utils import resolve_dns_server_ip
-from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.identity.identity_provider import IdentityProvider
-from ldap_protocol.identity.identity_provider_gateway import (
-    IdentityProviderGateway,
-)
-from ldap_protocol.identity.setup_gateway import SetupGateway
-from ldap_protocol.identity.use_cases import SetupUseCase
-from ldap_protocol.identity.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
+from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
@@ -94,6 +90,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
+from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.dataclasses import (
@@ -226,6 +223,13 @@ class MainProvider(Provider):
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
         return await get_dns_manager_class(dns_state_gateway)
+
+    @provide(scope=Scope.REQUEST, provides=AuthorizationProviderProtocol)
+    async def get_auth_provider_class(
+        self,
+    ) -> None:
+        """Get AuthorizationProvider."""
+        return None
 
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_settings(
@@ -432,14 +436,6 @@ class MainProvider(Provider):
         PasswordBanWordUseCases,
         scope=Scope.REQUEST,
     )
-    password_ban_word_adapter = provide(
-        PasswordBanWordsFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
-    password_policies_adapter = provide(
-        PasswordPolicyFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
     password_validator_settings = provide(
         PasswordValidatorSettings,
         scope=Scope.REQUEST,
@@ -451,17 +447,8 @@ class MainProvider(Provider):
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
-    attribute_type_fastapi_adapter = provide(
-        AttributeTypeFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
-    object_class_fastapi_adapter = provide(
-        ObjectClassFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
 
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
-    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
@@ -509,14 +496,66 @@ class HTTPProvider(LDAPContextProvider):
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
-    audit_monitor = provide(
-        AuditMonitor,
-        scope=Scope.REQUEST,
-    )
+
+    @provide()
+    async def get_audit_monitor(
+        self,
+        session: AsyncSession,
+        audit_use_case: "AuditUseCase",
+        session_storage: SessionStorage,
+        settings: Settings,
+        request: Request,
+    ) -> AuditMonitor:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        session_key = request.cookies.get("id", "")
+
+        return AuditMonitor(
+            session=session,
+            audit_use_case=audit_use_case,
+            session_storage=session_storage,
+            settings=settings,
+            ip_from_request=ip_from_request,
+            user_agent=user_agent,
+            session_key=session_key,
+        )
+
     identity_provider_gateway = provide(
         IdentityProviderGateway,
         scope=Scope.REQUEST,
     )
+
+    password_policies_adapter = provide(
+        PasswordPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    password_ban_word_adapter = provide(
+        PasswordBanWordsFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    attribute_type_fastapi_adapter = provide(
+        AttributeTypeFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    object_class_fastapi_adapter = provide(
+        ObjectClassFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
+
+    auth_provider = provide(AuthorizationProvider, scope=Scope.REQUEST)
+
+    @provide(
+        provides=AuthorizationProviderProtocol,
+        scope=Scope.REQUEST,
+    )
+    def get_permissions_provider(
+        self,
+        auth_provider: AuthorizationProvider,
+    ) -> AuthorizationProvider:
+        """Get permissions provider."""
+        return auth_provider
 
     @provide()
     async def get_identity_provider(
@@ -552,11 +591,11 @@ class HTTPProvider(LDAPContextProvider):
         await session.disconnect()
 
     identity_fastapi_adapter = provide(
-        IdentityFastAPIAdapter,
+        AuthFastAPIAdapter,
         scope=Scope.REQUEST,
     )
-    identity_manager = provide(
-        IdentityManager,
+    auth_manager = provide(
+        AuthManager,
         scope=Scope.REQUEST,
     )
     shadow_adapter = provide(

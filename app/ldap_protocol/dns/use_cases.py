@@ -5,9 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import IPv4Address, IPv6Address
+from typing import ClassVar
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
+from enums import AuthorizationRules
 from ldap_protocol.dns.base import (
     AbstractDNSManager,
     DNSForwardServerStatus,
@@ -197,3 +199,22 @@ class DNSUseCase(AbstractService):
             )
             for dns_server_ip in data
         ]
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        setup_dns.__name__: AuthorizationRules.DNS_SETUP_DNS,
+        create_record.__name__: AuthorizationRules.DNS_CREATE_RECORD,
+        delete_record.__name__: AuthorizationRules.DNS_DELETE_RECORD,
+        update_record.__name__: AuthorizationRules.DNS_UPDATE_RECORD,
+        get_all_records.__name__: AuthorizationRules.DNS_GET_ALL_RECORDS,
+        get_dns_status.__name__: AuthorizationRules.DNS_GET_DNS_STATUS,
+        get_all_zones_records.__name__: AuthorizationRules.DNS_GET_ALL_ZONES_RECORDS,  # noqa: E501
+        get_forward_zones.__name__: AuthorizationRules.DNS_GET_FORWARD_ZONES,
+        create_zone.__name__: AuthorizationRules.DNS_CREATE_ZONE,
+        update_zone.__name__: AuthorizationRules.DNS_UPDATE_ZONE,
+        delete_zone.__name__: AuthorizationRules.DNS_DELETE_ZONE,
+        check_dns_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
+        reload_zone.__name__: AuthorizationRules.DNS_RELOAD_ZONE,
+        update_server_options.__name__: AuthorizationRules.DNS_UPDATE_SERVER_OPTIONS,  # noqa: E501
+        get_server_options.__name__: AuthorizationRules.DNS_GET_SERVER_OPTIONS,
+        restart_server.__name__: AuthorizationRules.DNS_RESTART_SERVER,
+    }

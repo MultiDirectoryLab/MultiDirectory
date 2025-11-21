@@ -12,7 +12,6 @@ from ipaddress import IPv4Address, IPv6Address
 import httpx
 from loguru import logger as loguru_logger
 
-from abstract_dao import AbstractService
 from ldap_protocol.dns.dto import DNSSettingDTO
 
 from .exceptions import DNSSetupError
@@ -176,7 +175,7 @@ class DNSManagerSettings:
         self.tsig_key = tsig_key
 
 
-class AbstractDNSManager(AbstractService):
+class AbstractDNSManager:
     """Abstract DNS manager class."""
 
     _dns_settings: DNSManagerSettings

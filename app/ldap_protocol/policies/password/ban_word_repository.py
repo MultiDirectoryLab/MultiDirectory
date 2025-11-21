@@ -10,7 +10,6 @@ from sqlalchemy import delete, literal, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
 from entities import PasswordBanWord
 from ldap_protocol.policies.password.exceptions import (
     PasswordBanWordFileHasDuplicatesError,
@@ -18,7 +17,7 @@ from ldap_protocol.policies.password.exceptions import (
 from repo.pg.tables import queryable_attr as qa
 
 
-class PasswordBanWordRepository(AbstractService):
+class PasswordBanWordRepository:
     """Password Ban Word Repository."""
 
     def __init__(self, session: AsyncSession) -> None:

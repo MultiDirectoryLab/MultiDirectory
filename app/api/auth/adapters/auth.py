@@ -10,10 +10,21 @@ from adaptix.conversion import get_converter
 from fastapi import Request, status
 
 from api.base_adapter import BaseAdapter
+from ldap_protocol.auth import AuthManager
+from ldap_protocol.auth.dto import SetupDTO
+from ldap_protocol.auth.exceptions.mfa import (
+    MFAAPIError,
+    MFAConnectError,
+    MFARequiredError,
+    MissingMFACredentialsError,
+)
+from ldap_protocol.auth.schemas import (
+    MFAChallengeResponse,
+    OAuth2Form,
+    SetupRequest,
+)
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity import IdentityManager
-from ldap_protocol.identity.dto import SetupDTO
-from ldap_protocol.identity.exceptions.auth import (
+from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     AuthValidationError,
     LoginFailedError,
@@ -21,23 +32,12 @@ from ldap_protocol.identity.exceptions.auth import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from ldap_protocol.identity.exceptions.mfa import (
-    MFAAPIError,
-    MFAConnectError,
-    MFARequiredError,
-    MissingMFACredentialsError,
-)
-from ldap_protocol.identity.schemas import (
-    MFAChallengeResponse,
-    OAuth2Form,
-    SetupRequest,
-)
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
 
-class IdentityFastAPIAdapter(BaseAdapter[IdentityManager]):
+class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
     """Adapter for using IdentityManager with FastAPI."""
 
     _exceptions_map: dict[type[Exception], int] = {

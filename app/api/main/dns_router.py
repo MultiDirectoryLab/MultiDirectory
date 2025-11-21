@@ -9,7 +9,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
-from api.auth import verify_auth
+from api.auth.utils import verify_auth
 from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.schema import (
     DNSServiceForwardZoneCheckRequest,

@@ -9,7 +9,7 @@ from .adapters.session_gateway import (
     SessionContentResponseSchema,
     SessionFastAPIGateway,
 )
-from .oauth2 import verify_auth
+from .utils import verify_auth
 
 session_router = APIRouter(
     prefix="/sessions",

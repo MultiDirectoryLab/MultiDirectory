@@ -4,12 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .identity import IdentityFastAPIAdapter
+from .auth import AuthFastAPIAdapter
 from .mfa import MFAFastAPIAdapter
 from .session_gateway import SessionFastAPIGateway
 
 __all__ = [
-    "IdentityFastAPIAdapter",
+    "AuthFastAPIAdapter",
     "MFAFastAPIAdapter",
     "SessionFastAPIGateway",
 ]

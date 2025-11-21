@@ -17,6 +17,7 @@ from enums import (
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
+    AuthorizationRules,
     KindType,
     MFAFlags,
     RoleScope,
@@ -452,6 +453,7 @@ class Role:
         default_factory=list,
         repr=False,
     )
+    permissions: AuthorizationRules = AuthorizationRules(0)
 
 
 @dataclass

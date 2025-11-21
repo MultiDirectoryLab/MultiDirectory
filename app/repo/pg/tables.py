@@ -61,6 +61,7 @@ from enums import (
     MFAFlags,
     RoleScope,
 )
+from repo.pg.types import AuthorizationRulesType
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
@@ -500,6 +501,12 @@ roles_table = Table(
         nullable=False,
         key="created_at",
     ),
+    Column(
+        "permissions",
+        AuthorizationRulesType,
+        nullable=False,
+        server_default=text("'\\x00'::bytea"),
+    ),
 )
 
 access_control_entries_table = Table(
@@ -831,6 +838,7 @@ mapper_registry.map_imperatively(
         "accountexpires": synonym("account_exp"),
     },
 )
+
 
 mapper_registry.map_imperatively(
     Group,

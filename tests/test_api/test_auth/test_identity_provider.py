@@ -16,19 +16,13 @@ from dishka import (
 from fastapi import HTTPException, status
 from httpx import AsyncClient
 from starlette.requests import Request
-from starlette.responses import Response
 
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.exceptions.auth import UnauthorizedError
-from ldap_protocol.identity.identity_provider import IdentityProvider
-from ldap_protocol.identity.identity_provider_gateway import (
-    IdentityProviderGateway,
-)
-from ldap_protocol.identity.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
+from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.exceptions import UnauthorizedError
+from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.session_storage.base import SessionStorage
 from ldap_protocol.session_storage.exceptions import (
     SessionStorageInvalidDataError,
@@ -76,25 +70,6 @@ async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     )
     yield container
     await container.close()
-
-
-@pytest_asyncio.fixture
-async def request_params() -> dict:
-    """Return minimal ASGI scope plus response for request-scoped providers."""
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "scheme": "http",
-        "path": "/",
-        "query_string": b"",
-        "root_path": "",
-        "headers": [],
-        "client": ("127.0.0.1", 0),
-        "server": ("testserver", 80),
-    }
-    request = Request(scope)
-    response = Response()
-    return {Request: request, Response: response}
 
 
 @pytest_asyncio.fixture

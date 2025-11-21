@@ -10,13 +10,13 @@ from typing import ParamSpec, TypeVar
 from fastapi import status
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.identity.exceptions.auth import PasswordPolicyError
-from ldap_protocol.identity.exceptions.mfa import (
+from ldap_protocol.auth import AuthManager, MFAManager
+from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
     NetworkPolicyError,
 )
+from ldap_protocol.identity.exceptions import PasswordPolicyError
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -36,11 +36,11 @@ class ShadowAdapter(BaseAdapter):
     def __init__(
         self,
         mfa_manager: MFAManager,
-        identity_manager: IdentityManager,
+        auth_manager: AuthManager,
     ) -> None:
         """Initialize the adapter."""
         self._mfa_manager = mfa_manager
-        self._identity_manager = identity_manager
+        self._auth_manager = auth_manager
 
     async def proxy_request(
         self,
@@ -52,7 +52,7 @@ class ShadowAdapter(BaseAdapter):
 
     async def change_password(self, principal: str, new_password: str) -> None:
         """Change the password for a user."""
-        return await self._identity_manager.sync_password_from_service(
+        return await self._auth_manager.sync_password_from_service(
             principal,
             new_password,
         )

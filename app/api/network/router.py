@@ -11,7 +11,7 @@ from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from api.auth import verify_auth
+from api.auth.utils import verify_auth
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 
 from .schema import (

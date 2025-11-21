@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass
 from datetime import datetime
 
-from enums import AceType, RoleScope
+from enums import AceType, AuthorizationRules, RoleScope
 from ldap_protocol.utils.const import GRANT_DN_STRING
 
 
@@ -43,6 +43,7 @@ class RoleDTO:
 
     id: int | None = None
     created_at: datetime | None = None
+    permissions: AuthorizationRules = AuthorizationRules(0)
     access_control_entries: list[AccessControlEntryDTO] | None = None
 
     def get_id(self) -> int:

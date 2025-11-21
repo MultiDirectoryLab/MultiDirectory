@@ -2,13 +2,14 @@
 
 from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address
-from typing import Literal
+from typing import ClassVar, Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
 from entities import User
+from enums import AuthorizationRules
 from ldap_protocol.utils.queries import get_user, set_user_logon_attrs
 
 from .redis import SessionStorage
@@ -130,3 +131,9 @@ class SessionRepository(AbstractService):
         :param str session_id: session id
         """
         await self.storage.delete_user_session(session_id)
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get_user_sessions.__name__: AuthorizationRules.SESSION_GET_USER_SESSIONS,  # noqa: E501
+        clear_user_sessions.__name__: AuthorizationRules.SESSION_CLEAR_USER_SESSIONS,  # noqa: E501
+        delete_session.__name__: AuthorizationRules.SESSION_DELETE,
+    }

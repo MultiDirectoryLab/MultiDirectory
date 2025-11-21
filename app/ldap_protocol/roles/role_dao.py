@@ -12,6 +12,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
 from entities import AccessControlEntry, Group, Role
+from enums import AuthorizationRules, RoleConstants
 from ldap_protocol.utils.queries import get_groups
 from repo.pg.tables import queryable_attr as qa
 
@@ -154,6 +155,7 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
             creator_upn=dto.creator_upn,
             is_system=dto.is_system,
             groups=groups,
+            permissions=dto.permissions,
             access_control_entries=[],
         )
         self._session.add(role)
@@ -201,4 +203,18 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         """
         role = await self._get_raw(_id)
         await self._session.execute(delete(Role).filter_by(id=role.id))
+        await self._session.flush()
+
+    async def update_admin_role_permissions(self) -> None:
+        """Update role permissions.
+
+        :param int _id: ID of the role to update.
+        :param int permissions: New permissions value.
+        """
+        query = (
+            select(Role)
+            .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
+        )  # fmt: skip
+        role = (await self._session.scalars(query)).one()
+        role.permissions = AuthorizationRules.get_all()
         await self._session.flush()

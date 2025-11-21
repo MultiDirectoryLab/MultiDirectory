@@ -103,6 +103,7 @@ class SetupGateway:
                     domain,
                     domain,
                 )
+
         except Exception:
             import traceback
 

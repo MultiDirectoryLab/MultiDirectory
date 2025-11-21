@@ -1,10 +1,21 @@
-"""Identity package for authentication and MFA managers.
+"""Identity package."""
 
-Copyright (c) 2024 MultiFactor
-License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
-"""
+from .exceptions import (
+    AlreadyConfiguredError,
+    ForbiddenError,
+    LoginFailedError,
+    PasswordPolicyError,
+    UnauthorizedError,
+    UserNotFoundError,
+)
+from .provider import IdentityProvider
 
-from .identity_manager import IdentityManager
-from .mfa_manager import MFAManager
-
-__all__ = ["IdentityManager", "MFAManager"]
+__all__ = [
+    "IdentityProvider",
+    "UnauthorizedError",
+    "AlreadyConfiguredError",
+    "ForbiddenError",
+    "LoginFailedError",
+    "PasswordPolicyError",
+    "UserNotFoundError",
+]

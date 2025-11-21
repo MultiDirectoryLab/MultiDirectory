@@ -10,7 +10,7 @@ from annotated_types import Len
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body, Depends
 
-from api.auth import verify_auth
+from api.auth.utils import verify_auth
 
 LimitedListType = Annotated[
     list[str],

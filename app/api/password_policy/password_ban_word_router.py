@@ -9,7 +9,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, UploadFile, status
 from fastapi.responses import StreamingResponse
 
-from api.auth import verify_auth
+from api.auth.utils import verify_auth
 from api.password_policy.adapter import PasswordBanWordsFastAPIAdapter
 
 password_ban_word_router = APIRouter(
