@@ -11,7 +11,7 @@ _R = TypeVar("_R")
 
 
 class AuthorizationError(Exception):
-    """API permission error."""
+    """Authorization error."""
 
 
 class AuthorizationProvider:
