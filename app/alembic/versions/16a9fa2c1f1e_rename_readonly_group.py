@@ -43,7 +43,7 @@ def upgrade() -> None:
 
         ro_dir.name = "read-only"
 
-        ro_dir.create_path(ro_dir.parent)
+        ro_dir.create_path(ro_dir.parent, ro_dir.get_dn_prefix())
 
         session.execute(
             update(Attribute)
@@ -94,7 +94,7 @@ def downgrade() -> None:
 
         ro_dir.name = "readonly domain controllers"
 
-        ro_dir.create_path(ro_dir.parent)
+        ro_dir.create_path(ro_dir.parent, ro_dir.get_dn_prefix())
 
         session.execute(
             update(Attribute)
