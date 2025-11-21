@@ -501,7 +501,12 @@ roles_table = Table(
         nullable=False,
         key="created_at",
     ),
-    Column("permissions", AuthorizationRulesType, nullable=False, default=0),
+    Column(
+        "permissions",
+        AuthorizationRulesType,
+        nullable=False,
+        server_default=text("'\\x00'::bytea"),
+    ),
 )
 
 access_control_entries_table = Table(

@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from abstract_dao import AbstractDAO
 from entities import AccessControlEntry, Group, Role
 from enums import AuthorizationRules
-from ldap_protocol.roles.role_use_case import RoleConstants
+from ldap_protocol.roles.constants import RoleConstants
 from ldap_protocol.utils.queries import get_groups
 from repo.pg.tables import queryable_attr as qa
 

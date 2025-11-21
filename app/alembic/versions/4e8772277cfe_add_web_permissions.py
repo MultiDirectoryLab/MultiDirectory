@@ -7,12 +7,12 @@ Create Date: 2025-11-20 12:11:32.785993
 """
 
 from alembic import op
-from sqlalchemy import Column, select
+from sqlalchemy import Column, select, text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Role
 from enums import AuthorizationRules
-from ldap_protocol.roles.role_use_case import RoleConstants
+from ldap_protocol.roles.constants import RoleConstants
 from repo.pg.types import AuthorizationRulesType
 
 # revision identifiers, used by Alembic.
@@ -43,7 +43,7 @@ def upgrade() -> None:
             "permissions",
             AuthorizationRulesType(),
             nullable=False,
-            default=0,
+            server_default=text("'\\x00'::bytea"),
         ),
     )
     op.run_async(_add_api_permissions)
