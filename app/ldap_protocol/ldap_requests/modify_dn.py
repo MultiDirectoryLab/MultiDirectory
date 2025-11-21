@@ -134,12 +134,14 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        dn, name = self.newrdn.split("=")
+        old_name = directory.name
+        new_dn, new_name = self.newrdn.split("=")
+        directory.name = new_name
 
-        directory.name = name
+        old_path = directory.path
+        old_dn = old_path[-1].split("=")[0]
 
-        old_parent_path = directory.path
-        old_parent_depth = directory.depth
+        old_depth = directory.depth
 
         if (
             self.new_superior
@@ -174,7 +176,7 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             directory.parent = parent_dir
-            directory.create_path(directory.parent, dn=dn)
+            directory.create_path(directory.parent, dn=new_dn)
 
             try:
                 await ctx.session.flush()
@@ -197,43 +199,39 @@ class ModifyDNRequest(BaseRequest):
 
         async with ctx.session.begin_nested():
             if self.deleteoldrdn:
-                old_attr_name = old_parent_path[-1].split("=")[0]
                 await ctx.session.execute(
                     update(Attribute)
                     .filter_by(
                         directory_id=directory.id,
-                        name=old_attr_name,
-                        value=directory.name,
+                        name=old_dn,
+                        value=old_name,
                     )
-                    .values(name=dn, value=name),
+                    .values(name=new_dn, value=new_name),
                 )
             else:
                 ctx.session.add(
                     Attribute(
-                        name=dn,
-                        value=name,
                         directory_id=directory.id,
+                        name=new_dn,
+                        value=new_name,
                     ),
                 )
             await ctx.session.flush()
 
-            new_parent_path = directory.path[:-1] + [f"{dn}={name}"]
-            if old_parent_path != new_parent_path:
+            new_path = directory.path[:-1] + [f"{new_dn}={new_name}"]
+            if old_path != new_path:
                 update_query = (
                     update(Directory)
-                    .where(
-                        qa(Directory.path)[1:old_parent_depth]
-                        == old_parent_path,
-                    )
+                    .where(qa(Directory.path)[1:old_depth] == old_path)
                     .values(
                         path=func.array_cat(
-                            new_parent_path,
-                            text(f"path[{old_parent_depth + 1} :]"),
+                            new_path,
+                            text(f"path[{old_depth + 1} :]"),
                         ),
                         depth=func.cardinality(
                             func.array_cat(
-                                new_parent_path,
-                                text(f"path[{old_parent_depth + 1} :]"),
+                                new_path,
+                                text(f"path[{old_depth + 1} :]"),
                             ),
                         ),
                     )
@@ -246,20 +244,15 @@ class ModifyDNRequest(BaseRequest):
 
                 explicit_aces_query = (
                     select(AccessControlEntry)
-                    .options(
-                        selectinload(qa(AccessControlEntry.directories)),
-                    )
+                    .options(selectinload(qa(AccessControlEntry.directories)))
                     .where(
                         qa(AccessControlEntry.directories).any(
                             qa(Directory.id) == directory.id,
                         ),
-                        qa(AccessControlEntry.depth) == old_parent_depth,
+                        qa(AccessControlEntry.depth) == old_depth,
                     )
                 )
-                explicit_aces = (
-                    await ctx.session.scalars(explicit_aces_query)
-                ).all()
-                for ace in explicit_aces:
+                for ace in await ctx.session.scalars(explicit_aces_query):
                     ace.directories.append(directory)
                     ace.path = directory.path_dn
                     ace.depth = directory.depth
