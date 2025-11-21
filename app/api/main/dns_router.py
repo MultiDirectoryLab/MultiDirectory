@@ -5,10 +5,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends
 from fastapi_error_map import rule
-from fastapi_error_map.routing import ErrorAwareRoute, ErrorAwareRouter
+from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import Rule
 
 import ldap_protocol.dns.exceptions as dns_exc
@@ -26,6 +25,7 @@ from api.main.schema import (
     DNSServiceZoneUpdateRequest,
 )
 from errors import BaseErrorTranslator, ErrorCodeParts, ErrorStatusCodes
+from errors.base import DishkaErrorAwareRoute
 from ldap_protocol.dns import (
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -33,10 +33,6 @@ from ldap_protocol.dns import (
     DNSServerParam,
     DNSZone,
 )
-
-
-class DishkaErrorAwareRoute(ErrorAwareRoute, DishkaRoute):
-    """Route class that combines ErrorAwareRoute and DishkaRoute."""
 
 
 class DNSErrorTranslator(BaseErrorTranslator):

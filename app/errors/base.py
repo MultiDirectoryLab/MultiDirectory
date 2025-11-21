@@ -7,6 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass
 from enum import Enum
 
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi_error_map.routing import ErrorAwareRoute
 from fastapi_error_map.translators import ErrorTranslator
 
 from errors.enums import ErrorCodeParts, ErrorStatusCodes
@@ -25,7 +27,12 @@ class ErrorResponse:
 
     type: str
     message: str
-    error_code: str
+    status_code: str
+    domain_code: str
+
+
+class DishkaErrorAwareRoute(ErrorAwareRoute, DishkaRoute):
+    """Route class that combines ErrorAwareRoute and DishkaRoute."""
 
 
 class BaseErrorTranslator(ErrorTranslator[ErrorResponse]):
@@ -44,9 +51,6 @@ class BaseErrorTranslator(ErrorTranslator[ErrorResponse]):
         return ErrorResponse(
             type=type(err).__name__,
             message=str(err),
-            error_code=self.make_code(err),
+            status_code=str(err.status_code),
+            domain_code=self.domain_code,
         )
-
-    def make_code(self, err: AbstractException) -> str:
-        """Make code."""
-        return f"{str(err.status_code)}{self.domain_code}{err.code}"
