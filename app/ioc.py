@@ -8,6 +8,7 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
@@ -222,6 +223,13 @@ class MainProvider(Provider):
     ) -> type[AbstractDNSManager]:
         """Get DNS manager type."""
         return await get_dns_manager_class(dns_state_gateway)
+
+    @provide(scope=Scope.REQUEST, provides=AuthorizationProviderProtocol)
+    async def get_auth_provider_class(
+        self,
+    ) -> None:
+        """Get AuthorizationProvider."""
+        return None
 
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_settings(
@@ -536,10 +544,18 @@ class HTTPProvider(LDAPContextProvider):
     )
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
 
-    api_permissions_checker = provide(
-        AuthorizationProvider,
+    auth_provider = provide(AuthorizationProvider, scope=Scope.REQUEST)
+
+    @provide(
+        provides=AuthorizationProviderProtocol,
         scope=Scope.REQUEST,
     )
+    def get_permissions_provider(
+        self,
+        auth_provider: AuthorizationProvider,
+    ) -> AuthorizationProvider:
+        """Get permissions provider."""
+        return auth_provider
 
     @provide()
     async def get_identity_provider(

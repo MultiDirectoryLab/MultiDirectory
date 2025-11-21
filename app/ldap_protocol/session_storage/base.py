@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from secrets import token_hex
 from typing import Literal, Self
 
+from loguru import logger
+
 from config import Settings
 
 from .exceptions import (
@@ -173,6 +175,9 @@ class SessionStorage(ABC):
             raise SessionStorageInvalidKeyError("Invalid payload key")
 
         try:
+            logger.debug(
+                f"Retrieving session data for session_id: {session_id}",
+            )
             data = await self.get(session_id)
         except KeyError:
             raise SessionStorageInvalidKeyError("Invalid session key")

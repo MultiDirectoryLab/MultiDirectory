@@ -20,6 +20,7 @@ import redis.asyncio as redis
 import uvloop
 from alembic import command
 from alembic.config import Config as AlembicConfig
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from dishka import (
     AsyncContainer,
     Provider,
@@ -662,10 +663,15 @@ class TestProvider(Provider):
     )
     network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
-    api_permissions_checker = provide(
-        AuthorizationProvider,
+    @provide(
+        provides=AuthorizationProviderProtocol,
         scope=Scope.REQUEST,
     )
+    def authorization_provider_protocol(
+        self,
+        identity_provider: IdentityProvider,
+    ) -> AuthorizationProvider:
+        return AuthorizationProvider(identity_provider)
 
 
 @dataclass
@@ -1230,7 +1236,7 @@ async def api_permissions_checker(
     request_container: AsyncContainer,
 ) -> AsyncIterator[AuthorizationProvider]:
     """Get all api permissions."""
-    return await request_container.get(AuthorizationProvider)
+    return await request_container.get(AuthorizationProviderProtocol)
 
 
 @pytest_asyncio.fixture

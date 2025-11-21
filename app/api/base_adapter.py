@@ -8,13 +8,12 @@ from asyncio import iscoroutinefunction
 from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from fastapi import HTTPException, status
+from loguru import logger
 
 from abstract_service import AbstractService
-from ldap_protocol.permissions_checker import (
-    AuthorizationError,
-    AuthorizationProvider,
-)
+from ldap_protocol.permissions_checker import AuthorizationError
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -30,7 +29,7 @@ class BaseAdapter(Protocol[_T]):
     def __init__(
         self,
         service: _T,
-        perm_checker: AuthorizationProvider,
+        perm_checker: AuthorizationProviderProtocol,
     ) -> None:
         """Set service."""
         self._service = service
@@ -90,7 +89,7 @@ class BaseAdapter(Protocol[_T]):
             AuthorizationError: status.HTTP_403_FORBIDDEN,
         }
         code = exceptions_map.get(type(exc))
-
+        logger.debug(f"Reraising exception {exc} with code {code}")
         if code is None:
             raise
 

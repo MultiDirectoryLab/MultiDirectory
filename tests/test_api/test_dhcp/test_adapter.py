@@ -8,6 +8,7 @@ from ipaddress import IPv4Address, IPv4Network
 from unittest.mock import Mock
 
 import pytest
+from authorization_provider_protocol import AuthorizationProviderProtocol
 
 from api.dhcp.adapter import DHCPAdapter
 from ldap_protocol.dhcp.dataclasses import (
@@ -22,13 +23,12 @@ from ldap_protocol.dhcp.schemas import (
     DHCPReservationSchemaRequest,
     DHCPSubnetSchemaAddRequest,
 )
-from ldap_protocol.permissions_checker import AuthorizationProvider
 
 
 @pytest.fixture
 def dhcp_adapter(
     dhcp_manager: Mock,
-    api_permissions_checker: AuthorizationProvider,
+    api_permissions_checker: AuthorizationProviderProtocol,
 ) -> DHCPAdapter:
     """Create DHCP adapter with mocked service."""
     adapter = DHCPAdapter(

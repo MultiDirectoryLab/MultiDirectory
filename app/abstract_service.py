@@ -5,18 +5,18 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from abc import ABC
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
+
+from authorization_provider_protocol import AuthorizationProviderProtocol
 
 from enums import AuthorizationRules
-
-if TYPE_CHECKING:
-    from ldap_protocol.permissions_checker import AuthorizationProvider
 
 
 class AbstractService(ABC):
     """Abstract Service/Manager base class."""
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]]
+    _perm_checker: AuthorizationProviderProtocol
 
     def __getattribute__(self, name: str) -> Any:
         """Intercept attribute access."""
@@ -32,7 +32,7 @@ class AbstractService(ABC):
 
     def set_permissions_checker(
         self,
-        perm_checker: "AuthorizationProvider",
+        perm_checker: AuthorizationProviderProtocol,
     ) -> None:
         """Set permissions checker.
 

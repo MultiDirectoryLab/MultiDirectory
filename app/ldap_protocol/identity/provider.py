@@ -4,6 +4,8 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from loguru import logger
+
 from config import Settings
 from entities import User
 from enums import AuthorizationRules
@@ -85,6 +87,7 @@ class IdentityProvider:
             UnauthorizedError: If the user cannot be found by the given ID.
 
         """
+        logger.debug(f"Fetching user with ID: {user_id}")
         user = await self._identity_provider_gateway.get_user(user_id)
         if user is None:
             raise UnauthorizedError("Could not validate credentials")
@@ -142,6 +145,7 @@ class IdentityProvider:
             SessionStorageInvalidSignatureError,
             SessionStorageInvalidDataError,
         ) as err:
+            logger.debug(f"Session validation failed: {err}")
             raise UnauthorizedError("Could not validate credentials") from err
 
         return user_id
