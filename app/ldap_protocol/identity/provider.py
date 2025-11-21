@@ -113,7 +113,7 @@ class IdentityProvider:
             int: Identifier of the authenticated user.
 
         """
-        return await self._identity_provider_gateway.get_user_web_permissions(
+        return await self._identity_provider_gateway.get_user_auth_rules(
             user.role_ids,
         )
 

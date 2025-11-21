@@ -12,8 +12,8 @@ from fastapi import HTTPException, status
 
 from abstract_service import AbstractService
 from ldap_protocol.permissions_checker import (
-    ApiPermissionsChecker,
     AuthorizationError,
+    AuthorizationProvider,
 )
 
 _P = ParamSpec("_P")
@@ -30,7 +30,7 @@ class BaseAdapter(Protocol[_T]):
     def __init__(
         self,
         service: _T,
-        perm_checker: ApiPermissionsChecker,
+        perm_checker: AuthorizationProvider,
     ) -> None:
         """Set service."""
         self._service = service

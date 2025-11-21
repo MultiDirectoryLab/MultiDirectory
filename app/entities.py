@@ -453,7 +453,7 @@ class Role:
         default_factory=list,
         repr=False,
     )
-    web_permissions: AuthorizationRules | None = None
+    auth_rules: AuthorizationRules | None = None
 
 
 @dataclass

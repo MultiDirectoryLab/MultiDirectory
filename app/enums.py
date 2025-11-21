@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from enum import UNIQUE, IntEnum, IntFlag, StrEnum, auto, verify
+from typing import Self
 
 
 class AceType(IntEnum):
@@ -171,3 +172,7 @@ class AuthorizationRules(IntFlag):
     SESSION_GET_USER_SESSIONS = auto()
     SESSION_CLEAR_USER_SESSIONS = auto()
     SESSION_DELETE = auto()
+
+    @classmethod
+    def get_all(cls) -> Self:
+        return cls(sum(cls))

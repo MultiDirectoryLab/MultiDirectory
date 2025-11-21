@@ -9,7 +9,7 @@ from typing import ClassVar, Iterable
 from abstract_service import AbstractService
 from entities import User
 from enums import AuthorizationRules
-from ldap_protocol.permissions_checker import ApiPermissionsChecker
+from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
@@ -28,7 +28,7 @@ class PasswordPolicyUseCases(AbstractService):
 
     _password_policy_dao: PasswordPolicyDAO
     _password_policy_validator: PasswordPolicyValidator
-    _perm_checker: ApiPermissionsChecker
+    _perm_checker: AuthorizationProvider
     _password_ban_word_repository: PasswordBanWordRepository
 
     def __init__(

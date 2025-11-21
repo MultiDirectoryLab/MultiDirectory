@@ -164,7 +164,7 @@ class RoleUseCase:
                 creator_upn=None,
                 is_system=True,
                 groups=[group_dn],
-                web_permissions=AuthorizationRules(sum(AuthorizationRules)),
+                auth_rules=AuthorizationRules.get_all(),
             ),
         )
 

@@ -128,10 +128,10 @@ class AuthManager(AbstractService):
             raise UnauthorizedError("Incorrect username or password")
 
         perms = [
-            r.web_permissions
+            r.auth_rules
             for group in user.groups
             for r in group.roles
-            if r.web_permissions
+            if r.auth_rules
         ]
         full_mask = AuthorizationRules(0)
         for rule in perms:

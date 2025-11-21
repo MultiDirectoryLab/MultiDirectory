@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from enums import AuthorizationRules
 
 if TYPE_CHECKING:
-    from ldap_protocol.permissions_checker import ApiPermissionsChecker
+    from ldap_protocol.permissions_checker import AuthorizationProvider
 
 
 class AbstractService(ABC):
@@ -32,7 +32,7 @@ class AbstractService(ABC):
 
     def set_permissions_checker(
         self,
-        perm_checker: "ApiPermissionsChecker",
+        perm_checker: "AuthorizationProvider",
     ) -> None:
         """Set permissions checker.
 

@@ -44,17 +44,17 @@ class IdentityProviderGateway:
             ),
         )
 
-    async def get_user_web_permissions(
+    async def get_user_auth_rules(
         self,
         role_ids: list[int],
     ) -> AuthorizationRules:
-        web_permissions = await self.session.scalars(
-            select(qa(Role.web_permissions))
+        auth_rules = await self.session.scalars(
+            select(qa(Role.auth_rules))
             .where(qa(Role.id).in_(role_ids)),
         )  # fmt: skip
 
         perm = AuthorizationRules(0)
-        for wp in web_permissions:
+        for wp in auth_rules:
             if wp:
                 perm |= wp
         return perm

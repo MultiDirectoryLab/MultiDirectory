@@ -103,7 +103,7 @@ from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
-from ldap_protocol.permissions_checker import ApiPermissionsChecker
+from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import (
@@ -663,7 +663,7 @@ class TestProvider(Provider):
     network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
     api_permissions_checker = provide(
-        ApiPermissionsChecker,
+        AuthorizationProvider,
         scope=Scope.REQUEST,
     )
 
@@ -848,7 +848,7 @@ async def setup_session(
             creator_upn=None,
             is_system=True,
             groups=["cn=admin login only,cn=groups,dc=md,dc=test"],
-            web_permissions=AuthorizationRules.AUTH_LOGIN,
+            auth_rules=AuthorizationRules.AUTH_LOGIN,
         ),
     )
 
@@ -1228,9 +1228,9 @@ def admin_user() -> dict:
 @pytest.fixture
 async def api_permissions_checker(
     request_container: AsyncContainer,
-) -> AsyncIterator[ApiPermissionsChecker]:
+) -> AsyncIterator[AuthorizationProvider]:
     """Get all api permissions."""
-    return await request_container.get(ApiPermissionsChecker)
+    return await request_container.get(AuthorizationProvider)
 
 
 @pytest_asyncio.fixture

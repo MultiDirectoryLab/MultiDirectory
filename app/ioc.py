@@ -89,7 +89,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
-from ldap_protocol.permissions_checker import ApiPermissionsChecker
+from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.dataclasses import (
@@ -537,7 +537,7 @@ class HTTPProvider(LDAPContextProvider):
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
 
     api_permissions_checker = provide(
-        ApiPermissionsChecker,
+        AuthorizationProvider,
         scope=Scope.REQUEST,
     )
 

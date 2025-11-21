@@ -61,7 +61,7 @@ from enums import (
     MFAFlags,
     RoleScope,
 )
-from repo.pg.types import ApiPermissionsType
+from repo.pg.types import AuthorizationRulesType
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)
@@ -501,7 +501,7 @@ roles_table = Table(
         nullable=False,
         key="created_at",
     ),
-    Column("web_permissions", ApiPermissionsType, nullable=True),
+    Column("auth_rules", AuthorizationRulesType, nullable=True),
 )
 
 access_control_entries_table = Table(

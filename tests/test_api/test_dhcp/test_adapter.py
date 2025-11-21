@@ -22,13 +22,13 @@ from ldap_protocol.dhcp.schemas import (
     DHCPReservationSchemaRequest,
     DHCPSubnetSchemaAddRequest,
 )
-from ldap_protocol.permissions_checker import ApiPermissionsChecker
+from ldap_protocol.permissions_checker import AuthorizationProvider
 
 
 @pytest.fixture
 def dhcp_adapter(
     dhcp_manager: Mock,
-    api_permissions_checker: ApiPermissionsChecker,
+    api_permissions_checker: AuthorizationProvider,
 ) -> DHCPAdapter:
     """Create DHCP adapter with mocked service."""
     adapter = DHCPAdapter(

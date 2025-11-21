@@ -1,4 +1,4 @@
-"""Add web_permissions to roles table.
+"""Add auth_rules to roles table.
 
 Revision ID: 4e8772277cfe
 Revises: df4c52a613e5
@@ -14,7 +14,7 @@ from entities import Role
 from enums import AuthorizationRules
 from ldap_protocol.roles.role_use_case import RoleConstants
 from repo.pg.tables import queryable_attr as qa
-from repo.pg.types import ApiPermissionsType
+from repo.pg.types import AuthorizationRulesType
 
 # revision identifiers, used by Alembic.
 revision: None | str = "4e8772277cfe"
@@ -34,16 +34,16 @@ def upgrade() -> None:
             .where(qa(Role.name) == RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         )  # fmt: skip
         role = (await session.scalars(query)).first()
-        all_permissions = sum(AuthorizationRules)
+        all_permissions = AuthorizationRules.get_all()
         if role:
-            role.web_permissions = AuthorizationRules(all_permissions)
+            role.auth_rules = AuthorizationRules(all_permissions)
             await session.commit()
 
     op.add_column(
         "Roles",
         sa.Column(
-            "web_permissions",
-            ApiPermissionsType(),
+            "auth_rules",
+            AuthorizationRulesType(),
             nullable=True,
         ),
     )
@@ -52,4 +52,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
-    op.drop_column("Roles", "web_permissions")
+    op.drop_column("Roles", "auth_rules")

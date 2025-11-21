@@ -14,7 +14,7 @@ class AuthorizationError(Exception):
     """API permission error."""
 
 
-class ApiPermissionsChecker:
+class AuthorizationProvider:
     """API permissions checker."""
 
     def __init__(self, identity_provider: IdentityProvider) -> None:
