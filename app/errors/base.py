@@ -11,10 +11,11 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi_error_map.routing import ErrorAwareRoute
 from fastapi_error_map.translators import ErrorTranslator
 
-from errors.enums import ErrorCodeParts, ErrorStatusCodes
+from enums import ProjectPartCodes
+from errors.enums import ErrorStatusCodes
 
 
-class AbstractException(Exception):  # noqa N818
+class BaseDomainException(Exception):  # noqa N818
     """Base exception."""
 
     code: Enum
@@ -27,8 +28,9 @@ class ErrorResponse:
 
     type: str
     message: str
-    status_code: str
-    domain_code: str
+    status_code: int
+    domain_code: int
+    error_code: int
 
 
 class DishkaErrorAwareRoute(ErrorAwareRoute, DishkaRoute):
@@ -38,7 +40,7 @@ class DishkaErrorAwareRoute(ErrorAwareRoute, DishkaRoute):
 class BaseErrorTranslator(ErrorTranslator[ErrorResponse]):
     """DNS error translator."""
 
-    domain_code: ErrorCodeParts
+    domain_code: ProjectPartCodes
 
     @property
     def error_response_model_cls(self) -> type[ErrorResponse]:
@@ -46,11 +48,12 @@ class BaseErrorTranslator(ErrorTranslator[ErrorResponse]):
 
     def from_error(self, err: Exception) -> ErrorResponse:
         """Translate exception to error response."""
-        if not isinstance(err, AbstractException):
-            raise TypeError(f"Expected AbstractException, got {type(err)}")
+        if not isinstance(err, BaseDomainException):
+            raise TypeError(f"Expected BaseDomainException, got {type(err)}")
         return ErrorResponse(
             type=type(err).__name__,
             message=str(err),
-            status_code=str(err.status_code),
-            domain_code=self.domain_code,
+            status_code=err.status_code.value,
+            domain_code=self.domain_code.value,
+            error_code=err.code.value,
         )

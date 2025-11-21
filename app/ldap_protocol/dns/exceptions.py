@@ -4,25 +4,25 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import StrEnum
+from enum import IntEnum
 
-from errors import AbstractException, ErrorStatusCodes
+from errors import BaseDomainException, ErrorStatusCodes
 
 
-class ErrorCodes(StrEnum):
+class ErrorCodes(IntEnum):
     """Error codes."""
 
-    DNS_SETUP_ERROR = "01"
-    DNS_RECORD_CREATE_ERROR = "02"
-    DNS_RECORD_UPDATE_ERROR = "03"
-    DNS_RECORD_DELETE_ERROR = "04"
-    DNS_ZONE_CREATE_ERROR = "05"
-    DNS_ZONE_UPDATE_ERROR = "06"
-    DNS_ZONE_DELETE_ERROR = "07"
-    DNS_UPDATE_SERVER_OPTIONS_ERROR = "08"
+    DNS_SETUP_ERROR = 1
+    DNS_RECORD_CREATE_ERROR = 2
+    DNS_RECORD_UPDATE_ERROR = 3
+    DNS_RECORD_DELETE_ERROR = 4
+    DNS_ZONE_CREATE_ERROR = 5
+    DNS_ZONE_UPDATE_ERROR = 6
+    DNS_ZONE_DELETE_ERROR = 7
+    DNS_UPDATE_SERVER_OPTIONS_ERROR = 8
 
 
-class DNSError(AbstractException):
+class DNSError(BaseDomainException):
     """DNS Error."""
 
     status_code = ErrorStatusCodes.BAD_REQUEST
