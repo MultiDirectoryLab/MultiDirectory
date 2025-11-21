@@ -125,7 +125,7 @@ async def test_first_setup_and_oauth(
         )
         .filter_by(
             path=get_search_path(
-                "cn=readonly domain controllers,"
+                "cn=read-only,"
                 "cn=groups,dc=md,dc=test-localhost",
             ),
         ),
