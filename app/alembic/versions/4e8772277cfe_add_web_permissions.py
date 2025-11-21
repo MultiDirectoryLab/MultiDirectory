@@ -11,8 +11,7 @@ from sqlalchemy import Column, select, text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Role
-from enums import AuthorizationRules
-from ldap_protocol.roles.constants import RoleConstants
+from enums import AuthorizationRules, RoleConstants
 from repo.pg.types import AuthorizationRulesType
 
 # revision identifiers, used by Alembic.

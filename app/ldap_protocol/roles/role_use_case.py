@@ -7,8 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import and_, insert, literal, or_, select
 
 from entities import AccessControlEntry, AceType, Directory, Role
-from enums import AuthorizationRules, RoleScope
-from ldap_protocol.roles.constants import RoleConstants
+from enums import AuthorizationRules, RoleConstants, RoleScope
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import (
     access_control_entries_table,
