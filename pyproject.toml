@@ -211,6 +211,7 @@ known-first-party = [
     "schedule",
     "extra",
     "enums",
+    "errors",
 ]
 known-third-party = [
     "alembic",  # https://github.com/astral-sh/ruff/issues/10519

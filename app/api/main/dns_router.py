@@ -4,15 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from dataclasses import dataclass
-
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends
 from fastapi_error_map import rule
 from fastapi_error_map.routing import ErrorAwareRoute, ErrorAwareRouter
 from fastapi_error_map.rules import Rule
-from fastapi_error_map.translators import ErrorTranslator
 
 import ldap_protocol.dns.exceptions as dns_exc
 from api.auth import verify_auth
@@ -28,6 +25,7 @@ from api.main.schema import (
     DNSServiceZoneDeleteRequest,
     DNSServiceZoneUpdateRequest,
 )
+from errors import BaseErrorTranslator, ErrorCodeParts, ErrorStatusCodes
 from ldap_protocol.dns import (
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -35,78 +33,49 @@ from ldap_protocol.dns import (
     DNSServerParam,
     DNSZone,
 )
-from ldap_protocol.dns.exceptions import AbstractException
 
 
 class DishkaErrorAwareRoute(ErrorAwareRoute, DishkaRoute):
     """Route class that combines ErrorAwareRoute and DishkaRoute."""
 
 
-@dataclass
-class ErrorResponse:
-    """Error response."""
-
-    type: str
-    message: str
-    error_code: str
-    details: dict[str, str] | None = None
-
-
-class DNSErrorTranslator(ErrorTranslator[ErrorResponse]):
+class DNSErrorTranslator(BaseErrorTranslator):
     """DNS error translator."""
 
-    base_code: str = "004"
-
-    @property
-    def error_response_model_cls(self) -> type[ErrorResponse]:
-        return ErrorResponse
-
-    def from_error(self, err: Exception) -> ErrorResponse:
-        """Translate exception to error response."""
-        if not isinstance(err, AbstractException):
-            raise TypeError(f"Expected AbstractException, got {type(err)}")
-        return ErrorResponse(
-            type=type(err).__name__,
-            message=str(err),
-            error_code=self.make_code(err),
-        )
-
-    def make_code(self, err: AbstractException) -> str:
-        """Make code."""
-        return f"{err.status_code}{self.base_code}{err.code}"
+    domain_code = ErrorCodeParts.DNS
 
 
 error_map: dict[type[Exception], int | Rule] | None = {
     dns_exc.DNSSetupError: rule(
-        status=424,
+        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
         translator=DNSErrorTranslator(),
     ),
     dns_exc.DNSRecordCreateError: rule(
-        status=400,
+        status=ErrorStatusCodes.BAD_REQUEST,
         translator=DNSErrorTranslator(),
     ),
     dns_exc.DNSRecordUpdateError: rule(
-        status=400,
+        status=ErrorStatusCodes.BAD_REQUEST,
         translator=DNSErrorTranslator(),
     ),
     dns_exc.DNSRecordDeleteError: rule(
-        status=400,
+        status=ErrorStatusCodes.BAD_REQUEST,
         translator=DNSErrorTranslator(),
     ),
     dns_exc.DNSZoneCreateError: rule(
-        status=400,
+        status=ErrorStatusCodes.BAD_REQUEST,
         translator=DNSErrorTranslator(),
     ),
     dns_exc.DNSZoneUpdateError: rule(
-        status=400,
+        status=ErrorStatusCodes.BAD_REQUEST,
         translator=DNSErrorTranslator(),
     ),
     dns_exc.DNSZoneDeleteError: rule(
-        status=400,
+        status=ErrorStatusCodes.BAD_REQUEST,
         translator=DNSErrorTranslator(),
     ),
     dns_exc.DNSUpdateServerOptionsError: rule(
-        status=400,
+        status=ErrorStatusCodes.BAD_REQUEST,
         translator=DNSErrorTranslator(),
     ),
 }

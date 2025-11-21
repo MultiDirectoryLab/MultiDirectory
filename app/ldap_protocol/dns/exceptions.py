@@ -6,6 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import StrEnum
 
+from errors import AbstractException, ErrorStatusCodes
+
 
 class ErrorCodes(StrEnum):
     """Error codes."""
@@ -20,18 +22,10 @@ class ErrorCodes(StrEnum):
     DNS_UPDATE_SERVER_OPTIONS_ERROR = "08"
 
 
-class AbstractException(Exception):  # noqa N818
-    """Base exception."""
-
-    code: str
-    base_code: str
-    status_code: str
-
-
 class DNSError(AbstractException):
     """DNS Error."""
 
-    status_code = "400"
+    status_code = ErrorStatusCodes.BAD_REQUEST
 
 
 class DNSSetupError(DNSError):
