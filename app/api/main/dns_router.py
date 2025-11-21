@@ -24,7 +24,8 @@ from api.main.schema import (
     DNSServiceZoneDeleteRequest,
     DNSServiceZoneUpdateRequest,
 )
-from errors import BaseErrorTranslator, ErrorCodeParts, ErrorStatusCodes
+from enums import ProjectPartCodes
+from errors import BaseErrorTranslator, ErrorStatusCodes
 from errors.base import DishkaErrorAwareRoute
 from ldap_protocol.dns import (
     DNSForwardServerStatus,
@@ -38,7 +39,7 @@ from ldap_protocol.dns import (
 class DNSErrorTranslator(BaseErrorTranslator):
     """DNS error translator."""
 
-    domain_code = ErrorCodeParts.DNS
+    domain_code = ProjectPartCodes.DNS
 
 
 error_map: dict[type[Exception], int | Rule] | None = {
