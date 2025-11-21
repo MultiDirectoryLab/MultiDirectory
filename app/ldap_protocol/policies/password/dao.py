@@ -14,6 +14,8 @@ from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.objects import UserAccountControlFlag as UacFlag
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
@@ -102,7 +104,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
 
         if not policy:
-            raise PasswordPolicyNotFoundError("Password Policy not found.")
+            raise ErrorCodeCarrierError(
+                PasswordPolicyNotFoundError("Password Policy not found."),
+                ErrorCode.ENTITY_NOT_FOUND,
+            )
 
         return policy
 
@@ -179,7 +184,10 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         """Get password policy by name."""
         policy = await self._get_raw_by_name(name)
         if not policy:
-            raise PasswordPolicyNotFoundError("Password Policy not found.")
+            raise ErrorCodeCarrierError(
+                PasswordPolicyNotFoundError("Password Policy not found."),
+                ErrorCode.PASSWORD_POLICY_NOT_FOUND,
+            )
         return _convert_model_to_dto(policy)
 
     async def get(self, id_: int) -> PasswordPolicyDTO[int, int]:
@@ -198,15 +206,21 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
 
         if not user:
-            raise PasswordPolicyDirIsNotUserError("Directory is not a User.")
+            raise ErrorCodeCarrierError(
+                PasswordPolicyDirIsNotUserError("Directory is not a User."),
+                ErrorCode.INVALID_OPERATION,
+            )
 
         return await self.get_password_policy_for_user(user)
 
     async def create(self, dto: PasswordPolicyDTO[None, PriorityT]) -> None:
         """Create one Password Policy."""
         if await self._is_policy_already_exist(dto.name):
-            raise PasswordPolicyAlreadyExistsError(
-                "Password Policy already exists",
+            raise ErrorCodeCarrierError(
+                PasswordPolicyAlreadyExistsError(
+                    "Password Policy already exists",
+                ),
+                ErrorCode.ENTITY_ALREADY_EXISTS,
             )
 
         priority = dto.priority or await self._get_total_count()
@@ -265,8 +279,12 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         policy = await self._get_raw(id_)
 
         if policy.name == DefaultDomainP.name and dto.name != policy.name:
-            raise PasswordPolicyCantChangeDefaultDomainError(
-                "Cannot change the name of the default domain Password Policy.",  # noqa: E501
+            raise ErrorCodeCarrierError(
+                PasswordPolicyCantChangeDefaultDomainError(
+                    "Cannot change the name of"
+                    " the default domain Password Policy.",
+                ),
+                ErrorCode.INVALID_OPERATION,
             )
 
         domain_password_policy = await self.get_domain_password_policy()
@@ -314,8 +332,11 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         """Reset domain Password Policy to default configuration using DefaultDomainPasswordPolicyPreset."""  # noqa: E501
         domain_policy = await self._get_raw_domain_password_policy()
         if not domain_policy:
-            raise PasswordPolicyNotFoundError(
-                "Domain Password Policy not found.",
+            raise ErrorCodeCarrierError(
+                PasswordPolicyNotFoundError(
+                    "Domain Password Policy not found.",
+                ),
+                ErrorCode.PASSWORD_POLICY_NOT_FOUND,
             )
 
         dto = await self._build_default_domain_password_policy_dto()

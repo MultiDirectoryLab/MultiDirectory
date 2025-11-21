@@ -16,9 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
 from entities import AttributeType
+from enums import ErrorCode
+from errors.contracts import ErrorCodeCarrierError
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
+    AttributeTypeCantModifyError,
     AttributeTypeNotFoundError,
 )
 from ldap_protocol.utils.pagination import (
@@ -76,11 +79,14 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
             self.__session.add(attribute_type)
             await self.__session.flush()
 
-        except IntegrityError:
-            raise AttributeTypeAlreadyExistsError(
-                f"Attribute Type with oid '{dto.oid}' and name"
-                + f" '{dto.name}' already exists.",
-            )
+        except IntegrityError as err:
+            raise ErrorCodeCarrierError(
+                AttributeTypeAlreadyExistsError(
+                    f"Attribute Type with oid '{dto.oid}' and name"
+                    + f" '{dto.name}' already exists.",
+                ),
+                ErrorCode.ATTRIBUTE_TYPE_ALREADY_EXISTS,
+            ) from err
 
     async def update(self, _id: str, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type.
@@ -98,6 +104,13 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         obj = await self._get_one_raw_by_name(_id)
 
         obj.is_included_anr = dto.is_included_anr
+        if obj.is_system:
+            raise ErrorCodeCarrierError(
+                AttributeTypeCantModifyError(
+                    "System Attribute Type cannot be modified.",
+                ),
+                ErrorCode.ATTRIBUTE_TYPE_CANT_MODIFY,
+            )
 
         if not obj.is_system:
             obj.syntax = dto.syntax
@@ -142,8 +155,11 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         )  # fmt: skip
 
         if not attribute_type:
-            raise AttributeTypeNotFoundError(
-                f"Attribute Type with name '{name}' not found.",
+            raise ErrorCodeCarrierError(
+                AttributeTypeNotFoundError(
+                    f"Attribute Type with name '{name}' not found.",
+                ),
+                ErrorCode.ATTRIBUTE_TYPE_NOT_FOUND,
             )
         return attribute_type
 

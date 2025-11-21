@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
+from errors.ldap_error_codes_mapping import get_error_code_from_ldap_code
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import (
@@ -19,6 +20,7 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
+from ldap_protocol.utils.error_codes import format_ldap_error_message
 from ldap_protocol.utils.queries import get_filter_from_path, validate_entry
 from repo.pg.tables import (
     ace_directory_memberships_table,
@@ -194,6 +196,11 @@ class ModifyDNRequest(BaseRequest):
                 await ctx.session.rollback()
                 yield ModifyDNResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                    errorMessage=format_ldap_error_message(
+                        get_error_code_from_ldap_code(
+                            LDAPCodes.ENTRY_ALREADY_EXISTS,
+                        ),
+                    ),
                 )
                 return
 
