@@ -8,7 +8,6 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
-from authorization_provider_protocol import AuthorizationProviderProtocol
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
@@ -37,6 +36,7 @@ from api.password_policy.adapter import (
     PasswordPolicyFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
 from ldap_protocol.auth import AuthManager, MFAManager
 from ldap_protocol.auth.setup_gateway import SetupGateway

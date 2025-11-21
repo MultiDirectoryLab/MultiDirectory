@@ -8,11 +8,11 @@ from asyncio import iscoroutinefunction
 from functools import wraps
 from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
 
-from authorization_provider_protocol import AuthorizationProviderProtocol
 from fastapi import HTTPException, status
 from loguru import logger
 
 from abstract_service import AbstractService
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from ldap_protocol.permissions_checker import AuthorizationError
 
 _P = ParamSpec("_P")

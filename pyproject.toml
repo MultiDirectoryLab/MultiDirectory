@@ -198,6 +198,7 @@ known-first-party = [
     "ldap_protocol",
     "abstract_dao",
     "abstract_service",
+    "authorization_provider_protocol",
     "client",
     "config",
     "constants",

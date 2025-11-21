@@ -8,7 +8,6 @@ from abc import ABC
 from typing import Any, ClassVar
 
 from authorization_provider_protocol import AuthorizationProviderProtocol
-
 from enums import AuthorizationRules
 
 
