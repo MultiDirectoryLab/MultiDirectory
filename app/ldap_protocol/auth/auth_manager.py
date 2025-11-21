@@ -128,16 +128,13 @@ class AuthManager(AbstractService):
             raise UnauthorizedError("Incorrect username or password")
 
         perms = [
-            r.auth_rules
+            r.permissions
             for group in user.groups
             for r in group.roles
-            if r.auth_rules
+            if r.permissions
         ]
-        full_mask = AuthorizationRules(0)
-        for rule in perms:
-            full_mask |= rule
 
-        if not (full_mask & AuthorizationRules.AUTH_LOGIN):
+        if not (sum(perms) & AuthorizationRules.AUTH_LOGIN):
             raise LoginFailedError("User is not allowed to log in")
 
         uac_check = await get_check_uac(self._session, user.directory_id)

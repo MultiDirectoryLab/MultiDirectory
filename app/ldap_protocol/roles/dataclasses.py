@@ -43,7 +43,7 @@ class RoleDTO:
 
     id: int | None = None
     created_at: datetime | None = None
-    auth_rules: AuthorizationRules | None = None
+    permissions: AuthorizationRules = AuthorizationRules(0)
     access_control_entries: list[AccessControlEntryDTO] | None = None
 
     def get_id(self) -> int:

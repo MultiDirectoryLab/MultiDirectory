@@ -501,7 +501,7 @@ roles_table = Table(
         nullable=False,
         key="created_at",
     ),
-    Column("auth_rules", AuthorizationRulesType, nullable=True),
+    Column("permissions", AuthorizationRulesType, nullable=False, default=0),
 )
 
 access_control_entries_table = Table(

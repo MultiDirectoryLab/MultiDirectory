@@ -32,7 +32,7 @@ class AuthorizationProvider:
         :return: bool
         """
         user = await self._idp.get_current_user()
-        user_permissions = await self._idp.get_current_user_api_permissions(
+        user_permissions = await self._idp.get_current_user_permissions(
             user,
         )
 

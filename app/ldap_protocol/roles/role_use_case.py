@@ -164,7 +164,7 @@ class RoleUseCase:
                 creator_upn=None,
                 is_system=True,
                 groups=[group_dn],
-                auth_rules=AuthorizationRules.get_all(),
+                permissions=AuthorizationRules.get_all(),
             ),
         )
 
@@ -288,3 +288,7 @@ class RoleUseCase:
                 is_allow=True,
             ),
         ]
+
+    async def update_domain_admins_role_permissions(self) -> None:
+        """Update Domain Admins role permissions."""
+        await self._role_dao.update_admin_role_permissions()

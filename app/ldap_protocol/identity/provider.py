@@ -103,17 +103,17 @@ class IdentityProvider:
         await self.rekey_session()
         return user
 
-    async def get_current_user_api_permissions(
+    async def get_current_user_permissions(
         self,
         user: UserSchema,
     ) -> AuthorizationRules:
-        """Return the identifier of the current authenticated user.
+        """Return the auth rules of the current authenticated user.
 
         Returns:
-            int: Identifier of the authenticated user.
+            AuthorizationRules: Authorization rules of the authenticated user.
 
         """
-        return await self._identity_provider_gateway.get_user_auth_rules(
+        return await self._identity_provider_gateway.get_user_permissions(
             user.role_ids,
         )
 

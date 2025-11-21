@@ -848,7 +848,7 @@ async def setup_session(
             creator_upn=None,
             is_system=True,
             groups=["cn=admin login only,cn=groups,dc=md,dc=test"],
-            auth_rules=AuthorizationRules.AUTH_LOGIN,
+            permissions=AuthorizationRules.AUTH_LOGIN,
         ),
     )
 

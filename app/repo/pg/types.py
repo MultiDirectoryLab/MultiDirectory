@@ -7,7 +7,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import LargeBinary, TypeDecorator
+from sqlalchemy import Dialect, LargeBinary, TypeDecorator
 
 from enums import AuthorizationRules
 
@@ -18,7 +18,11 @@ class AuthorizationRulesType(TypeDecorator):
     impl = LargeBinary
     cache_ok = True
 
-    def process_bind_param(self, value, dialect) -> None | bytes:  # type: ignore # noqa: ARG002
+    def process_bind_param(
+        self,
+        value: AuthorizationRules | int | None,
+        dialect: Dialect,  # noqa: ARG002
+    ) -> None | bytes:
         """Convert strings to AuthorizationRules enums when loading from DB."""
         if value is None:
             return None
@@ -34,10 +38,10 @@ class AuthorizationRulesType(TypeDecorator):
         length = (raw.bit_length() + 7) // 8
         return raw.to_bytes(length, byteorder="little")
 
-    def process_result_value(  # type: ignore
+    def process_result_value(
         self,
-        value,
-        dialect,  # noqa: ARG002
+        value: None | bytes,
+        dialect: Dialect,  # noqa: ARG002
     ) -> None | AuthorizationRules:
         """Convert enums to strings when saving to DB."""
         if not value:

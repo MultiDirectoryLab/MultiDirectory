@@ -1,4 +1,4 @@
-"""Add auth_rules to roles table.
+"""Add permissions to roles table.
 
 Revision ID: 4e8772277cfe
 Revises: df4c52a613e5
@@ -6,14 +6,13 @@ Create Date: 2025-11-20 12:11:32.785993
 
 """
 
-import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import Column, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Role
 from enums import AuthorizationRules
 from ldap_protocol.roles.role_use_case import RoleConstants
-from repo.pg.tables import queryable_attr as qa
 from repo.pg.types import AuthorizationRulesType
 
 # revision identifiers, used by Alembic.
@@ -30,21 +29,21 @@ def upgrade() -> None:
         session = AsyncSession(connection)
         await session.begin()
         query = (
-            sa.select(Role)
-            .where(qa(Role.name) == RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
+            select(Role)
+            .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         )  # fmt: skip
         role = (await session.scalars(query)).first()
-        all_permissions = AuthorizationRules.get_all()
         if role:
-            role.auth_rules = AuthorizationRules(all_permissions)
+            role.permissions = AuthorizationRules.get_all()
             await session.commit()
 
     op.add_column(
         "Roles",
-        sa.Column(
-            "auth_rules",
+        Column(
+            "permissions",
             AuthorizationRulesType(),
-            nullable=True,
+            nullable=False,
+            default=0,
         ),
     )
     op.run_async(_add_api_permissions)
@@ -52,4 +51,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
-    op.drop_column("Roles", "auth_rules")
+    op.drop_column("Roles", "permissions")
