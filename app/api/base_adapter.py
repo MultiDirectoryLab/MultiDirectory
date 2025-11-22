@@ -6,14 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from asyncio import iscoroutinefunction
 from functools import wraps
-from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
-
-from fastapi import HTTPException, status
-from loguru import logger
+from typing import Awaitable, Callable, ParamSpec, Protocol, TypeVar
 
 from abstract_service import AbstractService
 from authorization_provider_protocol import AuthorizationProviderProtocol
-from ldap_protocol.permissions_checker import AuthorizationError
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -23,7 +19,6 @@ _T = TypeVar("_T", bound=AbstractService)
 class BaseAdapter(Protocol[_T]):
     """Abstract Adapter interface."""
 
-    _exceptions_map: dict[type[Exception], int]
     _service: _T
 
     def __init__(
@@ -49,7 +44,7 @@ class BaseAdapter(Protocol[_T]):
                 try:
                     return func(*args, **kwargs)
                 except Exception as err:
-                    instance._reraise(err)
+                    raise err
 
             return wrapper
 
@@ -61,7 +56,7 @@ class BaseAdapter(Protocol[_T]):
                 try:
                     return await func(*args, **kwargs)
                 except Exception as err:
-                    instance._reraise(err)
+                    raise err
 
             return awrapper
 
@@ -82,18 +77,3 @@ class BaseAdapter(Protocol[_T]):
             setattr(instance, name, wrapped)
 
         return instance
-
-    def _reraise(self, exc: Exception) -> NoReturn:
-        """Reraise exception with mapped HTTPException."""
-        exceptions_map = self._exceptions_map | {
-            AuthorizationError: status.HTTP_403_FORBIDDEN,
-        }
-        code = exceptions_map.get(type(exc))
-        logger.debug(f"Reraising exception {exc} with code {code}")
-        if code is None:
-            raise
-
-        raise HTTPException(
-            status_code=code,
-            detail=str(exc),
-        ) from exc
