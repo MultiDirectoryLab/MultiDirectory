@@ -66,7 +66,9 @@ network_router = ErrorAwareRouter(
 
 
 @network_router.post(
-    "", status_code=status.HTTP_201_CREATED, error_map=error_map
+    "",
+    status_code=status.HTTP_201_CREATED,
+    error_map=error_map,
 )
 async def add_network_policy(
     policy: Policy,
