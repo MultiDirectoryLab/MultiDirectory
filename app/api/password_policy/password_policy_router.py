@@ -7,10 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dishka import FromDishka
 from fastapi import Depends
 from fastapi_error_map.routing import ErrorAwareRouter
-from password_policy import error_map
 
 from api.auth import verify_auth
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
+from api.password_policy.error_utils import error_map
 from api.password_policy.schemas import PasswordPolicySchema
 from errors import DishkaErrorAwareRoute
 from ldap_protocol.utils.const import GRANT_DN_STRING

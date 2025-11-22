@@ -115,7 +115,7 @@ auth_router = ErrorAwareRouter(
 )
 
 
-@auth_router.post("/", error_map=error_map)
+@auth_router.post("/", error_map=error_map, warn_on_unmapped=False)
 async def login(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
@@ -151,7 +151,7 @@ async def login(
     )
 
 
-@auth_router.get("/me", error_map=error_map)
+@auth_router.get("/me", error_map=error_map, warn_on_unmapped=False)
 async def users_me(
     identity_adapter: FromDishka[IdentityFastAPIAdapter],
 ) -> UserSchema:
@@ -164,7 +164,12 @@ async def users_me(
     return await identity_adapter.get_current_user()
 
 
-@auth_router.delete("/", response_class=Response, error_map=error_map)
+@auth_router.delete(
+    "/",
+    response_class=Response,
+    error_map=error_map,
+    warn_on_unmapped=False,
+)
 async def logout(
     response: Response,
     storage: FromDishka[SessionStorage],
@@ -187,6 +192,7 @@ async def logout(
     status_code=200,
     dependencies=[Depends(verify_auth)],
     error_map=error_map,
+    warn_on_unmapped=False,
 )
 async def password_reset(
     auth_manager: FromDishka[IdentityFastAPIAdapter],
@@ -211,7 +217,7 @@ async def password_reset(
     await auth_manager.reset_password(identity, new_password, old_password)
 
 
-@auth_router.get("/setup", error_map=error_map)
+@auth_router.get("/setup", error_map=error_map, warn_on_unmapped=False)
 async def check_setup(
     auth_manager: FromDishka[IdentityFastAPIAdapter],
 ) -> bool:
@@ -228,6 +234,7 @@ async def check_setup(
     status_code=status.HTTP_200_OK,
     responses={423: {"detail": "Locked"}},
     error_map=error_map,
+    warn_on_unmapped=False,
 )
 async def first_setup(
     request: SetupRequest,

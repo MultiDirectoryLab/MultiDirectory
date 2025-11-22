@@ -8,10 +8,10 @@ from dishka import FromDishka
 from fastapi import Depends, UploadFile, status
 from fastapi.responses import StreamingResponse
 from fastapi_error_map.routing import ErrorAwareRouter
-from password_policy import error_map
 
 from api.auth import verify_auth
 from api.password_policy.adapter import PasswordBanWordsFastAPIAdapter
+from api.password_policy.error_utils import error_map
 from errors import DishkaErrorAwareRoute
 
 password_ban_word_router = ErrorAwareRouter(
