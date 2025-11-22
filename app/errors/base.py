@@ -24,13 +24,20 @@ class BaseDomainException(Exception):  # noqa N818
     code: Enum
     status_code: ErrorStatusCodes
 
+    def __init_subclass__(cls) -> None:
+        """Initialize subclass."""
+        super().__init_subclass__()
+
+        if not hasattr(cls, "code") or not hasattr(cls, "status_code"):
+            raise AttributeError("code and status_code must be set")
+
 
 @dataclass
 class ErrorResponse:
     """Error response."""
 
     type: str
-    message: str
+    detail: str
     status_code: int
     domain_code: int
     error_code: int
@@ -55,7 +62,7 @@ class BaseErrorTranslator(ErrorTranslator[ErrorResponse]):
             raise TypeError(f"Expected BaseDomainException, got {type(err)}")
         return ErrorResponse(
             type=type(err).__name__,
-            message=str(err),
+            detail=str(err),
             status_code=err.status_code.value,
             domain_code=self.domain_code.value,
             error_code=err.code.value,

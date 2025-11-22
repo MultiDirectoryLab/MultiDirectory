@@ -33,6 +33,7 @@ class UnauthorizedError(AuthError):
     """Raised when authentication fails due to invalid credentials."""
 
     code = ErrorCodes.UNAUTHORIZED_ERROR
+    status_code = ErrorStatusCodes.UNAUTHORIZED
 
 
 class AlreadyConfiguredError(AuthError):

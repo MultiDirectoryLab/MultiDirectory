@@ -58,13 +58,11 @@ error_map: ERROR_MAP_TYPE = {
     ),
 }
 shadow_router = ErrorAwareRouter(
-    prefix="/shadow",
-    tags=["Shadow"],
     route_class=DishkaErrorAwareRoute,
 )
 
 
-@shadow_router.post("/mfa/push")
+@shadow_router.post("/mfa/push", error_map=error_map)
 async def proxy_request(
     principal: Annotated[str, Body(embed=True)],
     ip: Annotated[IPv4Address, Body(embed=True)],
@@ -74,7 +72,7 @@ async def proxy_request(
     return await adapter.proxy_request(principal, ip)
 
 
-@shadow_router.post("/sync/password")
+@shadow_router.post("/sync/password", error_map=error_map)
 async def change_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
