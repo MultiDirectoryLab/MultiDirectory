@@ -20,7 +20,7 @@ def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
         client_ip = forwarded_for.split(",")[0]
     else:
         if request.client is None:
-            raise HTTPException(status.HTTP_403_FORBIDDEN)
+            raise HTTPException(status.HTTP_400_BAD_REQUEST)
         client_ip = request.client.host
 
     return ip_address(client_ip)
