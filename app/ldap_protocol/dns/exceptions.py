@@ -12,6 +12,7 @@ from errors import BaseDomainException, ErrorStatusCodes
 class ErrorCodes(IntEnum):
     """Error codes."""
 
+    BASE_ERROR = 0
     DNS_SETUP_ERROR = 1
     DNS_RECORD_CREATE_ERROR = 2
     DNS_RECORD_UPDATE_ERROR = 3
@@ -25,7 +26,8 @@ class ErrorCodes(IntEnum):
 class DNSError(BaseDomainException):
     """DNS Error."""
 
-    status_code = ErrorStatusCodes.BAD_REQUEST
+    code: ErrorCodes = ErrorCodes.BASE_ERROR
+    status_code: ErrorStatusCodes = ErrorStatusCodes.BAD_REQUEST
 
 
 class DNSSetupError(DNSError):

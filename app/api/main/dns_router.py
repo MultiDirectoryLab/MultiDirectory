@@ -8,7 +8,6 @@ from dishka import FromDishka
 from fastapi import Depends
 from fastapi_error_map import rule
 from fastapi_error_map.routing import ErrorAwareRouter
-from fastapi_error_map.rules import Rule
 
 import ldap_protocol.dns.exceptions as dns_exc
 from api.auth import verify_auth
@@ -25,8 +24,12 @@ from api.main.schema import (
     DNSServiceZoneUpdateRequest,
 )
 from enums import ProjectPartCodes
-from errors import BaseErrorTranslator, ErrorStatusCodes
-from errors.base import DishkaErrorAwareRoute
+from errors import (
+    ERROR_MAP_TYPE,
+    BaseErrorTranslator,
+    DishkaErrorAwareRoute,
+    ErrorStatusCodes,
+)
 from ldap_protocol.dns import (
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -42,7 +45,7 @@ class DNSErrorTranslator(BaseErrorTranslator):
     domain_code = ProjectPartCodes.DNS
 
 
-error_map: dict[type[Exception], int | Rule] | None = {
+error_map: ERROR_MAP_TYPE = {
     dns_exc.DNSSetupError: rule(
         status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
         translator=DNSErrorTranslator(),
