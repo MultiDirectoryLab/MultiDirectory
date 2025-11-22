@@ -87,7 +87,7 @@ async def test_create_object_class_type_conflict_when_already_exists(
         "/schema/object_class",
         json=dataset["object_class"],
     )
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -108,7 +108,7 @@ async def test_modify_system_object_class(http_client: AsyncClient) -> None:
                 f"/schema/object_class/{object_class_name}",
                 json=request_data.model_dump(),
             )
-            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
             break
     else:
         pytest.fail("No system object class")
@@ -203,7 +203,7 @@ async def test_delete_bulk_object_classes(
             response = await http_client.get(
                 f"/schema/object_class/{object_class_name}",
             )
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.parametrize(

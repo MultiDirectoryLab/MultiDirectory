@@ -48,6 +48,16 @@ async def handle_not_implemented_error(
 ) -> NoReturn:
     """Handle Not Implemented error."""
     raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        status_code=status.HTTP_400_BAD_REQUEST,
         detail="This feature is supported with selfhosted DNS server.",
     )
+
+
+async def handle_auth_error(
+    request: Request,  # noqa: ARG001
+    exc: Exception,
+) -> NoReturn:
+    """Handle Auth error."""
+    # fastapi-error-map doesn't handle exceptions from dependencie,
+    # (get_ldap_session) потому ловим так
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=str(exc))

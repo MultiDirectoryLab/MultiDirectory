@@ -37,6 +37,7 @@ from api import (
     shadow_router,
 )
 from api.exception_handlers import (
+    handle_auth_error,
     handle_db_connect_error,
     handle_dns_api_error,
     handle_dns_error,
@@ -59,6 +60,7 @@ from ldap_protocol.dns import (
     DNSError,
     DNSNotImplementedError,
 )
+from ldap_protocol.identity.exceptions.auth import UnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
@@ -115,7 +117,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
         DNSNotImplementedError,
         handle_not_implemented_error,
     )
-
+    app.add_exception_handler(UnauthorizedError, handle_auth_error)
     return app
 
 

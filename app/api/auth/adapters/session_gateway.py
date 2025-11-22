@@ -5,8 +5,6 @@ from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
 from typing import Literal, ParamSpec, TypeVar
 
-from fastapi import status
-
 from api.base_adapter import BaseAdapter
 from ldap_protocol.session_storage import SessionRepository
 
@@ -53,10 +51,6 @@ class UserSessionsResponseSchema:
 
 class SessionFastAPIGateway(BaseAdapter[SessionRepository]):
     """Base class for session storage."""
-
-    _exceptions_map: dict[type[Exception], int] = {
-        LookupError: status.HTTP_404_NOT_FOUND,
-    }
 
     def __init__(self, repository: SessionRepository) -> None:
         """Initialize the session gateway with a repository."""

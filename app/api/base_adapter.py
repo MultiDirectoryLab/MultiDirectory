@@ -6,9 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from asyncio import iscoroutinefunction
 from functools import wraps
-from typing import Awaitable, Callable, NoReturn, ParamSpec, Protocol, TypeVar
-
-from fastapi import HTTPException
+from typing import Awaitable, Callable, ParamSpec, Protocol, TypeVar
 
 from abstract_dao import AbstractDAO, AbstractService
 
@@ -20,7 +18,6 @@ _T = TypeVar("_T", bound=AbstractDAO | AbstractService)
 class BaseAdapter(Protocol[_T]):
     """Abstract Adapter interface."""
 
-    _exceptions_map: dict[type[Exception], int]
     _service: _T
 
     def __init__(self, service: _T) -> None:
@@ -41,7 +38,7 @@ class BaseAdapter(Protocol[_T]):
                 try:
                     return func(*args, **kwargs)
                 except Exception as err:
-                    instance._reraise(err)
+                    raise err
 
             return wrapper
 
@@ -53,7 +50,7 @@ class BaseAdapter(Protocol[_T]):
                 try:
                     return await func(*args, **kwargs)
                 except Exception as err:
-                    instance._reraise(err)
+                    raise err
 
             return awrapper
 
@@ -74,14 +71,3 @@ class BaseAdapter(Protocol[_T]):
             setattr(instance, name, wrapped)
 
         return instance
-
-    def _reraise(self, exc: Exception) -> NoReturn:
-        code = self._exceptions_map.get(type(exc))
-
-        if code is None:
-            raise
-
-        raise HTTPException(
-            status_code=code,
-            detail=str(exc),
-        ) from exc
