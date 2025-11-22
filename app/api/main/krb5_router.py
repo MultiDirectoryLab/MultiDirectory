@@ -138,7 +138,9 @@ LIMITED_LIST = Annotated[
 
 
 @krb5_router.post(
-    "/ktadd", dependencies=[Depends(verify_auth)], error_map=error_map
+    "/ktadd",
+    dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def ktadd(
     names: Annotated[LIMITED_LIST, Body()],
@@ -153,7 +155,9 @@ async def ktadd(
 
 
 @krb5_router.get(
-    "/status", dependencies=[Depends(verify_auth)], error_map=error_map
+    "/status",
+    dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def get_krb_status(
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
@@ -168,7 +172,9 @@ async def get_krb_status(
 
 
 @krb5_router.post(
-    "/principal/add", dependencies=[Depends(verify_auth)], error_map=error_map
+    "/principal/add",
+    dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def add_principal(
     primary: Annotated[LIMITED_STR, Body()],
