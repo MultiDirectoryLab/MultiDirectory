@@ -8,12 +8,60 @@ from ipaddress import IPv4Address
 from typing import Annotated
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Body
+from fastapi import Body
+from fastapi_error_map.routing import ErrorAwareRouter
+from fastapi_error_map.rules import rule
+
+from enums import ProjectPartCodes
+from errors import (
+    ERROR_MAP_TYPE,
+    BaseErrorTranslator,
+    DishkaErrorAwareRoute,
+    ErrorStatusCodes,
+)
+from ldap_protocol.identity.exceptions import (
+    AuthenticationError,
+    InvalidCredentialsError,
+    NetworkPolicyError,
+)
+from ldap_protocol.policies.password.exceptions import PasswordPolicyError
 
 from .adapter import ShadowAdapter
 
-shadow_router = APIRouter(route_class=DishkaRoute)
+
+class ShadowErrorTranslator(BaseErrorTranslator):
+    """Shadow error translator."""
+
+    domain_code = ProjectPartCodes.SHADOW
+
+
+error_map: ERROR_MAP_TYPE = {
+    InvalidCredentialsError: rule(
+        status=ErrorStatusCodes.BAD_REQUEST,
+        translator=ShadowErrorTranslator(),
+    ),
+    NetworkPolicyError: rule(
+        status=ErrorStatusCodes.BAD_REQUEST,
+        translator=ShadowErrorTranslator(),
+    ),
+    AuthenticationError: rule(
+        status=ErrorStatusCodes.UNAUTHORIZED,
+        translator=ShadowErrorTranslator(),
+    ),
+    PasswordPolicyError: rule(
+        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
+        translator=ShadowErrorTranslator(),
+    ),
+    PermissionError: rule(
+        status=ErrorStatusCodes.BAD_REQUEST,
+        translator=ShadowErrorTranslator(),
+    ),
+}
+shadow_router = ErrorAwareRouter(
+    prefix="/shadow",
+    tags=["Shadow"],
+    route_class=DishkaErrorAwareRoute,
+)
 
 
 @shadow_router.post("/mfa/push")

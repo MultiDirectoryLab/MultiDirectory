@@ -90,3 +90,4 @@ class ProjectPartCodes(IntEnum):
     ROLES = 11
     DHCP = 12
     LDAP_SCHEMA = 13
+    SHADOW = 14
