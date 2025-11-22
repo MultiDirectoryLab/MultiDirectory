@@ -7,53 +7,23 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv6Address
 
 from adaptix.conversion import get_converter
-from fastapi import Request, status
+from fastapi import Request
 
 from api.base_adapter import BaseAdapter
 from ldap_protocol.auth import AuthManager
 from ldap_protocol.auth.dto import SetupDTO
-from ldap_protocol.auth.exceptions.mfa import (
-    MFAAPIError,
-    MFAConnectError,
-    MFARequiredError,
-    MissingMFACredentialsError,
-)
 from ldap_protocol.auth.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.exceptions import (
-    AlreadyConfiguredError,
-    AuthValidationError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
-)
-from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 
 
 class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
     """Adapter for using IdentityManager with FastAPI."""
-
-    _exceptions_map: dict[type[Exception], int] = {
-        UnauthorizedError: status.HTTP_401_UNAUTHORIZED,
-        LoginFailedError: status.HTTP_403_FORBIDDEN,
-        MFARequiredError: status.HTTP_426_UPGRADE_REQUIRED,
-        PasswordPolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
-        AuthValidationError: status.HTTP_422_UNPROCESSABLE_ENTITY,
-        PermissionError: status.HTTP_403_FORBIDDEN,
-        UserNotFoundError: status.HTTP_404_NOT_FOUND,
-        KRBAPIChangePasswordError: status.HTTP_424_FAILED_DEPENDENCY,
-        AlreadyConfiguredError: status.HTTP_423_LOCKED,
-        MissingMFACredentialsError: status.HTTP_403_FORBIDDEN,
-        MFAAPIError: status.HTTP_406_NOT_ACCEPTABLE,
-        MFAConnectError: status.HTTP_406_NOT_ACCEPTABLE,
-    }
 
     async def login(
         self,

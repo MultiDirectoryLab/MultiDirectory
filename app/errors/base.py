@@ -9,10 +9,13 @@ from enum import Enum
 
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi_error_map.routing import ErrorAwareRoute
+from fastapi_error_map.rules import Rule
 from fastapi_error_map.translators import ErrorTranslator
 
 from enums import ProjectPartCodes
 from errors.enums import ErrorStatusCodes
+
+ERROR_MAP_TYPE = dict[type[Exception], int | Rule] | None
 
 
 class BaseDomainException(Exception):  # noqa N818

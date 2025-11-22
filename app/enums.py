@@ -195,7 +195,7 @@ class ProjectPartCodes(IntEnum):
 
     AUDIT = 1
     AUTH = 2
-    _ = 3
+    SESSION = 3
     DNS = 4
     GENERAL = 5
     KERBEROS = 6
@@ -204,3 +204,5 @@ class ProjectPartCodes(IntEnum):
     NETWORK = 9
     PASSWORD_POLICY = 10
     ROLES = 11
+    DHCP = 12
+    LDAP_SCHEMA = 13
