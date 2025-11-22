@@ -9,6 +9,7 @@ from fastapi_error_map.rules import rule
 from enums import ProjectPartCodes
 from errors import ERROR_MAP_TYPE, BaseErrorTranslator, ErrorStatusCodes
 from ldap_protocol.policies.password.exceptions import (
+    PasswordBanWordWrongFileExtensionError,
     PasswordPolicyAgeDaysError,
     PasswordPolicyAlreadyExistsError,
     PasswordPolicyBaseDnNotFoundError,
@@ -51,6 +52,10 @@ error_map: ERROR_MAP_TYPE = {
         translator=PasswordPolicyErrorTranslator(),
     ),
     PasswordPolicyAgeDaysError: rule(
+        status=ErrorStatusCodes.BAD_REQUEST,
+        translator=PasswordPolicyErrorTranslator(),
+    ),
+    PasswordBanWordWrongFileExtensionError: rule(
         status=ErrorStatusCodes.BAD_REQUEST,
         translator=PasswordPolicyErrorTranslator(),
     ),

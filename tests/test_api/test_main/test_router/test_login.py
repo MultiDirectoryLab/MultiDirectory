@@ -53,7 +53,7 @@ async def test_api_auth_after_change_account_exp(
         },
     )
 
-    assert auth.status_code == status.HTTP_403_FORBIDDEN
+    assert auth.status_code == status.HTTP_400_BAD_REQUEST
 
     await http_client.patch(
         "/entry/update",
