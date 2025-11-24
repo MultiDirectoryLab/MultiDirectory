@@ -509,7 +509,7 @@ class PasswordPolicyValidator:
         count: int,
     ) -> bool:
         """Validate maximum repeating symbols in row count in password."""
-        matches = re.findall(rf"(.)\1{{{count - 1}}}+", password)
+        matches = re.findall(rf"(.)\1{{{count}}}+", password)
         return not matches
 
     def min_special_symbols_count(self, count: int) -> Self:

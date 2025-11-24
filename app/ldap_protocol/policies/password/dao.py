@@ -134,6 +134,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         group_paths = [base_dn_list[0].path_dn]
         return PasswordPolicyDTO[None, None](
+            id=None,
             priority=None,
             group_paths=group_paths,
             name=DefaultDomainP.name,
@@ -147,9 +148,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             min_lowercase_letters_count=DefaultDomainP.min_lowercase_letters_count,
             min_uppercase_letters_count=DefaultDomainP.min_uppercase_letters_count,
             min_special_symbols_count=DefaultDomainP.min_special_symbols_count,
+            min_digits_count=DefaultDomainP.min_digits_count,
             min_unique_symbols_count=DefaultDomainP.min_unique_symbols_count,
             max_repeating_symbols_in_row_count=DefaultDomainP.max_repeating_symbols_in_row_count,
-            min_digits_count=DefaultDomainP.min_digits_count,
             max_sequential_keyboard_symbols_count=DefaultDomainP.max_sequential_keyboard_symbols_count,
             max_sequential_alphabet_symbols_count=DefaultDomainP.max_sequential_alphabet_symbols_count,
             max_failed_attempts=DefaultDomainP.max_failed_attempts,
@@ -234,9 +235,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             min_lowercase_letters_count=dto.min_lowercase_letters_count,
             min_uppercase_letters_count=dto.min_uppercase_letters_count,
             min_special_symbols_count=dto.min_special_symbols_count,
+            min_digits_count=dto.min_digits_count,
             min_unique_symbols_count=dto.min_unique_symbols_count,
             max_repeating_symbols_in_row_count=dto.max_repeating_symbols_in_row_count,
-            min_digits_count=dto.min_digits_count,
             max_sequential_keyboard_symbols_count=dto.max_sequential_keyboard_symbols_count,
             max_sequential_alphabet_symbols_count=dto.max_sequential_alphabet_symbols_count,
             max_failed_attempts=dto.max_failed_attempts,
@@ -270,7 +271,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             )
 
         domain_password_policy = await self.get_domain_password_policy()
-        priority = dto.priority or await self._get_total_count()
+        priority = dto.priority or (await self._get_total_count() - 1)
         if domain_password_policy.priority < priority:
             raise PasswordPolicyCantChangeDefaultDomainError(
                 "Domain Password Policy must have the lowest priority.",
@@ -282,11 +283,16 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             await self._session.execute(
                 update(PasswordPolicy)
                 .values(priority=PasswordPolicy.priority + 1)
-                .where(priority <= qa(PasswordPolicy.priority)),
+                .where(
+                    qa(PasswordPolicy.id) != id_,
+                    qa(PasswordPolicy.priority) >= priority,
+                ),
             )  # fmt: skip
 
-        policy.name = dto.name
         policy.groups = await get_groups(dto.group_paths, self._session)
+        policy.name = dto.name
+        policy.language = dto.language
+        policy.is_exact_match = dto.is_exact_match
         policy.history_length = dto.history_length
         policy.min_age_days = dto.min_age_days
         policy.max_age_days = dto.max_age_days
@@ -295,9 +301,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         policy.min_lowercase_letters_count = dto.min_lowercase_letters_count
         policy.min_uppercase_letters_count = dto.min_uppercase_letters_count
         policy.min_special_symbols_count = dto.min_special_symbols_count
+        policy.min_digits_count = dto.min_digits_count
         policy.min_unique_symbols_count = dto.min_unique_symbols_count
         policy.max_repeating_symbols_in_row_count = dto.max_repeating_symbols_in_row_count  # fmt: skip # noqa: E501
-        policy.min_digits_count = dto.min_digits_count
         policy.max_sequential_keyboard_symbols_count = dto.max_sequential_keyboard_symbols_count  # fmt: skip # noqa: E501
         policy.max_sequential_alphabet_symbols_count = dto.max_sequential_alphabet_symbols_count  # fmt: skip # noqa: E501
         policy.max_failed_attempts = dto.max_failed_attempts
@@ -333,9 +339,9 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         domain_policy.min_lowercase_letters_count = dto.min_lowercase_letters_count  # fmt: skip # noqa: E501
         domain_policy.min_uppercase_letters_count = dto.min_uppercase_letters_count  # fmt: skip # noqa: E501
         domain_policy.min_special_symbols_count = dto.min_special_symbols_count
+        domain_policy.min_digits_count = dto.min_digits_count
         domain_policy.min_unique_symbols_count = dto.min_unique_symbols_count
         domain_policy.max_repeating_symbols_in_row_count = dto.max_repeating_symbols_in_row_count  # fmt: skip # noqa: E501
-        domain_policy.min_digits_count = dto.min_digits_count
         domain_policy.max_sequential_keyboard_symbols_count = dto.max_sequential_keyboard_symbols_count  # fmt: skip # noqa: E501
         domain_policy.max_sequential_alphabet_symbols_count = dto.max_sequential_alphabet_symbols_count  # fmt: skip # noqa: E501
         domain_policy.max_failed_attempts = dto.max_failed_attempts

@@ -108,13 +108,13 @@ async def test_get_password_policy_by_dir_path_dn(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("schema", test_update_data)
 async def test_update(
-    schema: PasswordPolicySchema[int, int],
+    schema: PasswordPolicySchema[int],
     http_client: AsyncClient,
     password_use_cases: Mock,
 ) -> None:
     """Test update one Password Policy endpoint."""
     response = await http_client.put(
-        "/password-policy/1",
+        f"/password-policy/{schema.id}",
         json=schema.model_dump(),
     )
     assert response.status_code == status.HTTP_200_OK

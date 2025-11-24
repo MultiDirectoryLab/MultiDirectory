@@ -51,6 +51,7 @@ class PasswordPolicyDTO(Generic[_IdT, PriorityT]):
     """Password policy data transfer object."""
 
     group_paths: list[str]
+
     name: str
     language: PasswordValidatorLanguageType
 

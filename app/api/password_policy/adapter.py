@@ -32,7 +32,7 @@ from ldap_protocol.policies.password.use_cases import (
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
 _convert_dto_to_schema = get_converter(
     PasswordPolicyDTO[int, int],
-    PasswordPolicySchema[int, int],
+    PasswordPolicySchema[int],
 )
 
 
@@ -49,12 +49,12 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         PasswordPolicyAgeDaysError: status.HTTP_400_BAD_REQUEST,
     }
 
-    async def get_all(self) -> list[PasswordPolicySchema[int, int]]:
+    async def get_all(self) -> list[PasswordPolicySchema[int]]:
         """Get all Password Policies."""
         dtos = await self._service.get_all()
         return list(map(_convert_dto_to_schema, dtos))
 
-    async def get(self, id_: int) -> PasswordPolicySchema[int, int]:
+    async def get(self, id_: int) -> PasswordPolicySchema[int]:
         """Get one Password Policy."""
         dto = await self._service.get(id_)
         return _convert_dto_to_schema(dto)
@@ -62,7 +62,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     async def get_password_policy_by_dir_path_dn(
         self,
         path_dn: str,
-    ) -> PasswordPolicySchema[int, int]:
+    ) -> PasswordPolicySchema[int]:
         """Get one Password Policy for one Directory by its path."""
         dto = await self._service.get_password_policy_by_dir_path_dn(
             path_dn,
@@ -72,7 +72,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     async def update(
         self,
         id_: int,
-        policy: PasswordPolicySchema[int, PriorityT],
+        policy: PasswordPolicySchema[PriorityT],
     ) -> None:
         """Update one Password Policy."""
         dto = _convert_schema_to_dto(policy)
