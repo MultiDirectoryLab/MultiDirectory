@@ -127,7 +127,7 @@ async def test_update(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("schema", test_update_data)
 async def test_update_with_error(
-    schema: PasswordPolicySchema[int, int],
+    schema: PasswordPolicySchema[int],
     http_client_without_perms: AsyncClient,
     password_use_cases: Mock,
 ) -> None:
