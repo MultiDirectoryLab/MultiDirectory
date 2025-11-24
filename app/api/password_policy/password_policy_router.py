@@ -26,7 +26,7 @@ password_policy_router = APIRouter(
 @password_policy_router.get("/all")
 async def get_all(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> list[PasswordPolicySchema[int, int]]:
+) -> list[PasswordPolicySchema[int]]:
     """Get all Password Policies."""
     return await adapter.get_all()
 
@@ -35,7 +35,7 @@ async def get_all(
 async def get(
     id_: int,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> PasswordPolicySchema[int, int]:
+) -> PasswordPolicySchema[int]:
     """Get one Password Policy."""
     return await adapter.get(id_)
 
@@ -44,7 +44,7 @@ async def get(
 async def get_password_policy_by_dir_path_dn(
     path_dn: GRANT_DN_STRING,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> PasswordPolicySchema[int, int]:
+) -> PasswordPolicySchema[int]:
     """Get one Password Policy for one Directory by its path."""
     return await adapter.get_password_policy_by_dir_path_dn(path_dn)
 
@@ -52,7 +52,7 @@ async def get_password_policy_by_dir_path_dn(
 @password_policy_router.put("/{id_}")
 async def update(
     id_: int,
-    policy: PasswordPolicySchema[int, PriorityT],
+    policy: PasswordPolicySchema[PriorityT],
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:
     """Update one Password Policy."""

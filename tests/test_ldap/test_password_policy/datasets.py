@@ -9,6 +9,7 @@ from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 test_get_password_policy_by_dir_path_dn_extended_dataset = [
     [
         PasswordPolicyDTO[None, int](
+            id=None,
             priority=1,
             group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
             name="Test Password Policy",
@@ -22,9 +23,9 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
             min_lowercase_letters_count=0,
             min_uppercase_letters_count=0,
             min_special_symbols_count=0,
+            min_digits_count=0,
             min_unique_symbols_count=0,
             max_repeating_symbols_in_row_count=0,
-            min_digits_count=0,
             max_sequential_keyboard_symbols_count=0,
             max_sequential_alphabet_symbols_count=0,
             max_failed_attempts=6,
@@ -33,6 +34,7 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
             fail_delay_sec=5,
         ),
         PasswordPolicyDTO[None, int](
+            id=None,
             priority=1,
             group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
             name="Test Password Policy2",
@@ -46,9 +48,9 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
             min_lowercase_letters_count=0,
             min_uppercase_letters_count=0,
             min_special_symbols_count=0,
+            min_digits_count=0,
             min_unique_symbols_count=0,
             max_repeating_symbols_in_row_count=0,
-            min_digits_count=0,
             max_sequential_keyboard_symbols_count=0,
             max_sequential_alphabet_symbols_count=0,
             max_failed_attempts=6,
@@ -57,6 +59,7 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
             fail_delay_sec=5,
         ),
         PasswordPolicyDTO[None, int](
+            id=None,
             priority=1,
             group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
             name="Test Password Policy3",
@@ -70,9 +73,9 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
             min_lowercase_letters_count=0,
             min_uppercase_letters_count=0,
             min_special_symbols_count=0,
+            min_digits_count=0,
             min_unique_symbols_count=0,
             max_repeating_symbols_in_row_count=0,
-            min_digits_count=0,
             max_sequential_keyboard_symbols_count=0,
             max_sequential_alphabet_symbols_count=0,
             max_failed_attempts=6,

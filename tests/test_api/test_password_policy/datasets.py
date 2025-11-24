@@ -7,13 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 from api.password_policy.schemas import PasswordPolicySchema
 
 test_update_data = [
-    PasswordPolicySchema[int, int](
+    PasswordPolicySchema[int](
         id=1,
+        priority=2,
         group_paths=[],
         name="NOT Test Password Policy",
         language="Latin",
         is_exact_match=True,
-        priority=2,
         history_length=5,
         min_age_days=1,
         max_age_days=90,

@@ -16,19 +16,18 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyPriorityError,
 )
 
-_IdT = TypeVar("_IdT", int, None)
 PriorityT = TypeVar("PriorityT", int, None)
 
 
-class PasswordPolicySchema(BaseModel, Generic[_IdT, PriorityT]):
+class PasswordPolicySchema(BaseModel, Generic[PriorityT]):
     """Password Policy schema."""
 
-    id: _IdT = None  # type: ignore[assignment]
-
+    id: int
+    priority: PriorityT = None  # type: ignore[assignment]
     group_paths: list[str] = Field(default_factory=list)
+
     name: str = Field(min_length=3, max_length=255)
     language: PasswordValidatorLanguageType
-    priority: PriorityT = None  # type: ignore[assignment]
 
     is_exact_match: bool
     history_length: int = Field(ge=0, le=24)

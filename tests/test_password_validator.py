@@ -215,7 +215,8 @@ async def test_password_validator_max_repeating_symbols_in_row_count(
 ) -> None:
     """Test password validator for maximum repeating symbols in row count."""
     validator = password_policy_validator.max_repeating_symbols_in_row_count(3)
-    assert not await validator.validate("33aaa!!!3")
+    assert not await validator.validate("33aaaa!!!3")
+    assert await validator.validate("33aaa!!3")
     assert await validator.validate("33a!3")
     assert await validator.validate("abcdef")
 

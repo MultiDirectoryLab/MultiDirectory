@@ -151,10 +151,10 @@ class PasswordPolicy:
     """
 
     id: int = field(init=False)
+    priority: int
 
     name: str
     language: str
-    priority: int
 
     is_exact_match: bool
     history_length: int
