@@ -143,7 +143,7 @@ async def sync_group_memberships(
     allowed_members: list[Directory],
     session: AsyncSession,
 ) -> None:
-    """Replace group memberships."""
+    """Remove group memberships not in allowed list."""
     new_ids = {member.id for member in allowed_members}
     await session.execute(
         directory_memberships_table.delete().where(
