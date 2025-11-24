@@ -271,7 +271,8 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
             )
 
         domain_password_policy = await self.get_domain_password_policy()
-        priority = dto.priority or (await self._get_total_count() - 1)
+        total_count = await self._get_total_count()
+        priority = dto.priority or (total_count - 1)
         if domain_password_policy.priority < priority:
             raise PasswordPolicyCantChangeDefaultDomainError(
                 "Domain Password Policy must have the lowest priority.",
