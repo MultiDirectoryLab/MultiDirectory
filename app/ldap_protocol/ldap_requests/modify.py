@@ -36,7 +36,8 @@ from ldap_protocol.objects import (
 )
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.cte import get_members_root_group
+from ldap_protocol.user_account_control import UserAccountControlFlag
+from ldap_protocol.utils.cte import check_root_group_membership_intersection
 from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
@@ -45,14 +46,22 @@ from ldap_protocol.utils.helpers import (
 )
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
+    clear_group_memberships,
+    extend_group_memberships,
     get_base_directories,
     get_directories,
     get_directory_by_rid,
     get_filter_from_path,
     get_groups,
+    remove_from_group_memberships,
+    sync_group_memberships,
 )
 from password_utils import PasswordUtils
-from repo.pg.tables import directory_table, queryable_attr as qa
+from repo.pg.tables import (
+    directory_memberships_table,
+    directory_table,
+    queryable_attr as qa,
+)
 
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
@@ -333,11 +342,8 @@ class ModifyRequest(BaseRequest):
             .options(selectinload(qa(Directory.attributes)))
             .options(joinedload(qa(Directory.entity_type)))
             .options(
-                selectinload(qa(Directory.groups)).selectinload(
+                selectinload(qa(Directory.groups)).joinedload(
                     qa(Group.directory),
-                ),
-                selectinload(qa(Directory.groups)).selectinload(
-                    qa(Group.members),
                 ),
                 joinedload(qa(Directory.group)).selectinload(
                     qa(Group.members),
@@ -382,6 +388,27 @@ class ModifyRequest(BaseRequest):
             .join(Attribute)
             .where(
                 qa(Directory.id).in_(directory_ids),
+                qa(Attribute.name) == "primaryGroupID",
+                qa(Attribute.value) == primary_group_id,
+            )
+        )
+        return list(await session.scalars(query))
+
+    async def _get_members_with_primary_group_id(
+        self,
+        primary_group_id: str,
+        group: Group,
+        session: AsyncSession,
+    ) -> list[Directory]:
+        query = (
+            select(Directory)
+            .join(
+                directory_memberships_table,
+                directory_memberships_table.c.directory_id == Directory.id,
+            )
+            .join(Attribute)
+            .where(
+                directory_memberships_table.c.group_id == group.id,
                 qa(Attribute.name) == "primaryGroupID",
                 qa(Attribute.value) == primary_group_id,
             )
@@ -477,10 +504,10 @@ class ModifyRequest(BaseRequest):
 
         if operation == Operation.REPLACE:
             members_with_primary_group = (
-                await self._get_directories_with_primary_group_id(
+                await self._get_members_with_primary_group_id(
                     directory.relative_id,
+                    directory.group,
                     session,
-                    [m.id for m in directory.group.members],
                 )
             )
 
@@ -542,18 +569,17 @@ class ModifyRequest(BaseRequest):
         )
 
         if not change.modification.vals:
-            directory.group.members.clear()
+            await clear_group_memberships(directory.group, session)
 
         elif change.operation == Operation.REPLACE:
-            directory.group.members = [
-                member
-                for member in directory.group.members
-                if member in members
-            ]
+            await sync_group_memberships(directory.group, members, session)
 
         else:
-            for member in members:
-                directory.group.members.remove(member)
+            await remove_from_group_memberships(
+                directory.group,
+                members,
+                session,
+            )
 
     async def _validate_object_class_modification(
         self,
@@ -676,6 +702,72 @@ class ModifyRequest(BaseRequest):
         )
         await session.commit()
 
+    async def _add_memberof(
+        self,
+        change: Changes,
+        directory: Directory,
+        session: AsyncSession,
+    ) -> None:
+        """Add memberOf attribute to user or computer."""
+        directories = await get_directories(change.modification.vals, session)  # type: ignore
+
+        groups = [
+            _directory.group for _directory in directories if _directory.group
+        ]
+        new_groups = [g for g in groups if g not in directory.groups]
+        directories = [new_group.directory for new_group in new_groups]
+
+        if not directories:
+            return
+
+        if directory.group and await check_root_group_membership_intersection(
+            directory.path_dn,
+            session,
+            [d.id for d in directories],
+        ):
+            raise RecursionError
+
+        directory.groups.extend(
+            [
+                _directory.group
+                for _directory in directories
+                if _directory.group
+            ],
+        )
+        await session.commit()
+
+    async def _add_member(
+        self,
+        change: Changes,
+        directory: Directory,
+        session: AsyncSession,
+    ) -> None:
+        """Add member attribute to group."""
+        directories = await get_directories(
+            change.modification.vals,  # type: ignore
+            session,
+            excluded_group=directory.group,
+        )
+
+        if not directories:
+            return
+
+        # NOTE: Если среди новых member есть группы,
+        # то нужно проверить рекурсию
+        group_directories = [d for d in directories if d.group]
+        if (
+            group_directories
+            and await check_root_group_membership_intersection(
+                directory.path_dn,
+                session,
+                [d.id for d in group_directories],
+            )
+        ):
+            raise RecursionError
+
+        await extend_group_memberships(directory.group, directories, session)
+        await session.commit()
+
     async def _add_group_attrs(
         self,
         change: Changes,
@@ -683,52 +775,17 @@ class ModifyRequest(BaseRequest):
         session: AsyncSession,
     ) -> None:
         name = change.get_name()
-        if name == "primarygroupid":
-            await self._add_primary_group_attribute(change, directory, session)
-            return
-
-        directories = await get_directories(change.modification.vals, session)  # type: ignore
-
-        if name == "memberof":
-            groups = [
-                _directory.group
-                for _directory in directories
-                if _directory.group
-            ]
-            new_groups = [g for g in groups if g not in directory.groups]
-            directories = [new_group.directory for new_group in new_groups]
-        else:
-            directories = [
-                d
-                for d in directories
-                if not directory.group or d not in directory.group.members
-            ]
-
-        if not directories:
-            return
-
-        members = await get_members_root_group(directory.path_dn, session)
-        directories_to_add = [
-            _directory
-            for _directory in directories
-            if (_directory != directory and _directory not in members)
-        ]
-
-        if len(directories) != len(directories_to_add):
-            raise RecursionError
-
-        if name == "memberof":
-            directory.groups.extend(
-                [
-                    _directory.group
-                    for _directory in directories
-                    if _directory.group
-                ],
-            )
-        else:
-            directory.group.members.extend(directories)
-
-        await session.commit()
+        match name:
+            case "primarygroupid":
+                await self._add_primary_group_attribute(
+                    change,
+                    directory,
+                    session,
+                )
+            case "memberof":
+                await self._add_memberof(change, directory, session)
+            case "member":
+                await self._add_member(change, directory, session)
 
     async def _add(  # noqa: C901
         self,
