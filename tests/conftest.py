@@ -20,7 +20,6 @@ import redis.asyncio as redis
 import uvloop
 from alembic import command
 from alembic.config import Config as AlembicConfig
-from authorization_provider_protocol import AuthorizationProviderProtocol
 from dishka import (
     AsyncContainer,
     Provider,
@@ -59,6 +58,7 @@ from api.password_policy.adapter import (
     PasswordPolicyFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
