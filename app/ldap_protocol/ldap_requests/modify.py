@@ -36,7 +36,6 @@ from ldap_protocol.objects import (
 )
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.user_account_control import UserAccountControlFlag
 from ldap_protocol.utils.cte import check_root_group_membership_intersection
 from ldap_protocol.utils.helpers import (
     create_user_name,
