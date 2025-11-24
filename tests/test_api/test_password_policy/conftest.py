@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 from unittest.mock import AsyncMock, Mock
 
 import pytest_asyncio
@@ -23,10 +23,18 @@ from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from tests.conftest import TestProvider
 
 
+def make_mock(name: str, return_val: Any = None) -> AsyncMock:
+    """Make mock object."""
+    mock = AsyncMock(name=name, return_value=return_val)
+    mock.__name__ = name
+
+    return mock
+
+
 class TestLocalProvider(Provider):
     """Test provider for local scope."""
 
-    _cached_password_use_cases: Mock | None = None
+    _cached_policy_use_cases: PasswordPolicyUseCases | None = None
 
     password_policies_adapter = provide(
         PasswordPolicyFastAPIAdapter,
@@ -34,11 +42,10 @@ class TestLocalProvider(Provider):
     )
 
     @provide(scope=Scope.REQUEST, provides=PasswordPolicyUseCases)
-    async def get_password_use_cases(self) -> AsyncIterator[AsyncMock]:
-        """Provide a mock password policy use cases."""
-        if not self._cached_password_use_cases:
-            password_use_cases = Mock()
-
+    async def get_password_use_cases(
+        self,
+    ) -> AsyncIterator[PasswordPolicyUseCases]:
+        if self._cached_policy_use_cases is None:
             dto = PasswordPolicyDTO(
                 id=1,
                 group_paths=["dc=md,dc=test"],
@@ -64,43 +71,54 @@ class TestLocalProvider(Provider):
                 lockout_duration_sec=600,
                 fail_delay_sec=5,
             )
-            password_use_cases.get_all = AsyncMock(return_value=[dto])
-            password_use_cases.get = AsyncMock(return_value=dto)
-            password_use_cases.get_password_policy_by_dir_path_dn = AsyncMock(
-                return_value=dto,
-            )
-            password_use_cases.create_default_domain_policy = AsyncMock(
-                return_value=None,
-            )
-            password_use_cases.update = AsyncMock(return_value=None)
-            password_use_cases.reset_domain_policy_to_default_config = (
-                AsyncMock(
-                    return_value=None,
-                )
-            )
-            password_use_cases.get_password_policy_for_user = AsyncMock(
-                return_value=dto,
-            )
-            password_use_cases.post_save_password_actions = AsyncMock(
-                return_value=None,
-            )
-            password_use_cases.check_expired_max_age = AsyncMock(
-                return_value=True,
-            )
-            password_use_cases.check_password_violations = AsyncMock(
-                return_value=[],
-            )
-            password_use_cases.validate_password = AsyncMock(
-                return_value=[],
-            )
-            password_use_cases.is_password_change_restricted = AsyncMock(
-                return_value=True,
-            )
-            self._cached_password_use_cases = password_use_cases
+            password_policy_dao = Mock()
+            password_policy_validator = Mock()
+            password_ban_word_repository = Mock()
 
-        yield self._cached_password_use_cases
+            use_cases = PasswordPolicyUseCases(
+                password_policy_dao,
+                password_policy_validator,
+                password_ban_word_repository,
+            )
+            use_cases.get_all = make_mock("get_all", [dto])  # type: ignore
+            use_cases.get = make_mock("get", dto)  # type: ignore
+            use_cases.get_password_policy_by_dir_path_dn = make_mock(  # type: ignore
+                "get_password_policy_by_dir_path_dn",
+                dto,
+            )
+            use_cases.create = make_mock("create")  # type: ignore
+            use_cases.create_default_domain_policy = make_mock(  # type: ignore
+                "create_default_domain_policy",
+            )
+            use_cases.update = make_mock("update")  # type: ignore
+            use_cases.reset_domain_policy_to_default_config = make_mock(  # type: ignore
+                "reset_domain_policy_to_default_config",
+            )
+            use_cases.get_password_policy_for_user = make_mock(  # type: ignore
+                "get_password_policy_for_user",
+                dto,
+            )
+            use_cases.post_save_password_actions = make_mock(  # type: ignore
+                "post_save_password_actions",
+            )
+            use_cases.check_expired_max_age = make_mock(  # type: ignore
+                "check_expired_max_age",
+                True,
+            )
+            use_cases.check_password_violations = make_mock(  # type: ignore
+                "check_password_violations",
+                [],
+            )
+            use_cases.validate_password = make_mock("validate_password", [])  # type: ignore
+            use_cases.is_password_change_restricted = make_mock(  # type: ignore
+                "is_password_change_restricted",
+                True,
+            )
 
-        self._cached_password_use_cases = None
+            self._cached_policy_use_cases = use_cases
+
+        yield self._cached_policy_use_cases
+        self._cached_policy_use_cases = None
 
 
 @pytest_asyncio.fixture(scope="session")

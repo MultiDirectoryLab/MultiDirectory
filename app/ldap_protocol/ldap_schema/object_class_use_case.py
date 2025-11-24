@@ -4,7 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abstract_dao import AbstractService
+from typing import ClassVar
+
+from abstract_service import AbstractService
+from enums import AuthorizationRules
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -66,3 +69,11 @@ class ObjectClassUseCase(AbstractService):
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system Object Classes by Names."""
         await self._object_class_dao.delete_all_by_names(names)
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get.__name__: AuthorizationRules.OBJECT_CLASS_GET,
+        create.__name__: AuthorizationRules.OBJECT_CLASS_CREATE,
+        get_paginator.__name__: AuthorizationRules.OBJECT_CLASS_GET_PAGINATOR,
+        update.__name__: AuthorizationRules.OBJECT_CLASS_UPDATE,
+        delete_all_by_names.__name__: AuthorizationRules.OBJECT_CLASS_DELETE_ALL_BY_NAMES,  # noqa: E501
+    }

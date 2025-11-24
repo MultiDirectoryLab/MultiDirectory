@@ -4,7 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from abstract_dao import AbstractService
+from typing import ClassVar
+
+from abstract_service import AbstractService
+from enums import AuthorizationRules
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -64,3 +67,11 @@ class AttributeTypeUseCase(AbstractService):
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system Attribute Types by names."""
         return await self._attribute_type_dao.delete_all_by_names(names)
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get.__name__: AuthorizationRules.ATTRIBUTE_TYPE_GET,
+        create.__name__: AuthorizationRules.ATTRIBUTE_TYPE_CREATE,
+        get_paginator.__name__: AuthorizationRules.ATTRIBUTE_TYPE_GET_PAGINATOR,  # noqa: E501
+        update.__name__: AuthorizationRules.ATTRIBUTE_TYPE_UPDATE,
+        delete_all_by_names.__name__: AuthorizationRules.ATTRIBUTE_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
+    }

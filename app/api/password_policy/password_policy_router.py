@@ -8,7 +8,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends
 
-from api.auth import verify_auth
+from api.auth.utils import verify_auth
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.utils.const import GRANT_DN_STRING

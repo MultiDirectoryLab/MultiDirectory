@@ -13,13 +13,13 @@ from fastapi import Depends, Form, status
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRouter
 
-from api.auth import verify_auth
 from api.auth.adapters import MFAFastAPIAdapter
-from ldap_protocol.identity.schemas import MFACreateRequest, MFAGetResponse
-from ldap_protocol.identity.utils import (
+from api.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
+    verify_auth,
 )
+from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 mfa_router = APIRouter(

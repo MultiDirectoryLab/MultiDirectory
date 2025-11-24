@@ -5,29 +5,29 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from ipaddress import IPv4Address, IPv6Address
+from typing import ClassVar
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
-from abstract_dao import AbstractService
+from abstract_service import AbstractService
 from config import Settings
-from entities import Directory, Group, User
-from enums import MFAFlags
+from entities import User
+from enums import AuthorizationRules, MFAFlags
+from ldap_protocol.auth.dto import SetupDTO
+from ldap_protocol.auth.mfa_manager import MFAManager
+from ldap_protocol.auth.schemas import LoginDTO, OAuth2Form
+from ldap_protocol.auth.use_cases import SetupUseCase
+from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.dto import SetupDTO
-from ldap_protocol.identity.exceptions.auth import (
+from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.exceptions import (
     AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
     UnauthorizedError,
     UserNotFoundError,
 )
-from ldap_protocol.identity.identity_provider import IdentityProvider
-from ldap_protocol.identity.mfa_manager import MFAManager
-from ldap_protocol.identity.schemas import LoginDTO, OAuth2Form
-from ldap_protocol.identity.use_cases import SetupUseCase
-from ldap_protocol.identity.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import UserAccountControlFlag
@@ -42,10 +42,9 @@ from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import get_user
 from password_manager import PasswordValidator
-from repo.pg.tables import queryable_attr as qa
 
 
-class IdentityManager(AbstractService):
+class AuthManager(AbstractService):
     """Authentication manager."""
 
     def __init__(
@@ -128,23 +127,15 @@ class IdentityManager(AbstractService):
         if not user:
             raise UnauthorizedError("Incorrect username or password")
 
-        query = (
-            select(Group)
-            .join(qa(Group.users))
-            .join(qa(Group.directory))
-            .filter(
-                qa(User.id) == user.id,
-                qa(Directory.name) == "domain admins",
-            )
-            .limit(1)
-            .exists()
-        )
-        is_part_of_admin_group = (
-            await self._session.scalars(select(query))
-        ).one()
+        perms = [
+            r.permissions
+            for group in user.groups
+            for r in group.roles
+            if r.permissions
+        ]
 
-        if not is_part_of_admin_group:
-            raise LoginFailedError("User not part of domain admins")
+        if not (sum(perms) & AuthorizationRules.AUTH_LOGIN):
+            raise LoginFailedError("User is not allowed to log in")
 
         uac_check = await get_check_uac(self._session, user.directory_id)
 
@@ -341,3 +332,7 @@ class IdentityManager(AbstractService):
 
         """
         self._identity_provider.set_new_session_key(key)
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        reset_password.__name__: AuthorizationRules.AUTH_RESET_PASSWORD,
+    }

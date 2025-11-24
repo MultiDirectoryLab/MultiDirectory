@@ -58,10 +58,6 @@ class SessionFastAPIGateway(BaseAdapter[SessionRepository]):
         LookupError: status.HTTP_404_NOT_FOUND,
     }
 
-    def __init__(self, repository: SessionRepository) -> None:
-        """Initialize the session gateway with a repository."""
-        self._service = repository
-
     async def get_user_sessions(
         self,
         upn: str,

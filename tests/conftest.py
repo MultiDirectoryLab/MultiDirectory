@@ -29,7 +29,7 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from multidirectory import _create_basic_app
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -41,10 +41,11 @@ from sqlalchemy.ext.asyncio import (
 from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
 from api.auth.adapters import (
-    IdentityFastAPIAdapter,
+    AuthFastAPIAdapter,
     MFAFastAPIAdapter,
     SessionFastAPIGateway,
 )
+from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -57,10 +58,15 @@ from api.password_policy.adapter import (
     PasswordPolicyFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
+from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
+from ldap_protocol.auth import AuthManager, MFAManager
+from ldap_protocol.auth.setup_gateway import SetupGateway
+from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
@@ -71,17 +77,8 @@ from ldap_protocol.dns import (
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.dto import DNSSettingDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
-from ldap_protocol.identity import IdentityManager, MFAManager
-from ldap_protocol.identity.identity_provider import IdentityProvider
-from ldap_protocol.identity.identity_provider_gateway import (
-    IdentityProviderGateway,
-)
-from ldap_protocol.identity.setup_gateway import SetupGateway
-from ldap_protocol.identity.use_cases import SetupUseCase
-from ldap_protocol.identity.utils import (
-    get_ip_from_request,
-    get_user_agent_from_request,
-)
+from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
@@ -107,6 +104,7 @@ from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
+from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import (
@@ -133,6 +131,7 @@ from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.dataclasses import RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.server import PoolClientHandler
@@ -446,12 +445,12 @@ class TestProvider(Provider):
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
     identity_fastapi_adapter = provide(
-        IdentityFastAPIAdapter,
+        AuthFastAPIAdapter,
         scope=Scope.REQUEST,
     )
 
-    identity_manager = provide(
-        IdentityManager,
+    auth_manager = provide(
+        AuthManager,
         scope=Scope.REQUEST,
     )
 
@@ -581,7 +580,30 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     request = from_context(provides=Request, scope=Scope.REQUEST)
-    audit_monitor = provide(AuditMonitor, scope=Scope.REQUEST)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_audit_monitor(
+        self,
+        session: AsyncSession,
+        audit_use_case: "AuditUseCase",
+        session_storage: SessionStorage,
+        settings: Settings,
+        request: Request,
+    ) -> AuditMonitor:
+        """Create ldap session."""
+        ip_from_request = get_ip_from_request(request)
+        user_agent = get_user_agent_from_request(request)
+        session_key = request.cookies.get("id", "")
+
+        return AuditMonitor(
+            session=session,
+            audit_use_case=audit_use_case,
+            session_storage=session_storage,
+            settings=settings,
+            ip_from_request=ip_from_request,
+            user_agent=user_agent,
+            session_key=session_key,
+        )
 
     add_request_context = provide(
         LDAPAddRequestContext,
@@ -640,6 +662,16 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
+
+    @provide(
+        provides=AuthorizationProviderProtocol,
+        scope=Scope.REQUEST,
+    )
+    def authorization_provider_protocol(
+        self,
+        identity_provider: IdentityProvider,
+    ) -> AuthorizationProvider:
+        return AuthorizationProvider(identity_provider)
 
 
 @dataclass
@@ -806,10 +838,7 @@ async def setup_session(
     )
     setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
     await audit_use_case.create_policies()
-    await setup_gateway.setup_enviroment(
-        dn="md.test",
-        data=TEST_DATA,
-    )
+    await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
@@ -818,6 +847,16 @@ async def setup_session(
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
     await role_use_case.create_domain_admins_role()
+
+    await role_use_case._role_dao.create(  # noqa: SLF001
+        dto=RoleDTO(
+            name="TEST ONLY LOGIN ROLE",
+            creator_upn=None,
+            is_system=True,
+            groups=["cn=admin login only,cn=groups,dc=md,dc=test"],
+            permissions=AuthorizationRules.AUTH_LOGIN,
+        ),
+    )
 
     session.add(
         AttributeType(
@@ -1096,6 +1135,33 @@ async def http_client(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def http_client_without_perms(
+    unbound_http_client: httpx.AsyncClient,
+    creds_without_api_perms: TestCreds,
+    setup_session: None,  # noqa: ARG001
+) -> httpx.AsyncClient:
+    """Authenticate and return client with cookies.
+
+    :param httpx.AsyncClient unbound_http_client: client w/o cookies
+    :param TestCreds creds: creds to authn
+    :param None setup_session: just a fixture call
+    :return httpx.AsyncClient: bound client with cookies
+    """
+    response = await unbound_http_client.post(
+        "auth/",
+        data={
+            "username": creds_without_api_perms.un,
+            "password": creds_without_api_perms.pw,
+        },
+    )
+
+    assert response.status_code == 200
+    assert unbound_http_client.cookies.get("id")
+
+    return unbound_http_client
+
+
+@pytest_asyncio.fixture(scope="function")
 async def admin_http_client(
     app: FastAPI,
     admin_creds: TestAdminCreds,
@@ -1136,6 +1202,15 @@ def user() -> dict:
 
 
 @pytest.fixture
+def creds_without_api_perms(user_without_api_perms: dict) -> TestCreds:
+    """Get creds from test data."""
+    return TestCreds(
+        user_without_api_perms["sam_account_name"],
+        user_without_api_perms["password"],
+    )
+
+
+@pytest.fixture
 def admin_creds(admin_user: dict) -> TestAdminCreds:
     """Get admin creds from test data."""
     return TestAdminCreds(
@@ -1145,9 +1220,52 @@ def admin_creds(admin_user: dict) -> TestAdminCreds:
 
 
 @pytest.fixture
+def user_without_api_perms() -> dict:
+    """Get user data."""
+    return TEST_DATA[1]["children"][2]["organizationalPerson"]  # type: ignore
+
+
+@pytest.fixture
 def admin_user() -> dict:
     """Get admin user data."""
     return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore
+
+
+@pytest.fixture
+async def api_permissions_checker(
+    request_container: AsyncContainer,
+) -> AsyncIterator[AuthorizationProvider]:
+    """Get all api permissions."""
+    return await request_container.get(AuthorizationProviderProtocol)
+
+
+@pytest_asyncio.fixture
+async def request_params() -> dict:
+    """Return minimal ASGI scope plus response for request-scoped providers."""
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [],
+        "client": ("127.0.0.1", 0),
+        "server": ("testserver", 80),
+    }
+    request = Request(scope)
+    response = Response()
+    return {Request: request, Response: response}
+
+
+@pytest_asyncio.fixture
+async def request_container(
+    container: AsyncContainer,
+    request_params: dict,
+) -> AsyncIterator[AsyncContainer]:
+    """Create request scope with Request context."""
+    async with container(scope=Scope.REQUEST, context=request_params) as cont:
+        yield cont
 
 
 @pytest.fixture
@@ -1170,11 +1288,10 @@ async def dns_manager(
 
 @pytest_asyncio.fixture
 async def dhcp_manager(
-    container: AsyncContainer,
+    request_container: AsyncContainer,
 ) -> AsyncIterator[AbstractDHCPManager]:
     """Get DI DHCP manager."""
-    async with container(scope=Scope.REQUEST) as container:
-        yield await container.get(AbstractDHCPManager)
+    yield await request_container.get(AbstractDHCPManager)
 
 
 @pytest.fixture

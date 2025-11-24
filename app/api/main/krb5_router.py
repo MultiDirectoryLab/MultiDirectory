@@ -15,8 +15,8 @@ from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
 from pydantic import SecretStr
 
-from api.auth import verify_auth
-from api.auth.adapters.identity import IdentityFastAPIAdapter
+from api.auth.adapters.auth import AuthFastAPIAdapter
+from api.auth.utils import verify_auth
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession
@@ -64,7 +64,7 @@ async def setup_krb_catalogue(
 @krb5_router.post("/setup", response_class=Response)
 async def setup_kdc(
     data: KerberosSetupRequest,
-    identity_adapter: FromDishka[IdentityFastAPIAdapter],
+    identity_adapter: FromDishka[AuthFastAPIAdapter],
     request: Request,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> Response:

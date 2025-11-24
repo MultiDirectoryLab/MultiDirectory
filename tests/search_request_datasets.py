@@ -29,7 +29,7 @@ test_search_by_rule_anr_dataset = [
     {"filter": "(anr<=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr~=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr==user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
+    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
     {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
     {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=groups,dc=md,dc=test"]},  # noqa: E501
@@ -38,6 +38,7 @@ test_search_by_rule_anr_dataset = [
         "filter": "(anr=user_admin_*)",
         "objects": [
             "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
@@ -51,6 +52,7 @@ test_search_by_rule_bit_and_dataset = [
         "objects": [
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
             "cn=user_non_admin,cn=users,dc=md,dc=test",
             "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
@@ -83,6 +85,7 @@ test_search_by_rule_bit_and_dataset = [
         "objects": [
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
             "cn=user_non_admin,cn=users,dc=md,dc=test",
             "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
@@ -103,6 +106,7 @@ test_search_by_rule_bit_or_dataset = [
         "objects": [
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
@@ -122,6 +126,7 @@ test_search_by_rule_bit_or_dataset = [
         "objects": [
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
             "cn=user_non_admin,cn=users,dc=md,dc=test",
             "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",

@@ -19,7 +19,7 @@ from sqlalchemy.orm import joinedload
 
 from entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
-from ldap_protocol.identity.utils import authenticate_user
+from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
@@ -591,6 +591,8 @@ async def test_lock_and_unlock_user(
 
     assert "nsAccountLock" not in attrs
     assert "shadowExpire" not in attrs
+    assert dir_
+    assert dir_.user
     assert not await storage.get_user_sessions(dir_.user.id)
 
 

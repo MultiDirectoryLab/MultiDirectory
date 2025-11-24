@@ -9,14 +9,13 @@ import copy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractService
 from constants import FIRST_SETUP_DATA
-from ldap_protocol.identity.dto import SetupDTO
-from ldap_protocol.identity.exceptions.auth import (
+from ldap_protocol.auth.dto import SetupDTO
+from ldap_protocol.auth.setup_gateway import SetupGateway
+from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     ForbiddenError,
 )
-from ldap_protocol.identity.setup_gateway import SetupGateway
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
@@ -24,7 +23,7 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import create_integer_hash, ft_now
 
 
-class SetupUseCase(AbstractService):
+class SetupUseCase:
     """Setup manager."""
 
     def __init__(

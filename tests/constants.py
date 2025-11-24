@@ -39,6 +39,17 @@ TEST_DATA = [
                 },
             },
             {
+                "name": "admin login only",
+                "object_class": "group",
+                "attributes": {
+                    "objectClass": ["top", "posixGroup"],
+                    "groupType": ["-2147483646"],
+                    "instanceType": ["4"],
+                    "sAMAccountName": ["admin login only"],
+                    "sAMAccountType": ["268435456"],
+                },
+            },
+            {
                 "name": "domain users",
                 "object_class": "group",
                 "attributes": {
@@ -110,6 +121,35 @@ TEST_DATA = [
                     "password": "password",
                     "groups": [
                         "domain admins",
+                    ],
+                },
+                "attributes": {
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "inetOrgPerson",
+                        "shadowAccount",
+                    ],
+                    "posixEmail": ["abctest@mail.com"],
+                    "attr_with_bvalue": [b"any"],
+                    "userAccountControl": [
+                        str(UserAccountControlFlag.NORMAL_ACCOUNT),
+                    ],
+                },
+            },
+            {
+                "name": "user_admin_for_roles",
+                "object_class": "user",
+                "organizationalPerson": {
+                    "sam_account_name": "user_admin_for_roles",
+                    "user_principal_name": "user_admin_for_roles",
+                    "mail": "user_admin_for_roles@mail.com",
+                    "display_name": "user_admin_for_roles",
+                    "password": "password",
+                    "groups": [
+                        "admin login only",
                     ],
                 },
                 "attributes": {

@@ -68,7 +68,7 @@ async def test_bind_ok_and_unbind(
 @pytest.mark.usefixtures("setup_session")
 async def test_gssapi_bind_in_progress(
     creds: TestCreds,
-    container: AsyncContainer,
+    request_container: AsyncContainer,
 ) -> None:
     """Test first step gssapi bind."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
@@ -92,13 +92,12 @@ async def test_gssapi_bind_in_progress(
         AuthenticationChoice=auth_choice,
     )
 
-    async with container(scope=Scope.REQUEST) as container:
-        kwargs = await resolve_deps(bind.handle, container)
-        result = await anext(bind.handle(**kwargs))
-        assert result == BindResponse(
-            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-            serverSaslCreds=b"response_ticket",
-        )
+    kwargs = await resolve_deps(bind.handle, request_container)
+    result = await anext(bind.handle(**kwargs))
+    assert result == BindResponse(
+        result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
+        serverSaslCreds=b"response_ticket",
+    )
 
 
 @pytest.mark.asyncio
