@@ -17,7 +17,7 @@ from errors import (
     DishkaErrorAwareRoute,
     ErrorStatusCodes,
 )
-from ldap_protocol.policies.audit.exception import (
+from ldap_protocol.policies.audit.exceptions import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
 )
