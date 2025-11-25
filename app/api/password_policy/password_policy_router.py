@@ -5,25 +5,27 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends
+from fastapi import Depends
+from fastapi_error_map.routing import ErrorAwareRouter
 
 from api.auth.utils import verify_auth
+from api.error_routing import DishkaErrorAwareRoute
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
+from api.password_policy.error_utils import error_map
 from api.password_policy.schemas import PasswordPolicySchema
 from ldap_protocol.utils.const import GRANT_DN_STRING
 
 from .schemas import PriorityT
 
-password_policy_router = APIRouter(
+password_policy_router = ErrorAwareRouter(
     prefix="/password-policy",
     dependencies=[Depends(verify_auth)],
     tags=["Password Policy"],
-    route_class=DishkaRoute,
+    route_class=DishkaErrorAwareRoute,
 )
 
 
-@password_policy_router.get("/all")
+@password_policy_router.get("/all", error_map=error_map)
 async def get_all(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> list[PasswordPolicySchema[int]]:
@@ -31,7 +33,7 @@ async def get_all(
     return await adapter.get_all()
 
 
-@password_policy_router.get("/{id_}")
+@password_policy_router.get("/{id_}", error_map=error_map)
 async def get(
     id_: int,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
@@ -40,7 +42,7 @@ async def get(
     return await adapter.get(id_)
 
 
-@password_policy_router.get("/by_dir_path_dn/{path_dn}")
+@password_policy_router.get("/by_dir_path_dn/{path_dn}", error_map=error_map)
 async def get_password_policy_by_dir_path_dn(
     path_dn: GRANT_DN_STRING,
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
@@ -49,7 +51,7 @@ async def get_password_policy_by_dir_path_dn(
     return await adapter.get_password_policy_by_dir_path_dn(path_dn)
 
 
-@password_policy_router.put("/{id_}")
+@password_policy_router.put("/{id_}", error_map=error_map)
 async def update(
     id_: int,
     policy: PasswordPolicySchema[PriorityT],
@@ -59,7 +61,7 @@ async def update(
     await adapter.update(id_, policy)
 
 
-@password_policy_router.put("/reset/domain_policy")
+@password_policy_router.put("/reset/domain_policy", error_map=error_map)
 async def reset_domain_policy_to_default_config(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:

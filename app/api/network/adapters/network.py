@@ -23,11 +23,6 @@ from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
 )
-from ldap_protocol.policies.network.exceptions import (
-    LastActivePolicyError,
-    NetworkPolicyAlreadyExistsError,
-    NetworkPolicyNotFoundError,
-)
 from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 
 
@@ -67,12 +62,6 @@ _convert_dto_to_schema = get_converter(
 
 class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
     """Network policy adapter."""
-
-    _exceptions_map: dict[type[Exception], int] = {
-        NetworkPolicyAlreadyExistsError: status.HTTP_422_UNPROCESSABLE_ENTITY,
-        LastActivePolicyError: status.HTTP_422_UNPROCESSABLE_ENTITY,
-        NetworkPolicyNotFoundError: status.HTTP_404_NOT_FOUND,
-    }
 
     async def create(self, policy: Policy) -> PolicyResponse:
         """Create network policy."""

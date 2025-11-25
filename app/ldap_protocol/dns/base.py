@@ -46,14 +46,6 @@ class DNSForwarderServerStatus(StrEnum):
     NOT_FOUND = "not found"
 
 
-class DNSConnectionError(ConnectionError):
-    """API Error."""
-
-
-class DNSError(Exception):
-    """DNS Error."""
-
-
 class DNSNotImplementedError(NotImplementedError):
     """API Not Implemented Error."""
 

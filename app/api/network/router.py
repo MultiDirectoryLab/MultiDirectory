@@ -5,14 +5,25 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Request, status
 from fastapi.params import Depends
 from fastapi.responses import RedirectResponse
-from fastapi.routing import APIRouter
+from fastapi_error_map.routing import ErrorAwareRouter
+from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
+)
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
+from enums import DoaminCodes
+from ldap_protocol.policies.network.exceptions import (
+    LastActivePolicyError,
+    NetworkPolicyAlreadyExistsError,
+    NetworkPolicyNotFoundError,
+)
 
 from .schema import (
     Policy,
@@ -22,15 +33,38 @@ from .schema import (
     SwapResponse,
 )
 
-network_router = APIRouter(
+translator = DomainErrorTranslator(DoaminCodes.NETWORK)
+
+
+error_map: ERROR_MAP_TYPE = {
+    NetworkPolicyAlreadyExistsError: rule(
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
+    ),
+    NetworkPolicyNotFoundError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    LastActivePolicyError: rule(
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
+    ),
+}
+
+
+network_router = ErrorAwareRouter(
     prefix="/policy",
     tags=["Network policy"],
-    route_class=DishkaRoute,
+    route_class=DishkaErrorAwareRoute,
     dependencies=[Depends(verify_auth)],
 )
 
 
-@network_router.post("", status_code=status.HTTP_201_CREATED)
+@network_router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    error_map=error_map,
+)
 async def add_network_policy(
     policy: Policy,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],
@@ -46,7 +80,7 @@ async def add_network_policy(
     return await adapter.create(policy)
 
 
-@network_router.get("", name="policy")
+@network_router.get("", name="policy", error_map=error_map)
 async def get_list_network_policies(
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],
 ) -> list[PolicyResponse]:
@@ -62,6 +96,7 @@ async def get_list_network_policies(
     "/{policy_id}",
     response_class=RedirectResponse,
     status_code=status.HTTP_303_SEE_OTHER,
+    error_map=error_map,
 )
 async def delete_network_policy(
     policy_id: int,
@@ -79,7 +114,7 @@ async def delete_network_policy(
     return await adapter.delete(request, policy_id)  # type: ignore
 
 
-@network_router.patch("/{policy_id}")
+@network_router.patch("/{policy_id}", error_map=error_map)
 async def switch_network_policy(
     policy_id: int,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],
@@ -98,7 +133,7 @@ async def switch_network_policy(
     return await adapter.switch_network_policy(policy_id)
 
 
-@network_router.put("")
+@network_router.put("", error_map=error_map)
 async def update_network_policy(
     request: PolicyUpdate,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],
@@ -115,7 +150,7 @@ async def update_network_policy(
     return await adapter.update(request)
 
 
-@network_router.post("/swap")
+@network_router.post("/swap", error_map=error_map)
 async def swap_network_policy(
     swap: SwapRequest,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],

@@ -1,4 +1,4 @@
-"""OAuth utils.
+"""Identity utility functions for authentication and user management.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -6,30 +6,34 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address, IPv6Address, ip_address
 
-from dishka import FromDishka
-from dishka.integrations.fastapi import inject
 from fastapi import HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.adapters import AuthFastAPIAdapter
+from entities import User
+from ldap_protocol.utils.queries import get_user
+from password_manager import PasswordValidator
 
 
-@inject
-async def verify_auth(
-    identity_adapter: FromDishka[AuthFastAPIAdapter],
-) -> None:
-    """Retrieve the currently authenticated user and rekey their session.
+async def authenticate_user(
+    session: AsyncSession,
+    username: str,
+    password: str,
+    password_validator: PasswordValidator,
+) -> User | None:
+    """Get user and verify password.
 
-    This function fetches the current user based on the request's
-    authentication credentials and rekeys the user's session
-    for security purposes.
-
-    Args:
-        identity_adapter (FromDishka[IdentityFastAPIAdapter]): The user adapter
-            instance injected from Dishka DI container, used for
-            user operations.
-
+    :param AsyncSession session: sa session
+    :param str username: any str
+    :param str password: any str
+    :return User | None: User model (pydantic).
     """
-    await identity_adapter.get_current_user()
+    user = await get_user(session, username)
+
+    if not user or not user.password or not password:
+        return None
+    if not password_validator.verify_password(password, user.password):
+        return None
+    return user
 
 
 def get_ip_from_request(request: Request) -> IPv4Address | IPv6Address:
