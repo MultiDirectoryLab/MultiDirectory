@@ -152,4 +152,4 @@ class PrimaryGroupRequest(BaseModel):
     """Request schema for setting primary group."""
 
     directory_dn: GRANT_DN_STRING
-    group_dn: GRANT_DN_STRING
+    group_dn: str
