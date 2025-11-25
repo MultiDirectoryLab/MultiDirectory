@@ -110,9 +110,9 @@ async def get_directories(
     return list(results.all())
 
 
-async def extend_group_memberships(
+async def extend_group_membership(
     group: Group,
-    directories: list[Directory],
+    members_to_add: list[Directory],
     session: AsyncSession,
 ) -> None:
     """Extend group memberships."""
@@ -120,13 +120,13 @@ async def extend_group_memberships(
         insert(directory_memberships_table).values(
             [
                 {"group_id": group.id, "directory_id": directory.id}
-                for directory in directories
+                for directory in members_to_add
             ],
         ),
     )
 
 
-async def clear_group_memberships(
+async def clear_group_membership(
     group: Group,
     session: AsyncSession,
 ) -> None:
@@ -138,7 +138,7 @@ async def clear_group_memberships(
     )
 
 
-async def sync_group_memberships(
+async def sync_group_membership(
     group: Group,
     allowed_members: list[Directory],
     session: AsyncSession,
@@ -153,7 +153,7 @@ async def sync_group_memberships(
     )
 
 
-async def remove_from_group_memberships(
+async def remove_from_group_membership(
     group: Group,
     members_to_remove: list[Directory],
     session: AsyncSession,

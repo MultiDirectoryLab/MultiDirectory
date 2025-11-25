@@ -45,15 +45,15 @@ from ldap_protocol.utils.helpers import (
 )
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
-    clear_group_memberships,
-    extend_group_memberships,
+    clear_group_membership,
+    extend_group_membership,
     get_base_directories,
     get_directories,
     get_directory_by_rid,
     get_filter_from_path,
     get_groups,
-    remove_from_group_memberships,
-    sync_group_memberships,
+    remove_from_group_membership,
+    sync_group_membership,
 )
 from password_utils import PasswordUtils
 from repo.pg.tables import (
@@ -568,13 +568,13 @@ class ModifyRequest(BaseRequest):
         )
 
         if not change.modification.vals:
-            await clear_group_memberships(directory.group, session)
+            await clear_group_membership(directory.group, session)
 
         elif change.operation == Operation.REPLACE:
-            await sync_group_memberships(directory.group, members, session)
+            await sync_group_membership(directory.group, members, session)
 
         else:
-            await remove_from_group_memberships(
+            await remove_from_group_membership(
                 directory.group,
                 members,
                 session,
@@ -761,7 +761,7 @@ class ModifyRequest(BaseRequest):
         ):
             raise RecursionError
 
-        await extend_group_memberships(directory.group, directories, session)
+        await extend_group_membership(directory.group, directories, session)
         await session.commit()
 
     async def _add_group_attrs(
