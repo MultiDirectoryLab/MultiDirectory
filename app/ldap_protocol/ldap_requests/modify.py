@@ -768,17 +768,16 @@ class ModifyRequest(BaseRequest):
         session: AsyncSession,
     ) -> None:
         name = change.get_name()
-        match name:
-            case "primarygroupid":
-                await self._add_primary_group_attribute(
-                    change,
-                    directory,
-                    session,
-                )
-            case "memberof":
-                await self._add_memberof(change, directory, session)
-            case "member":
-                await self._add_member(change, directory, session)
+        if name == "primarygroupid":
+            await self._add_primary_group_attribute(
+                change,
+                directory,
+                session,
+            )
+        elif name == "memberof":
+            await self._add_memberof(change, directory, session)
+        elif name == "member":
+            await self._add_member(change, directory, session)
 
     async def _add(  # noqa: C901
         self,
