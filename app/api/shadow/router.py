@@ -19,7 +19,7 @@ from errors import (
     DishkaErrorAwareRoute,
     ErrorStatusCodes,
 )
-from ldap_protocol.identity.exceptions import (
+from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
     NetworkPolicyError,

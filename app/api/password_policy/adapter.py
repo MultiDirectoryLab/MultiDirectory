@@ -31,7 +31,7 @@ _convert_dto_to_schema = get_converter(
 class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     """Adapter for password policies."""
 
-    async def get_all(self) -> list[PasswordPolicySchema[int, int]]:
+    async def get_all(self) -> list[PasswordPolicySchema[int]]:
         """Get all Password Policies."""
         dtos = await self._service.get_all()
         return list(map(_convert_dto_to_schema, dtos))
