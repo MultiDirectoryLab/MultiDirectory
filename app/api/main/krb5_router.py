@@ -24,7 +24,7 @@ from api.error_routing import (
 )
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
-from enums import ProjectPartCodes
+from enums import DoaminCodes
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.kerberos.exceptions import (
@@ -39,7 +39,7 @@ from ldap_protocol.utils.const import EmailStr
 
 from .utils import get_ldap_session
 
-translator = DomainErrorTranslator(ProjectPartCodes.KERBEROS)
+translator = DomainErrorTranslator(DoaminCodes.KERBEROS)
 
 
 error_map: ERROR_MAP_TYPE = {

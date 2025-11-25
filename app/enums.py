@@ -190,7 +190,7 @@ class AuthorizationRules(IntFlag):
         return cls(sum(cls))
 
 
-class ProjectPartCodes(IntEnum):
+class DoaminCodes(IntEnum):
     """Error code parts."""
 
     AUDIT = 1

@@ -12,7 +12,7 @@ from fastapi_error_map.routing import ErrorAwareRoute
 from fastapi_error_map.rules import Rule
 from fastapi_error_map.translators import ErrorTranslator
 
-from enums import ProjectPartCodes
+from enums import DoaminCodes
 from errors import BaseDomainException
 
 ERROR_MAP_TYPE = dict[type[Exception], int | Rule] | None
@@ -35,9 +35,9 @@ class DishkaErrorAwareRoute(ErrorAwareRoute, DishkaRoute):
 class DomainErrorTranslator(ErrorTranslator[ErrorResponse]):
     """DNS error translator."""
 
-    domain_code: ProjectPartCodes
+    domain_code: DoaminCodes
 
-    def __init__(self, domain_code: ProjectPartCodes) -> None:
+    def __init__(self, domain_code: DoaminCodes) -> None:
         """Initialize error translator."""
         self.domain_code = domain_code
 
