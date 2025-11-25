@@ -20,6 +20,7 @@ class ErrorCodes(IntEnum):
     PASSWORD_POLICY_ERROR = 5
     USER_NOT_FOUND_ERROR = 6
     AUTH_VALIDATION_ERROR = 7
+    AUTHORIZATION_ERROR = 8
 
 
 class AuthError(BaseDomainException):
@@ -68,3 +69,9 @@ class AuthValidationError(AuthError):
     """Raised when there is a validation error during authentication."""
 
     code = ErrorCodes.AUTH_VALIDATION_ERROR
+
+
+class AuthorizationError(AuthError):
+    """Authorization error."""
+
+    code = ErrorCodes.AUTHORIZATION_ERROR
