@@ -664,6 +664,10 @@ class ModifyRequest(BaseRequest):
                 )
 
             rid = group_directory.relative_id
+            if not rid:
+                raise ModifyForbiddenError(
+                    f"Group '{value}' has an invalid object SID.",
+                )
         else:
             rid = value
 

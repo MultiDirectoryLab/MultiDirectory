@@ -20,6 +20,7 @@ from ldap_protocol.filter_interpreter import (
 )
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
+from ldap_protocol.utils.const import GRANT_DN_STRING
 
 
 class SearchRequest(LDAPSearchRequest):
@@ -147,8 +148,8 @@ class DNSServiceOptionsUpdateRequest(BaseModel):
     value: str | list[str] = ""
 
 
-class SetPrimaryGroupRequest(BaseModel):
+class PrimaryGroupRequest(BaseModel):
     """Request schema for setting primary group."""
 
-    directory_dn: str
-    group_dn: str
+    directory_dn: GRANT_DN_STRING
+    group_dn: GRANT_DN_STRING

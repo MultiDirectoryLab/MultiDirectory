@@ -18,10 +18,10 @@ from ldap_protocol.ldap_responses import LDAPResult
 from ldap_protocol.objects import Changes, Operation, PartialAttribute
 
 from .schema import (
+    PrimaryGroupRequest,
     SearchRequest,
     SearchResponse,
     SearchResultDone,
-    SetPrimaryGroupRequest,
 )
 from .utils import get_ldap_session
 
@@ -114,20 +114,10 @@ async def delete_many(
 
 @entry_router.post("/set_primary_group")
 async def set_primary_group(
-    request: SetPrimaryGroupRequest,
+    request: PrimaryGroupRequest,
     req: Request,
-) -> None:
-    """Set primary group for a directory (user or group).
-
-    This endpoint allows setting a primary group for a user or group.
-    The group must be a member of the directory's groups, or it will
-    be added automatically.
-
-    Args:
-        request: SetPrimaryGroupRequest with directory_dn and group_dn.
-        req: FastAPI request object.
-
-    """
+) -> LDAPResult:
+    """Set primary group for a directory (user or group)."""
     modify_request = ModifyRequest(
         object=request.directory_dn,
         changes=[
@@ -140,4 +130,4 @@ async def set_primary_group(
             ),
         ],
     )
-    await modify_request.handle_api(req.state.dishka_container)
+    return await modify_request.handle_api(req.state.dishka_container)
