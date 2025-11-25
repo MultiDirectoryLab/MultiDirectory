@@ -48,7 +48,7 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.identity.exceptions import UnauthorizedError
+from ldap_protocol.identity.exceptions import IdentityUnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
@@ -98,7 +98,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.middleware("http")(set_key_middleware)
     app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
-    app.add_exception_handler(UnauthorizedError, handle_auth_error)
+    app.add_exception_handler(IdentityUnauthorizedError, handle_auth_error)
     return app
 
 

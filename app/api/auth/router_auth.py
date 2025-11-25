@@ -33,13 +33,13 @@ from ldap_protocol.auth.schemas import (
 )
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions import (
-    AlreadyConfiguredError,
-    AuthValidationError,
-    ForbiddenError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
+    IdentityAlreadyConfiguredError,
+    IdentityForbiddenError,
+    IdentityLoginFailedError,
+    IdentityPasswordPolicyError,
+    IdentityUnauthorizedError,
+    IdentityUserNotFoundError,
+    IdentityValidationError,
 )
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.session_storage import SessionStorage
@@ -50,31 +50,31 @@ translator = DomainErrorTranslator(DoaminCodes.AUTH)
 
 
 error_map: ERROR_MAP_TYPE = {
-    UnauthorizedError: rule(
+    IdentityUnauthorizedError: rule(
         status=status.HTTP_401_UNAUTHORIZED,
         translator=translator,
     ),
-    AlreadyConfiguredError: rule(
+    IdentityAlreadyConfiguredError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
-    ForbiddenError: rule(
+    IdentityForbiddenError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
-    LoginFailedError: rule(
+    IdentityLoginFailedError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
-    PasswordPolicyError: rule(
+    IdentityPasswordPolicyError: rule(
         status=status.HTTP_422_UNPROCESSABLE_ENTITY,
         translator=translator,
     ),
-    UserNotFoundError: rule(
+    IdentityUserNotFoundError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
-    AuthValidationError: rule(
+    IdentityValidationError: rule(
         status=status.HTTP_422_UNPROCESSABLE_ENTITY,
         translator=translator,
     ),

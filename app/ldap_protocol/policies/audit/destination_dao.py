@@ -14,7 +14,7 @@ from abstract_dao import AbstractDAO
 from entities import AuditDestination
 
 from .dataclasses import AuditDestinationDTO
-from .exception import AuditNotFoundError
+from .exceptions import AuditNotFoundError
 
 _convert = get_converter(AuditDestination, AuditDestinationDTO)
 

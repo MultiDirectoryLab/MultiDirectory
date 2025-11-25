@@ -22,11 +22,11 @@ from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.exceptions import (
-    AuthValidationError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
+    IdentityLoginFailedError,
+    IdentityPasswordPolicyError,
+    IdentityUnauthorizedError,
+    IdentityUserNotFoundError,
+    IdentityValidationError,
 )
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
@@ -125,7 +125,7 @@ class AuthManager(AbstractService):
             self._password_validator,
         )
         if not user:
-            raise UnauthorizedError("Incorrect username or password")
+            raise IdentityUnauthorizedError("Incorrect username or password")
 
         perms = [
             r.permissions
@@ -135,15 +135,15 @@ class AuthManager(AbstractService):
         ]
 
         if not (sum(perms) & AuthorizationRules.AUTH_LOGIN):
-            raise LoginFailedError("User is not allowed to log in")
+            raise IdentityLoginFailedError("User is not allowed to log in")
 
         uac_check = await get_check_uac(self._session, user.directory_id)
 
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
-            raise LoginFailedError("User account is disabled")
+            raise IdentityLoginFailedError("User account is disabled")
 
         if user.is_expired():
-            raise LoginFailedError("User account is expired")
+            raise IdentityLoginFailedError("User account is expired")
 
         network_policy = await get_user_network_policy(
             ip,
@@ -152,7 +152,7 @@ class AuthManager(AbstractService):
             policy_type="is_http",
         )
         if network_policy is None:
-            raise LoginFailedError("User not part of network policy")
+            raise IdentityLoginFailedError("User not part of network policy")
 
         if self._mfa_api.is_initialized and network_policy.mfa_status in (
             MFAFlags.ENABLED,
@@ -209,7 +209,7 @@ class AuthManager(AbstractService):
         )
 
         if not user:
-            raise UserNotFoundError(
+            raise IdentityUserNotFoundError(
                 f"User {identity} not found in the database.",
             )
 
@@ -226,7 +226,7 @@ class AuthManager(AbstractService):
         )
 
         if errors:
-            raise PasswordPolicyError(errors)
+            raise IdentityPasswordPolicyError(errors)
 
         if include_krb:
             await self._kadmin.create_or_update_principal_pw(
@@ -270,19 +270,19 @@ class AuthManager(AbstractService):
         )
 
         if resolved_identity is None:
-            raise UserNotFoundError(
+            raise IdentityUserNotFoundError(
                 f"User {identity} not found in the database.",
             )
 
         if current_user_schema.id == resolved_identity.id:
             if old_password is None:
-                raise AuthValidationError(
+                raise IdentityValidationError(
                     "Old password must be provided "
                     "when changing your own password.",
                 )
 
             if resolved_identity.password is None:
-                raise AuthValidationError(
+                raise IdentityValidationError(
                     "Cannot change password for user without a set password.",
                 )
 
@@ -295,7 +295,7 @@ class AuthManager(AbstractService):
             )
 
         if raise_not_verified:
-            raise UnauthorizedError("Old password is incorrect.")
+            raise IdentityUnauthorizedError("Old password is incorrect.")
 
         await self._update_password(
             identity,
@@ -314,8 +314,8 @@ class AuthManager(AbstractService):
         """Perform the initial setup of structure and policies.
 
         :param dto: SetupDTO with setup parameters
-        :raises AlreadyConfiguredError: if setup already performed
-        :raises ForbiddenError: if password policy not passed
+        :raises IdentityAlreadyConfiguredError: if setup already performed
+        :raises IdentityForbiddenError: if password policy not passed
         :return: None.
         """
         await self._setup_use_case.setup(dto)

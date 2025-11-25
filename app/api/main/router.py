@@ -14,7 +14,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DoaminCodes
-from ldap_protocol.identity.exceptions import UnauthorizedError
+from ldap_protocol.identity.exceptions import IdentityUnauthorizedError
 from ldap_protocol.ldap_requests import (
     AddRequest,
     DeleteRequest,
@@ -30,7 +30,7 @@ translator = DomainErrorTranslator(DoaminCodes.LDAP)
 
 
 error_map: ERROR_MAP_TYPE = {
-    UnauthorizedError: rule(
+    IdentityUnauthorizedError: rule(
         status=status.HTTP_401_UNAUTHORIZED,
         translator=translator,
     ),

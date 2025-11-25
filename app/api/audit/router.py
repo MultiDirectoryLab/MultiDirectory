@@ -16,7 +16,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DoaminCodes
-from ldap_protocol.policies.audit.exception import (
+from ldap_protocol.policies.audit.exceptions import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
 )

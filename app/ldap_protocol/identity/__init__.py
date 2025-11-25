@@ -1,21 +1,23 @@
 """Identity package."""
 
 from .exceptions import (
-    AlreadyConfiguredError,
-    ForbiddenError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
+    IdentityAlreadyConfiguredError,
+    IdentityForbiddenError,
+    IdentityLoginFailedError,
+    IdentityPasswordPolicyError,
+    IdentityUnauthorizedError,
+    IdentityUserNotFoundError,
+    IdentityValidationError,
 )
 from .provider import IdentityProvider
 
 __all__ = [
     "IdentityProvider",
-    "UnauthorizedError",
-    "AlreadyConfiguredError",
-    "ForbiddenError",
-    "LoginFailedError",
-    "PasswordPolicyError",
-    "UserNotFoundError",
+    "IdentityUnauthorizedError",
+    "IdentityAlreadyConfiguredError",
+    "IdentityForbiddenError",
+    "IdentityLoginFailedError",
+    "IdentityPasswordPolicyError",
+    "IdentityUserNotFoundError",
+    "IdentityValidationError",
 ]

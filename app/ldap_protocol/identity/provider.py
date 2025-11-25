@@ -10,7 +10,7 @@ from config import Settings
 from entities import User
 from enums import AuthorizationRules
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.exceptions import UnauthorizedError
+from ldap_protocol.identity.exceptions import IdentityUnauthorizedError
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.session_storage.base import SessionStorage
 from ldap_protocol.session_storage.exceptions import (
@@ -90,7 +90,7 @@ class IdentityProvider:
         logger.debug(f"Fetching user with ID: {user_id}")
         user = await self._identity_provider_gateway.get_user(user_id)
         if user is None:
-            raise UnauthorizedError("Could not validate credentials")
+            raise IdentityUnauthorizedError("Could not validate credentials")
 
         session_id, _ = self._session_key.split(".")
         return await self.to_schema(user, session_id)
@@ -146,7 +146,9 @@ class IdentityProvider:
             SessionStorageInvalidDataError,
         ) as err:
             logger.debug(f"Session validation failed: {err}")
-            raise UnauthorizedError("Could not validate credentials") from err
+            raise IdentityUnauthorizedError(
+                "Could not validate credentials",
+            ) from err
 
         return user_id
 

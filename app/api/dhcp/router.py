@@ -20,6 +20,7 @@ from api.error_routing import (
 from enums import DoaminCodes
 from ldap_protocol.dhcp.exceptions import (
     DHCPAPIError,
+    DHCPConnectionError,
     DHCPEntryAddError,
     DHCPEntryDeleteError,
     DHCPEntryNotFoundError,
@@ -70,6 +71,10 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     DHCPOperationError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    DHCPConnectionError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),

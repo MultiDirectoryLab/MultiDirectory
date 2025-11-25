@@ -202,8 +202,9 @@ class DoaminCodes(IntEnum):
     LDAP = 7
     MFA = 8
     NETWORK = 9
-    PASSWORD_POLICY = 10
+    PASSWORD = 10
     ROLES = 11
     DHCP = 12
     LDAP_SCHEMA = 13
     SHADOW = 14
+    IDENTITY = 15

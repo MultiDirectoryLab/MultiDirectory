@@ -5,7 +5,7 @@ from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from enums import AuthorizationRules
 from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.exceptions import AuthorizationError
+from ldap_protocol.identity.exceptions import IdentityAuthorizationError
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -39,11 +39,11 @@ class AuthorizationProvider:
         """Check if current user has permission, raise error if not.
 
         :param AuthorizationRules permission: permission to check
-        :raises AuthorizationError: if user does not have permission
+        :raises IdentityAuthorizationError: if user does not have permission
         :return: None
         """
         if not await self._has_permission(permission):
-            raise AuthorizationError(
+            raise IdentityAuthorizationError(
                 f"User does not have permission: {permission.name}",
             )
 

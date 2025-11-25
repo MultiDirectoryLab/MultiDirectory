@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from .mfa import (
     AuthenticationError,
+    ErrorCodes,
     InvalidCredentialsError,
     MFARequiredError,
     MFATokenError,
@@ -15,6 +16,7 @@ from .mfa import (
 )
 
 __all__ = [
+    "ErrorCodes",
     "MFARequiredError",
     "MFATokenError",
     "MissingMFACredentialsError",

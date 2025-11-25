@@ -24,12 +24,12 @@ from ldap_protocol.auth.exceptions.mfa import (
 )
 from ldap_protocol.auth.schemas import OAuth2Form
 from ldap_protocol.identity.exceptions import (
-    AuthorizationError,
-    AuthValidationError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
+    IdentityAuthorizationError,
+    IdentityLoginFailedError,
+    IdentityPasswordPolicyError,
+    IdentityUnauthorizedError,
+    IdentityUserNotFoundError,
+    IdentityValidationError,
 )
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
@@ -187,7 +187,7 @@ class AuditMonitorUseCase:
             except (
                 ForbiddenError,
                 MFATokenError,
-                AuthorizationError,
+                IdentityAuthorizationError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
@@ -212,7 +212,7 @@ class AuditMonitorUseCase:
                 InvalidCredentialsError,
                 NetworkPolicyError,
                 AuthenticationError,
-                AuthorizationError,
+                IdentityAuthorizationError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
@@ -241,9 +241,9 @@ class AuditMonitorUseCase:
                     user_agent=user_agent,
                 )
             except (
-                UnauthorizedError,
-                LoginFailedError,
-                AuthorizationError,
+                IdentityUnauthorizedError,
+                IdentityLoginFailedError,
+                IdentityAuthorizationError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
@@ -267,9 +267,9 @@ class AuditMonitorUseCase:
             try:
                 return await attr(principal, new_password)
             except (
-                UserNotFoundError,
-                PasswordPolicyError,
-                AuthorizationError,
+                IdentityUserNotFoundError,
+                IdentityPasswordPolicyError,
+                IdentityAuthorizationError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
@@ -295,11 +295,11 @@ class AuditMonitorUseCase:
                     old_password=old_password,
                 )
             except (
-                UserNotFoundError,
-                PasswordPolicyError,
+                IdentityUserNotFoundError,
+                IdentityPasswordPolicyError,
                 KRBAPIChangePasswordError,
-                AuthorizationError,
-                AuthValidationError,
+                IdentityAuthorizationError,
+                IdentityValidationError,
             ) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc

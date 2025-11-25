@@ -13,7 +13,7 @@ from enums import AuthorizationRules
 
 from .dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from .destination_dao import AuditDestinationDAO
-from .exception import AuditAlreadyExistsError
+from .exceptions import AuditAlreadyExistsError
 from .policies_dao import AuditPoliciesDAO
 
 

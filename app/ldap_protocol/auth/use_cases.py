@@ -13,8 +13,8 @@ from constants import FIRST_SETUP_DATA
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.identity.exceptions import (
-    AlreadyConfiguredError,
-    ForbiddenError,
+    IdentityAlreadyConfiguredError,
+    IdentityForbiddenError,
 )
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -57,7 +57,7 @@ class SetupUseCase:
         :return: None.
         """
         if await self.is_setup():
-            raise AlreadyConfiguredError("Setup already performed")
+            raise IdentityAlreadyConfiguredError("Setup already performed")
         await self._entity_type_use_case.create_for_first_setup()
 
         data = copy.deepcopy(FIRST_SETUP_DATA)
@@ -138,7 +138,7 @@ class SetupUseCase:
                 )
             )  # fmt: skip
             if errors:
-                raise ForbiddenError(errors)
+                raise IdentityForbiddenError(errors)
 
             await self._role_use_case.create_domain_admins_role()
             await self._role_use_case.create_read_only_role()
@@ -146,6 +146,6 @@ class SetupUseCase:
             await self._session.commit()
         except IntegrityError:
             await self._session.rollback()
-            raise AlreadyConfiguredError(
+            raise IdentityAlreadyConfiguredError(
                 "Setup already performed (locked)",
             )

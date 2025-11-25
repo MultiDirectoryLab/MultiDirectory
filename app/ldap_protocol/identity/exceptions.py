@@ -19,59 +19,59 @@ class ErrorCodes(IntEnum):
     LOGIN_FAILED_ERROR = 4
     PASSWORD_POLICY_ERROR = 5
     USER_NOT_FOUND_ERROR = 6
-    AUTH_VALIDATION_ERROR = 7
+    IDENTITY_VALIDATION_ERROR = 7
     AUTHORIZATION_ERROR = 8
 
 
-class AuthError(BaseDomainException):
+class IdentityError(BaseDomainException):
     """Base exception for authentication identity-related errors."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
 
 
-class UnauthorizedError(AuthError):
+class IdentityUnauthorizedError(IdentityError):
     """Raised when authentication fails due to invalid credentials."""
 
     code = ErrorCodes.UNAUTHORIZED_ERROR
 
 
-class AlreadyConfiguredError(AuthError):
+class IdentityAlreadyConfiguredError(IdentityError):
     """Raised when setup is attempted but already performed."""
 
     code = ErrorCodes.ALREADY_CONFIGURED_ERROR
 
 
-class ForbiddenError(AuthError):
+class IdentityForbiddenError(IdentityError):
     """Raised when access is forbidden due to policy or group membership."""
 
     code = ErrorCodes.FORBIDDEN_ERROR
 
 
-class LoginFailedError(AuthError):
+class IdentityLoginFailedError(IdentityError):
     """Raised when login fails for reasons other than invalid credentials."""
 
     code = ErrorCodes.LOGIN_FAILED_ERROR
 
 
-class PasswordPolicyError(AuthError):
+class IdentityPasswordPolicyError(IdentityError):
     """Raised when a password does not meet policy requirements."""
 
     code = ErrorCodes.PASSWORD_POLICY_ERROR
 
 
-class UserNotFoundError(AuthError):
+class IdentityUserNotFoundError(IdentityError):
     """Raised when a user is not found in the system."""
 
     code = ErrorCodes.USER_NOT_FOUND_ERROR
 
 
-class AuthValidationError(AuthError):
+class IdentityValidationError(IdentityError):
     """Raised when there is a validation error during authentication."""
 
-    code = ErrorCodes.AUTH_VALIDATION_ERROR
+    code = ErrorCodes.IDENTITY_VALIDATION_ERROR
 
 
-class AuthorizationError(AuthError):
+class IdentityAuthorizationError(IdentityError):
     """Authorization error."""
 
     code = ErrorCodes.AUTHORIZATION_ERROR

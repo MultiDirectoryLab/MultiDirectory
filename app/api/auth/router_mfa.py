@@ -25,6 +25,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DoaminCodes
+from ldap_protocol.auth.exceptions import MFARequiredError, MFATokenError
 from ldap_protocol.auth.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
@@ -66,6 +67,14 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     NotFoundError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    MFARequiredError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    MFATokenError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
