@@ -402,8 +402,3 @@ async def explain_query(
             for row in await session.execute(explain(query, analyze=True))
         ),
     )
-
-
-def is_object_rid(rid: str) -> bool:
-    """Check if RID is a group RID."""
-    return rid.isdigit()
