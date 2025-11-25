@@ -10,13 +10,12 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.policies.audit.exception import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
@@ -30,21 +29,17 @@ from ldap_protocol.policies.audit.schemas import (
 
 from .adapter import AuditPoliciesAdapter
 
-
-class AuditErrorTranslator(BaseErrorTranslator):
-    """Audit error translator."""
-
-    domain_code = ProjectPartCodes.AUDIT
+translator = DomainErrorTranslator(ProjectPartCodes.AUDIT)
 
 
 error_map: ERROR_MAP_TYPE = {
     AuditNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuditErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     AuditAlreadyExistsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuditErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
 

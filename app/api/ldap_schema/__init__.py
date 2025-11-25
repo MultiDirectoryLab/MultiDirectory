@@ -7,18 +7,17 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from annotated_types import Len
-from fastapi import Body, Depends
+from fastapi import Body, Depends, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeCantModifyError,
@@ -37,49 +36,45 @@ LimitedListType = Annotated[
     Body(embed=True),
 ]
 
-
-class LDAPSchemaErrorTranslator(BaseErrorTranslator):
-    """LDAP Schema error translator."""
-
-    domain_code = ProjectPartCodes.LDAP_SCHEMA
+translator = DomainErrorTranslator(domain_code=ProjectPartCodes.LDAP_SCHEMA)
 
 
 error_map: ERROR_MAP_TYPE = {
     AttributeTypeAlreadyExistsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     AttributeTypeNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     AttributeTypeCantModifyError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     ObjectClassAlreadyExistsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     ObjectClassNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     ObjectClassCantModifyError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     EntityTypeAlreadyExistsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     EntityTypeNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     EntityTypeCantModifyError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=LDAPSchemaErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
 

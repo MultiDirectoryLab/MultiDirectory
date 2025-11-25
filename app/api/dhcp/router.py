@@ -12,13 +12,12 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.dhcp.exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
@@ -42,41 +41,37 @@ from ldap_protocol.dhcp.schemas import (
 
 from .adapter import DHCPAdapter
 
-
-class DHCPErrorTranslator(BaseErrorTranslator):
-    """DHCP error translator."""
-
-    domain_code = ProjectPartCodes.DHCP
+translator = DomainErrorTranslator(ProjectPartCodes.DHCP)
 
 
 error_map: ERROR_MAP_TYPE = {
     DHCPEntryNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DHCPErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     DHCPEntryDeleteError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DHCPErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     DHCPEntryAddError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DHCPErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     DHCPEntryUpdateError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DHCPErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     DHCPAPIError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DHCPErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     DHCPValidatonError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=DHCPErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
     DHCPOperationError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DHCPErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
 

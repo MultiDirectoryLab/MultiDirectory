@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from errors import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -28,7 +28,6 @@ class LdapSchemaError(BaseDomainException):
     """Raised when an LDAP Schema error occurs."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code: ErrorStatusCodes = ErrorStatusCodes.BAD_REQUEST
 
 
 class AttributeTypeNotFoundError(LdapSchemaError):

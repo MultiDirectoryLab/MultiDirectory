@@ -12,14 +12,13 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
+)
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from enums import ProjectPartCodes
-from errors import (
-    ERROR_MAP_TYPE,
-    BaseErrorTranslator,
-    DishkaErrorAwareRoute,
-    ErrorStatusCodes,
-)
 from ldap_protocol.policies.network.exceptions import (
     LastActivePolicyError,
     NetworkPolicyAlreadyExistsError,
@@ -34,25 +33,21 @@ from .schema import (
     SwapResponse,
 )
 
-
-class NetworkPolicyErrorTranslator(BaseErrorTranslator):
-    """Network policy error translator."""
-
-    domain_code = ProjectPartCodes.NETWORK
+translator = DomainErrorTranslator(ProjectPartCodes.NETWORK)
 
 
 error_map: ERROR_MAP_TYPE = {
     NetworkPolicyAlreadyExistsError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=NetworkPolicyErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
     NetworkPolicyNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=NetworkPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     LastActivePolicyError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=NetworkPolicyErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
 }
 

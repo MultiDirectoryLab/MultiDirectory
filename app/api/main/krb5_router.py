@@ -8,7 +8,7 @@ from typing import Annotated
 
 from annotated_types import Len
 from dishka import FromDishka
-from fastapi import Body, Request, Response
+from fastapi import Body, Request, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
 from fastapi_error_map.routing import ErrorAwareRouter
@@ -17,15 +17,14 @@ from pydantic import SecretStr
 
 from api.auth.adapters.auth import AuthFastAPIAdapter
 from api.auth.utils import verify_auth
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
+)
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
 from enums import ProjectPartCodes
-from errors import (
-    ERROR_MAP_TYPE,
-    BaseErrorTranslator,
-    DishkaErrorAwareRoute,
-    ErrorStatusCodes,
-)
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.kerberos.exceptions import (
@@ -40,33 +39,29 @@ from ldap_protocol.utils.const import EmailStr
 
 from .utils import get_ldap_session
 
-
-class KRB5ErrorTranslator(BaseErrorTranslator):
-    """KRB5 error translator."""
-
-    domain_code = ProjectPartCodes.KERBEROS
+translator = DomainErrorTranslator(ProjectPartCodes.KERBEROS)
 
 
 error_map: ERROR_MAP_TYPE = {
     KerberosBaseDnNotFoundError: rule(
-        status=ErrorStatusCodes.INTERNAL_SERVER_ERROR,
-        translator=KRB5ErrorTranslator(),
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        translator=translator,
     ),
     KerberosConflictError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=KRB5ErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     KerberosDependencyError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=KRB5ErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     KerberosNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=KRB5ErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     KerberosUnavailableError: rule(
-        status=ErrorStatusCodes.INTERNAL_SERVER_ERROR,
-        translator=KRB5ErrorTranslator(),
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        translator=translator,
     ),
 }
 

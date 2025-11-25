@@ -5,19 +5,18 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.ldap_requests import (
     AddRequest,
@@ -36,17 +35,13 @@ from .schema import (
 )
 from .utils import get_ldap_session
 
-
-class EntryErrorTranslator(BaseErrorTranslator):
-    """Entry error translator."""
-
-    domain_code = ProjectPartCodes.LDAP
+translator = DomainErrorTranslator(ProjectPartCodes.LDAP)
 
 
 error_map: ERROR_MAP_TYPE = {
     UnauthorizedError: rule(
-        status=ErrorStatusCodes.UNAUTHORIZED,
-        translator=EntryErrorTranslator(),
+        status=status.HTTP_401_UNAUTHORIZED,
+        translator=translator,
     ),
 }
 

@@ -14,13 +14,12 @@ from fastapi_error_map.rules import rule
 
 from api.auth.adapters import AuthFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.auth.exceptions.mfa import (
     MFAAPIError,
     MFAConnectError,
@@ -47,65 +46,61 @@ from ldap_protocol.session_storage import SessionStorage
 
 from .utils import verify_auth
 
-
-class AuthErrorTranslator(BaseErrorTranslator):
-    """Auth error translator."""
-
-    domain_code = ProjectPartCodes.AUTH
+translator = DomainErrorTranslator(ProjectPartCodes.AUTH)
 
 
 error_map: ERROR_MAP_TYPE = {
     UnauthorizedError: rule(
-        status=ErrorStatusCodes.UNAUTHORIZED,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_401_UNAUTHORIZED,
+        translator=translator,
     ),
     AlreadyConfiguredError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     ForbiddenError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     LoginFailedError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordPolicyError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
     UserNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     AuthValidationError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
     MFARequiredError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     MissingMFACredentialsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     MFAAPIError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     MFAConnectError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PermissionError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     KRBAPIChangePasswordError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=AuthErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
 

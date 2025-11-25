@@ -5,12 +5,17 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from fastapi import Depends
+from fastapi import Depends, status
 from fastapi_error_map import rule
 from fastapi_error_map.routing import ErrorAwareRouter
 
 import ldap_protocol.dns.exceptions as dns_exc
 from api.auth.utils import verify_auth
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
+)
 from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.schema import (
     DNSServiceForwardZoneCheckRequest,
@@ -24,12 +29,6 @@ from api.main.schema import (
     DNSServiceZoneUpdateRequest,
 )
 from enums import ProjectPartCodes
-from errors import (
-    ERROR_MAP_TYPE,
-    BaseErrorTranslator,
-    DishkaErrorAwareRoute,
-    ErrorStatusCodes,
-)
 from ldap_protocol.dns import (
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -38,45 +37,41 @@ from ldap_protocol.dns import (
     DNSZone,
 )
 
-
-class DNSErrorTranslator(BaseErrorTranslator):
-    """DNS error translator."""
-
-    domain_code = ProjectPartCodes.DNS
+translator = DomainErrorTranslator(ProjectPartCodes.DNS)
 
 
 error_map: ERROR_MAP_TYPE = {
     dns_exc.DNSSetupError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
     dns_exc.DNSRecordCreateError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     dns_exc.DNSRecordUpdateError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     dns_exc.DNSRecordDeleteError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     dns_exc.DNSZoneCreateError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     dns_exc.DNSZoneUpdateError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     dns_exc.DNSZoneDeleteError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     dns_exc.DNSUpdateServerOptionsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=DNSErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
 
@@ -160,7 +155,7 @@ async def get_forward_dns_zones(
     "/zone",
     error_map=error_map,
     warn_on_unmapped=False,
-    default_client_error_translator=DNSErrorTranslator(),
+    default_client_error_translator=translator,
 )
 async def create_zone(
     data: DNSServiceZoneCreateRequest,

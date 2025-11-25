@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from errors import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -29,7 +29,6 @@ class DHCPError(BaseDomainException):
     """DHCP base exception."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code = ErrorStatusCodes.BAD_REQUEST
 
 
 class DHCPAPIError(DHCPError):
