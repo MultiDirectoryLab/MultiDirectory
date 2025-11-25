@@ -10,6 +10,7 @@ from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import UserAccountControlFlag
+from tests.api_datasets import test_api_whitespaces_in_attr_value
 
 
 @pytest.mark.asyncio
@@ -399,84 +400,25 @@ async def test_api_add_with_incorrect_name(http_client: AsyncClient) -> None:
     assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
 
 
+@pytest.mark.parametrize("dataset", test_api_whitespaces_in_attr_value)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_with_space_end_name(http_client: AsyncClient) -> None:
-    """Test API add a user with incorrect name."""
-    entry = "cn=test test ,dc=md,dc=test"
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": entry,
-            "password": None,
-            "attributes": [
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-            ],
-        },
-    )
-
-    data = response.json()
-    assert data.get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": entry,
-            "scope": 0,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(objectClass=*)",
-            "attributes": [],
-            "page_number": 1,
-        },
-    )
-    data = response.json()
-
-    assert data["search_result"][0]["object_name"] == entry
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_api_add_duplicate_with_spaces(
+async def test_api_add_with_whitespaces(
     http_client: AsyncClient,
+    dataset: dict,
 ) -> None:
-    """Test API add a user with incorrect name."""
+    """Test API add an entry with whitespaces in attribute value."""
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn=test test,dc=md,dc=test",
-            "password": None,
-            "attributes": [
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-            ],
+            "entry": dataset["entry"],
+            "password": "password_test",
+            "attributes": [],
         },
     )
-    data = response.json()
-    assert data.get("resultCode") == LDAPCodes.SUCCESS
 
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": "cn=   test test  ,dc=md,dc=test",
-            "password": None,
-            "attributes": [
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-            ],
-        },
-    )
     data = response.json()
-    assert data.get("resultCode") == LDAPCodes.ENTRY_ALREADY_EXISTS
+    assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
 
 
 @pytest.mark.asyncio
