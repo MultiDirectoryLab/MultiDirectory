@@ -329,12 +329,12 @@ async def test_404(http_client: AsyncClient) -> None:
     response = await http_client.delete(
         f"/policy/{some_id}",
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == 404
 
     response = await http_client.patch(
         f"/policy/{some_id}",
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == 404
 
     response = await http_client.put(
         "/policy",
@@ -343,7 +343,7 @@ async def test_404(http_client: AsyncClient) -> None:
             "name": "123",
         },
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio

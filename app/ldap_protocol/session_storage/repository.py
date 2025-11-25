@@ -12,7 +12,6 @@ from entities import User
 from enums import AuthorizationRules
 from ldap_protocol.utils.queries import get_user, set_user_logon_attrs
 
-from .exceptions import SessionUserNotFoundError
 from .redis import SessionStorage
 
 
@@ -103,7 +102,7 @@ class SessionRepository(AbstractService):
         user = await get_user(self.session, upn)
 
         if not user:
-            raise SessionUserNotFoundError("User not found.")
+            raise LookupError("User not found.")
 
         sessions = await self.storage.get_user_sessions(user.id)
 
@@ -122,7 +121,7 @@ class SessionRepository(AbstractService):
         )
 
         if not user:
-            raise SessionUserNotFoundError("User not found.")
+            raise LookupError("User not found.")
 
         await self.storage.clear_user_sessions(user.id)
 

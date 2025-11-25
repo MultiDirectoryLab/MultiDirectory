@@ -5,21 +5,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
-from fastapi import Depends, status
-from fastapi_error_map.routing import ErrorAwareRouter
-from fastapi_error_map.rules import rule
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Depends, status
 
 from api.auth.utils import verify_auth
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
-from enums import DoaminCodes
-from ldap_protocol.policies.audit.exception import (
-    AuditAlreadyExistsError,
-    AuditNotFoundError,
-)
 from ldap_protocol.policies.audit.schemas import (
     AuditDestinationResponse,
     AuditDestinationSchemaRequest,
@@ -29,29 +18,15 @@ from ldap_protocol.policies.audit.schemas import (
 
 from .adapter import AuditPoliciesAdapter
 
-translator = DomainErrorTranslator(DoaminCodes.AUDIT)
-
-
-error_map: ERROR_MAP_TYPE = {
-    AuditNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuditAlreadyExistsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-}
-
-audit_router = ErrorAwareRouter(
+audit_router = APIRouter(
     prefix="/audit",
     tags=["Audit policy"],
     dependencies=[Depends(verify_auth)],
-    route_class=DishkaErrorAwareRoute,
+    route_class=DishkaRoute,
 )
 
 
-@audit_router.get("/policies", error_map=error_map)
+@audit_router.get("/policies")
 async def get_audit_policies(
     audit_adapter: FromDishka[AuditPoliciesAdapter],
 ) -> list[AuditPolicyResponse]:
@@ -59,7 +34,7 @@ async def get_audit_policies(
     return await audit_adapter.get_policies()
 
 
-@audit_router.put("/policy/{policy_id}", error_map=error_map)
+@audit_router.put("/policy/{policy_id}")
 async def update_audit_policy(
     policy_id: int,
     policy_data: AuditPolicySchemaRequest,
@@ -69,7 +44,7 @@ async def update_audit_policy(
     return await audit_adapter.update_policy(policy_id, policy_data)
 
 
-@audit_router.get("/destinations", error_map=error_map)
+@audit_router.get("/destinations")
 async def get_audit_destinations(
     audit_adapter: FromDishka[AuditPoliciesAdapter],
 ) -> list[AuditDestinationResponse]:
@@ -77,11 +52,7 @@ async def get_audit_destinations(
     return await audit_adapter.get_destinations()
 
 
-@audit_router.post(
-    "/destination",
-    status_code=status.HTTP_201_CREATED,
-    error_map=error_map,
-)
+@audit_router.post("/destination", status_code=status.HTTP_201_CREATED)
 async def create_audit_destination(
     destination_data: AuditDestinationSchemaRequest,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
@@ -90,7 +61,7 @@ async def create_audit_destination(
     return await audit_adapter.create_destination(destination_data)
 
 
-@audit_router.delete("/destination/{destination_id}", error_map=error_map)
+@audit_router.delete("/destination/{destination_id}")
 async def delete_audit_destination(
     destination_id: int,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
@@ -99,7 +70,7 @@ async def delete_audit_destination(
     await audit_adapter.delete_destination(destination_id)
 
 
-@audit_router.put("/destination/{destination_id}", error_map=error_map)
+@audit_router.put("/destination/{destination_id}")
 async def update_audit_destination(
     destination_id: int,
     destination_data: AuditDestinationSchemaRequest,

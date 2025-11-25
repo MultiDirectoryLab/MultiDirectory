@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from adaptix.conversion import get_converter
+from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
@@ -18,6 +19,11 @@ from api.ldap_schema.schema import (
 from ldap_protocol.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.exceptions import (
+    EntityTypeCantModifyError,
+    EntityTypeNotFoundError,
+    ObjectClassNotFoundError,
+)
 
 
 def _convert_update_chema_to_dto(
@@ -59,6 +65,12 @@ class LDAPEntityTypeFastAPIAdapter(
     _converter_to_dto = staticmethod(_convert_request_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
     _converter_update_sch_to_dto = staticmethod(_convert_update_chema_to_dto)
+
+    _exceptions_map: dict[type[Exception], int] = {
+        EntityTypeNotFoundError: status.HTTP_404_NOT_FOUND,
+        EntityTypeCantModifyError: status.HTTP_403_FORBIDDEN,
+        ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
+    }
 
     async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get all attribute names for an Entity Type.

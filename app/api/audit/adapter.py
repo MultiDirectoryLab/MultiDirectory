@@ -4,10 +4,18 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import ParamSpec, TypeVar
+
+from fastapi import status
+
 from api.base_adapter import BaseAdapter
 from ldap_protocol.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
+)
+from ldap_protocol.policies.audit.exception import (
+    AuditAlreadyExistsError,
+    AuditNotFoundError,
 )
 from ldap_protocol.policies.audit.schemas import (
     AuditDestinationResponse,
@@ -17,9 +25,17 @@ from ldap_protocol.policies.audit.schemas import (
 )
 from ldap_protocol.policies.audit.service import AuditService
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
 
 class AuditPoliciesAdapter(BaseAdapter[AuditService]):
     """Adapter for audit policies."""
+
+    _exceptions_map: dict[type[Exception], int] = {
+        AuditNotFoundError: status.HTTP_404_NOT_FOUND,
+        AuditAlreadyExistsError: status.HTTP_409_CONFLICT,
+    }
 
     async def get_policies(self) -> list[AuditPolicyResponse]:
         """Get all audit policies."""

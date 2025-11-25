@@ -3,6 +3,8 @@ from .base import (
     DNS_MANAGER_STATE_NAME,
     DNS_MANAGER_ZONE_NAME,
     AbstractDNSManager,
+    DNSConnectionError,
+    DNSError,
     DNSForwardServerStatus,
     DNSForwardZone,
     DNSManagerSettings,
@@ -17,7 +19,6 @@ from .base import (
     DNSZoneType,
 )
 from .dns_gateway import DNSStateGateway
-from .exceptions import DNSConnectionError, DNSError
 from .remote import RemoteDNSManager
 from .selfhosted import SelfHostedDNSManager
 from .stub import StubDNSManager

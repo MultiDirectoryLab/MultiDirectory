@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
+from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
@@ -19,6 +20,11 @@ from api.ldap_schema.schema import (
 from enums import KindType
 from ldap_protocol.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
+from ldap_protocol.ldap_schema.exceptions import (
+    ObjectClassAlreadyExistsError,
+    ObjectClassCantModifyError,
+    ObjectClassNotFoundError,
+)
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 
 
@@ -90,3 +96,9 @@ class ObjectClassFastAPIAdapter(
     _converter_to_dto = staticmethod(_convert_schema_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
     _converter_update_sch_to_dto = staticmethod(_convert_update_schema_to_dto)
+
+    _exceptions_map: dict[type[Exception], int] = {
+        ObjectClassAlreadyExistsError: status.HTTP_409_CONFLICT,
+        ObjectClassNotFoundError: status.HTTP_404_NOT_FOUND,
+        ObjectClassCantModifyError: status.HTTP_403_FORBIDDEN,
+    }

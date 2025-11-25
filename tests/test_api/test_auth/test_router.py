@@ -496,7 +496,7 @@ async def test_auth_disabled_user(
         },
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio

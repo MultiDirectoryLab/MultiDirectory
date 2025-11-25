@@ -4,9 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, ParamSpec, TypeVar
 
-from fastapi import Request, Response
+from fastapi import Request, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import SecretStr
 from starlette.background import BackgroundTask
@@ -15,12 +15,30 @@ from api.base_adapter import BaseAdapter
 from api.main.schema import KerberosSetupRequest
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
+from ldap_protocol.kerberos.exceptions import (
+    KerberosBaseDnNotFoundError,
+    KerberosConflictError,
+    KerberosDependencyError,
+    KerberosNotFoundError,
+    KerberosUnavailableError,
+)
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
     """Adapter for using KerberosService with FastAPI and background tasks."""
+
+    _exceptions_map: dict[type[Exception], int] = {
+        KerberosBaseDnNotFoundError: status.HTTP_503_SERVICE_UNAVAILABLE,
+        KerberosConflictError: status.HTTP_409_CONFLICT,
+        KerberosDependencyError: status.HTTP_424_FAILED_DEPENDENCY,
+        KerberosNotFoundError: status.HTTP_404_NOT_FOUND,
+        KerberosUnavailableError: status.HTTP_503_SERVICE_UNAVAILABLE,
+    }
 
     async def setup_krb_catalogue(
         self,

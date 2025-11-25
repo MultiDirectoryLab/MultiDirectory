@@ -12,6 +12,7 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
+from fastapi import status
 
 from api.base_adapter import BaseAdapter
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
@@ -31,6 +32,11 @@ from ldap_protocol.ldap_schema.constants import (
     DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
+from ldap_protocol.ldap_schema.exceptions import (
+    AttributeTypeAlreadyExistsError,
+    AttributeTypeCantModifyError,
+    AttributeTypeNotFoundError,
+)
 
 
 def _convert_update_uschema_to_dto(
@@ -91,3 +97,9 @@ class AttributeTypeFastAPIAdapter(
     _converter_to_dto = staticmethod(_convert_schema_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
     _converter_update_sch_to_dto = staticmethod(_convert_update_uschema_to_dto)
+
+    _exceptions_map: dict[type[Exception], int] = {
+        AttributeTypeAlreadyExistsError: status.HTTP_409_CONFLICT,
+        AttributeTypeNotFoundError: status.HTTP_404_NOT_FOUND,
+        AttributeTypeCantModifyError: status.HTTP_403_FORBIDDEN,
+    }

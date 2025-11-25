@@ -4,74 +4,34 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import IntEnum
 
-from api.error_routing import BaseDomainException
-
-
-class ErrorCodes(IntEnum):
-    """Identity error codes."""
-
-    BASE_ERROR = 0
-    UNAUTHORIZED_ERROR = 1
-    ALREADY_CONFIGURED_ERROR = 2
-    FORBIDDEN_ERROR = 3
-    LOGIN_FAILED_ERROR = 4
-    PASSWORD_POLICY_ERROR = 5
-    USER_NOT_FOUND_ERROR = 6
-    AUTH_VALIDATION_ERROR = 7
-    AUTHORIZATION_ERROR = 8
-
-
-class AuthError(BaseDomainException):
+class IdentityError(Exception):
     """Base exception for authentication identity-related errors."""
 
-    code: ErrorCodes = ErrorCodes.BASE_ERROR
 
-
-class UnauthorizedError(AuthError):
+class UnauthorizedError(IdentityError):
     """Raised when authentication fails due to invalid credentials."""
 
-    code = ErrorCodes.UNAUTHORIZED_ERROR
 
-
-class AlreadyConfiguredError(AuthError):
+class AlreadyConfiguredError(IdentityError):
     """Raised when setup is attempted but already performed."""
 
-    code = ErrorCodes.ALREADY_CONFIGURED_ERROR
 
-
-class ForbiddenError(AuthError):
+class ForbiddenError(IdentityError):
     """Raised when access is forbidden due to policy or group membership."""
 
-    code = ErrorCodes.FORBIDDEN_ERROR
 
-
-class LoginFailedError(AuthError):
+class LoginFailedError(IdentityError):
     """Raised when login fails for reasons other than invalid credentials."""
 
-    code = ErrorCodes.LOGIN_FAILED_ERROR
 
-
-class PasswordPolicyError(AuthError):
+class PasswordPolicyError(IdentityError):
     """Raised when a password does not meet policy requirements."""
 
-    code = ErrorCodes.PASSWORD_POLICY_ERROR
 
-
-class UserNotFoundError(AuthError):
+class UserNotFoundError(IdentityError):
     """Raised when a user is not found in the system."""
 
-    code = ErrorCodes.USER_NOT_FOUND_ERROR
 
-
-class AuthValidationError(AuthError):
+class AuthValidationError(IdentityError):
     """Raised when there is a validation error during authentication."""
-
-    code = ErrorCodes.AUTH_VALIDATION_ERROR
-
-
-class AuthorizationError(AuthError):
-    """Authorization error."""
-
-    code = ErrorCodes.AUTHORIZATION_ERROR
