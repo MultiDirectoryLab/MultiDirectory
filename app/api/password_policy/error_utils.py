@@ -9,6 +9,7 @@ from fastapi_error_map.rules import rule
 
 from api.error_routing import ERROR_MAP_TYPE, DomainErrorTranslator
 from enums import ProjectPartCodes
+from ldap_protocol.permissions_checker import AuthorizationError
 from ldap_protocol.policies.password.exceptions import (
     PasswordBanWordWrongFileExtensionError,
     PasswordPolicyAgeDaysError,
@@ -54,6 +55,10 @@ error_map: ERROR_MAP_TYPE = {
     ),
     PasswordBanWordWrongFileExtensionError: rule(
         status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    AuthorizationError: rule(
+        status=status.HTTP_401_UNAUTHORIZED,
         translator=translator,
     ),
 }

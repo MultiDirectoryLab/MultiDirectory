@@ -22,7 +22,7 @@ async def test_get_all_with_error(
 ) -> None:
     """Test get all Password Policy endpoint."""
     response = await http_client_without_perms.get("/password-policy/all")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
     password_use_cases._perm_checker = None  # noqa: SLF001
@@ -50,7 +50,7 @@ async def test_get_with_error(
 ) -> None:
     """Test get one Password Policy endpoint."""
     response = await http_client_without_perms.get("/password-policy/1")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
     password_use_cases._perm_checker = None  # noqa: SLF001
@@ -81,7 +81,7 @@ async def test_get_password_policy_by_dir_path_dn_with_error(
     response = await http_client_without_perms.get(
         f"/password-policy/by_dir_path_dn/{path}",
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
     password_use_cases._perm_checker = None  # noqa: SLF001
@@ -136,7 +136,7 @@ async def test_update_with_error(
         "/password-policy/1",
         json=schema.model_dump(),
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
     password_use_cases._perm_checker = None  # noqa: SLF001
@@ -152,7 +152,7 @@ async def test_reset_domain_policy_to_default_config_with_error(
     response = await http_client_without_perms.put(
         "/password-policy/reset/domain_policy",
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
     password_use_cases._perm_checker = None  # noqa: SLF001
