@@ -404,6 +404,6 @@ async def explain_query(
     )
 
 
-def is_group_rid(rid: str) -> bool:
+def is_object_rid(rid: str) -> bool:
     """Check if RID is a group RID."""
     return rid.isdigit()

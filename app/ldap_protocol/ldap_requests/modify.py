@@ -41,7 +41,6 @@ from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
     is_dn_in_base_directory,
-    is_group_rid,
     validate_entry,
 )
 from ldap_protocol.utils.queries import (
@@ -651,11 +650,13 @@ class ModifyRequest(BaseRequest):
 
         value = str(change.modification.vals[0])
 
-        if not is_group_rid(value):
-            group_dirs = await get_directories([value], session)
+        if validate_entry(value):
+            group_dn = value
+
+            group_dirs = await get_directories([group_dn], session)
             if not group_dirs or not group_dirs[0].group:
                 raise ModifyForbiddenError(
-                    f"Group with DN '{value}' not found or is not a group.",
+                    f"Group with DN '{group_dn}' not found or is not a group.",
                 )
             rid = group_dirs[0].relative_id
         else:
