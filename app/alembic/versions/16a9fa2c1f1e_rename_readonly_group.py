@@ -1,7 +1,7 @@
 """Rename readonly group.
 
 Revision ID: 16a9fa2c1f1e
-Revises: df4c52a613e5
+Revises: 4e8772277cfe
 Create Date: 2025-11-21 13:50:36.452766
 
 """

@@ -1,6 +1,6 @@
 """Datasets for testing API."""
 
-test_api_whitespaces_in_attr_value =[
+test_api_whitespaces_in_attr_value = [
     {
         "entry": "cn=\x20test ,dc=md,dc=test",
     },
