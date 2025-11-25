@@ -24,35 +24,6 @@ def handle_db_connect_error(
     raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
-async def handle_dns_error(
-    request: Request,  # noqa: ARG001
-    exc: Exception,
-) -> NoReturn:
-    """Handle EmptyLabel exception."""
-    logger.critical("DNS manager error: {}", exc)
-    raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
-
-
-async def handle_dns_api_error(
-    request: Request,  # noqa: ARG001
-    exc: Exception,
-) -> NoReturn:
-    """Handle DNS API error."""
-    logger.critical("DNS API error: {}", exc)
-    raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
-
-
-async def handle_not_implemented_error(
-    request: Request,  # noqa: ARG001
-    exc: Exception,  # noqa: ARG001
-) -> NoReturn:
-    """Handle Not Implemented error."""
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="This feature is supported with selfhosted DNS server.",
-    )
-
-
 async def handle_auth_error(
     request: Request,  # noqa: ARG001
     exc: Exception,
