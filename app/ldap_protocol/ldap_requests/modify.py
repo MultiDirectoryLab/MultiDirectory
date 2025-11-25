@@ -730,7 +730,6 @@ class ModifyRequest(BaseRequest):
             [
                 _directory.group
                 for _directory in directories
-                if _directory.group
             ],
         )
         await session.commit()
