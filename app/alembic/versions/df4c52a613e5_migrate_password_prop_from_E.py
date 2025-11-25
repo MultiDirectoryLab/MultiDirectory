@@ -302,9 +302,10 @@ def downgrade() -> None:
             nullable=True,
         ),
     )
-    session.execute(
-        update(PasswordPolicy).values(
-            {"password_must_meet_complexity_requirements": False},
+    op.execute(
+        sa.text(
+            'UPDATE "PasswordPolicies" '
+            "SET password_must_meet_complexity_requirements = FALSE",
         ),
     )
     op.alter_column(
