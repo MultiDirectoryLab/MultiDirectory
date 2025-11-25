@@ -648,19 +648,7 @@ class ModifyRequest(BaseRequest):
         if not change.modification.vals:
             return
 
-        value = str(change.modification.vals[0])
-
-        if validate_entry(value):
-            group_dn = value
-
-            group_dirs = await get_directories([group_dn], session)
-            if not group_dirs or not group_dirs[0].group:
-                raise ModifyForbiddenError(
-                    f"Group with DN '{group_dn}' not found or is not a group.",
-                )
-            rid = group_dirs[0].relative_id
-        else:
-            rid = value
+        rid = str(change.modification.vals[0])
 
         if self._contain_primary_group(directory.groups, rid):
             session.add(
