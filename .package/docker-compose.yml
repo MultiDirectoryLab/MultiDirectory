@@ -191,6 +191,14 @@ services:
       - ./certs:/certs
     command: ./extra/generate_cert.sh
 
+  pre_run_manager:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: pre_run_manager
+    user: root
+    restart: "no"
+    volumes:
+      - kdc:/etc/kdc
+    command: sh -c "/app/extra/pre_run_setup.sh"
 
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -206,6 +214,8 @@ services:
     tty: true
     depends_on:
       migrations:
+        condition: service_completed_successfully
+      pre_run_manager:
         condition: service_completed_successfully
     deploy:
       resources:
@@ -226,6 +236,7 @@ services:
     tty: true
     depends_on:
       - ldap_server
+      - pre_run_manager
     command: krb5kdc -n
     ports:
       - "88:88"
@@ -244,6 +255,8 @@ services:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully
+      pre_run_manager:
+        condition: service_completed_successfully
     working_dir: /server
     command: uvicorn --factory config_server:create_app
              --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
@@ -261,6 +274,7 @@ services:
     depends_on:
       - ldap_server
       - kdc
+      - pre_run_manager
     command: kadmind -nofork
     labels:
       - traefik.enable=true

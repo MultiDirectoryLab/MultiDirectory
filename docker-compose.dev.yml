@@ -74,6 +74,15 @@ services:
       - "traefik.http.routers.interface.tls.certresolver=md-resolver"
       - "traefik.http.services.interface.loadbalancer.server.port=80"
 
+  pre_run_manager:
+    image: multidirectory
+    container_name: pre_run_manager
+    user: root
+    restart: "no"
+    volumes:
+      - kdc:/etc/kdc
+    command: sh -c "/app/extra/pre_run_setup.sh"
+
   cert_check:
     image: multidirectory
     container_name: multidirectory_certs_check
@@ -98,6 +107,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      pre_run_manager:
+        condition: service_completed_successfully
 
   ldap_server:
     build:
@@ -250,6 +261,7 @@ services:
     tty: true
     depends_on:
       - ldap_server
+      - pre_run_manager
     command: krb5kdc -n
 
     labels:
@@ -274,6 +286,8 @@ services:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully
+      pre_run_manager:
+        condition: service_completed_successfully
     ports:
       - 8000:8000
     working_dir: /server
@@ -294,6 +308,7 @@ services:
     depends_on:
       - ldap_server
       - kdc
+      - pre_run_manager
     command: kadmind -nofork
     labels:
       - traefik.enable=true
