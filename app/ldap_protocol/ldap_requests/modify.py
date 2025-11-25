@@ -648,28 +648,25 @@ class ModifyRequest(BaseRequest):
         if not change.modification.vals:
             return
 
-        value = str(change.modification.vals[0])
+        rid = str(change.modification.vals[0])
 
-        if validate_entry(value):
-            group_directories = await get_directories([value], session)
-            if not group_directories:
-                raise ModifyForbiddenError(
-                    f"Group with DN '{value}' not found.",
-                )
+        group_directories = await get_directories([rid], session)
+        if not group_directories:
+            raise ModifyForbiddenError(
+                f"Group with DN '{rid}' not found.",
+            )
 
-            group_directory = group_directories[0]
-            if not group_directory.group:
-                raise ModifyForbiddenError(
-                    f"Directory '{value}' is not a group.",
-                )
+        group_directory = group_directories[0]
+        if not group_directory.group:
+            raise ModifyForbiddenError(
+                f"Directory '{rid}' is not a group.",
+            )
 
-            rid = group_directory.relative_id
-            if not rid:
-                raise ModifyForbiddenError(
-                    f"Group '{value}' has an invalid object SID.",
-                )
-        else:
-            rid = value
+        rid = group_directory.relative_id
+        if not rid:
+            raise ModifyForbiddenError(
+                f"Group '{rid}' has an invalid object SID.",
+            )
 
         if self._contain_primary_group(directory.groups, rid):
             session.add(
