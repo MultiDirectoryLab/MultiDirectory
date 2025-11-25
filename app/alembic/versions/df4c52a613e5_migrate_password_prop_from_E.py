@@ -258,9 +258,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
     op.execute(
         sa.text("DROP INDEX IF EXISTS idx_password_ban_words_word_gin_trgm"),
     )
