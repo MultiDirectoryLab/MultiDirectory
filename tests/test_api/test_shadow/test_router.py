@@ -28,7 +28,7 @@ async def test_shadow_api_non_existent_user(http_client: AsyncClient) -> None:
         ).model_dump(),
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -46,7 +46,7 @@ async def test_shadow_api_without_network_policies(
         json=adding_mfa_user_and_group,
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.asyncio
@@ -66,7 +66,7 @@ async def test_shadow_api_without_kerberos_protocol(
         json=adding_mfa_user_and_group,
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.asyncio

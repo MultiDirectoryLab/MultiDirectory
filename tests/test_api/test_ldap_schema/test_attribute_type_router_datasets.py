@@ -41,7 +41,7 @@ test_modify_one_attribute_type_dataset = [
             "no_user_modification": False,
             "is_included_anr": False,
         },
-        "status_code": status.HTTP_400_BAD_REQUEST,
+        "status_code": status.HTTP_404_NOT_FOUND,
     },
     {
         "attribute_type_name": "testAttributeType2",

@@ -15,8 +15,7 @@ from dns.tsig import Key as TsigKey
 from dns.update import Update
 from dns.zone import Zone
 
-from .base import AbstractDNSManager, DNSRecord, DNSRecords
-from .exceptions import DNSConnectionError
+from .base import AbstractDNSManager, DNSConnectionError, DNSRecord, DNSRecords
 from .utils import logger_wraps
 
 

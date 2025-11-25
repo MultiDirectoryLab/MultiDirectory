@@ -6,18 +6,27 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from ipaddress import IPv4Address
 
+from fastapi import status
+
 from api.base_adapter import BaseAdapter
 from ldap_protocol.dhcp import (
     AbstractDHCPManager,
+    DHCPAPIError,
     DHCPChangeStateSchemaRequest,
+    DHCPEntryAddError,
+    DHCPEntryDeleteError,
+    DHCPEntryNotFoundError,
+    DHCPEntryUpdateError,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
     DHCPLeaseToReservationErrorResponse,
+    DHCPOperationError,
     DHCPReservationSchemaRequest,
     DHCPReservationSchemaResponse,
     DHCPStateSchemaResponse,
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
+    DHCPValidatonError,
 )
 from ldap_protocol.dhcp.dataclasses import (
     DHCPLease,
@@ -30,6 +39,16 @@ from ldap_protocol.dhcp.dataclasses import (
 
 class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
     """Adapter for DHCP management using KeaDHCPManager."""
+
+    _exceptions_map: dict[type[Exception], int] = {
+        DHCPEntryNotFoundError: status.HTTP_404_NOT_FOUND,
+        DHCPEntryDeleteError: status.HTTP_409_CONFLICT,
+        DHCPEntryAddError: status.HTTP_409_CONFLICT,
+        DHCPEntryUpdateError: status.HTTP_409_CONFLICT,
+        DHCPAPIError: status.HTTP_400_BAD_REQUEST,
+        DHCPValidatonError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        DHCPOperationError: status.HTTP_400_BAD_REQUEST,
+    }
 
     async def create_subnet(
         self,

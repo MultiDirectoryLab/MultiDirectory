@@ -8,54 +8,15 @@ from ipaddress import IPv4Address
 from typing import Annotated
 
 from dishka import FromDishka
-from fastapi import Body, status
-from fastapi_error_map.routing import ErrorAwareRouter
-from fastapi_error_map.rules import rule
-
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
-from enums import DoaminCodes
-from ldap_protocol.auth.exceptions.mfa import (
-    AuthenticationError,
-    InvalidCredentialsError,
-    NetworkPolicyError,
-)
-from ldap_protocol.policies.password.exceptions import PasswordPolicyError
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Body
 
 from .adapter import ShadowAdapter
 
-translator = DomainErrorTranslator(DoaminCodes.SHADOW)
+shadow_router = APIRouter(route_class=DishkaRoute)
 
 
-error_map: ERROR_MAP_TYPE = {
-    InvalidCredentialsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    NetworkPolicyError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuthenticationError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
-    PasswordPolicyError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        translator=translator,
-    ),
-    PermissionError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-}
-shadow_router = ErrorAwareRouter(route_class=DishkaErrorAwareRoute)
-
-
-@shadow_router.post("/mfa/push", error_map=error_map)
+@shadow_router.post("/mfa/push")
 async def proxy_request(
     principal: Annotated[str, Body(embed=True)],
     ip: Annotated[IPv4Address, Body(embed=True)],
@@ -65,7 +26,7 @@ async def proxy_request(
     return await adapter.proxy_request(principal, ip)
 
 
-@shadow_router.post("/sync/password", error_map=error_map)
+@shadow_router.post("/sync/password")
 async def change_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],

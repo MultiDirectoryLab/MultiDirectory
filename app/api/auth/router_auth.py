@@ -8,111 +8,25 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated
 
 from dishka import FromDishka
-from fastapi import Body, Depends, Request, Response, status
-from fastapi_error_map.routing import ErrorAwareRouter
-from fastapi_error_map.rules import rule
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Body, Depends, Request, Response, status
 
 from api.auth.adapters import AuthFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
-from enums import DoaminCodes
-from ldap_protocol.auth.exceptions.mfa import (
-    MFAAPIError,
-    MFAConnectError,
-    MFARequiredError,
-    MissingMFACredentialsError,
-)
 from ldap_protocol.auth.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
 from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.exceptions import (
-    AlreadyConfiguredError,
-    AuthValidationError,
-    ForbiddenError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
-)
-from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.session_storage import SessionStorage
 
 from .utils import verify_auth
 
-translator = DomainErrorTranslator(DoaminCodes.AUTH)
+auth_router = APIRouter(prefix="/auth", tags=["Auth"], route_class=DishkaRoute)
 
 
-error_map: ERROR_MAP_TYPE = {
-    UnauthorizedError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
-    AlreadyConfiguredError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    ForbiddenError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    LoginFailedError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        translator=translator,
-    ),
-    UserNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuthValidationError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        translator=translator,
-    ),
-    MFARequiredError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    MissingMFACredentialsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    MFAAPIError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    MFAConnectError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PermissionError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    KRBAPIChangePasswordError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-}
-
-
-auth_router = ErrorAwareRouter(
-    prefix="/auth",
-    tags=["Auth"],
-    route_class=DishkaErrorAwareRoute,
-)
-
-
-@auth_router.post("/", error_map=error_map)
+@auth_router.post("/")
 async def login(
     form: Annotated[OAuth2Form, Depends()],
     request: Request,
@@ -148,7 +62,7 @@ async def login(
     )
 
 
-@auth_router.get("/me", error_map=error_map)
+@auth_router.get("/me")
 async def users_me(
     identity_adapter: FromDishka[AuthFastAPIAdapter],
 ) -> UserSchema:
@@ -161,11 +75,7 @@ async def users_me(
     return await identity_adapter.get_current_user()
 
 
-@auth_router.delete(
-    "/",
-    response_class=Response,
-    error_map=error_map,
-)
+@auth_router.delete("/", response_class=Response)
 async def logout(
     response: Response,
     storage: FromDishka[SessionStorage],
@@ -187,7 +97,6 @@ async def logout(
     "/user/password",
     status_code=200,
     dependencies=[Depends(verify_auth)],
-    error_map=error_map,
 )
 async def password_reset(
     auth_manager: FromDishka[AuthFastAPIAdapter],
@@ -212,7 +121,7 @@ async def password_reset(
     await auth_manager.reset_password(identity, new_password, old_password)
 
 
-@auth_router.get("/setup", error_map=error_map)
+@auth_router.get("/setup")
 async def check_setup(
     auth_manager: FromDishka[AuthFastAPIAdapter],
 ) -> bool:
@@ -228,7 +137,6 @@ async def check_setup(
     "/setup",
     status_code=status.HTTP_200_OK,
     responses={423: {"detail": "Locked"}},
-    error_map=error_map,
 )
 async def first_setup(
     request: SetupRequest,

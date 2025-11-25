@@ -13,7 +13,7 @@ from dishka import (
     make_async_container,
     provide,
 )
-from fastapi import status
+from fastapi import HTTPException, status
 from httpx import AsyncClient
 from starlette.requests import Request
 
@@ -21,7 +21,7 @@ from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.exceptions import ErrorCodes, UnauthorizedError
+from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.session_storage.base import SessionStorage
 from ldap_protocol.session_storage.exceptions import (
@@ -113,7 +113,10 @@ async def invalid_user_provider(
     ) as cont:
         provider = await cont.get(IdentityProvider)
         provider.get_user_id = AsyncMock(  # type: ignore
-            side_effect=UnauthorizedError(ErrorCodes.UNAUTHORIZED_ERROR),
+            side_effect=HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+            ),
         )
         yield provider
 

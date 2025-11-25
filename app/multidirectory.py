@@ -15,6 +15,7 @@ import uvloop
 from alembic.config import Config, command
 from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
+from dns.exception import DNSException
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -35,7 +36,12 @@ from api import (
     session_router,
     shadow_router,
 )
-from api.exception_handlers import handle_auth_error, handle_db_connect_error
+from api.exception_handlers import (
+    handle_db_connect_error,
+    handle_dns_api_error,
+    handle_dns_error,
+    handle_not_implemented_error,
+)
 from api.middlewares import proc_time_header_middleware, set_key_middleware
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
@@ -48,7 +54,11 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.identity.exceptions import UnauthorizedError
+from ldap_protocol.dns import (
+    DNSConnectionError,
+    DNSError,
+    DNSNotImplementedError,
+)
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler
@@ -98,7 +108,14 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.middleware("http")(set_key_middleware)
     app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
-    app.add_exception_handler(UnauthorizedError, handle_auth_error)
+    app.add_exception_handler(DNSException, handle_dns_error)
+    app.add_exception_handler(DNSConnectionError, handle_dns_error)
+    app.add_exception_handler(DNSError, handle_dns_api_error)
+    app.add_exception_handler(
+        DNSNotImplementedError,
+        handle_not_implemented_error,
+    )
+
     return app
 
 

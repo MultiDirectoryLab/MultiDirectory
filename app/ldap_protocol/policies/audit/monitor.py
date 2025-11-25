@@ -24,7 +24,6 @@ from ldap_protocol.auth.exceptions.mfa import (
 )
 from ldap_protocol.auth.schemas import OAuth2Form
 from ldap_protocol.identity.exceptions import (
-    AuthorizationError,
     AuthValidationError,
     LoginFailedError,
     PasswordPolicyError,
@@ -34,6 +33,7 @@ from ldap_protocol.identity.exceptions import (
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.objects import OperationEvent
+from ldap_protocol.permissions_checker import AuthorizationError
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.events.factory import (
     RawAuditEventBuilderRedis,
