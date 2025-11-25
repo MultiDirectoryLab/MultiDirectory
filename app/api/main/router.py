@@ -118,18 +118,13 @@ async def delete_many(
 async def set_primary_group_endpoint(
     request: PrimaryGroupRequest,
     req: Request,
-) -> LDAPResult:
+) -> LDAPResult | None:
     """Set primary group for a directory (user or group)."""
     try:
-        path_dn = await set_primary_group(
+        await set_primary_group(
             directory_dn=request.directory_dn,
             group_dn=request.group_dn,
             session=await req.state.dishka_container.get(AsyncSession),
-        )
-        return LDAPResult(
-            result_code=LDAPCodes.SUCCESS,
-            matched_dn=path_dn,
-            error_message="",
         )
     except ValueError as e:
         return LDAPResult(
@@ -137,3 +132,4 @@ async def set_primary_group_endpoint(
             matched_dn="",
             error_message=str(e),
         )
+    return None
