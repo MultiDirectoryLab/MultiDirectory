@@ -292,13 +292,13 @@ FIRST_SETUP_DATA = [
                 "objectSid": 513,
             },
             {
-                "name": "readonly domain controllers",
+                "name": "read-only",
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["readonly domain controllers"],
+                    "sAMAccountName": ["read-only"],
                     "sAMAccountType": ["268435456"],
                     "gidNumber": ["521"],
                 },
