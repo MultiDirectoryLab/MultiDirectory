@@ -258,9 +258,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade."""
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
     op.execute(
         sa.text("DROP INDEX IF EXISTS idx_password_ban_words_word_gin_trgm"),
     )
@@ -302,9 +299,10 @@ def downgrade() -> None:
             nullable=True,
         ),
     )
-    session.execute(
-        update(PasswordPolicy).values(
-            {"password_must_meet_complexity_requirements": False},
+    op.execute(
+        sa.text(
+            'UPDATE "PasswordPolicies" '
+            "SET password_must_meet_complexity_requirements = FALSE",
         ),
     )
     op.alter_column(
