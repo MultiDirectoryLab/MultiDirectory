@@ -727,10 +727,7 @@ class ModifyRequest(BaseRequest):
             raise RecursionError
 
         directory.groups.extend(
-            [
-                _directory.group
-                for _directory in directories
-            ],
+            [_directory.group for _directory in directories],
         )
         await session.commit()
 
