@@ -28,7 +28,7 @@ from api.main.schema import (
     DNSServiceZoneDeleteRequest,
     DNSServiceZoneUpdateRequest,
 )
-from enums import ProjectPartCodes
+from enums import DoaminCodes
 from ldap_protocol.dns import (
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -37,7 +37,7 @@ from ldap_protocol.dns import (
     DNSZone,
 )
 
-translator = DomainErrorTranslator(ProjectPartCodes.DNS)
+translator = DomainErrorTranslator(DoaminCodes.DNS)
 
 
 error_map: ERROR_MAP_TYPE = {

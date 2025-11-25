@@ -21,6 +21,7 @@ class ErrorCodes(IntEnum):
     DNS_ZONE_UPDATE_ERROR = 6
     DNS_ZONE_DELETE_ERROR = 7
     DNS_UPDATE_SERVER_OPTIONS_ERROR = 8
+    DNS_CONNECTION_ERROR = 9
 
 
 class DNSError(BaseDomainException):
@@ -75,3 +76,9 @@ class DNSUpdateServerOptionsError(DNSError):
     """DNS update server options error."""
 
     code = ErrorCodes.DNS_UPDATE_SERVER_OPTIONS_ERROR
+
+
+class DNSConnectionError(DNSError):
+    """DNS connection error."""
+
+    code = ErrorCodes.DNS_CONNECTION_ERROR

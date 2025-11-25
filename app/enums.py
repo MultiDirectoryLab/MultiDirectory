@@ -200,7 +200,7 @@ class AuthorizationRules(IntFlag):
         return reduce(or_, permissions, AuthorizationRules(0))
 
 
-class ProjectPartCodes(IntEnum):
+class DoaminCodes(IntEnum):
     """Error code parts."""
 
     AUDIT = 1

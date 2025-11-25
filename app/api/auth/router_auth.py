@@ -19,7 +19,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import ProjectPartCodes
+from enums import DoaminCodes
 from ldap_protocol.auth.exceptions.mfa import (
     MFAAPIError,
     MFAConnectError,
@@ -46,7 +46,7 @@ from ldap_protocol.session_storage import SessionStorage
 
 from .utils import verify_auth
 
-translator = DomainErrorTranslator(ProjectPartCodes.AUTH)
+translator = DomainErrorTranslator(DoaminCodes.AUTH)
 
 
 error_map: ERROR_MAP_TYPE = {

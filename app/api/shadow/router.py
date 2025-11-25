@@ -17,7 +17,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import ProjectPartCodes
+from enums import DoaminCodes
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
@@ -30,7 +30,7 @@ from ldap_protocol.rootdse.reader import DCInfoReader
 
 from .adapter import ShadowAdapter
 
-translator = DomainErrorTranslator(ProjectPartCodes.SHADOW)
+translator = DomainErrorTranslator(DoaminCodes.SHADOW)
 
 
 error_map: ERROR_MAP_TYPE = {
