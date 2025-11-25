@@ -16,5 +16,5 @@ class BaseDomainException(Exception):  # noqa N818
         """Initialize subclass."""
         super().__init_subclass__()
 
-        if not hasattr(cls, "code") or not hasattr(cls, "status_code"):
-            raise AttributeError("code and status_code must be set")
+        if not hasattr(cls, "code"):
+            raise AttributeError("code must be set")
