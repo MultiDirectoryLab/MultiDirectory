@@ -750,8 +750,6 @@ class ModifyRequest(BaseRequest):
         if not directories:
             return
 
-        # NOTE: Если среди новых member есть группы,
-        # то нужно проверить рекурсию
         group_directories = [d for d in directories if d.group]
         if (
             group_directories
