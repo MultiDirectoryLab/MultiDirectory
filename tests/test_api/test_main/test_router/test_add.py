@@ -10,7 +10,7 @@ from httpx import AsyncClient
 
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import UserAccountControlFlag
-from tests.api_datasets import test_api_whitespaces_in_attr_value
+from tests.api_datasets import test_api_forbidden_chars_in_attr_value
 
 
 @pytest.mark.asyncio
@@ -400,18 +400,18 @@ async def test_api_add_with_incorrect_name(http_client: AsyncClient) -> None:
     assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
 
 
-@pytest.mark.parametrize("dataset", test_api_whitespaces_in_attr_value)
+@pytest.mark.parametrize("dataset", test_api_forbidden_chars_in_attr_value)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_with_whitespaces(
+async def test_api_add_with_forbidden_chars(
     http_client: AsyncClient,
-    dataset: dict,
+    dataset: str,
 ) -> None:
-    """Test API add an entry with whitespaces in attribute value."""
+    """Test API add an entry with forbidden chars in attribute value."""
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": dataset["entry"],
+            "entry": f"cn={dataset},dc=md,dc=test",
             "password": "password_test",
             "attributes": [],
         },

@@ -1,28 +1,49 @@
 """Datasets for testing API."""
 
-test_api_whitespaces_in_attr_value = [
-    {
-        "entry": "cn=\x20test ,dc=md,dc=test",
-    },
-    {
-        "entry": "cn= test\x20,dc=md,dc=test",
-    },
-    {
-        "entry": "cn=\x20test\x20,dc=md,dc=test",
-    },
-    {
-        "entry": "cn= test ,dc=md,dc=test",
-    },
-    {
-        "entry": "cn=\x20test,dc=md,dc=test",
-    },
-    {
-        "entry": "cn=test\x20,dc=md,dc=test",
-    },
-    {
-        "entry": "cn= test,dc=md,dc=test",
-    },
-    {
-        "entry": "cn=test ,dc=md,dc=test",
-    },
+test_api_forbidden_chars_in_attr_value = [
+    " starts_with_space",
+    "  double_space_start",
+    "\tstarts_with_tab",
+    "   multiple_spaces",
+    "ends_with_space ",
+    "ends_with_double_space  ",
+    "ends_with_tab\t",
+    "ends_with_mixed_spaces   ",
+    " both_sides ",
+    "  multiple_both_sides  ",
+    "contains#hash",
+    "contains=equals",
+    "contains<less",
+    "contains>greater",
+    "contains\\backslash",
+    "contains;semicolon",
+    "contains:colon",
+    "contains+plus",
+    "contains*asterisk",
+    "contains\"doublequotes",  # noqa: Q003
+    "multiple#forbidden=chars<>here",
+    "#starts_with_hash",
+    "ends_with_semicolon;",
+    "has<both>angles",
+    "path\\with\\backslashes",
+    "query=value#fragment",
+    "tag<html>",
+    "escape\\sequence",
+    "config;setting",
+    "#",
+    "=",
+    "<",
+    ">",
+    "\\",
+    ";",
+    ":",
+    "+",
+    "*",
+    "\"",  # noqa: Q003
+    "#=<>\\;:+*\"",  # noqa: Q003
+    "",
+    " ",
+    "   ",
+    "\t",
+    "\n",
 ]
