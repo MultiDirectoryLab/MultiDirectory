@@ -22,6 +22,7 @@ class ErrorCodes(IntEnum):
     DNS_ZONE_DELETE_ERROR = 7
     DNS_UPDATE_SERVER_OPTIONS_ERROR = 8
     DNS_CONNECTION_ERROR = 9
+    DNS_NOT_IMPLEMENTED_ERROR = 10
 
 
 class DNSError(BaseDomainException):
@@ -82,3 +83,9 @@ class DNSConnectionError(DNSError):
     """DNS connection error."""
 
     code = ErrorCodes.DNS_CONNECTION_ERROR
+
+
+class DNSNotImplementedError(DNSError):
+    """DNS not implemented error."""
+
+    code = ErrorCodes.DNS_NOT_IMPLEMENTED_ERROR

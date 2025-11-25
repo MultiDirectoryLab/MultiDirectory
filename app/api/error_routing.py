@@ -24,7 +24,7 @@ class ErrorResponse:
 
     type: str
     detail: str
-    domain_code: IntEnum
+    domain_code: DoaminCodes
     error_code: IntEnum
 
 

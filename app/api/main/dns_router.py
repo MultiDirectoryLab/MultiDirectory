@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dishka import FromDishka
+from dns.exception import DNSException
 from fastapi import Depends, status
 from fastapi_error_map import rule
 from fastapi_error_map.routing import ErrorAwareRouter
@@ -70,6 +71,18 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     dns_exc.DNSUpdateServerOptionsError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    DNSException: rule(
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        translator=translator,
+    ),
+    dns_exc.DNSConnectionError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    dns_exc.DNSNotImplementedError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),

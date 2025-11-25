@@ -36,7 +36,7 @@ LimitedListType = Annotated[
     Body(embed=True),
 ]
 
-translator = DomainErrorTranslator(domain_code=DoaminCodes.LDAP_SCHEMA)
+translator = DomainErrorTranslator(DoaminCodes.LDAP_SCHEMA)
 
 
 error_map: ERROR_MAP_TYPE = {
