@@ -5,13 +5,10 @@ from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from enums import AuthorizationRules
 from ldap_protocol.identity import IdentityProvider
+from ldap_protocol.identity.exceptions import AuthorizationError
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
-
-
-class AuthorizationError(Exception):
-    """Authorization error."""
 
 
 class AuthorizationProvider:

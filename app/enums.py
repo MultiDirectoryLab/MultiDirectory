@@ -188,3 +188,22 @@ class AuthorizationRules(IntFlag):
     @classmethod
     def get_all(cls) -> Self:
         return cls(sum(cls))
+
+
+class DoaminCodes(IntEnum):
+    """Error code parts."""
+
+    AUDIT = 1
+    AUTH = 2
+    SESSION = 3
+    DNS = 4
+    GENERAL = 5
+    KERBEROS = 6
+    LDAP = 7
+    MFA = 8
+    NETWORK = 9
+    PASSWORD_POLICY = 10
+    ROLES = 11
+    DHCP = 12
+    LDAP_SCHEMA = 13
+    SHADOW = 14
