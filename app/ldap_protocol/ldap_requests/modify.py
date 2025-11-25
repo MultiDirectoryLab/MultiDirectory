@@ -41,6 +41,7 @@ from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
     is_dn_in_base_directory,
+    validate_entry,
 )
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
@@ -49,7 +50,6 @@ from ldap_protocol.utils.queries import (
     get_directory_by_rid,
     get_filter_from_path,
     get_groups,
-    validate_entry,
 )
 from password_manager import PasswordValidator
 from repo.pg.tables import directory_table, queryable_attr as qa
@@ -648,7 +648,25 @@ class ModifyRequest(BaseRequest):
         if not change.modification.vals:
             return
 
-        rid = str(change.modification.vals[0])
+        value = str(change.modification.vals[0])
+
+        if validate_entry(value):
+            group_directories = await get_directories([value], session)
+            if not group_directories:
+                raise ModifyForbiddenError(
+                    f"Group with DN '{value}' not found.",
+                )
+
+            group_directory = group_directories[0]
+            if not group_directory.group:
+                raise ModifyForbiddenError(
+                    f"Directory '{value}' is not a group.",
+                )
+
+            rid = group_directory.relative_id
+        else:
+            rid = value
+
         if self._contain_primary_group(directory.groups, rid):
             session.add(
                 Attribute(

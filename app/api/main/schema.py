@@ -145,3 +145,10 @@ class DNSServiceOptionsUpdateRequest(BaseModel):
 
     name: str
     value: str | list[str] = ""
+
+
+class SetPrimaryGroupRequest(BaseModel):
+    """Request schema for setting primary group."""
+
+    directory_dn: str
+    group_dn: str
