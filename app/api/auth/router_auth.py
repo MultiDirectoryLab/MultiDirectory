@@ -14,15 +14,6 @@ from fastapi_error_map.rules import rule
 
 from api.auth.adapters import AuthFastAPIAdapter
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from app.ldap_protocol.identity.exceptions import (
-    AlreadyConfiguredError,
-    AuthValidationError,
-    ForbiddenError,
-    LoginFailedError,
-    PasswordPolicyError,
-    UnauthorizedError,
-    UserNotFoundError,
-)
 from enums import ProjectPartCodes
 from errors import (
     ERROR_MAP_TYPE,
@@ -42,6 +33,15 @@ from ldap_protocol.auth.schemas import (
     SetupRequest,
 )
 from ldap_protocol.dialogue import UserSchema
+from ldap_protocol.identity.exceptions import (
+    AlreadyConfiguredError,
+    AuthValidationError,
+    ForbiddenError,
+    LoginFailedError,
+    PasswordPolicyError,
+    UnauthorizedError,
+    UserNotFoundError,
+)
 from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.session_storage import SessionStorage
 
