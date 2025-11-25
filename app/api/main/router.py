@@ -7,7 +7,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, Request
 from fastapi.routing import APIRouter
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import (
     AddRequest,
     DeleteRequest,
@@ -15,7 +17,7 @@ from ldap_protocol.ldap_requests import (
     ModifyRequest,
 )
 from ldap_protocol.ldap_responses import LDAPResult
-from ldap_protocol.objects import Changes, Operation, PartialAttribute
+from ldap_protocol.utils.queries import set_primary_group
 
 from .schema import (
     PrimaryGroupRequest,
@@ -113,21 +115,25 @@ async def delete_many(
 
 
 @entry_router.post("/set_primary_group")
-async def set_primary_group(
+async def set_primary_group_endpoint(
     request: PrimaryGroupRequest,
     req: Request,
 ) -> LDAPResult:
     """Set primary group for a directory (user or group)."""
-    modify_request = ModifyRequest(
-        object=request.directory_dn,
-        changes=[
-            Changes(
-                operation=Operation.REPLACE,
-                modification=PartialAttribute(
-                    type="primaryGroupID",
-                    vals=[request.group_dn],
-                ),
-            ),
-        ],
-    )
-    return await modify_request.handle_api(req.state.dishka_container)
+    try:
+        path_dn = await set_primary_group(
+            directory_dn=request.directory_dn,
+            group_dn=request.group_dn,
+            session=await req.state.dishka_container.get(AsyncSession),
+        )
+        return LDAPResult(
+            result_code=LDAPCodes.SUCCESS,
+            matched_dn=path_dn,
+            error_message="",
+        )
+    except ValueError as e:
+        return LDAPResult(
+            result_code=LDAPCodes.NO_SUCH_OBJECT,
+            matched_dn="",
+            error_message=str(e),
+        )

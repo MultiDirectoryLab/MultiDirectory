@@ -383,3 +383,54 @@ async def get_principal_directory(
         .filter_by(name=principal_name)
         .options(selectinload(qa(Directory.attributes))),
     )
+
+
+async def set_primary_group(
+    directory_dn: str,
+    group_dn: str,
+    session: AsyncSession,
+) -> str:
+    """Set primary group for a directory.
+
+    :param str directory_dn: DN of the directory (user or computer)
+    :param str group_dn: DN of the group to set as primary
+    :param AsyncSession session: database session
+    :return LDAPResult: LDAP result
+    """
+    directory = await session.scalar(
+        select(Directory)
+        .filter(get_filter_from_path(directory_dn))
+        .options(selectinload(qa(Directory.attributes)))
+        .options(
+            selectinload(qa(Directory.groups)).selectinload(
+                qa(Group.directory),
+            ),
+        ),
+    )
+    if not directory:
+        raise ValueError(f"Directory '{directory_dn}' not found.")
+
+    group_dirs = await get_directories([group_dn], session)
+    if not group_dirs or not group_dirs[0].group:
+        raise ValueError(
+            f"Group with DN '{group_dn}' not found or is not a group.",
+        )
+
+    group_dir = group_dirs[0]
+
+    session.add(
+        Attribute(
+            name="primaryGroupID",
+            value=group_dir.relative_id,
+            directory_id=directory.id,
+        ),
+    )
+
+    await session.commit()
+
+    await session.refresh(
+        directory,
+        attribute_names=["attributes"],
+    )
+
+    return directory.path_dn
