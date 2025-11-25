@@ -19,13 +19,12 @@ from api.auth.utils import (
     get_user_agent_from_request,
     verify_auth,
 )
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.auth.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
@@ -38,41 +37,37 @@ from ldap_protocol.auth.exceptions.mfa import (
 from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
-
-class MFAErrorTranslator(BaseErrorTranslator):
-    """MFA error translator."""
-
-    domain_code = ProjectPartCodes.MFA
+translator = DomainErrorTranslator(ProjectPartCodes.MFA)
 
 
 error_map: ERROR_MAP_TYPE = {
     MFAAPIError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=MFAErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     MFAConnectError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=MFAErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     MissingMFACredentialsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=MFAErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     NetworkPolicyError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=MFAErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     ForbiddenError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=MFAErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     InvalidCredentialsError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=MFAErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
     NotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=MFAErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
 

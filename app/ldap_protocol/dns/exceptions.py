@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from errors import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -27,7 +27,6 @@ class DNSError(BaseDomainException):
     """DNS Error."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code: ErrorStatusCodes = ErrorStatusCodes.BAD_REQUEST
 
 
 class DNSSetupError(DNSError):

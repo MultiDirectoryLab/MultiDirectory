@@ -60,7 +60,7 @@ from ldap_protocol.dns import (
     DNSError,
     DNSNotImplementedError,
 )
-from ldap_protocol.identity.exceptions.auth import UnauthorizedError
+from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
 from ldap_protocol.server import PoolClientHandler

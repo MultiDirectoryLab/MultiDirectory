@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from api.error_routing import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -42,7 +42,6 @@ class KerberosError(BaseDomainException):
     """Base exception for authentication kerberos-related errors."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code = ErrorStatusCodes.BAD_REQUEST
 
 
 class KerberosConflictError(KerberosError):

@@ -10,9 +10,9 @@ from fastapi.responses import StreamingResponse
 from fastapi_error_map.routing import ErrorAwareRouter
 
 from api.auth.utils import verify_auth
+from api.error_routing import DishkaErrorAwareRoute
 from api.password_policy.adapter import PasswordBanWordsFastAPIAdapter
 from api.password_policy.error_utils import error_map
-from errors import DishkaErrorAwareRoute
 
 password_ban_word_router = ErrorAwareRouter(
     prefix="/password_ban_word",

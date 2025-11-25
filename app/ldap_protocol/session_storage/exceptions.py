@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from errors import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -26,7 +26,6 @@ class SessionStorageError(BaseDomainException):
     """Session storage error."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code: ErrorStatusCodes = ErrorStatusCodes.BAD_REQUEST
 
 
 class SessionStorageInvalidKeyError(SessionStorageError):

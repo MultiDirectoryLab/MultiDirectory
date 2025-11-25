@@ -5,13 +5,12 @@ from fastapi import Depends, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.session_storage.exceptions import SessionUserNotFoundError
 
 from .adapters.session_gateway import (
@@ -20,17 +19,13 @@ from .adapters.session_gateway import (
 )
 from .utils import verify_auth
 
-
-class SessionErrorTranslator(BaseErrorTranslator):
-    """Session error translator."""
-
-    domain_code = ProjectPartCodes.SESSION
+translator = DomainErrorTranslator(ProjectPartCodes.SESSION)
 
 
 error_map: ERROR_MAP_TYPE = {
     SessionUserNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=SessionErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
 

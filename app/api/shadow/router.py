@@ -8,17 +8,16 @@ from ipaddress import IPv4Address
 from typing import Annotated
 
 from dishka import FromDishka
-from fastapi import Body
+from fastapi import Body, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
+from enums import ProjectPartCodes
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
@@ -28,38 +27,32 @@ from ldap_protocol.policies.password.exceptions import PasswordPolicyError
 
 from .adapter import ShadowAdapter
 
-
-class ShadowErrorTranslator(BaseErrorTranslator):
-    """Shadow error translator."""
-
-    domain_code = ProjectPartCodes.SHADOW
+translator = DomainErrorTranslator(ProjectPartCodes.SHADOW)
 
 
 error_map: ERROR_MAP_TYPE = {
     InvalidCredentialsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=ShadowErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     NetworkPolicyError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=ShadowErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     AuthenticationError: rule(
-        status=ErrorStatusCodes.UNAUTHORIZED,
-        translator=ShadowErrorTranslator(),
+        status=status.HTTP_401_UNAUTHORIZED,
+        translator=translator,
     ),
     PasswordPolicyError: rule(
-        status=ErrorStatusCodes.UNPROCESSABLE_ENTITY,
-        translator=ShadowErrorTranslator(),
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
     ),
     PermissionError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=ShadowErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }
-shadow_router = ErrorAwareRouter(
-    route_class=DishkaErrorAwareRoute,
-)
+shadow_router = ErrorAwareRouter(route_class=DishkaErrorAwareRoute)
 
 
 @shadow_router.post("/mfa/push", error_map=error_map)

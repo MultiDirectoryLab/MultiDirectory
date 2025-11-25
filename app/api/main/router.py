@@ -4,18 +4,17 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
-from enums import ProjectPartCodes
-from errors import (
+from api.error_routing import (
     ERROR_MAP_TYPE,
-    BaseErrorTranslator,
     DishkaErrorAwareRoute,
-    ErrorStatusCodes,
+    DomainErrorTranslator,
 )
-from ldap_protocol.identity.exceptions.auth import UnauthorizedError
+from enums import ProjectPartCodes
+from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.ldap_requests import (
     AddRequest,
     DeleteRequest,
@@ -27,17 +26,13 @@ from ldap_protocol.ldap_responses import LDAPResult
 from .schema import SearchRequest, SearchResponse, SearchResultDone
 from .utils import get_ldap_session
 
-
-class EntryErrorTranslator(BaseErrorTranslator):
-    """Entry error translator."""
-
-    domain_code = ProjectPartCodes.LDAP
+translator = DomainErrorTranslator(ProjectPartCodes.LDAP)
 
 
 error_map: ERROR_MAP_TYPE = {
     UnauthorizedError: rule(
-        status=ErrorStatusCodes.UNAUTHORIZED,
-        translator=EntryErrorTranslator(),
+        status=status.HTTP_401_UNAUTHORIZED,
+        translator=translator,
     ),
 }
 

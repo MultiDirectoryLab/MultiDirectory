@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from api.error_routing import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -31,7 +31,6 @@ class PasswordPolicyError(BaseDomainException):
     """Base exception class for Password Policy service errors."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code = ErrorStatusCodes.BAD_REQUEST
 
 
 class PasswordPolicyAlreadyExistsError(PasswordPolicyError):

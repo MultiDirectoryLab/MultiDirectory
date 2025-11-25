@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from api.error_routing import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -26,14 +26,12 @@ class AuthError(BaseDomainException):
     """Base exception for authentication identity-related errors."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code: ErrorStatusCodes = ErrorStatusCodes.BAD_REQUEST
 
 
 class UnauthorizedError(AuthError):
     """Raised when authentication fails due to invalid credentials."""
 
     code = ErrorCodes.UNAUTHORIZED_ERROR
-    status_code = ErrorStatusCodes.UNAUTHORIZED
 
 
 class AlreadyConfiguredError(AuthError):

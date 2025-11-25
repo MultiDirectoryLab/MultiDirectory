@@ -9,10 +9,10 @@ from fastapi import Depends
 from fastapi_error_map.routing import ErrorAwareRouter
 
 from api.auth.utils import verify_auth
+from api.error_routing import DishkaErrorAwareRoute
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.error_utils import error_map
 from api.password_policy.schemas import PasswordPolicySchema
-from errors import DishkaErrorAwareRoute
 from ldap_protocol.utils.const import GRANT_DN_STRING
 
 from .schemas import PriorityT

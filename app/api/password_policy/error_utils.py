@@ -4,10 +4,11 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from fastapi import status
 from fastapi_error_map.rules import rule
 
+from api.error_routing import ERROR_MAP_TYPE, DomainErrorTranslator
 from enums import ProjectPartCodes
-from errors import ERROR_MAP_TYPE, BaseErrorTranslator, ErrorStatusCodes
 from ldap_protocol.policies.password.exceptions import (
     PasswordBanWordWrongFileExtensionError,
     PasswordPolicyAgeDaysError,
@@ -19,44 +20,40 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyPriorityError,
 )
 
-
-class PasswordPolicyErrorTranslator(BaseErrorTranslator):
-    """Password Policy error translator."""
-
-    domain_code = ProjectPartCodes.PASSWORD_POLICY
+translator = DomainErrorTranslator(ProjectPartCodes.PASSWORD_POLICY)
 
 
 error_map: ERROR_MAP_TYPE = {
     PasswordPolicyBaseDnNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordPolicyNotFoundError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordPolicyDirIsNotUserError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordPolicyAlreadyExistsError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordPolicyCantChangeDefaultDomainError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordPolicyPriorityError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordPolicyAgeDaysError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
     PasswordBanWordWrongFileExtensionError: rule(
-        status=ErrorStatusCodes.BAD_REQUEST,
-        translator=PasswordPolicyErrorTranslator(),
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
     ),
 }

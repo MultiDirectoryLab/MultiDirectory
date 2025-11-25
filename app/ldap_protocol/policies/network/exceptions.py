@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from enum import IntEnum
 
-from errors import BaseDomainException, ErrorStatusCodes
+from api.error_routing import BaseDomainException
 
 
 class ErrorCodes(IntEnum):
@@ -22,7 +22,6 @@ class NetworkPolicyError(BaseDomainException):
     """Network policy error."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
-    status_code = ErrorStatusCodes.BAD_REQUEST
 
 
 class NetworkPolicyAlreadyExistsError(NetworkPolicyError):
