@@ -9,6 +9,7 @@ from typing import AsyncGenerator, ClassVar
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, Group, User
 from enums import AceType
@@ -23,6 +24,7 @@ from ldap_protocol.ldap_responses import (
     AddResponse,
     PartialAttribute,
 )
+from ldap_protocol.multifactor import qa
 from ldap_protocol.objects import ProtocolRequests, UserAccountControlFlag
 from ldap_protocol.utils.const import (
     DOMAIN_COMPUTERS_GROUP_NAME,
@@ -148,7 +150,13 @@ class AddRequest(BaseRequest):
             ace_types=[AceType.CREATE_CHILD],
         )
 
-        parent = await ctx.session.scalar(parent_query)
+        parent = await ctx.session.scalar(
+            parent_query.options(
+                selectinload(
+                    qa(Directory.attributes),
+                ),
+            ),
+        )
         if not parent:
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
@@ -389,6 +397,12 @@ class AddRequest(BaseRequest):
                     value=parent_groups[-1].directory.relative_id,
                     directory_id=new_dir.id,
                 ),
+            )
+            self.set_event_data(
+                {
+                    "after_attrs": self.get_directory_attrs(new_dir),
+                    "before_attrs": self.get_directory_attrs(parent),
+                },
             )
 
         try:
