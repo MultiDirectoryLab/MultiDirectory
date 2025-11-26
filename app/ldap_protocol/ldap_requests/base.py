@@ -89,9 +89,9 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
 
         for attr in directory.attributes:
             attr_name = attr.name.lower()
-            if attr_name == "objectclass" and attr.value:
-                obj_classes.add(attr.value)
-            attributes.setdefault(attr_name, []).append(attr.value)
+            if attr_name == "objectclass" and (val := attr.value):
+                obj_classes.add(val)
+            attributes.setdefault(attr_name, []).append(val)
 
         if "group" in obj_classes:
             for group in directory.groups:
