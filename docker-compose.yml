@@ -259,6 +259,7 @@ services:
       dockerfile: ./.docker/bind9.Dockerfile
     image: bind9md
     container_name: bind9
+    user: root:root
     hostname: bind9
     restart: unless-stopped
     environment:
