@@ -155,6 +155,8 @@ services:
     restart: "no"
     volumes:
       - kdc:/etc/kdc
+      - ./dns_server_file:/opt/dns_server_file/
+      - ./dns_server_config:/etc/bind/dns_server_config/
     command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
@@ -268,6 +270,8 @@ services:
       - .dns/:/server/
     tty: true
     depends_on:
+      pre_run_manager:
+        condition: service_completed_successfully
       ldap_server:
         condition: service_healthy
         restart: true
@@ -328,6 +332,8 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+      pre_run_manager:
+        condition: service_completed_successfully
 
 
   kadmind:

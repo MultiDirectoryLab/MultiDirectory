@@ -81,6 +81,8 @@ services:
     restart: "no"
     volumes:
       - kdc:/etc/kdc
+      - d_dns_server_file:/opt/dns_server_file/
+      - d_dns_server_config:/etc/bind/dns_server_config/
     command: sh -c "/app/extra/pre_run_setup.sh"
 
   cert_check:
@@ -344,6 +346,8 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
+      pre_run_manager:
+        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
