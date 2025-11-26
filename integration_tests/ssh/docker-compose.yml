@@ -3,15 +3,6 @@
 
 services:
 
-  pre_run_manager:
-    image: ghcr.io/multidirectorylab/multidirectory_test:beta
-    container_name: pre_run_manager
-    user: root
-    restart: "no"
-    volumes:
-      - certs:/certs
-      - ./entrypoint.sh:/app/entrypoint.sh
-    command: sh -c "/app/extra/pre_run_setup.sh"
   migrations:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
     container_name: multidirectory_migrations
@@ -26,8 +17,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      pre_run_manager:
-        condition: service_completed_successfully
 
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta
@@ -36,10 +25,6 @@ services:
     command: ./extra/generate_cert.sh
     volumes:
       - certs:/certs
-    depends_on:
-      pre_run_manager:
-        condition: service_completed_successfully
-
 
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory_test:beta

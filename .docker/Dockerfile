@@ -40,5 +40,3 @@ COPY app /app
 COPY pyproject.toml /
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-RUN adduser -D md && chown -R md:md /app
-USER md
