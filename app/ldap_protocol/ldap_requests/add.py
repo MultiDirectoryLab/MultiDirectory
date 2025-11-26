@@ -404,8 +404,7 @@ class AddRequest(BaseRequest):
             )
             self.set_event_data(
                 {
-                    "after_attrs": self.get_directory_attrs(new_dir),
-                    "before_attrs": self.get_directory_attrs(parent),
+                    "before_attrs": self.get_directory_attrs(new_dir),
                 },
             )
 
