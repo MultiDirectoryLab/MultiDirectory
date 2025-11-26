@@ -89,7 +89,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
 
         for attr in directory.attributes:
             attr_name = attr.name.lower()
-            if attr_name == "objectclass" and (val := attr.value):
+            if (val := attr.value) and attr_name == "objectclass":
                 obj_classes.add(val)
             attributes.setdefault(attr_name, []).append(val)
 
