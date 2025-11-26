@@ -185,7 +185,7 @@ def validate_attribute(attribute: str) -> bool:
     """
     return (
         re.match(
-            r"^(?!^[\x20\s].*)(?!.*[\x20\s]$)[a-zA-Z0-9\s\20_.@-]+$",
+            r"^(?!^[\x20\s].*)(?!.*[\x20\s]$)[^#=<>;:\*\+\"\\]+$",
             attribute,
         )
         is not None
