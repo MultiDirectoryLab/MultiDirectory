@@ -7,9 +7,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, Request
 from fastapi.routing import APIRouter
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests import (
     AddRequest,
     DeleteRequest,
@@ -126,10 +126,6 @@ async def set_primary_group_endpoint(
             group_dn=request.group_dn,
             session=await req.state.dishka_container.get(AsyncSession),
         )
-    except ValueError as e:
-        return LDAPResult(
-            result_code=LDAPCodes.NO_SUCH_OBJECT,
-            matched_dn="",
-            error_message=str(e),
-        )
+    except (ValueError, IntegrityError):
+        return None
     return None
