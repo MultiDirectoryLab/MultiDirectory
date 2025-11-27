@@ -131,6 +131,8 @@ class Settings(BaseModel):
     DNS_BIND_HOST: str = "bind_dns"
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
+    TEST_WORKER_ID: int = 0
+    TEST_POSTGRES_SCHEMA_NAME: str = "public"
 
     DHCP_HOST: str = "http://kea_ctrl_agent:8000"
 
