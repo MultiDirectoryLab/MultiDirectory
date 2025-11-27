@@ -87,7 +87,6 @@ class IdentityProvider:
             UnauthorizedError: If the user cannot be found by the given ID.
 
         """
-        logger.debug(f"Fetching user with ID: {user_id}")
         user = await self._identity_provider_gateway.get_user(user_id)
         if user is None:
             raise UnauthorizedError("Could not validate credentials")
