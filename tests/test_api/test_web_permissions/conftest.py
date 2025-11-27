@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncIterator, TypeVar
+from typing import Any, AsyncIterator, Literal
 from unittest.mock import Mock
 
 import pytest_asyncio
@@ -21,8 +21,6 @@ from ldap_protocol.dhcp.base import AbstractDHCPManager
 from ldap_protocol.dhcp.stub import StubDHCPManager
 from ldap_protocol.policies.audit.service import AuditService
 from tests.conftest import TestProvider
-
-_R = TypeVar("_R")
 
 
 class TestLocalProvider(Provider):
@@ -56,3 +54,15 @@ async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     )
     yield container
     await container.close()
+
+
+def create_mock_arg(param_type: Any) -> Any | Literal[1] | Literal["test"]:
+    """Create a mock argument based on type."""
+    if isinstance(param_type, int):
+        return 1
+    elif isinstance(param_type, str):
+        return "test"
+    else:
+        mock = Mock()
+        mock.id = 1
+        return mock

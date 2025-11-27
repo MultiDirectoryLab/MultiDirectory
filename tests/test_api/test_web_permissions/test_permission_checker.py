@@ -16,6 +16,7 @@ from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.permissions_checker import AuthorizationError
 from ldap_protocol.utils.queries import get_user
 from tests.conftest import TestCreds
+from tests.test_api.test_web_permissions.conftest import create_mock_arg
 
 
 @pytest.mark.asyncio
@@ -108,18 +109,6 @@ async def test_all_authorization_rules_are_used() -> None:
     unused_perm = {rule for rule in AuthorizationRules} - used_permissions
     assert unused_perm == {AuthorizationRules.AUTH_LOGIN}
     assert not used_permissions - {rule for rule in AuthorizationRules}
-
-
-def create_mock_arg(param_type: Any) -> Any | Literal[1] | Literal["test"]:
-    """Create a mock argument based on type."""
-    if isinstance(param_type, int):
-        return 1
-    elif isinstance(param_type, str):
-        return "test"
-    else:
-        mock = Mock()
-        mock.id = 1
-        return mock
 
 
 @pytest.mark.asyncio
