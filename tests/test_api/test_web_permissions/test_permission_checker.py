@@ -1,8 +1,7 @@
 """Tests for permisions checker."""
 
 import inspect
-from typing import Any, Literal
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
 from dishka import AsyncContainer, Scope
