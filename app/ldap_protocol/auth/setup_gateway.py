@@ -15,7 +15,7 @@ from entities import Attribute, Directory, Group, NetworkPolicy, User
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
-from password_manager import PasswordValidator
+from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -25,7 +25,7 @@ class SetupGateway:
     def __init__(
         self,
         session: AsyncSession,
-        password_validator: PasswordValidator,
+        password_utils: PasswordUtils,
         entity_type_dao: EntityTypeDAO,
     ) -> None:
         """Initialize Setup use case.
@@ -35,7 +35,7 @@ class SetupGateway:
         return: None.
         """
         self._session = session
-        self._password_validator = password_validator
+        self._password_utils = password_utils
         self._entity_type_dao = entity_type_dao
 
     async def is_setup(self) -> bool:
@@ -169,15 +169,14 @@ class SetupGateway:
                         ),
                     )
 
-        if "organizationalPerson" in data:
-            user_data = data["organizationalPerson"]
+        if user_data := data.get("organizationalPerson"):
             user = User(
                 directory_id=dir_.id,
                 sam_account_name=user_data["sam_account_name"],
                 user_principal_name=user_data["user_principal_name"],
                 display_name=user_data["display_name"],
                 mail=user_data["mail"],
-                password=self._password_validator.get_password_hash(
+                password=self._password_utils.get_password_hash(
                     user_data["password"],
                 ),
             )

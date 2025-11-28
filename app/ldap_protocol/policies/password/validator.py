@@ -14,7 +14,7 @@ from ldap_protocol.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
-from password_manager import PasswordValidator
+from password_utils import PasswordUtils
 
 from .error_messages import ErrorMessages
 from .settings import PasswordValidatorLanguageType
@@ -39,21 +39,21 @@ class PasswordPolicyValidator:
 
     def __init__(
         self,
-        password_validator_settings: PasswordValidatorSettings,
-        password_validator: PasswordValidator,
+        password_utils_settings: PasswordValidatorSettings,
+        password_utils: PasswordUtils,
     ) -> None:
         """Initialize a new validator instance.
 
         Sets up internal storage for checkers and default settings.
         """
         self._checkers: list[_Checker] = []
-        self._password_validator_settings = password_validator_settings
-        self._password_validator = password_validator
+        self._password_utils_settings = password_utils_settings
+        self._password_utils = password_utils
         self.error_messages: list[str] = []
 
     def setup_language(self, language: PasswordValidatorLanguageType) -> None:
         """Set up language for password policy validation."""
-        self._password_validator_settings.setup_language(language)
+        self._password_utils_settings.setup_language(language)
 
     def __add_checker(
         self,
@@ -72,7 +72,7 @@ class PasswordPolicyValidator:
     async def __run_checker(self, checker: _Checker, password: str) -> None:
         result = await checker.check(
             password,
-            self._password_validator_settings,
+            self._password_utils_settings,
             *checker.args,
         )
         if result is False:
@@ -234,7 +234,7 @@ class PasswordPolicyValidator:
         """Check if password is not in the password history."""
         for password_hash in password_history:
             try:
-                if self._password_validator.verify_password(
+                if self._password_utils.verify_password(
                     password,
                     password_hash,
                 ):
@@ -269,8 +269,7 @@ class PasswordPolicyValidator:
             return True
 
         return (
-            self._password_validator.count_password_age_days(value)
-            >= min_age_days
+            self._password_utils.count_password_age_days(value) >= min_age_days
         )
 
     def min_lowercase_letters_count(self, count: int) -> Self:

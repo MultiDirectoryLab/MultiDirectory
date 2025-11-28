@@ -56,14 +56,9 @@ class NetworkPolicyGateway:
             await self._session.refresh(policy)
             return policy
         except IntegrityError:
-            raise NetworkPolicyAlreadyExistsError(
-                "Entry already exists",
-            )
+            raise NetworkPolicyAlreadyExistsError("Entry already exists")
 
-    async def get_groups(
-        self,
-        groups: list[str],
-    ) -> list[Group]:
+    async def get_groups(self, groups: list[str]) -> list[Group]:
         return await get_groups(groups, self._session)
 
     async def get_list_policies(self) -> list[NetworkPolicy]:

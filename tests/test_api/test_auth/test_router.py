@@ -13,6 +13,7 @@ import pytest_asyncio
 from fastapi import status
 from httpx import AsyncClient
 from jose import jwt
+from password_utils import PasswordUtils
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -25,7 +26,6 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
-from password_manager.password_validator import PasswordValidator
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
@@ -125,8 +125,7 @@ async def test_first_setup_and_oauth(
         )
         .filter_by(
             path=get_search_path(
-                "cn=read-only,"
-                "cn=groups,dc=md,dc=test-localhost",
+                "cn=read-only,cn=groups,dc=md,dc=test-localhost",
             ),
         ),
     )
@@ -602,7 +601,7 @@ async def test_mfa_auth(
     unbound_http_client: httpx.AsyncClient,
     session: AsyncSession,
     creds: TestCreds,
-    password_validator: PasswordValidator,
+    password_utils: PasswordUtils,
     enable_mfa: None,  # noqa: ARG001
 ) -> None:
     """Test auth with MFA."""
@@ -631,7 +630,7 @@ async def test_mfa_auth(
         session,
         creds.un,
         creds.pw,
-        password_validator,
+        password_utils,
     )
 
     assert user

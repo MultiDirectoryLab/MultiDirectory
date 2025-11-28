@@ -209,6 +209,7 @@ known-first-party = [
     "tests",
     "web_app",
     "ioc",
+    "password_utils",
     "schedule",
     "extra",
     "enums",

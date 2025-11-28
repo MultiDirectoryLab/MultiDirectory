@@ -17,7 +17,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from password_manager.password_validator import PasswordValidator
+from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -46,7 +46,7 @@ def upgrade() -> None:
         entity_type_dao = EntityTypeDAO(session, object_class_dao)
         setup_gateway = SetupGateway(
             session,
-            PasswordValidator(),
+            PasswordUtils(),
             entity_type_dao,
         )
 

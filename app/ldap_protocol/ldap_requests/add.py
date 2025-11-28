@@ -72,11 +72,11 @@ class AddRequest(BaseRequest):
     password: SecretStr | None = Field(None, examples=["password"])
 
     @property
-    def attr_names(self) -> dict[str, list[str | bytes]]:
-        return {attr.l_name: attr.vals for attr in self.attributes}
+    def l_attrs_dict(self) -> dict[str, list[str | bytes]]:
+        return {attr.l_type: attr.vals for attr in self.attributes}
 
     @property
-    def attributes_dict(self) -> dict[str, list[str | bytes]]:
+    def attrs_dict(self) -> dict[str, list[str | bytes]]:
         return {attr.type: attr.vals for attr in self.attributes}
 
     @property
@@ -84,8 +84,8 @@ class AddRequest(BaseRequest):
         return {
             (name.decode("latin-1") if isinstance(name, bytes) else name)
             for name in (
-                self.attributes_dict.get("objectClass", [])
-                + self.attributes_dict.get("objectclass", [])
+                self.attrs_dict.get("objectClass", [])
+                + self.attrs_dict.get("objectclass", [])
             )
         }
 
@@ -225,19 +225,15 @@ class AddRequest(BaseRequest):
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
             if (
-                attr.l_name in Directory.ro_fields
-                or attr.l_name
-                in (
-                    "userpassword",
-                    "unicodepwd",
-                )
-                or attr.l_name == new_dir.rdname
+                attr.l_type in Directory.ro_fields
+                or attr.l_type in ("userpassword", "unicodepwd")
+                or attr.l_type == new_dir.rdname
             ):
                 continue
 
             for value in attr.vals:
                 if (
-                    attr.l_name in user_fields
+                    attr.l_type in user_fields
                     or attr.type == "userAccountControl"
                 ):
                     if not isinstance(value, str):
@@ -262,12 +258,12 @@ class AddRequest(BaseRequest):
                     )
 
         parent_groups = await get_groups(group_attributes, ctx.session)
-        is_group = "group" in self.attributes_dict.get("objectClass", [])
+        is_group = "group" in self.attrs_dict.get("objectClass", [])
         is_user = (
             "sAMAccountName" in user_attributes
             or "userPrincipalName" in user_attributes
         )
-        is_computer = "computer" in self.attributes_dict.get("objectClass", [])
+        is_computer = "computer" in self.attrs_dict.get("objectClass", [])
 
         if is_user:
             if not any(
@@ -296,7 +292,7 @@ class AddRequest(BaseRequest):
             )
 
             if self.password is not None:
-                user.password = ctx.password_validator.get_password_hash(
+                user.password = ctx.password_utils.get_password_hash(
                     raw_password,
                 )
 
@@ -346,7 +342,7 @@ class AddRequest(BaseRequest):
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
 
-        elif is_computer and "useraccountcontrol" not in self.attr_names:
+        elif is_computer and "useraccountcontrol" not in self.l_attrs_dict:
             if not any(
                 group.directory.name.lower() == DOMAIN_COMPUTERS_GROUP_NAME
                 for group in parent_groups
@@ -373,7 +369,7 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        if (is_user or is_group) and "gidnumber" not in self.attr_names:
+        if (is_user or is_group) and "gidnumber" not in self.l_attrs_dict:
             reverse_d_name = new_dir.name[::-1]
             value = (
                 "513" if is_user else str(create_integer_hash(reverse_d_name))
