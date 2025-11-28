@@ -974,7 +974,7 @@ async def handler(
     container: AsyncContainer,
 ) -> AsyncIterator[PoolClientHandler]:
     """Create test handler."""
-    settings.PORT += settings.TEST_WORKER_ID
+    settings.set_test_port()
     async with container(scope=Scope.APP) as app_scope:
         yield PoolClientHandler(settings, app_scope)
 

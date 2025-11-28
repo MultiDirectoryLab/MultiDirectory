@@ -156,6 +156,10 @@ class Settings(BaseModel):
             return "public"
         return f"test_schema_{self.PYTEST_XDIST_WORKER}"
 
+    def set_test_port(self) -> None:
+        """Set test port."""
+        self.PORT += self.TEST_WORKER_ID
+
     @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805
         """Get timezone from a string."""
