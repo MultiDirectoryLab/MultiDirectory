@@ -9,13 +9,17 @@ from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Column, func, or_, select, update
+from sqlalchemy import Column, exists, func, insert, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
 from entities import Attribute, Directory, Group, User
-from repo.pg.tables import directory_table, queryable_attr as qa
+from repo.pg.tables import (
+    directory_memberships_table,
+    directory_table,
+    queryable_attr as qa,
+)
 
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
@@ -66,6 +70,7 @@ async def get_user(session: AsyncSession, name: str) -> User | None:
 async def get_directories(
     dn_list: list[GRANT_DN_STRING],
     session: AsyncSession,
+    excluded_group: Group | None = None,
 ) -> list[Directory]:
     """Get directories by dn list."""
     paths = []
@@ -83,15 +88,84 @@ async def get_directories(
     query = (
         select(Directory)
         .filter(or_(*paths))
-        .options(
-            joinedload(qa(Directory.group)).selectinload(qa(Group.members)),
-        )
-        .options(selectinload(qa(Directory.groups)))
+        .options(joinedload(qa(Directory.group)))
     )
+
+    if excluded_group:
+        excluded_subq = select(
+            directory_memberships_table.c.directory_id,
+        ).where(
+            directory_memberships_table.c.group_id == excluded_group.id,
+        )
+        query = query.where(
+            ~exists(
+                excluded_subq.where(
+                    directory_memberships_table.c.directory_id == Directory.id,
+                ),
+            ),
+        )
 
     results = await session.scalars(query)
 
     return list(results.all())
+
+
+async def extend_group_membership(
+    group: Group,
+    members_to_add: list[Directory],
+    session: AsyncSession,
+) -> None:
+    """Extend group memberships."""
+    await session.execute(
+        insert(directory_memberships_table).values(
+            [
+                {"group_id": group.id, "directory_id": directory.id}
+                for directory in members_to_add
+            ],
+        ),
+    )
+
+
+async def clear_group_membership(
+    group: Group,
+    session: AsyncSession,
+) -> None:
+    """Clear group memberships."""
+    await session.execute(
+        directory_memberships_table.delete().where(
+            directory_memberships_table.c.group_id == group.id,
+        ),
+    )
+
+
+async def remove_disallowed_group_members(
+    group: Group,
+    allowed_members: list[Directory],
+    session: AsyncSession,
+) -> None:
+    """Remove group memberships not in allowed list."""
+    new_ids = {member.id for member in allowed_members}
+    await session.execute(
+        directory_memberships_table.delete().where(
+            directory_memberships_table.c.group_id == group.id,
+            directory_memberships_table.c.directory_id.not_in(new_ids),
+        ),
+    )
+
+
+async def remove_from_group_membership(
+    group: Group,
+    members_to_remove: list[Directory],
+    session: AsyncSession,
+) -> None:
+    """Remove directories from group memberships."""
+    member_ids = {member.id for member in members_to_remove}
+    await session.execute(
+        directory_memberships_table.delete().where(
+            directory_memberships_table.c.group_id == group.id,
+            directory_memberships_table.c.directory_id.in_(member_ids),
+        ),
+    )
 
 
 async def get_directory_by_rid(

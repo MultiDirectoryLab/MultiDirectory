@@ -314,7 +314,6 @@ async def test_api_correct_modify_replace_memberof(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_add_loop_detect_member(
@@ -330,7 +329,7 @@ async def test_api_modify_add_loop_detect_member(
                     "operation": Operation.ADD,
                     "modification": {
                         "type": "member",
-                        "vals": ["cn=user0,cn=users,dc=md,dc=test"],
+                        "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
                     },
                 },
             ],
@@ -342,7 +341,6 @@ async def test_api_modify_add_loop_detect_member(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_add_loop_detect_memberof(
@@ -352,7 +350,7 @@ async def test_api_modify_add_loop_detect_memberof(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=user0,cn=users,dc=md,dc=test",
+            "object": "cn=domain admins,cn=groups,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.ADD,
@@ -370,7 +368,6 @@ async def test_api_modify_add_loop_detect_memberof(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_replace_loop_detect_member(
@@ -387,8 +384,8 @@ async def test_api_modify_replace_loop_detect_member(
                     "modification": {
                         "type": "member",
                         "vals": [
-                            "cn=user0,cn=users,dc=md,dc=test",
                             "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+                            "cn=domain admins,cn=groups,dc=md,dc=test",
                         ],
                     },
                 },
@@ -411,15 +408,15 @@ async def test_api_modify_replace_loop_detect_memberof(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=user0,cn=users,dc=md,dc=test",
+            "object": "cn=domain admins,cn=groups,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
                     "modification": {
                         "type": "memberOf",
                         "vals": [
+                            "cn=domain computers,cn=groups,dc=md,dc=test",
                             "cn=developers,cn=groups,dc=md,dc=test",
-                            "cn=domain admins,cn=groups,dc=md,dc=test",
                         ],
                     },
                 },
