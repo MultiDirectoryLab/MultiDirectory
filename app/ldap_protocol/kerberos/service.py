@@ -107,12 +107,21 @@ class KerberosService(AbstractService):
             mail,
             krbadmin_password,
         )
-        await self._ldap_manager.create_kerberos_structure(
-            add_requests.group,
-            add_requests.services,
-            add_requests.krb_user,
-            ctx,
-        )
+        try:
+            await self._ldap_manager.create_kerberos_structure(
+                add_requests.group,
+                add_requests.services,
+                add_requests.krb_user,
+                ctx,
+            )
+        except Exception:
+            await self._ldap_manager.rollback_kerberos_structure(
+                dns.krbadmin_dn,
+                dns.services_container_dn,
+                dns.krbadmin_group_dn,
+            )
+            await self._session.commit()
+            raise
 
     async def _get_base_dn(self) -> tuple[str, str]:
         """Get LDAP root DN and domain."""
