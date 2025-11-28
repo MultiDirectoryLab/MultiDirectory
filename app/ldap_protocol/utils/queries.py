@@ -417,7 +417,6 @@ async def set_or_update_primary_group(
 
     if existing_attr:
         existing_attr.value = group.directory.relative_id
-        session.add(existing_attr)
     else:
         session.add(
             Attribute(
