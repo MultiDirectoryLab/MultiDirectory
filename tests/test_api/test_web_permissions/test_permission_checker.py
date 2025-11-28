@@ -1,21 +1,22 @@
-"""Tests for permisions checker."""
+"""Tests for permissions checker."""
 
-import inspect
 from unittest.mock import AsyncMock
 
 import pytest
-from dishka import AsyncContainer, Scope
+from dishka import AsyncContainer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from enums import AuthorizationRules
-from ldap_protocol.auth.auth_manager import AuthManager
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.permissions_checker import AuthorizationError
 from ldap_protocol.utils.queries import get_user
 from tests.conftest import TestCreds
-from tests.test_api.test_web_permissions.conftest import create_mock_arg
+from tests.test_api.test_web_permissions.conftest import (
+    get_params,
+    get_test_instance_generator,
+)
 
 
 @pytest.mark.asyncio
@@ -50,14 +51,15 @@ async def test_perm_checker_without_roles(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_perm_checker_with_roles(
-    creds: TestCreds,
+    creds_with_login_perm: TestCreds,
     session: AsyncSession,
     api_permissions_checker: AuthorizationProviderProtocol,
 ) -> None:
     """Test that user with permissions can access protected resources."""
-    user = await get_user(session, creds.un)
+    user = await get_user(session, creds_with_login_perm.un)
     assert user
-
+    user.groups[0].roles[0].permissions |= AuthorizationRules.PASSWORD_POLICY_GET_ALL  # fmt: skip  # noqa: E501
+    await session.commit()
     api_permissions_checker._idp.get_current_user = AsyncMock(  # type: ignore # noqa: SLF001
         return_value=await UserSchema.from_db(user, ""),
     )
@@ -125,35 +127,15 @@ async def test_all_authorization_rules_forbid(
     api_permissions_checker._idp.get_current_user = AsyncMock(  # type: ignore  # noqa: SLF001
         return_value=await UserSchema.from_db(user_without_api_perms, ""),
     )
-    subclasses = AbstractService.__subclasses__()
-    for cls in subclasses:
-        async with container(
-            scope=Scope.REQUEST,
-            context=request_params,
-        ) as cont:
-            cls_instance = await cont.get(cls)
-
-        cls_instance.set_permissions_checker(api_permissions_checker)
-        if cls == AuthManager:
-            cls_instance._monitor.wrap_login = lambda x: x  # noqa: SLF001
-            cls_instance._monitor.wrap_reset_password = lambda x: x  # noqa: SLF001
-            cls_instance._monitor.wrap_change_password = lambda x: x  # noqa: SLF001
-
-        for method_name in cls.PERMISSIONS:
+    cls_instances = get_test_instance_generator(
+        container,
+        request_params,
+        api_permissions_checker,
+    )
+    async for cls_instance in cls_instances:
+        for method_name in cls_instance.PERMISSIONS:
             method = getattr(cls_instance, method_name)
-            sig = inspect.signature(method)
-            params = [p for p in sig.parameters.values() if p.name != "self"]
-            args = [
-                create_mock_arg(p.annotation)
-                for p in params
-                if p.default == inspect.Parameter.empty
-            ]
-            kwargs = {
-                p.name: create_mock_arg(p.annotation)
-                for p in params
-                if p.default != inspect.Parameter.empty
-            }
-
+            args, kwargs = get_params(method)
             with pytest.raises(AuthorizationError):
                 await method(*args, **kwargs)
 
@@ -174,38 +156,19 @@ async def test_all_authorization_rules_available(
     api_permissions_checker._idp.get_current_user = AsyncMock(  # type: ignore  # noqa: SLF001
         return_value=await UserSchema.from_db(user_with_api_perms, ""),
     )
-    subclasses = AbstractService.__subclasses__()
-    for cls in subclasses:
-        async with container(
-            scope=Scope.REQUEST,
-            context=request_params,
-        ) as cont:
-            cls_instance = await cont.get(cls)
-
-        cls_instance.set_permissions_checker(api_permissions_checker)
-        if cls == AuthManager:
-            cls_instance._monitor.wrap_login = lambda x: x  # noqa: SLF001
-            cls_instance._monitor.wrap_reset_password = lambda x: x  # noqa: SLF001
-            cls_instance._monitor.wrap_change_password = lambda x: x  # noqa: SLF001
-
-        for method_name in cls.PERMISSIONS:
+    cls_instances = get_test_instance_generator(
+        container,
+        request_params,
+        api_permissions_checker,
+    )
+    async for cls_instance in cls_instances:
+        for method_name in cls_instance.PERMISSIONS:
             method = getattr(cls_instance, method_name)
-            sig = inspect.signature(method)
-            params = [p for p in sig.parameters.values() if p.name != "self"]
-            args = [
-                create_mock_arg(p.annotation)
-                for p in params
-                if p.default == inspect.Parameter.empty
-            ]
-            kwargs = {
-                p.name: create_mock_arg(p.annotation)
-                for p in params
-                if p.default != inspect.Parameter.empty
-            }
+            args, kwargs = get_params(method)
 
-        try:  # type: ignore
-            await method(*args, **kwargs)
-        except AuthorizationError:
-            pytest.fail("AuthorizationError was raised unexpectedly")
-        except Exception:  # noqa: S112
-            continue
+            try:
+                await method(*args, **kwargs)
+            except AuthorizationError:
+                pytest.fail("AuthorizationError was raised unexpectedly")
+            except Exception:
+                await session.rollback()

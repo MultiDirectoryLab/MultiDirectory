@@ -1135,7 +1135,7 @@ async def http_client(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def http_client_without_perms(
+async def http_client_with_login_perm(
     unbound_http_client: httpx.AsyncClient,
     creds_with_login_perm: TestCreds,
     setup_session: None,  # noqa: ARG001
