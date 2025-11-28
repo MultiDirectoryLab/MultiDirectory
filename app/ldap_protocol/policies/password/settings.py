@@ -48,7 +48,7 @@ class PasswordValidatorSettings:
             self.__language = language
         else:
             raise ValueError(
-                f"PasswordValidator: Unsupported language `{language}`. "
+                f"PasswordValidatorSettings: Unsupported language `{language}`. "  # noqa: E501
                 "Supported languages: Cyrillic, Latin.",
             )
 

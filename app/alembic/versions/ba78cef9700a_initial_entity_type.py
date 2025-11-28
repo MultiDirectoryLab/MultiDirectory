@@ -140,8 +140,7 @@ def upgrade() -> None:
                 ~exists(
                     select(qa(Attribute.id))
                     .where(
-                        qa(Attribute.directory_id)
-                        == qa(Directory.id),
+                        qa(Attribute.directory_id) == qa(Directory.id),
                         or_(
                             qa(Attribute.name) == "objectClass",
                             qa(Attribute.name) == "objectclass",
@@ -172,9 +171,7 @@ def upgrade() -> None:
         if not await get_base_directories(session):
             return
 
-        object_class_dao = ObjectClassDAO(
-            session,
-        )
+        object_class_dao = ObjectClassDAO(session)
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao=object_class_dao,

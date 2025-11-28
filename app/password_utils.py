@@ -1,4 +1,4 @@
-"""Utils for Password Validator.
+"""Utils for Password.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
@@ -12,8 +12,8 @@ from pydantic import BaseModel, ConfigDict
 from ldap_protocol.utils.helpers import ft_to_dt
 
 
-class PasswordValidator(BaseModel):
-    """Password Validator class."""
+class PasswordUtils(BaseModel):
+    """Password Utils."""
 
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
     __crypt_context = CryptContext(
@@ -26,7 +26,7 @@ class PasswordValidator(BaseModel):
         plain_password: str,
         hashed_password: str,
     ) -> bool:
-        """Validate password.
+        """Verify password.
 
         :param str plain_password: raw password
         :param str hashed_password: pwd hash from db
@@ -35,7 +35,7 @@ class PasswordValidator(BaseModel):
         return self.__crypt_context.verify(plain_password, hashed_password)
 
     def get_password_hash(self, password: str) -> str:
-        """Hash password.
+        """Get password`s hash.
 
         :param str password: raw pwd
         :return str: hash

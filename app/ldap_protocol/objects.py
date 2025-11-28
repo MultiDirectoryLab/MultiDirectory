@@ -53,7 +53,7 @@ class PartialAttribute(BaseModel):
     vals: list[Annotated[str | bytes, annotated_types.Len(max_length=100000)]]
 
     @property
-    def l_name(self) -> str:
+    def l_type(self) -> str:
         """Get lower case name."""
         return self.type.lower()
 
