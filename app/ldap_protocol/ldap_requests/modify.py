@@ -729,7 +729,7 @@ class ModifyRequest(BaseRequest):
         directory.groups.extend(
             [_directory.group for _directory in directories],
         )
-        await session.commit()
+        await session.flush()
 
     async def _add_member(
         self,
@@ -759,7 +759,7 @@ class ModifyRequest(BaseRequest):
             raise RecursionError
 
         await extend_group_membership(directory.group, directories, session)
-        await session.commit()
+        await session.flush()
 
     async def _add_group_attrs(
         self,
