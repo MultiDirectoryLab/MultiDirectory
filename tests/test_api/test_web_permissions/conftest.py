@@ -90,28 +90,6 @@ def get_params(method: Callable) -> tuple[list, dict]:
     return (args, kwargs)
 
 
-async def get_test_instance(
-    container: AsyncContainer,
-    request_params: dict,
-    cls: type[AbstractService],
-    api_permissions_checker: AuthorizationProviderProtocol,
-) -> AbstractService:
-    """Make service instance for test."""
-    async with container(
-        scope=Scope.REQUEST,
-        context=request_params,
-    ) as cont:
-        cls_instance = await cont.get(cls)
-
-    cls_instance.set_permissions_checker(api_permissions_checker)
-    if cls == AuthManager:
-        cls_instance._monitor.wrap_login = lambda x: x  # noqa: SLF001
-        cls_instance._monitor.wrap_reset_password = lambda x: x  # noqa: SLF001
-        cls_instance._monitor.wrap_change_password = lambda x: x  # noqa: SLF001
-
-    return cls_instance
-
-
 async def get_test_instance_generator(
     container: AsyncContainer,
     request_params: dict,
@@ -126,10 +104,18 @@ async def get_test_instance_generator(
         ) as cont:
             cls_instance = await cont.get(cls)
 
-        cls_instance.set_permissions_checker(api_permissions_checker)
-        if cls == AuthManager:
-            cls_instance._monitor.wrap_login = lambda x: x  # noqa: SLF001
-            cls_instance._monitor.wrap_reset_password = lambda x: x  # noqa: SLF001
-            cls_instance._monitor.wrap_change_password = lambda x: x  # noqa: SLF001
+        yield setup_instance(cls_instance, api_permissions_checker)
 
-        yield cls_instance
+
+def setup_instance(
+    cls_instance: AbstractService,
+    api_permissions_checker: AuthorizationProviderProtocol,
+) -> AbstractService:
+    """Setup service instance for tests."""
+    cls_instance.set_permissions_checker(api_permissions_checker)
+    if isinstance(cls_instance, AuthManager):
+        cls_instance._monitor.wrap_login = lambda x: x  # type: ignore # noqa: SLF001
+        cls_instance._monitor.wrap_reset_password = lambda x: x  # type: ignore # noqa: SLF001
+        cls_instance._monitor.wrap_change_password = lambda x: x  # type: ignore # noqa: SLF001
+
+    return cls_instance
