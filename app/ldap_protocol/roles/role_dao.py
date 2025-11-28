@@ -215,6 +215,9 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
             select(Role)
             .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         )  # fmt: skip
-        role = (await self._session.scalars(query)).one()
+        role = (await self._session.scalars(query)).first()
+        if not role:
+            return
+
         role.permissions = AuthorizationRules.get_all()
         await self._session.flush()

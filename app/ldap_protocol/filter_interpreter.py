@@ -294,7 +294,7 @@ class FilterInterpreterProtocol(Protocol):
 
     def _recursive_filter_memberof(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the memberOF attribute(recursive)."""
-        cte = find_members_recursive_cte(dn)
+        cte = find_members_recursive_cte([dn])
 
         return qa(Directory.id).in_(select(cte.c.directory_id).offset(1))  # type: ignore
 

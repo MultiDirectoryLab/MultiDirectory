@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import or_
+from sqlalchemy import exists, or_
 from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
 from sqlalchemy.sql.expression import select
 from sqlalchemy.sql.selectable import CTE
@@ -14,12 +14,16 @@ from repo.pg.tables import (
     directory_memberships_table,
     directory_table,
     groups_table,
+    queryable_attr as qa,
 )
 
 from .queries import get_filter_from_path
 
 
-def find_members_recursive_cte(dn: str) -> CTE:
+def find_members_recursive_cte(
+    dn_list: list[str],
+    include_users: bool = True,
+) -> CTE:
     """Create CTE to filter group memberships based on directory hierarchy.
 
     This function generates a recursive CTE that starts with an initial
@@ -92,7 +96,7 @@ def find_members_recursive_cte(dn: str) -> CTE:
             directory_table.c.id == groups_table.c.directory_id,
         )
         .select_from(directory_table)
-        .where(get_filter_from_path(dn))
+        .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
     recursive_part = (
         select(
@@ -109,7 +113,7 @@ def find_members_recursive_cte(dn: str) -> CTE:
             groups_table,
             directory_memberships_table.c.directory_id
             == groups_table.c.directory_id,
-            isouter=True,
+            isouter=include_users,
         )
     )
     return directory_hierarchy.union_all(recursive_part)
@@ -177,59 +181,38 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
     return directory_hierarchy.union_all(recursive_part)
 
 
-async def get_members_root_group(
+async def check_root_group_membership_intersection(
     dn: str,
     session: AsyncSession,
-) -> list[Directory]:
-    """Get all members root group by dn.
-
-    Example:
-    -------
-    Group1 includes user1, user2, and group2.
-    Group2 includes users user3 and group3.
-    Group3 includes user4.
-
-    In the case of a recursive search through the specified user4, the search
-    result will be as follows: group1, user1, user2, group2, user3, group3,
-    user4.
-
-    """
+    directory_ids: list[int],
+) -> bool:
+    """Check if root group members have intersection with directory ids."""
     cte = find_root_group_recursive_cte([dn])
     result = await session.scalars(select(cte.c.directory_id))
     group_ids = result.all()
 
     if not group_ids:
-        return []
+        return False
 
-    root_group_id = group_ids[-1]
-
-    directory = await session.scalar(
+    directories = await session.scalars(
         select(Directory)
-        .where(Directory.id == root_group_id),
+        .where(qa(Directory.id).in_(group_ids)),
     )  # fmt: skip
 
-    if not directory:
+    if not directories:
         raise RuntimeError
 
-    cte = find_members_recursive_cte(directory.path_dn)
-    result = await session.scalars(select(cte.c.directory_id))
-    dir_ids = result.all()
+    cte = find_members_recursive_cte(
+        [d.path_dn for d in directories],
+        include_users=False,
+    )
 
-    if not dir_ids:
-        return []
+    exists_query = select(
+        exists().where(cte.c.directory_id.in_(directory_ids)),
+    )
+    exists_result = await session.scalar(exists_query)
 
-    query = (
-        select(Directory)
-        .where(
-            or_(
-                *[Directory.id == dir_id for dir_id in dir_ids],
-            ),
-        )
-    )  # fmt: skip
-
-    retval = await session.scalars(query)
-
-    return list(retval.all())
+    return bool(exists_result)
 
 
 async def get_all_parent_group_directories(

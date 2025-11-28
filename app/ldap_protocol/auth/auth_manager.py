@@ -41,7 +41,7 @@ from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import get_user
-from password_manager import PasswordValidator
+from password_utils import PasswordUtils
 
 
 class AuthManager(AbstractService):
@@ -54,7 +54,7 @@ class AuthManager(AbstractService):
         mfa_api: MultifactorAPI,
         storage: SessionStorage,
         password_use_cases: PasswordPolicyUseCases,
-        password_validator: PasswordValidator,
+        password_utils: PasswordUtils,
         repository: SessionRepository,
         monitor: AuditMonitorUseCase,
         kadmin: AbstractKadmin,
@@ -79,7 +79,7 @@ class AuthManager(AbstractService):
         self._repository = repository
         self._monitor = monitor
         self._password_use_cases = password_use_cases
-        self._password_validator = password_validator
+        self._password_utils = password_utils
         self._kadmin = kadmin
         self._mfa_manager = mfa_manager
         self._setup_use_case = setup_use_case
@@ -122,7 +122,7 @@ class AuthManager(AbstractService):
             self._session,
             form.username,
             form.password,
-            self._password_validator,
+            self._password_utils,
         )
         if not user:
             raise UnauthorizedError("Incorrect username or password")
@@ -234,7 +234,7 @@ class AuthManager(AbstractService):
                 new_password,
             )
 
-        user.password = self._password_validator.get_password_hash(
+        user.password = self._password_utils.get_password_hash(
             new_password,
         )
         await self._password_use_cases.post_save_password_actions(user)
@@ -287,7 +287,7 @@ class AuthManager(AbstractService):
                 )
 
             raise_not_verified = (
-                self._password_validator.verify_password(
+                self._password_utils.verify_password(
                     old_password,
                     resolved_identity.password,
                 )

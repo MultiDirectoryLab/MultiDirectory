@@ -4,9 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, Request
 from fastapi.routing import APIRouter
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.ldap_requests import (
     AddRequest,
@@ -15,8 +18,14 @@ from ldap_protocol.ldap_requests import (
     ModifyRequest,
 )
 from ldap_protocol.ldap_responses import LDAPResult
+from ldap_protocol.utils.queries import set_or_update_primary_group
 
-from .schema import SearchRequest, SearchResponse, SearchResultDone
+from .schema import (
+    PrimaryGroupRequest,
+    SearchRequest,
+    SearchResponse,
+    SearchResultDone,
+)
 from .utils import get_ldap_session
 
 entry_router = APIRouter(
@@ -104,3 +113,19 @@ async def delete_many(
     for request in requests:
         results.append(await request.handle_api(req.state.dishka_container))
     return results
+
+
+@entry_router.post("/set_primary_group")
+async def set_primary_group(
+    request: PrimaryGroupRequest,
+    session: FromDishka[AsyncSession],
+) -> None:
+    """Set primary group for a directory (user or group)."""
+    try:
+        await set_or_update_primary_group(
+            directory_dn=request.directory_dn,
+            group_dn=request.group_dn,
+            session=session,
+        )
+    except (ValueError, IntegrityError):
+        return None

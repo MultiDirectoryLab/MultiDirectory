@@ -32,7 +32,7 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.objects import UserAccountControlFlag
-from password_manager import PasswordValidator
+from password_utils import PasswordUtils
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
@@ -281,7 +281,7 @@ async def test_bind_invalid_password_or_user(
     session: AsyncSession,
     ldap_session: LDAPSession,
     container: AsyncContainer,
-    password_validator: PasswordValidator,
+    password_utils: PasswordUtils,
 ) -> None:
     """Test invalid password bind."""
     directory = Directory(
@@ -299,7 +299,7 @@ async def test_bind_invalid_password_or_user(
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
-        password=password_validator.get_password_hash("password"),
+        password=password_utils.get_password_hash("password"),
         directory_id=directory.id,
     )
     user_account_control_attribute = Attribute(
@@ -339,7 +339,7 @@ async def test_bind_invalid_password_or_user(
         name="user1",
         AuthenticationChoice=SimpleAuthentication(
             password="password",  # noqa
-            password_validator=password_validator,
+            password_utils=password_utils,
         ),
     )
 
@@ -412,7 +412,7 @@ async def test_bind_disabled_user(
     session: AsyncSession,
     ldap_session: LDAPSession,
     container: AsyncContainer,
-    password_validator: PasswordValidator,
+    password_utils: PasswordUtils,
 ) -> None:
     """Test disabled user bind."""
     directory = Directory(
@@ -430,7 +430,7 @@ async def test_bind_disabled_user(
         user_principal_name="user0",
         mail="user0",
         display_name="user0",
-        password=password_validator.get_password_hash("password"),
+        password=password_utils.get_password_hash("password"),
         directory_id=directory.id,
     )
     user_account_control_attribute = Attribute(

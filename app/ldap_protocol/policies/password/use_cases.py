@@ -115,7 +115,7 @@ class PasswordPolicyUseCases(AbstractService):
         if pwd_policy_max_age == 0:
             return False
 
-        count_age_days = self._password_policy_validator._password_validator.count_password_age_days(  # noqa: SLF001, E501
+        count_age_days = self._password_policy_validator._password_utils.count_password_age_days(  # noqa: SLF001, E501
             pwd_last_set,
         )
 

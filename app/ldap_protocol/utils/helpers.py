@@ -161,9 +161,34 @@ def validate_entry(entry: str) -> bool:
     :return bool: result
     """
     return all(
-        re.match(r"^[a-zA-Z\-]+$", part.split("=")[0])
+        validate_prefix(part.split("=")[0])
         and len(part.split("=")) == 2
+        and validate_attribute(part.split("=")[1])
         for part in entry.split(",")
+    )
+
+
+def validate_prefix(prefix: str) -> bool:
+    """Validate ldap attribute prefix.
+
+    :param str prefix: any str
+    :return bool: result
+    """
+    return re.match(r"^[a-zA-Z\-]+$", prefix) is not None
+
+
+def validate_attribute(attribute: str) -> bool:
+    """Validate ldap attribute value.
+
+    :param str attribute: any str
+    :return bool: result
+    """
+    return (
+        re.match(
+            r"^(?!^[\x20\s].*)(?!.*[\x20\s]$)[^#=<>;:\*\+\"\\]+$",
+            attribute,
+        )
+        is not None
     )
 
 

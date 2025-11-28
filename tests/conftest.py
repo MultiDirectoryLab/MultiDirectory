@@ -138,7 +138,7 @@ from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
-from password_manager.password_validator import PasswordValidator
+from password_utils import PasswordUtils
 from tests.constants import TEST_DATA
 
 
@@ -323,7 +323,7 @@ class TestProvider(Provider):
         PasswordBanWordsFastAPIAdapter,
         scope=Scope.REQUEST,
     )
-    password_validator = provide(PasswordValidator, scope=Scope.RUNTIME)
+    password_utils = provide(PasswordUtils, scope=Scope.RUNTIME)
 
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
@@ -801,7 +801,7 @@ async def raw_audit_manager(
 async def setup_session(
     session: AsyncSession,
     raw_audit_manager: RawAuditManager,
-    password_validator: PasswordValidator,
+    password_utils: PasswordUtils,
 ) -> None:
     """Get session and acquire after completion."""
     object_class_dao = ObjectClassDAO(session)
@@ -828,7 +828,7 @@ async def setup_session(
     password_policy_dao = PasswordPolicyDAO(session)
     password_policy_validator = PasswordPolicyValidator(
         PasswordValidatorSettings(),
-        password_validator,
+        password_utils,
     )
     password_ban_word_repository = PasswordBanWordRepository(session)
     password_use_cases = PasswordPolicyUseCases(
@@ -836,7 +836,7 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
-    setup_gateway = SetupGateway(session, password_validator, entity_type_dao)
+    setup_gateway = SetupGateway(session, password_utils, entity_type_dao)
     await audit_use_case.create_policies()
     await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)
 
@@ -947,12 +947,12 @@ async def password_ban_word_repository(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_validator(
+async def password_utils(
     container: AsyncContainer,
-) -> AsyncIterator[PasswordValidator]:
+) -> AsyncIterator[PasswordUtils]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
-        yield PasswordValidator()
+        yield PasswordUtils()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -984,13 +984,13 @@ async def password_validator_settings(
 async def password_policy_validator(
     container: AsyncContainer,
     password_validator_settings: PasswordValidatorSettings,
-    password_validator: PasswordValidator,
+    password_utils: PasswordUtils,
 ) -> AsyncIterator[PasswordPolicyValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         yield PasswordPolicyValidator(
             password_validator_settings,
-            password_validator,
+            password_utils,
         )
 
 

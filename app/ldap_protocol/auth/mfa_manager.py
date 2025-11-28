@@ -52,7 +52,7 @@ from ldap_protocol.policies.network_policy import (
 )
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from password_manager import PasswordValidator
+from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 
 ALGORITHM = "HS256"
@@ -70,7 +70,7 @@ class MFAManager(AbstractService):
         ldap_mfa_api: LDAPMultiFactorAPI,
         repository: SessionRepository,
         monitor: AuditMonitorUseCase,
-        password_validator: PasswordValidator,
+        password_utils: PasswordUtils,
         identity_provider: IdentityProvider,
     ) -> None:
         """Initialize dependencies via DI.
@@ -88,7 +88,7 @@ class MFAManager(AbstractService):
         self.key_ttl = self._storage.key_ttl
         self._repository = repository
         self._monitor = monitor
-        self._password_validator = password_validator
+        self._password_utils = password_utils
         self._identity_provider = identity_provider
 
     def __getattribute__(self, name: str) -> object:
