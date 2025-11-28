@@ -38,12 +38,15 @@ def run_sync_migrations(connection: Connection, schema_name: str) -> None:
         context.run_migrations()
 
 
-async def run_async_migrations(settings: Settings, schema_name: str) -> None:
+async def run_async_migrations(settings: Settings) -> None:
     """Run async migrations."""
     engine = create_async_engine(str(settings.POSTGRES_URI))
 
     async with engine.connect() as connection:
-        await connection.run_sync(run_sync_migrations, schema_name=schema_name)
+        await connection.run_sync(
+            run_sync_migrations,
+            schema_name=settings.TEST_POSTGRES_SCHEMA,
+        )
 
 
 def run_migrations_online() -> None:
@@ -57,12 +60,11 @@ def run_migrations_online() -> None:
         "app_settings",
         Settings.from_os(),
     )
-    schema_name = settings.TEST_POSTGRES_SCHEMA_NAME
 
     if conn is None:
-        asyncio.run(run_async_migrations(settings, schema_name=schema_name))
+        asyncio.run(run_async_migrations(settings))
     else:
-        run_sync_migrations(conn, schema_name=schema_name)
+        run_sync_migrations(conn, schema_name=settings.TEST_POSTGRES_SCHEMA)
 
 
 run_migrations_online()

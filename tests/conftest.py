@@ -364,7 +364,7 @@ class TestProvider(Provider):
         connection = await engine.connect()
         trans = await connection.begin()
 
-        schema_name = settings.TEST_POSTGRES_SCHEMA_NAME
+        schema_name = settings.TEST_POSTGRES_SCHEMA
         await connection.execute(
             text(f"SET search_path = {schema_name}, public;"),
         )
@@ -767,26 +767,12 @@ def is_master(config: pytest.Config) -> bool:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def schema_name(worker_id: str, request: pytest.FixtureRequest) -> str:
-    """Get schema name."""
-    if is_master(request.config):
-        return "public"
-
-    idx = worker_id.split("gw")[1]
-    os.environ["TEST_WORKER_ID"] = idx
-
-    schema_name = f"test_schema_{worker_id}"
-    os.environ["TEST_POSTGRES_SCHEMA_NAME"] = schema_name
-    return schema_name
-
-
-@pytest.fixture(scope="session", autouse=True)
 async def add_schema(
-    schema_name: str,
     container: AsyncContainer,
+    settings: Settings,
 ) -> AsyncGenerator:
     """Create schema for each worker and drops it afterwards."""
-    if schema_name == "public":
+    if settings.TEST_POSTGRES_SCHEMA == "public":
         yield
         return
 
@@ -794,12 +780,15 @@ async def add_schema(
 
     async with engine.begin() as conn:
         await conn.execute(
-            schema.CreateSchema(schema_name, if_not_exists=True),
+            schema.CreateSchema(
+                settings.TEST_POSTGRES_SCHEMA,
+                if_not_exists=True,
+            ),
         )
 
         # NOTE: Create extensions for public schema only one time to
         # avoid conflicts
-        if schema_name.endswith("gw0"):
+        if settings.TEST_POSTGRES_SCHEMA.endswith("gw0"):
             await conn.execute(
                 text(
                     "CREATE EXTENSION IF NOT EXISTS "
@@ -815,12 +804,13 @@ async def add_schema(
     yield
 
     async with engine.begin() as conn:
-        await conn.execute(text(f"DROP SCHEMA {schema_name} CASCADE;"))
+        await conn.execute(
+            text(f"DROP SCHEMA {settings.TEST_POSTGRES_SCHEMA} CASCADE;"),
+        )
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _migrations(
-    schema_name: str,  # noqa: ARG001
     add_schema: None,  # noqa: ARG001
     container: AsyncContainer,
     settings: Settings,
