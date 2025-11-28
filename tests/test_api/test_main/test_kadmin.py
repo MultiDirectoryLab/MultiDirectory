@@ -96,10 +96,7 @@ async def test_tree_creation(
     bind = MutePolicyBindRequest(
         version=0,
         name="cn=krbadmin,cn=users,dc=md,dc=test",
-        AuthenticationChoice=SimpleAuthentication(
-            password=krbadmin_pw,
-            password_utils=password_utils,
-        ),
+        AuthenticationChoice=SimpleAuthentication(password=krbadmin_pw),
     )
 
     result = await anext(bind.handle(ctx_bind))
