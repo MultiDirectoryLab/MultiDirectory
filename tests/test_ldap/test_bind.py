@@ -337,10 +337,7 @@ async def test_bind_invalid_password_or_user(
     bind = BindRequest(
         version=0,
         name="user1",
-        AuthenticationChoice=SimpleAuthentication(
-            password="password",  # noqa
-            password_utils=password_utils,
-        ),
+        AuthenticationChoice=SimpleAuthentication(password="password"),  # noqa
     )
 
     kwargs = await resolve_deps(bind.handle, container)
