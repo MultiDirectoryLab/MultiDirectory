@@ -41,6 +41,7 @@ from ldap_protocol.utils.helpers import (
     create_user_name,
     ft_to_dt,
     is_dn_in_base_directory,
+    validate_entry,
 )
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
@@ -49,7 +50,6 @@ from ldap_protocol.utils.queries import (
     get_directory_by_rid,
     get_filter_from_path,
     get_groups,
-    validate_entry,
 )
 from password_manager import PasswordValidator
 from repo.pg.tables import directory_table, queryable_attr as qa
@@ -649,6 +649,7 @@ class ModifyRequest(BaseRequest):
             return
 
         rid = str(change.modification.vals[0])
+
         if self._contain_primary_group(directory.groups, rid):
             session.add(
                 Attribute(
