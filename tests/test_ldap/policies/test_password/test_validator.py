@@ -17,7 +17,7 @@ from ldap_protocol.utils.helpers import dt_to_ft
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_letters_count(
+async def test_password_validator_min_letters_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for minimum letters count."""
@@ -59,7 +59,7 @@ async def test_password_language_cyrillic(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_digits_count(
+async def test_password_validator_min_digits_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for minimum digits count."""
@@ -71,7 +71,7 @@ async def test_password_utils_min_digits_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_uppercase_letters_count(
+async def test_password_validator_min_uppercase_letters_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for minimum uppercase letters count."""
@@ -84,7 +84,7 @@ async def test_password_utils_min_uppercase_letters_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_lowercase_letters_count(
+async def test_password_validator_min_lowercase_letters_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for minimum lowercase letters count."""
@@ -97,7 +97,7 @@ async def test_password_utils_min_lowercase_letters_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_not_equal_any_ban_word(
+async def test_password_validator_not_equal_any_ban_word(
     password_policy_validator: PasswordPolicyValidator,
     password_ban_word_repository: PasswordBanWordRepository,
 ) -> None:
@@ -118,7 +118,7 @@ async def test_password_utils_not_equal_any_ban_word(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_not_contain_any_ban_word(
+async def test_password_validator_not_contain_any_ban_word(
     password_policy_validator: PasswordPolicyValidator,
     password_ban_word_repository: PasswordBanWordRepository,
 ) -> None:
@@ -137,7 +137,7 @@ async def test_password_utils_not_contain_any_ban_word(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_special_symbols_count(
+async def test_password_validator_min_special_symbols_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for minimum special symbols count."""
@@ -150,7 +150,7 @@ async def test_password_utils_min_special_symbols_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_unique_symbols_count(
+async def test_password_validator_min_unique_symbols_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for minimum unique symbols count."""
@@ -162,7 +162,7 @@ async def test_password_utils_min_unique_symbols_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_max_sequential_keyboard_symbols_count(
+async def test_password_validator_max_sequential_keyboard_symbols_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for maximum sequential keyboard symbols count."""  # noqa: E501
@@ -192,7 +192,7 @@ async def test_password_utils_max_sequential_keyboard_symbols_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_max_sequential_alphabet_symbols_count(
+async def test_password_validator_max_sequential_alphabet_symbols_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for maximum sequential alphabet symbols count."""  # noqa: E501
@@ -210,7 +210,7 @@ async def test_password_utils_max_sequential_alphabet_symbols_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_max_repeating_symbols_in_row_count(
+async def test_password_validator_max_repeating_symbols_in_row_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for maximum repeating symbols in row count."""
@@ -223,7 +223,7 @@ async def test_password_utils_max_repeating_symbols_in_row_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_max_length(
+async def test_password_validator_min_max_length(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for min and max length."""
@@ -237,7 +237,7 @@ async def test_password_utils_min_max_length(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_no_otp_like_suffix(
+async def test_password_validator_no_otp_like_suffix(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator for no OTP-like suffix."""
@@ -249,7 +249,7 @@ async def test_password_utils_no_otp_like_suffix(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_chained_rules(
+async def test_password_validator_chained_rules(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator with chained rules."""
@@ -269,7 +269,7 @@ async def test_password_utils_chained_rules(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_utils_min_age(
+async def test_password_validator_min_age(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
     """Test password validator with chained rules."""

@@ -307,7 +307,7 @@ class TestProvider(Provider):
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
     )
-    password_utils_settings = provide(
+    password_validator_settings = provide(
         PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )
@@ -972,7 +972,7 @@ async def password_policy_use_cases(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_utils_settings(
+async def password_validator_settings(
     container: AsyncContainer,
 ) -> AsyncIterator[PasswordValidatorSettings]:
     """Get session and acquire after completion."""
@@ -983,13 +983,13 @@ async def password_utils_settings(
 @pytest_asyncio.fixture(scope="function")
 async def password_policy_validator(
     container: AsyncContainer,
-    password_utils_settings: PasswordValidatorSettings,
+    password_validator_settings: PasswordValidatorSettings,
     password_utils: PasswordUtils,
 ) -> AsyncIterator[PasswordPolicyValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         yield PasswordPolicyValidator(
-            password_utils_settings,
+            password_validator_settings,
             password_utils,
         )
 

@@ -436,7 +436,7 @@ class MainProvider(Provider):
         PasswordBanWordUseCases,
         scope=Scope.REQUEST,
     )
-    password_utils_settings = provide(
+    password_validator_settings = provide(
         PasswordValidatorSettings,
         scope=Scope.REQUEST,
     )

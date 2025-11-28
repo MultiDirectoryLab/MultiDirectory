@@ -37,9 +37,15 @@ class PasswordPolicyValidator:
     This class accumulates checks and validates a password against them.
     """
 
+    _checkers: list[_Checker]
+    _password_validator_settings: PasswordValidatorSettings
+    _password_utils: PasswordUtils
+
+    error_messages: list[str]
+
     def __init__(
         self,
-        password_utils_settings: PasswordValidatorSettings,
+        password_validator_settings: PasswordValidatorSettings,
         password_utils: PasswordUtils,
     ) -> None:
         """Initialize a new validator instance.
@@ -47,13 +53,13 @@ class PasswordPolicyValidator:
         Sets up internal storage for checkers and default settings.
         """
         self._checkers: list[_Checker] = []
-        self._password_utils_settings = password_utils_settings
+        self._password_validator_settings = password_validator_settings
         self._password_utils = password_utils
         self.error_messages: list[str] = []
 
     def setup_language(self, language: PasswordValidatorLanguageType) -> None:
         """Set up language for password policy validation."""
-        self._password_utils_settings.setup_language(language)
+        self._password_validator_settings.setup_language(language)
 
     def __add_checker(
         self,
@@ -72,7 +78,7 @@ class PasswordPolicyValidator:
     async def __run_checker(self, checker: _Checker, password: str) -> None:
         result = await checker.check(
             password,
-            self._password_utils_settings,
+            self._password_validator_settings,
             *checker.args,
         )
         if result is False:
