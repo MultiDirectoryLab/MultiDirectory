@@ -20,7 +20,6 @@ services:
       POSTGRES_HOST: postgres
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
-      DFLY_dbnum: 16
     command: sh -c "python -B -m pytest -n auto -x -W ignore::DeprecationWarning -vv"
     tty: true
 
@@ -39,8 +38,6 @@ services:
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly-test
-    environment:
-      - DFLY_dbnum=16
     expose:
       - "6379"
     deploy:
