@@ -428,4 +428,3 @@ async def set_or_update_primary_group(
         )
 
     await session.commit()
-    await session.refresh(directory, ["attributes"])
