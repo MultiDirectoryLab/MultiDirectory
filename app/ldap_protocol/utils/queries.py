@@ -408,11 +408,12 @@ async def set_or_update_primary_group(
     group = await get_group(group_dn, session)
 
     existing_attr = await session.scalar(
-        select(Attribute).filter_by(
+        select(Attribute)
+        .filter_by(
             name="primaryGroupID",
             directory_id=directory.id,
         ),
-    )
+    )  # fmt: skip
 
     if existing_attr:
         existing_attr.value = group.directory.relative_id
