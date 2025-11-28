@@ -138,7 +138,7 @@ async def clear_group_membership(
     )
 
 
-async def sync_group_membership(
+async def remove_disallowed_group_members(
     group: Group,
     allowed_members: list[Directory],
     session: AsyncSession,

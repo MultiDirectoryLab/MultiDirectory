@@ -52,8 +52,8 @@ from ldap_protocol.utils.queries import (
     get_directory_by_rid,
     get_filter_from_path,
     get_groups,
+    remove_disallowed_group_members,
     remove_from_group_membership,
-    sync_group_membership,
 )
 from password_utils import PasswordUtils
 from repo.pg.tables import (
@@ -571,7 +571,11 @@ class ModifyRequest(BaseRequest):
             await clear_group_membership(directory.group, session)
 
         elif change.operation == Operation.REPLACE:
-            await sync_group_membership(directory.group, members, session)
+            await remove_disallowed_group_members(
+                directory.group,
+                members,
+                session,
+            )
 
         else:
             await remove_from_group_membership(
