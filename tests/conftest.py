@@ -1135,9 +1135,9 @@ async def http_client(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def http_client_without_perms(
+async def http_client_with_login_perm(
     unbound_http_client: httpx.AsyncClient,
-    creds_without_api_perms: TestCreds,
+    creds_with_login_perm: TestCreds,
     setup_session: None,  # noqa: ARG001
 ) -> httpx.AsyncClient:
     """Authenticate and return client with cookies.
@@ -1150,8 +1150,8 @@ async def http_client_without_perms(
     response = await unbound_http_client.post(
         "auth/",
         data={
-            "username": creds_without_api_perms.un,
-            "password": creds_without_api_perms.pw,
+            "username": creds_with_login_perm.un,
+            "password": creds_with_login_perm.pw,
         },
     )
 
@@ -1202,11 +1202,11 @@ def user() -> dict:
 
 
 @pytest.fixture
-def creds_without_api_perms(user_without_api_perms: dict) -> TestCreds:
+def creds_with_login_perm(user_with_login_perm: dict) -> TestCreds:
     """Get creds from test data."""
     return TestCreds(
-        user_without_api_perms["sam_account_name"],
-        user_without_api_perms["password"],
+        user_with_login_perm["sam_account_name"],
+        user_with_login_perm["password"],
     )
 
 
@@ -1220,7 +1220,7 @@ def admin_creds(admin_user: dict) -> TestAdminCreds:
 
 
 @pytest.fixture
-def user_without_api_perms() -> dict:
+def user_with_login_perm() -> dict:
     """Get user data."""
     return TEST_DATA[1]["children"][2]["organizationalPerson"]  # type: ignore
 
