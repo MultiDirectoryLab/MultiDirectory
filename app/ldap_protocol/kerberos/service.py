@@ -68,7 +68,7 @@ class KerberosService(AbstractService):
                 Template renderer for Kerberos (IoC-injected).
             krb_ldap_manager (KRBLDAPStructureManager):
                 LDAP structure manager for Kerberos (IoC-injected).
-            password_utils (PasswordValidator):
+            password_utils (PasswordUtils):
                 Password validator (IoC-injected).
 
 

@@ -277,7 +277,7 @@ class PasswordPolicyValidator:
 
         :param int count: Number of lowercase letters required.
 
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
 
         """
         self.__add_checker(
@@ -302,7 +302,7 @@ class PasswordPolicyValidator:
         """Require minimum count of uppercase letters.
 
         :param int count: Number of uppercase letters required.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_min_uppercase_letters_count,
@@ -326,7 +326,7 @@ class PasswordPolicyValidator:
         """Require minimum count of any letters.
 
         :param int count: Number of letters required.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_min_letters_count,
@@ -350,7 +350,7 @@ class PasswordPolicyValidator:
         """Require minimum count of digits.
 
         :param int count: Number of digits required.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_min_digits_count,
@@ -374,7 +374,7 @@ class PasswordPolicyValidator:
         """Require maximum count of characters.
 
         :param int length: Maximum length allowed.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_max_length,
@@ -396,7 +396,7 @@ class PasswordPolicyValidator:
         """Require minimum count of unique symbols.
 
         :param int count: Number of unique symbols required.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_min_unique_symbols_count,
@@ -418,7 +418,7 @@ class PasswordPolicyValidator:
         """Require maximum count of sequential alphabet symbols in row.
 
         :param int count: Number of sequential alphabet symbols in a row.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_max_sequential_alphabet_symbols_count,
@@ -454,7 +454,7 @@ class PasswordPolicyValidator:
         """Require maximum count of sequential keyboard symbols in row.
 
         :param int count: Number of sequential keyboard symbols in a row.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_max_sequential_keyboard_symbols_count,
@@ -492,7 +492,7 @@ class PasswordPolicyValidator:
         """Require maximum count of repeating symbols in row.
 
         :param int count: Number of repeating symbols in a row.
-        :return PasswordValidator: Updated validator object.
+        :return PasswordPolicyValidator: Updated validator object.
         """
         self.__add_checker(
             check=self._validate_max_repeating_symbols_in_row_count,
