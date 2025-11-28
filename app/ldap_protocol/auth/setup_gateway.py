@@ -169,7 +169,8 @@ class SetupGateway:
                         ),
                     )
 
-        if user_data := data.get("organizationalPerson"):
+        if "organizationalPerson" in data:
+            user_data = data["organizationalPerson"]
             user = User(
                 directory_id=dir_.id,
                 sam_account_name=user_data["sam_account_name"],
