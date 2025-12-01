@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from enum import IntEnum, IntFlag
 from typing import Any, Self
 
+from constants import NETBIOS_DOMAIN_DEFAULT, NETBIOS_HOSTNAME_DEFAULT
 from ldap_protocol.asn1parser import ASN1Row
 
 _NL_DEFAULT_SITE = "Default-First-Site-Name"
@@ -169,10 +170,8 @@ class NetLogonAttributeHandler:
             user=user,
             site=_NL_DEFAULT_SITE,
             ntver=self.ntver,
+            has_user=True,
         )
-
-    def set_acc(self, acc: bool) -> None:
-        self.__info.has_user = acc
 
     @staticmethod
     def _convert_little_endian_string_to_int(value: str) -> int:
@@ -183,10 +182,8 @@ class NetLogonAttributeHandler:
             signed=False,
         )
 
-    def get_attr(self, acc: bool) -> bytes:
+    def get_attr(self) -> bytes:
         """Get NetLogon response."""
-        self.set_acc(acc)
-
         ntver = self._convert_little_endian_string_to_int(self.__info.ntver)
 
         if bool(
@@ -302,8 +299,8 @@ class NetLogonAttributeHandler:
                 (self.__root_dse["dnsForestName"][0], "utf-8"),
                 (self.__root_dse["dnsDomainName"][0], "utf-8"),
                 (self.__root_dse["dnsHostName"][0], "utf-8"),
-                ("DC", "utf-8"),
-                ("DC.ad.local", "utf-8"),
+                (NETBIOS_DOMAIN_DEFAULT, "utf-8"),
+                (NETBIOS_HOSTNAME_DEFAULT, "utf-8"),
                 (self.__info.user, "utf-8"),
                 (self.__info.site, "utf-8"),
                 (self.__info.site, "utf-8"),
