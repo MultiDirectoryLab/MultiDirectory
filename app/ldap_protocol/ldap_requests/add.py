@@ -231,6 +231,9 @@ class AddRequest(BaseRequest):
             ):
                 continue
 
+            if attr.l_type == "objectclass":
+                self.set_event_data({"before_attrs": attr.vals})
+
             for value in attr.vals:
                 if (
                     attr.l_type in user_fields
