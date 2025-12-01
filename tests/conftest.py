@@ -1402,7 +1402,10 @@ async def ctx_search(
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Pytest hook to limit xdist workers based on Redis DBs."""
+    """Pytest hook to limit xdist workers based on Redis DBs.
+
+    If need to increase the number of Redis DBs, set DFLY_dbnum env variable.
+    """
     if is_master(config):
         redis_dbs = int(os.getenv("DFLY_dbnum", "16")) // 2  # noqa: SIM112
         xdist_worker_count = config.option.numprocesses
