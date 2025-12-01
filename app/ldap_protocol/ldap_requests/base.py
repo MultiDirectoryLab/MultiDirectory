@@ -79,29 +79,31 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         """Get event data."""
         return self.__event_data
 
-    def get_directory_attrs(self, directory: Directory) -> dict:
+    def get_directory_attrs(
+        self,
+        directory: Directory,
+    ) -> dict[str, list[str | None]]:
         """Get directory attrs."""
-        attributes: dict[str, list] = {}
-        obj_classes = []
+        attributes: dict[str, list[str | None]] = {}
+        obj_classes: set[str] = set()
+
         for attr in directory.attributes:
             attr_name = attr.name.lower()
-            if attr_name == "objectclass":
-                obj_classes.append(attr.value)
+            if (val := attr.value) and attr_name == "objectclass":
+                obj_classes.add(val)
+            attributes.setdefault(attr_name, []).append(val)
 
-            if attr_name not in attributes:
-                attributes[attr_name] = []
-
-            attributes[attr_name].append(attr.value)
-
-        if "group" in obj_classes or "user" in obj_classes:
-            attributes["memberof"] = []
+        if "group" in obj_classes:
             for group in directory.groups:
-                attributes["memberof"].append(group.directory.path_dn)
+                attributes.setdefault("memberof", []).append(
+                    group.directory.path_dn,
+                )
 
-        if "group" in obj_classes and directory.group:
-            attributes["member"] = []
-            for member in directory.group.members:
-                attributes["member"].append(member.path_dn)
+            if "user" in obj_classes and directory.user:
+                for group in directory.user.groups:
+                    attributes.setdefault("member", []).append(
+                        group.directory.path_dn,
+                    )
 
         return attributes
 
