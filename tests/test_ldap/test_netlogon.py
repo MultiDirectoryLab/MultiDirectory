@@ -79,7 +79,7 @@ def test_set_info_with_defaults() -> None:
     handler.set_info()
 
     # Test by calling get_attr which uses the internal __info
-    response = handler.get_attr(True)  # nt40
+    response = handler.get_attr()  # nt40
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -105,7 +105,7 @@ def test_set_info_with_custom_values() -> None:
     handler.set_info()
 
     # Test by calling get_attr which uses the internal __info
-    response = handler.get_attr(True)
+    response = handler.get_attr()
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -127,14 +127,14 @@ def test_set_acc() -> None:
     handler.set_info()
 
     # Test with user found
-    response_found = handler.get_attr(True)
+    response_found = handler.get_attr()
     op_code_found = struct.unpack("<H", response_found[:2])[0]
     assert op_code_found == NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
 
     # Test with user not found
-    response_not_found = handler.get_attr(False)
-    op_code_not_found = struct.unpack("<H", response_not_found[:2])[0]
-    assert op_code_not_found == NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
+    response_not_found = handler.get_attr()
+    op_code = struct.unpack("<H", response_not_found[:2])[0]
+    assert op_code == NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
 
 
 def test_convert_little_endian_string_to_int() -> None:
@@ -164,7 +164,6 @@ def test_get_netlogon_response_5() -> None:
 
     handler = NetLogonAttributeHandler(root_dse)
     handler.set_info()
-    handler.set_acc(True)
 
     response = handler._get_netlogon_response_5()  # noqa:SLF001
 
@@ -188,7 +187,6 @@ def test_get_netlogon_response_5_ex() -> None:
 
     handler = NetLogonAttributeHandler(root_dse)
     handler.set_info()
-    handler.set_acc(True)
 
     response = handler._get_netlogon_response_5_ex()  # noqa:SLF001
 
@@ -210,7 +208,6 @@ def test_get_netlogon_response_nt40() -> None:
 
     handler = NetLogonAttributeHandler(root_dse)
     handler.set_info()
-    handler.set_acc(False)
 
     response = handler._get_netlogon_response_nt40()  # noqa:SLF001
 
@@ -236,7 +233,7 @@ def test_get_attr_version_5() -> None:
     handler.ntver = "\x02\x00\x00\x00"  # NETLOGON_NT_VERSION_5
     handler.set_info()
 
-    response = handler.get_attr(True)
+    response = handler.get_attr()
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -254,7 +251,7 @@ def test_get_attr_version_5_ex() -> None:
     handler.ntver = "\x04\x00\x00\x00"  # NETLOGON_NT_VERSION_5EX
     handler.set_info()
 
-    response = handler.get_attr(True)
+    response = handler.get_attr()
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -270,7 +267,7 @@ def test_get_attr_version_nt40() -> None:
     handler.ntver = _ZERO_VER
     handler.set_info()
 
-    response = handler.get_attr(False)
+    response = handler.get_attr()
 
     assert isinstance(response, bytes)
     assert len(response) > 0
@@ -287,12 +284,11 @@ def test_user_unknown_response() -> None:
     handler = NetLogonAttributeHandler(root_dse)
     handler.user = "nonexistent"
     handler.set_info()
-    handler.set_acc(False)
 
     response = handler._get_netlogon_response_5()  # noqa:SLF001
     op_code = struct.unpack("<H", response[:2])[0]
 
-    assert op_code == NetLogonOPCode.LOGON_SAM_USER_UNKNOWN
+    assert op_code == NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE
 
 
 def test_ds_flags_combination() -> None:
