@@ -1402,26 +1402,27 @@ async def ctx_search(
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Pytest hook to limit xdist workers based on Redis DBs.
+    """Pytest hook to limit xdist workers based on Dragonfly DBs.
 
-    If need to increase the number of Redis DBs, set DFLY_dbnum env variable.
+    If need to increase the number of Dragonfly DBs, set DFLY_dbnum env
+    variable in dragonfly and test services in docker-compose.yml file.
     """
     if is_master(config):
-        redis_dbs = int(os.getenv("DFLY_dbnum", "16")) // 2  # noqa: SIM112
+        dragonfly_dbs = int(os.getenv("DFLY_dbnum", "16")) // 2  # noqa: SIM112
         xdist_worker_count = config.option.numprocesses
-        if xdist_worker_count and xdist_worker_count > redis_dbs:
+        if xdist_worker_count and xdist_worker_count > dragonfly_dbs:
             raise pytest.UsageError(
-                f"The use of more than {redis_dbs} processes "
+                f"The use of more than {dragonfly_dbs} processes "
                 f"is prohibited (requested {xdist_worker_count}).\n"
                 "Reduce the value of -n/--numprocesses or "
-                "increase the number of Redis databases.\n",
+                "increase the number of Dragonfly databases.\n",
             )
 
 
 def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
-    """Pytest hook to limit xdist workers based on Redis DBs for auto mode."""
+    """Pytest hook to limit xdist workers for auto mode."""
     if is_master(config):
         cpu_count = os.cpu_count()
-        redis_dbs = int(os.getenv("DFLY_dbnum", "16")) // 2  # noqa: SIM112
-        return min(cpu_count if cpu_count else 2, redis_dbs)
+        dragonfly_dbs = int(os.getenv("DFLY_dbnum", "16")) // 2  # noqa: SIM112
+        return min(cpu_count if cpu_count else 2, dragonfly_dbs)
     return 0
