@@ -73,7 +73,7 @@ class AddRequest(BaseRequest):
 
     @property
     def l_attrs_dict(self) -> dict[str, list[str | bytes]]:
-        return {attr.l_type: attr.vals for attr in self.attributes}
+        return {attr.type.lower(): attr.vals for attr in self.attributes}
 
     @property
     def attrs_dict(self) -> dict[str, list[str | bytes]]:
@@ -222,21 +222,26 @@ class AddRequest(BaseRequest):
         )
 
         for attr in self.attributes:
+            attr_name = attr.type.lower()
             # NOTE: Do not create a duplicate if the user has sent the rdn
             # in the attributes
             if (
-                attr.l_type in Directory.ro_fields
-                or attr.l_type in ("userpassword", "unicodepwd")
-                or attr.l_type == new_dir.rdname
+                attr_name in Directory.ro_fields
+                or attr_name
+                in (
+                    "userpassword",
+                    "unicodepwd",
+                )
+                or attr_name == new_dir.rdname
             ):
                 continue
 
-            if attr.l_type == "objectclass":
+            if attr_name == "objectclass":
                 self.set_event_data({"before_attrs": attr.vals})
 
             for value in attr.vals:
                 if (
-                    attr.l_type in user_fields
+                    attr_name in user_fields
                     or attr.type == "userAccountControl"
                 ):
                     if not isinstance(value, str):

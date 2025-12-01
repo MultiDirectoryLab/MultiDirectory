@@ -221,7 +221,7 @@ class ModifyRequest(BaseRequest):
                 return
 
             for change in self.changes:
-                if change.modification.l_type in Directory.ro_fields:
+                if change.modification.type.lower() in Directory.ro_fields:
                     continue
 
                 await self._update_password_expiration(
