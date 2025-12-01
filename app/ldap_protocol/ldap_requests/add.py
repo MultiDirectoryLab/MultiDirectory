@@ -18,12 +18,12 @@ from ldap_protocol.kerberos.exceptions import (
     KRBAPIConnectionError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_responses import (
-    INVALID_ACCESS_RESPONSE,
-    AddResponse,
+from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
+from ldap_protocol.objects import (
     PartialAttribute,
+    ProtocolRequests,
+    UserAccountControlFlag,
 )
-from ldap_protocol.objects import ProtocolRequests, UserAccountControlFlag
 from ldap_protocol.utils.const import (
     DOMAIN_COMPUTERS_GROUP_NAME,
     DOMAIN_USERS_GROUP_NAME,
