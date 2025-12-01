@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import TYPE_CHECKING, AsyncGenerator, ClassVar
+from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
 from sqlalchemy import select
@@ -21,7 +21,6 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
 from ldap_protocol.objects import (
     PartialAttribute,
-    PartialAttributeProto,
     ProtocolRequests,
     UserAccountControlFlag,
 )
@@ -48,11 +47,6 @@ from ldap_protocol.utils.queries import (
 from .base import BaseRequest
 from .contexts import LDAPAddRequestContext
 
-if TYPE_CHECKING:
-    PartialAttributeT = PartialAttributeProto
-else:
-    PartialAttributeT = PartialAttribute
-
 
 class AddRequest(BaseRequest):
     """Add new entry.
@@ -73,7 +67,7 @@ class AddRequest(BaseRequest):
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
 
     entry: str = Field(..., description="Any `DistinguishedName`")
-    attributes: list[PartialAttributeT]
+    attributes: list[PartialAttribute]
 
     password: SecretStr | None = Field(None, examples=["password"])
 

@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from enum import IntEnum, IntFlag, StrEnum, unique
-from typing import Annotated, Protocol
+from typing import Annotated
 
 import annotated_types
 from pydantic import BaseModel, field_validator
@@ -44,16 +44,6 @@ class Operation(IntEnum):
     ADD = 0
     DELETE = 1
     REPLACE = 2
-
-
-class PartialAttributeProto(Protocol):
-    """Protocol for PartialAttribute used only by type checkers."""
-
-    type: str
-    vals: list[str | bytes]
-
-    @property
-    def l_name(self) -> str: ...
 
 
 class PartialAttribute(BaseModel):
