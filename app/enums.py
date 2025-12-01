@@ -4,8 +4,12 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from __future__ import annotations
+
 from enum import UNIQUE, IntEnum, IntFlag, StrEnum, auto, verify
-from typing import Self
+from functools import reduce
+from operator import or_
+from typing import Iterable, Self
 
 
 class AceType(IntEnum):
@@ -188,3 +192,9 @@ class AuthorizationRules(IntFlag):
     @classmethod
     def get_all(cls) -> Self:
         return cls(sum(cls))
+
+    @staticmethod
+    def combine(
+        permissions: Iterable[AuthorizationRules],
+    ) -> AuthorizationRules:
+        return reduce(or_, permissions, AuthorizationRules(0))
