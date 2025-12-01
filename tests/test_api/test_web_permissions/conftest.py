@@ -111,7 +111,7 @@ def setup_instance(
     cls_instance: AbstractService,
     api_permissions_checker: AuthorizationProviderProtocol,
 ) -> AbstractService:
-    """Setup service instance for tests."""
+    """Set up service instance for tests."""
     cls_instance.set_permissions_checker(api_permissions_checker)
     if isinstance(cls_instance, AuthManager):
         cls_instance._monitor.wrap_login = lambda x: x  # type: ignore # noqa: SLF001
