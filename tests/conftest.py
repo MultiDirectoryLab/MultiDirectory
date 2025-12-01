@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
+import os
 import uuid
 import weakref
 from contextlib import suppress
@@ -31,6 +32,7 @@ from dishka import (
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
 from multidirectory import _create_basic_app
+from sqlalchemy import schema, text
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -352,6 +354,7 @@ class TestProvider(Provider):
         self,
         engine: AsyncEngine,
         session_factory: async_sessionmaker[AsyncSession],
+        settings: Settings,
     ) -> AsyncIterator[AsyncSession]:
         """Get test session with a savepoint."""
         if self._cached_session:
@@ -360,6 +363,11 @@ class TestProvider(Provider):
 
         connection = await engine.connect()
         trans = await connection.begin()
+
+        schema_name = settings.TEST_POSTGRES_SCHEMA
+        await connection.execute(
+            text(f"SET search_path = {schema_name}, public;"),
+        )
 
         async_session = session_factory(
             bind=connection,
@@ -415,7 +423,10 @@ class TestProvider(Provider):
         settings: Settings,
     ) -> AsyncIterator[SessionStorageClient]:
         """Get redis connection."""
-        client = redis.Redis.from_url(str(settings.SESSION_STORAGE_URL))
+        dsn = settings.SESSION_STORAGE_URL
+        db_num = settings.TEST_WORKER_ID * 2
+        worker_dsn = f"{dsn.scheme}://{dsn.host}:{dsn.port}/{db_num}"
+        client = redis.Redis.from_url(worker_dsn)
 
         if not await client.ping():
             raise SystemError("Redis is not available")
@@ -535,7 +546,10 @@ class TestProvider(Provider):
         settings: Settings,
     ) -> AsyncIterator[AuditRedisClient]:
         """Get audit redis client."""
-        client = redis.Redis.from_url(str(settings.EVENT_HANDLER_URL))
+        dsn = settings.EVENT_HANDLER_URL
+        db_num = settings.TEST_WORKER_ID * 2 + 1
+        worker_dsn = f"{dsn.scheme}://{dsn.host}:{dsn.port}/{db_num}"
+        client = redis.Redis.from_url(worker_dsn)
 
         if not await client.ping():
             raise SystemError("Redis is not available")
@@ -747,8 +761,57 @@ def settings() -> Settings:
     return Settings.from_os()
 
 
+def is_master(config: pytest.Config) -> bool:
+    """Check is master worker."""
+    return not hasattr(config, "workerinput")
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def add_schema(
+    container: AsyncContainer,
+    settings: Settings,
+) -> AsyncGenerator:
+    """Create schema for each worker and drops it afterwards."""
+    if settings.TEST_POSTGRES_SCHEMA == "public":
+        yield
+        return
+
+    engine = await container.get(AsyncEngine)
+
+    async with engine.begin() as conn:
+        await conn.execute(
+            schema.CreateSchema(
+                settings.TEST_POSTGRES_SCHEMA,
+                if_not_exists=True,
+            ),
+        )
+
+        # NOTE: Create extensions for public schema only one time to
+        # avoid conflicts
+        if settings.TEST_POSTGRES_SCHEMA.endswith("gw0"):
+            await conn.execute(
+                text(
+                    "CREATE EXTENSION IF NOT EXISTS "
+                    '"uuid-ossp" SCHEMA public;',
+                ),
+            )
+            await conn.execute(
+                text(
+                    'CREATE EXTENSION IF NOT EXISTS "pg_trgm" SCHEMA public;',
+                ),
+            )
+
+    yield
+
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(f"DROP SCHEMA {settings.TEST_POSTGRES_SCHEMA} CASCADE;"),
+        )
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _migrations(
+    add_schema: None,  # noqa: ARG001
     container: AsyncContainer,
     settings: Settings,
 ) -> AsyncGenerator:
@@ -911,6 +974,7 @@ async def handler(
     container: AsyncContainer,
 ) -> AsyncIterator[PoolClientHandler]:
     """Create test handler."""
+    settings.set_test_port()
     async with container(scope=Scope.APP) as app_scope:
         yield PoolClientHandler(settings, app_scope)
 
@@ -1335,3 +1399,30 @@ async def ctx_search(
     """Return session storage."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(LDAPSearchRequestContext)
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Pytest hook to limit xdist workers based on Dragonfly DBs.
+
+    If need to increase the number of Dragonfly DBs, set DFLY_dbnum env
+    variable in dragonfly and test services in docker-compose.yml file.
+    """
+    if is_master(config):
+        dragonfly_dbs = int(os.getenv("DFLY_dbnum", "16")) // 2  # noqa: SIM112
+        xdist_worker_count = config.option.numprocesses
+        if xdist_worker_count and xdist_worker_count > dragonfly_dbs:
+            raise pytest.UsageError(
+                f"The use of more than {dragonfly_dbs} processes "
+                f"is prohibited (requested {xdist_worker_count}).\n"
+                "Reduce the value of -n/--numprocesses or "
+                "increase the number of Dragonfly databases.\n",
+            )
+
+
+def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
+    """Pytest hook to limit xdist workers for auto mode."""
+    if is_master(config):
+        cpu_count = os.cpu_count()
+        dragonfly_dbs = int(os.getenv("DFLY_dbnum", "16")) // 2  # noqa: SIM112
+        return min(cpu_count if cpu_count else 2, dragonfly_dbs)
+    return 0

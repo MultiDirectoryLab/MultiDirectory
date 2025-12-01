@@ -4,7 +4,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import Connection
+from sqlalchemy import Connection, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Settings
@@ -22,8 +22,11 @@ if config.config_file_name is not None:
 target_metadata = metadata
 
 
-def run_sync_migrations(connection: Connection) -> None:
+def run_sync_migrations(connection: Connection, schema_name: str) -> None:
     """Run sync migrations."""
+    if schema_name != "public":
+        connection.execute(text(f"SET search_path = {schema_name}, public;"))
+
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
@@ -40,7 +43,10 @@ async def run_async_migrations(settings: Settings) -> None:
     engine = create_async_engine(str(settings.POSTGRES_URI))
 
     async with engine.connect() as connection:
-        await connection.run_sync(run_sync_migrations)
+        await connection.run_sync(
+            run_sync_migrations,
+            schema_name=settings.TEST_POSTGRES_SCHEMA,
+        )
 
 
 def run_migrations_online() -> None:
@@ -50,7 +56,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
     """
     conn = context.config.attributes.get("connection", None)
-    settings = context.config.attributes.get(
+    settings: Settings = context.config.attributes.get(
         "app_settings",
         Settings.from_os(),
     )
@@ -58,7 +64,7 @@ def run_migrations_online() -> None:
     if conn is None:
         asyncio.run(run_async_migrations(settings))
     else:
-        run_sync_migrations(conn)
+        run_sync_migrations(conn, schema_name=settings.TEST_POSTGRES_SCHEMA)
 
 
 run_migrations_online()
