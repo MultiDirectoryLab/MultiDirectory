@@ -24,6 +24,17 @@ from enums import (
 )
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
+type EntityTypeNameType = Literal[
+    "Domain",
+    "Computer",
+    "Container",
+    "Organizational Unit",
+    "Group",
+    "User",
+    "KRB Container",
+    "KRB Principal",
+    "KRB Realm Container",
+]
 
 
 @dataclass

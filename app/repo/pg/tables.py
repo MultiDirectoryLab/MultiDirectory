@@ -451,6 +451,12 @@ attributes_table = Table(
         "value",
         postgresql_using="gin",
     ),
+    Index(
+        "idx_attributes_value_distinguished_name",
+        "value",
+        postgresql_where=text("lower(name::text) = 'distinguishedname'"),
+        unique=True,
+    ),
 )
 
 password_policies_table = Table(
@@ -668,6 +674,12 @@ password_ban_word_table = Table(
     "PasswordBanWords",
     metadata,
     Column("word", String(255), primary_key=True),
+    Index(
+        "idx_password_ban_words_word_gin_trgm",
+        "word",
+        postgresql_ops={"word": "gin_trgm_ops"},
+        postgresql_using="gin",
+    ),
 )
 
 dedicated_servers_table = Table(

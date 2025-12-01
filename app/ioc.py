@@ -78,6 +78,9 @@ from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -413,6 +416,10 @@ class MainProvider(Provider):
             kea_dhcp_repository=dhcp_api_repository,
         )
 
+    attribute_value_validator = provide(
+        AttributeValueValidator,
+        scope=Scope.RUNTIME,
+    )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)

@@ -387,6 +387,7 @@ async def create_group(
 
     for name, attr in attributes.items():
         for val in attr:
+            # TODO 8 validate attributes
             session.add(Attribute(name=name, value=val, directory_id=dir_.id))
 
     await session.flush()
@@ -426,6 +427,7 @@ async def add_lock_and_expire_attributes(
     """
     now_with_tz = datetime.now(tz=tz)
     absolute_date = int(time.mktime(now_with_tz.timetuple()) / 86400)
+    # TODO 9 validate attributes
     session.add_all(
         [
             Attribute(
@@ -492,6 +494,7 @@ async def set_or_update_primary_group(
     if existing_attr:
         existing_attr.value = group.directory.relative_id
     else:
+        # TODO 10 validate attributes
         session.add(
             Attribute(
                 name="primaryGroupID",

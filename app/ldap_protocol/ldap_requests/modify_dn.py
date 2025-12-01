@@ -209,6 +209,7 @@ class ModifyDNRequest(BaseRequest):
                     .values(name=new_dn, value=new_name),
                 )
             else:
+                # TODO 3 validate attributes
                 ctx.session.add(
                     Attribute(
                         directory_id=directory.id,

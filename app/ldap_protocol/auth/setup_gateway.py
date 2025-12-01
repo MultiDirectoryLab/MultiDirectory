@@ -12,6 +12,9 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory, Group, NetworkPolicy, User
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
@@ -27,6 +30,7 @@ class SetupGateway:
         session: AsyncSession,
         password_utils: PasswordUtils,
         entity_type_dao: EntityTypeDAO,
+        attribute_value_validator: AttributeValueValidator,
     ) -> None:
         """Initialize Setup use case.
 
@@ -37,6 +41,7 @@ class SetupGateway:
         self._session = session
         self._password_utils = password_utils
         self._entity_type_dao = entity_type_dao
+        self._attribute_value_validator = attribute_value_validator
 
     async def is_setup(self) -> bool:
         """Check if setup is performed.
@@ -129,6 +134,12 @@ class SetupGateway:
         await self._session.flush()
         await self._session.refresh(dir_, ["id"])
 
+        # TODO 1 validate attributes
+        # if self._attribute_value_validator.validate_value(
+        #     "???",
+        #     dir_.rdname,
+        #     dir_.name,
+        # ):
         self._session.add(
             Attribute(
                 name=dir_.rdname,
@@ -136,6 +147,10 @@ class SetupGateway:
                 directory_id=dir_.id,
             ),
         )
+        # else:
+        #     raise ValueError(
+        #         f"Invalid rdname '{dir_.rdname}' for directory '{dir_.name}'",
+        #     )
 
         dir_.object_sid = create_object_sid(
             domain,
@@ -171,6 +186,7 @@ class SetupGateway:
 
         if "organizationalPerson" in data:
             user_data = data["organizationalPerson"]
+            # TODO 11 validate attributes
             user = User(
                 directory_id=dir_.id,
                 sam_account_name=user_data["sam_account_name"],

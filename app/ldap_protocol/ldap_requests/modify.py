@@ -696,6 +696,7 @@ class ModifyRequest(BaseRequest):
             raise ModifyForbiddenError("Group with such RID not found.")
 
         directory.groups.append(rid_dir.group)
+        # TODO 4 validate attributes
         session.add(
             Attribute(
                 name="primaryGroupID",
@@ -890,11 +891,13 @@ class ModifyRequest(BaseRequest):
 
                     sam_account_name = create_user_name(directory.id)
                     user_principal_name = f"{sam_account_name}@{base_dn.name}"
+                    # TODO 13 validate attributes
                     user = User(
                         sam_account_name=sam_account_name,
                         user_principal_name=user_principal_name,
                         directory_id=directory.id,
                     )
+                    # TODO 5 validate attributes
                     uac_attr = Attribute(
                         name="userAccountControl",
                         value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
@@ -960,6 +963,7 @@ class ModifyRequest(BaseRequest):
                 await session_storage.clear_user_sessions(directory.user.id)
 
             else:
+                # TODO 6 validate attributes
                 attrs.append(
                     Attribute(
                         name=change.modification.type,

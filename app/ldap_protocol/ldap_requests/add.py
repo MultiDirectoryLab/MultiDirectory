@@ -282,6 +282,7 @@ class AddRequest(BaseRequest):
                 "userPrincipalName",
                 f"{sam_account_name!r}@{base_dn.name}",
             )
+            # TODO 12 validate attributes
             user = User(
                 sam_account_name=sam_account_name,
                 user_principal_name=user_principal_name,
@@ -394,6 +395,19 @@ class AddRequest(BaseRequest):
         try:
             items_to_add.extend(attributes)
             ctx.session.add_all(items_to_add)
+
+            # TODO 2 validate attributes
+            # if self._attribute_value_validator.validate_value(
+            #     "???",
+            #     dir_.rdname,
+            #     dir_.name,
+            # ):
+            #     ASDASDASD
+            # else:
+            #     raise ValueError(
+            #         f"Invalid rdname '{dir_.rdname}' for directory '{dir_.name}'",
+            #     )
+
             await ctx.session.flush()
             await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,

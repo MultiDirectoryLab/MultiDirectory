@@ -4,6 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Literal
+
+from entities import EntityTypeNameType
+
 group_attrs = {
     "objectClass": ["top"],
     "groupType": ["-2147483646"],
@@ -207,7 +211,12 @@ DATA = [
 ]
 
 
-ENTITY_TYPE_DATAS = [
+ENTITY_TYPE_DATAS: list[
+    dict[
+        Literal["name", "object_class_names"],
+        EntityTypeNameType | list[str],
+    ]
+] = [
     {
         "name": "Domain",
         "object_class_names": ["top", "domain", "domainDNS"],

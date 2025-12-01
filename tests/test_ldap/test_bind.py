@@ -294,6 +294,7 @@ async def test_bind_invalid_password_or_user(
     await session.flush()
     await session.refresh(directory)
 
+    # TODO validate attribute values
     user = User(
         sam_account_name="user0",
         user_principal_name="user0",

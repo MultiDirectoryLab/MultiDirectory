@@ -15,6 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from constants import ENTITY_TYPE_DATAS
 from entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_entity_type_name
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
@@ -107,6 +110,7 @@ def upgrade() -> None:
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao=object_class_dao,
+            attribute_value_validator=AttributeValueValidator(),
         )
         entity_type_use_case = EntityTypeUseCase(
             entity_type_dao,
@@ -175,6 +179,7 @@ def upgrade() -> None:
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao=object_class_dao,
+            attribute_value_validator=AttributeValueValidator(),
         )
 
         await entity_type_dao.attach_entity_type_to_directories()

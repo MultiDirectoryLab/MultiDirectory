@@ -13,6 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
 from entities import Attribute, Directory, EntityType, Group
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -48,6 +51,7 @@ def upgrade() -> None:
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao=object_class_dao,
+            attribute_value_validator=AttributeValueValidator(),
         )
         role_dao = RoleDAO(session)
         ace_dao = AccessControlEntryDAO(session)

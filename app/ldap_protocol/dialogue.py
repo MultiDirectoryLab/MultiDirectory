@@ -52,6 +52,7 @@ class UserSchema:
         session_id: str,
     ) -> UserSchema:
         """Create model from db model."""
+        # TODO validate attribute values
         return cls(
             id=user.id,
             session_id=session_id.split(".")[0],
