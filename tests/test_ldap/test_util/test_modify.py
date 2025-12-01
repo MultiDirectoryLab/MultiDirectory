@@ -98,7 +98,7 @@ async def test_ldap_base_modify(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
     assert result == 0
@@ -169,7 +169,7 @@ async def test_ldap_membersip_user_delete(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
     assert result == 0
@@ -220,7 +220,7 @@ async def test_ldap_membersip_self_delete_admin_domain(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
     assert result == 1
@@ -333,7 +333,7 @@ async def test_ldap_membersip_user_add(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
     session.expire_all()
@@ -392,7 +392,7 @@ async def test_ldap_membersip_user_replace(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
         assert result == 0
@@ -424,7 +424,7 @@ async def test_ldap_membersip_user_replace(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
     assert result == 0
@@ -487,7 +487,7 @@ async def test_ldap_membersip_grp_replace(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
         assert result == 0
@@ -518,7 +518,7 @@ async def test_ldap_membersip_grp_replace(
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
         assert result == 0
@@ -566,7 +566,7 @@ async def test_ldap_modify_dn(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         res = await proc.wait()
         assert res == 0
 
@@ -618,7 +618,7 @@ async def test_ldap_modify_password_change(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         result = await proc.wait()
 
     assert result == 0
@@ -640,7 +640,7 @@ async def test_ldap_modify_password_change(
         stderr=asyncio.subprocess.PIPE,
     )
 
-    _, _ = await proc.communicate()
+    await proc.communicate()
     result = await proc.wait()
     assert result == 0
 
@@ -709,7 +709,7 @@ async def test_ldap_modify_with_ap(
                 stderr=asyncio.subprocess.PIPE,
             )
 
-            _, _ = await proc.communicate()
+            await proc.communicate()
             return await proc.wait()
 
     assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
@@ -820,7 +820,7 @@ async def run_single_modify(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        _, _ = await proc.communicate()
+        await proc.communicate()
         return await proc.wait()
 
 
