@@ -155,9 +155,12 @@ services:
     restart: "no"
     volumes:
       - kdc:/etc/kdc
-      - ./dns_server_file:/opt/dns_server_file/
-      - ./dns_server_config:/etc/bind/dns_server_config/
+      - dns_server_file:/opt/dns_server_file/
+      - dns_server_config:/etc/bind/
     command: sh -c "/app/extra/pre_run_setup.sh"
+    depends_on:
+      bind_dns:
+        condition: service_started
 
   migrations:
     image: multidirectory
@@ -171,9 +174,7 @@ services:
       postgres:
         condition: service_healthy
         restart: true
-      pre_run_manager:
-        condition: service_completed_successfully
-
+  
   cert_check:
     image: multidirectory
     container_name: multidirectory_certs_check
@@ -271,8 +272,6 @@ services:
       - .dns/:/server/
     tty: true
     depends_on:
-      pre_run_manager:
-        condition: service_completed_successfully
       ldap_server:
         condition: service_healthy
         restart: true
