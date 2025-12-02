@@ -197,8 +197,6 @@ services:
     user: root
     restart: "no"
     volumes:
-      - dns_server_file:/opt/dns_server_file/
-      - dns_server_config:/etc/bind/dns_server_config/
       - kdc:/etc/kdc
     command: sh -c "/app/extra/pre_run_setup.sh"
 
@@ -216,8 +214,6 @@ services:
     tty: true
     depends_on:
       migrations:
-        condition: service_completed_successfully
-      pre_run_manager:
         condition: service_completed_successfully
     deploy:
       resources:
@@ -238,7 +234,6 @@ services:
     tty: true
     depends_on:
       - ldap_server
-      - pre_run_manager
     command: krb5kdc -n
     ports:
       - "88:88"
@@ -257,8 +252,6 @@ services:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully
-      pre_run_manager:
-        condition: service_completed_successfully
     working_dir: /server
     command: uvicorn --factory config_server:create_app
              --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
@@ -276,7 +269,6 @@ services:
     depends_on:
       - ldap_server
       - kdc
-      - pre_run_manager
     command: kadmind -nofork
     labels:
       - traefik.enable=true
@@ -307,8 +299,6 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-      pre_run_manager:
-        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp

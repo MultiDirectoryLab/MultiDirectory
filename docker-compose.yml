@@ -155,8 +155,6 @@ services:
     restart: "no"
     volumes:
       - kdc:/etc/kdc
-      - dns_server_file:/opt/dns_server_file/
-      - dns_server_config:/etc/bind/
     command: sh -c "/app/extra/pre_run_setup.sh"
     depends_on:
       bind_dns:
@@ -244,8 +242,6 @@ services:
         restart: true
       cert_check:
         condition: service_completed_successfully
-      pre_run_manager:
-        condition: service_completed_successfully
     ports:
       - 8000:8000
     working_dir: /server
@@ -332,8 +328,6 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-      pre_run_manager:
-        condition: service_completed_successfully
 
 
   kadmind:
@@ -351,8 +345,6 @@ services:
         restart: true
       kdc:
         condition: service_started
-      pre_run_manager:
-        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.tcp.routers.kadmind.rule=HostSNI(`*`)

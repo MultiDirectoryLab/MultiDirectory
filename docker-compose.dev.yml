@@ -81,8 +81,6 @@ services:
     restart: "no"
     volumes:
       - kdc:/etc/kdc
-      - d_dns_server_file:/opt/dns_server_file/
-      - d_dns_server_config:/etc/bind/dns_server_config/
     command: sh -c "/app/extra/pre_run_setup.sh"
 
   cert_check:
@@ -263,7 +261,6 @@ services:
     tty: true
     depends_on:
       - ldap_server
-      - pre_run_manager
     command: krb5kdc -n
 
     labels:
@@ -288,8 +285,7 @@ services:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully
-      pre_run_manager:
-        condition: service_completed_successfully
+
     ports:
       - 8000:8000
     working_dir: /server
@@ -310,7 +306,6 @@ services:
     depends_on:
       - ldap_server
       - kdc
-      - pre_run_manager
     command: kadmind -nofork
     labels:
       - traefik.enable=true
@@ -346,8 +341,6 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-      pre_run_manager:
-        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
