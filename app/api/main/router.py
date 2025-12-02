@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -119,7 +119,7 @@ async def delete_many(
 async def set_primary_group(
     request: PrimaryGroupRequest,
     session: FromDishka[AsyncSession],
-) -> None:
+) -> None | HTTPException:
     """Set primary group for a directory (user or group)."""
     try:
         await set_or_update_primary_group(
@@ -128,4 +128,5 @@ async def set_primary_group(
             session=session,
         )
     except (ValueError, IntegrityError):
-        return None
+        raise HTTPException(status_code=400, detail="Invalid request")
+    return None
