@@ -26,5 +26,10 @@ ENV LANG=C.UTF-8 \
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-COPY .kerberos/config_server.py /server/
+COPY .kerberos/ /server/
+
+WORKDIR /server
+
+RUN chmod +x /server/entrypoint.sh
+
 EXPOSE 8000
