@@ -315,7 +315,7 @@ class KerberosService(AbstractService):
             user.user_principal_name,
             password,
             self._password_utils,
-            self._identity_provider.update_bad_pwd_attrs,
+            self._identity_provider,
         ):
             raise KerberosDependencyError("Incorrect password")
 

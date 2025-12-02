@@ -123,7 +123,7 @@ class AuthManager(AbstractService):
             form.username,
             form.password,
             self._password_utils,
-            self._identity_provider.update_bad_pwd_attrs,
+            self._identity_provider,
         )
         if not user:
             raise UnauthorizedError("Incorrect username or password")

@@ -633,7 +633,7 @@ async def test_mfa_auth(
         creds.un,
         creds.pw,
         password_utils,
-        identity_provider.update_bad_pwd_attrs,
+        identity_provider,
     )
 
     assert user

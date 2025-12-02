@@ -9,6 +9,7 @@ from typing import Callable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import User
+from ldap_protocol.identity.provider import IdentityProvider
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
 
@@ -18,13 +19,14 @@ async def authenticate_user(
     username: str,
     password: str,
     password_utils: PasswordUtils,
-    update_bad_pwd_count: Callable,
+    idp: IdentityProvider,
 ) -> User | None:
     """Get user and verify password.
 
     :param AsyncSession session: sa session
     :param str username: any str
     :param str password: any str
+    :param IdentityProvider idp: IdentityProvider
     :return User | None: User model (pydantic).
     """
     user = await get_user(session, username)
@@ -35,8 +37,8 @@ async def authenticate_user(
         password,
         user.password,
     ):
-        await update_bad_pwd_count(user, is_increase=True)
+        await idp.update_bad_pwd_attrs(user, is_increase=True)
         return None
 
-    await update_bad_pwd_count(user, is_increase=False)
+    await idp.update_bad_pwd_attrs(user, is_increase=False)
     return user

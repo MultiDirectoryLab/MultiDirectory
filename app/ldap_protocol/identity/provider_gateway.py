@@ -86,7 +86,6 @@ class IdentityProviderGateway:
             .execution_options(synchronize_session=False)
         )
         await self.session.execute(q)
-        await self.session.flush()
 
     async def __update_bad_pwd_time(
         self,
@@ -102,4 +101,3 @@ class IdentityProviderGateway:
                     name="badPasswordTime",
                 ),
             )
-            await self.session.flush()
