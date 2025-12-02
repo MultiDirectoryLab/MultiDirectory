@@ -119,7 +119,7 @@ async def delete_many(
 async def set_primary_group(
     request: PrimaryGroupRequest,
     session: FromDishka[AsyncSession],
-) -> None | HTTPException:
+) -> None:
     """Set primary group for a directory (user or group)."""
     try:
         await set_or_update_primary_group(
@@ -129,4 +129,3 @@ async def set_primary_group(
         )
     except (ValueError, IntegrityError):
         raise HTTPException(status_code=400, detail="Invalid request")
-    return None
