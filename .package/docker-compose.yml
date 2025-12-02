@@ -244,10 +244,7 @@ services:
       cert_check:
         condition: service_completed_successfully
     working_dir: /server
-    command: uvicorn --factory config_server:create_app
-             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
-             --ssl-certfile=/certs/krbcert.pem
-
+    command: ./entrypoint.sh
   kadmind:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
     container_name: kadmind
