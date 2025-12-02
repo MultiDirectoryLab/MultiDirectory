@@ -43,7 +43,6 @@ services:
     image: multidirectory
     container_name: traefik_certs_dumper
     restart: "on-failure"
-    user: root
     volumes:
       - ./certs:/certs
       - ".package/traefik.yml:/traefik.yml"
@@ -85,7 +84,6 @@ services:
       - ./certs:/certs
       - ./app:/app
     command: ./extra/generate_cert.sh
-    user: root
 
   cldap_server:
     build:
@@ -95,7 +93,6 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
-    user: root
     restart: unless-stopped
     environment:
       - SERVICE_NAME=cldap_server
@@ -128,7 +125,6 @@ services:
   cert_local_check:
     image: multidirectory
     container_name: multidirectory_local_certs_check
-    user: root
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -138,7 +134,6 @@ services:
     image: multidirectory
     container_name: multidirectory_migrations
     restart: "no"
-    user: root
     command: python multidirectory.py --migrate
     env_file:
       local.env
@@ -157,7 +152,6 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
-    user: root
     restart: unless-stopped
     hostname: multidirectory
     volumes:
@@ -209,7 +203,6 @@ services:
     image: multidirectory
     container_name: multidirectory_api
     restart: unless-stopped
-    user: root
     environment:
       USE_CORE_TLS: 1
       SERVICE_NAME: multidirectory_api
@@ -243,7 +236,6 @@ services:
     image: multidirectory
     container_name: shadow_api
     restart: unless-stopped
-    user: root
     tty: true
     depends_on:
       migrations:
@@ -264,7 +256,6 @@ services:
     image: multidirectory
     container_name: md_maintence
     restart: unless-stopped
-    user: root
     volumes:
       - ./certs:/certs
       - ./app:/app
@@ -418,7 +409,6 @@ services:
     container_name: event_handler
     restart: unless-stopped
     tty: true
-    user: root
     env_file:
       local.env
     volumes:
@@ -435,7 +425,6 @@ services:
     container_name: event_sender
     restart: unless-stopped
     tty: true
-    user: root
     depends_on:
       migrations:
         condition: service_completed_successfully
