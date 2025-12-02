@@ -11,6 +11,7 @@ from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory, EntityType
+from enums import EntityTypeNames
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -39,7 +40,7 @@ def upgrade() -> None:
         )
         entity_type = await session.scalar(
             select(EntityType)
-            .where(qa(EntityType.name) == "Container"),
+            .where(qa(EntityType.name) == EntityTypeNames.CONTAINER),
         )  # fmt: skip
 
         for directory in directories:
@@ -124,7 +125,7 @@ def downgrade() -> None:
         )
         entity_type = await session.scalar(
             select(EntityType)
-            .where(qa(EntityType.name) == "Organizational Unit"),
+            .where(qa(EntityType.name) == EntityTypeNames.ORGANIZATIONAL_UNIT),
         )  # fmt: skip
 
         for directory in directories:

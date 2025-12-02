@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -399,7 +400,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         if not plset_attribute:
             self.__attribute_value_validator.validate_value(
-                "User",  # TODO ну тут точно же Юзер да?))) по хорошему надо get директори with энтити делать
+                EntityTypeNames.USER,  # TODO ну тут точно же Юзер да?))) по хорошему надо get директори with энтити делать
                 "pwdLastSet",
                 ft_now(),
             )

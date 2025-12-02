@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from entities import Attribute, Directory, Group, User
-from enums import AceType
+from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -158,7 +158,7 @@ class AddRequest(BaseRequest):
                 object_class_names=self.object_class_names,
             )
         )
-        if entity_type and entity_type.name == "Container":
+        if entity_type and entity_type.name == EntityTypeNames.CONTAINER:
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 

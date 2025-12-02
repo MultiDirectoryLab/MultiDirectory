@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -31,7 +32,7 @@ class TestOrganizationalUnitName:
         ]
         for name in valid_names:
             assert validator.validate_value(
-                "Organizational Unit",
+                EntityTypeNames.ORGANIZATIONAL_UNIT,
                 "name",
                 name,
             )
@@ -44,7 +45,7 @@ class TestOrganizationalUnitName:
         invalid_names = [" IT", " Sales", "  Marketing"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Organizational Unit",
+                EntityTypeNames.ORGANIZATIONAL_UNIT,
                 "name",
                 name,
             )
@@ -57,7 +58,7 @@ class TestOrganizationalUnitName:
         invalid_names = ["#IT", "#Sales", "#Marketing"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Organizational Unit",
+                EntityTypeNames.ORGANIZATIONAL_UNIT,
                 "name",
                 name,
             )
@@ -70,7 +71,7 @@ class TestOrganizationalUnitName:
         invalid_names = ["IT ", "Sales  ", "Marketing   "]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Organizational Unit",
+                EntityTypeNames.ORGANIZATIONAL_UNIT,
                 "name",
                 name,
             )
@@ -91,7 +92,7 @@ class TestOrganizationalUnitName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Organizational Unit",
+                EntityTypeNames.ORGANIZATIONAL_UNIT,
                 "name",
                 name,
             )
@@ -111,7 +112,7 @@ class TestGroupName:
         ]
         for name in valid_names:
             assert validator.validate_value(
-                "Group",
+                EntityTypeNames.GROUP,
                 "name",
                 name,
             )
@@ -124,7 +125,7 @@ class TestGroupName:
         invalid_names = [" Admins", " Users", "  PowerUsers"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Group",
+                EntityTypeNames.GROUP,
                 "name",
                 name,
             )
@@ -137,7 +138,7 @@ class TestGroupName:
         invalid_names = ["#Admins", "#Users", "#PowerUsers"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Group",
+                EntityTypeNames.GROUP,
                 "name",
                 name,
             )
@@ -150,7 +151,7 @@ class TestGroupName:
         invalid_names = ["Admins ", "Users  ", "PowerUsers   "]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Group",
+                EntityTypeNames.GROUP,
                 "name",
                 name,
             )
@@ -171,7 +172,7 @@ class TestGroupName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Group",
+                EntityTypeNames.GROUP,
                 "name",
                 name,
             )
@@ -191,7 +192,7 @@ class TestUserName:
         ]
         for name in valid_names:
             assert validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "name",
                 name,
             )
@@ -204,7 +205,7 @@ class TestUserName:
         invalid_names = [" JohnDoe", " Jane", "  User123"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "name",
                 name,
             )
@@ -217,7 +218,7 @@ class TestUserName:
         invalid_names = ["#JohnDoe", "#Jane", "#User123"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "name",
                 name,
             )
@@ -230,7 +231,7 @@ class TestUserName:
         invalid_names = ["JohnDoe ", "Jane  ", "User123   "]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "name",
                 name,
             )
@@ -251,7 +252,7 @@ class TestUserName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "name",
                 name,
             )
@@ -274,7 +275,7 @@ class TestUserSAMAccountName:
         ]
         for name in valid_names:
             assert validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "sAMAccountName",
                 name,
             )
@@ -301,7 +302,7 @@ class TestUserSAMAccountName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "sAMAccountName",
                 name,
             )
@@ -314,7 +315,7 @@ class TestUserSAMAccountName:
         invalid_names = ["user.", "john.doe.", "admin."]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "sAMAccountName",
                 name,
             )
@@ -332,7 +333,7 @@ class TestUserSAMAccountName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "sAMAccountName",
                 name,
             )
@@ -345,7 +346,7 @@ class TestUserSAMAccountName:
         invalid_names = ["user@domain", "admin@test", "john@"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "User",
+                EntityTypeNames.USER,
                 "sAMAccountName",
                 name,
             )
@@ -364,7 +365,7 @@ class TestComputerName:
         ]
         for name in valid_names:
             assert validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "name",
                 name,
             )
@@ -377,7 +378,7 @@ class TestComputerName:
         invalid_names = [" WORKSTATION", " Server", "  PC123"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "name",
                 name,
             )
@@ -390,7 +391,7 @@ class TestComputerName:
         invalid_names = ["#WORKSTATION", "#Server", "#PC123"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "name",
                 name,
             )
@@ -403,7 +404,7 @@ class TestComputerName:
         invalid_names = ["WORKSTATION ", "Server  ", "PC123   "]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "name",
                 name,
             )
@@ -424,7 +425,7 @@ class TestComputerName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "name",
                 name,
             )
@@ -445,7 +446,7 @@ class TestComputerSAMAccountName:
         ]
         for name in valid_names:
             assert validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "sAMAccountName",
                 name,
             )
@@ -472,7 +473,7 @@ class TestComputerSAMAccountName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "sAMAccountName",
                 name,
             )
@@ -485,7 +486,7 @@ class TestComputerSAMAccountName:
         invalid_names = ["PC01.", "SERVER.", "WORKSTATION."]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "sAMAccountName",
                 name,
             )
@@ -503,7 +504,7 @@ class TestComputerSAMAccountName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "sAMAccountName",
                 name,
             )
@@ -521,7 +522,7 @@ class TestComputerSAMAccountName:
         ]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "sAMAccountName",
                 name,
             )
@@ -534,7 +535,7 @@ class TestComputerSAMAccountName:
         invalid_names = ["123", "456789", "0"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "sAMAccountName",
                 name,
             )
@@ -547,7 +548,7 @@ class TestComputerSAMAccountName:
         invalid_names = ["1PC$", "2SERVER$", "9WORKSTATION$"]
         for name in invalid_names:
             assert not validator.validate_value(
-                "Computer",
+                EntityTypeNames.COMPUTER,
                 "sAMAccountName",
                 name,
             )
@@ -562,10 +563,10 @@ class TestNoValidationRules:
     ) -> None:
         """Test that attributes without validation rules always pass."""
         test_cases = [
-            ("User", "description", "Any value here!"),
-            ("Group", "description", " spaces and #symbols "),
-            ("Computer", "location", "Building 1, Room 101"),
-            ("Organizational Unit", "description", ""),
+            (EntityTypeNames.USER, "description", "Any value here!"),
+            (EntityTypeNames.GROUP, "description", " spaces and #symbols "),
+            (EntityTypeNames.COMPUTER, "location", "Building 1, Room 101"),
+            (EntityTypeNames.ORGANIZATIONAL_UNIT, "description", ""),
         ]
 
         for entity_type, property_name, value in test_cases:

@@ -4,9 +4,9 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Literal
+from typing import TypedDict
 
-from entities import EntityTypeNameType
+from enums import EntityTypeNames
 
 group_attrs = {
     "objectClass": ["top"],
@@ -211,28 +211,34 @@ DATA = [
 ]
 
 
-ENTITY_TYPE_DATAS: list[
-    dict[
-        Literal["name", "object_class_names"],
-        EntityTypeNameType | list[str],
-    ]
-] = [
+class _EntityTypeData(TypedDict):
+    name: str | EntityTypeNames
+    object_class_names: list[str]
+
+
+ENTITY_TYPE_DATAS: list[_EntityTypeData] = [
     {
-        "name": "Domain",
+        "name": EntityTypeNames.DOMAIN,
         "object_class_names": ["top", "domain", "domainDNS"],
     },
-    {"name": "Computer", "object_class_names": ["top", "computer"]},
-    {"name": "Container", "object_class_names": ["top", "container"]},
     {
-        "name": "Organizational Unit",
+        "name": EntityTypeNames.COMPUTER,
+        "object_class_names": ["top", "computer"],
+    },
+    {
+        "name": EntityTypeNames.CONTAINER,
+        "object_class_names": ["top", "container"],
+    },
+    {
+        "name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class_names": ["top", "container", "organizationalUnit"],
     },
     {
-        "name": "Group",
+        "name": EntityTypeNames.GROUP,
         "object_class_names": ["top", "group", "posixGroup"],
     },
     {
-        "name": "User",
+        "name": EntityTypeNames.USER,
         "object_class_names": [
             "top",
             "user",
@@ -243,9 +249,12 @@ ENTITY_TYPE_DATAS: list[
             "inetOrgPerson",
         ],
     },
-    {"name": "KRB Container", "object_class_names": ["krbContainer"]},
     {
-        "name": "KRB Principal",
+        "name": EntityTypeNames.KRB_CONTAINER,
+        "object_class_names": ["krbContainer"],
+    },
+    {
+        "name": EntityTypeNames.KRB_PRINCIPAL,
         "object_class_names": [
             "krbprincipal",
             "krbprincipalaux",
@@ -253,7 +262,7 @@ ENTITY_TYPE_DATAS: list[
         ],
     },
     {
-        "name": "KRB Realm Container",
+        "name": EntityTypeNames.KRB_REALM_CONTAINER,
         "object_class_names": [
             "top",
             "krbrealmcontainer",

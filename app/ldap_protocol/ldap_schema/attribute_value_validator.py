@@ -6,45 +6,45 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Callable
 
-from constants import EntityTypeNameType
+from enums import EntityTypeNames
 
 type _ValueType = str
 
 _ENTITY_NAME_AND_ATTR_NAME_VALIDATION_MAP: dict[
-    tuple[EntityTypeNameType, str],
+    tuple[EntityTypeNames, str],
     tuple[str, ...],
 ] = {
-    ("Organizational Unit", "name"): (
+    (EntityTypeNames.ORGANIZATIONAL_UNIT, "name"): (
         "_not_start_with_space",
         "_not_start_with_hash",
         "_not_end_with_space",
         "_not_contains_symbols",
     ),
-    ("Group", "name"): (
+    (EntityTypeNames.GROUP, "name"): (
         "_not_start_with_space",
         "_not_start_with_hash",
         "_not_end_with_space",
         "_not_contains_symbols",
     ),
-    ("User", "name"): (
+    (EntityTypeNames.USER, "name"): (
         "_not_start_with_space",
         "_not_start_with_hash",
         "_not_end_with_space",
         "_not_contains_symbols",
     ),
-    ("User", "sAMAccountName"): (
+    (EntityTypeNames.USER, "sAMAccountName"): (
         "_not_contains_symbols2",
         "_not_end_with_dot",
         "_not_contains_control_characters",
         "_not_contains_at",
     ),
-    ("Computer", "name"): (
+    (EntityTypeNames.COMPUTER, "name"): (
         "_not_start_with_space",
         "_not_start_with_hash",
         "_not_end_with_space",
         "_not_contains_symbols",
     ),
-    ("Computer", "sAMAccountName"): (
+    (EntityTypeNames.COMPUTER, "sAMAccountName"): (
         "_not_contains_symbols2",
         "_not_end_with_dot",
         "_not_contains_control_characters",
@@ -61,7 +61,7 @@ class AttributeValueValidator:
     def __init__(self) -> None:
         """Initialize AttributeValueValidator."""
         self._compiled_validators: dict[
-            tuple[EntityTypeNameType, str],
+            tuple[EntityTypeNames, str],
             Callable[[_ValueType], bool],
         ] = {}
         self._compile_validators()
@@ -71,10 +71,8 @@ class AttributeValueValidator:
             key,
             validator_names,
         ) in _ENTITY_NAME_AND_ATTR_NAME_VALIDATION_MAP.items():
-            # Получаем ссылки на функции-валидаторы
             validator_funcs = [getattr(self, name) for name in validator_names]
 
-            # Создаем скомпилированную функцию-валидатор
             def create_combined_validator(
                 funcs: list[Callable[[_ValueType], bool]],
             ) -> Callable[[_ValueType], bool]:
@@ -134,7 +132,7 @@ class AttributeValueValidator:
 
     def validate_value(
         self,
-        entity_type_name: EntityTypeNameType,
+        entity_type_name: EntityTypeNames | str,
         attr_name: str,
         value: _ValueType,
     ) -> bool:

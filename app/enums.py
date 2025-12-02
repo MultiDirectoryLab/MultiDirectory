@@ -41,6 +41,20 @@ class MFAChallengeStatuses(StrEnum):
     PENDING = "pending"
 
 
+class EntityTypeNames(StrEnum):
+    """Entity Type names."""
+
+    DOMAIN = "Domain"
+    COMPUTER = "Computer"
+    CONTAINER = "Container"
+    ORGANIZATIONAL_UNIT = "Organizational Unit"
+    GROUP = "Group"
+    USER = "User"
+    KRB_CONTAINER = "KRB Container"
+    KRB_PRINCIPAL = "KRB Principal"
+    KRB_REALM_CONTAINER = "KRB Realm Container"
+
+
 class KindType(StrEnum):
     """Object kind types."""
 

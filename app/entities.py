@@ -18,23 +18,13 @@ from enums import (
     AuditDestinationServiceType,
     AuditSeverity,
     AuthorizationRules,
+    EntityTypeNames,
     KindType,
     MFAFlags,
     RoleScope,
 )
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
-type EntityTypeNameType = Literal[
-    "Domain",
-    "Computer",
-    "Container",
-    "Organizational Unit",
-    "Group",
-    "User",
-    "KRB Container",
-    "KRB Principal",
-    "KRB Realm Container",
-]
 
 
 @dataclass
@@ -51,7 +41,9 @@ class EntityType:
     """Entity type grouping object classes; assigned to directories."""
 
     id: int | None = field(init=False, default=None)
-    name: str = ""
+    # NOTE: cannot specify type annotation only from EntityTypeNames
+    # because custom Entities can exist. See `generate_entity_type_name`
+    name: EntityTypeNames | str = ""
     object_class_names: list[str] = field(default_factory=list)
     is_system: bool = False
     directories: list[Directory] = field(
