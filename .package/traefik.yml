@@ -10,6 +10,8 @@ ping:
 entryPoints:
   ping:
     address: ":8800"
+  cldap:
+    address: ":389/udp"
   web:
     address: ":80"
     http:
