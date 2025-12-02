@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Callable
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import User
