@@ -124,14 +124,6 @@ services:
       - traefik.udp.routers.cldap.service=cldap
       - traefik.udp.services.cldap.loadbalancer.server.port=389
 
-  pre_run_manager:
-    image: multidirectory
-    container_name: pre_run_manager
-    user: root
-    restart: "no"
-    volumes:
-      - kdc:/etc/kdc
-    command: sh -c "/app/extra/pre_run_setup.sh"
 
   cert_local_check:
     image: multidirectory
@@ -155,8 +147,6 @@ services:
         condition: service_healthy
     volumes:
       - ./app:/app
-      - salt_sls_configs:/salt_sls_configs/
-      - salt_jinja_templates:/salt_jinja_templates/
 
 
   ldap_server:
@@ -233,9 +223,6 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
-      - salt_roots:/salt/roots/
-      - salt_sls_configs:/salt_sls_configs/
-      - salt_jinja_templates:/salt_jinja_templates/
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
@@ -251,8 +238,6 @@ services:
     depends_on:
       migrations:
         condition: service_completed_successfully
-      saltstack:
-        condition: service_started
 
   shadow_api:
     image: multidirectory
@@ -284,8 +269,6 @@ services:
       - ./certs:/certs
       - ./app:/app
       - ldap_keytab:/LDAP_keytab/
-      - salt_sls_configs:/salt_sls_configs/
-      - salt_roots:/salt/roots/
     env_file:
       local.env
     command: python multidirectory.py --scheduler
@@ -338,8 +321,6 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-      pre_run_manager:
-        condition: service_completed_successfully
     command: krb5kdc -n
     
     ports:
@@ -365,10 +346,7 @@ services:
       kdc:
         condition: service_started
     working_dir: /server
-    command: uvicorn --factory config_server:create_app
-             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
-             --ssl-certfile=/certs/krbcert.pem
-             --reload
+    command: ./entrypoint.sh
 
   kadmind:
     container_name: kadmind
@@ -471,35 +449,6 @@ services:
       HANDLER_NAME: event_sender-1
 
 
-  saltstack:
-    container_name: salt_master
-    image: ghcr.io/cdalvaro/docker-salt-master:latest
-    restart: unless-stopped
-    volumes:
-      - ./salt/keys:/etc/salt/master.d/
-      - ./salt/master_keys/:/home/salt/data/keys/
-      - ./salt/config/:/home/salt/data/config/
-      - ./salt/logs/:/home/salt/data/logs/
-      - ./salt/minion_config/:/home/salt/data/minion_config/
-      - salt_jinja_templates:/home/salt/data/srv/salt/salt_jinja_templates/
-      - salt_roots:/home/salt/data/srv/
-    ports:
-      - "4505:4505"
-      - "4506:4506"
-      # salt-api port
-      - "8002:8000"
-    healthcheck:
-      test: ["CMD", "/usr/local/sbin/healthcheck"]
-      start_period: 30s
-    env_file:
-      local.env
-    environment:
-      TZ: Europe/Moscow
-      DEBUG: true
-      SALT_LOG_LEVEL: info
-      SALT_LOG_ROTATE_FREQUENCY: daily
-      SALT_LOG_ROTATE_RETENTION: 3
-      SALT_RESTART_MASTER_ON_CONFIG_CHANGE: true
 
 volumes:
   postgres:
@@ -510,6 +459,3 @@ volumes:
   dns_server_config:
   ldap_keytab:
   dragonflydata:
-  salt_sls_configs:
-  salt_jinja_templates:
-  salt_roots:

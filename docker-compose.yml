@@ -148,18 +148,6 @@ services:
           cpus: "0.50"
           memory: 500M
 
-  pre_run_manager:
-    image: multidirectory
-    container_name: pre_run_manager
-    user: root
-    restart: "no"
-    volumes:
-      - kdc:/etc/kdc
-    command: sh -c "/app/extra/pre_run_setup.sh"
-    depends_on:
-      bind_dns:
-        condition: service_started
-
   migrations:
     image: multidirectory
     container_name: multidirectory_migrations
@@ -245,10 +233,7 @@ services:
     ports:
       - 8000:8000
     working_dir: /server
-    command: uvicorn --factory config_server:create_app
-      --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
-      --ssl-certfile=/certs/krbcert.pem
-      --reload
+    command: ./entrypoint.sh
 
   bind_dns:
     build:

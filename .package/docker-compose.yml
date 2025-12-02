@@ -191,15 +191,6 @@ services:
       - ./certs:/certs
     command: ./extra/generate_cert.sh
 
-  pre_run_manager:
-    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    container_name: pre_run_manager
-    user: root
-    restart: "no"
-    volumes:
-      - kdc:/etc/kdc
-    command: sh -c "/app/extra/pre_run_setup.sh"
-
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: md_maintence
