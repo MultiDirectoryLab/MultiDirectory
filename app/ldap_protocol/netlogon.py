@@ -22,6 +22,7 @@ from ldap_protocol.asn1parser import ASN1Row
 _NL_DEFAULT_SITE = "Default-First-Site-Name"
 _ZERO_UUID = uuid.UUID(int=0)
 _ZERO_VER = 0x00000000.to_bytes(4, byteorder="big").decode()  # ASN.1 oct zero
+_DEFAULT_DC = "DC1"
 
 
 class NetLogonOPCode(IntEnum):
@@ -117,6 +118,12 @@ class NetLogonAttributeHandler:
         """Init base info."""
         self.__root_dse = root_dse
 
+    def _get_netbios_domain(self) -> str:
+        return self.__root_dse["dnsDomainName"][0].split(".")[0].upper()
+
+    def _get_netbios_hostname(self) -> str:
+        return self._get_netbios_domain() + _DEFAULT_DC
+
     @classmethod
     def from_filter(
         cls,
@@ -169,10 +176,8 @@ class NetLogonAttributeHandler:
             user=user,
             site=_NL_DEFAULT_SITE,
             ntver=self.ntver,
+            has_user=True,
         )
-
-    def set_acc(self, acc: bool) -> None:
-        self.__info.has_user = acc
 
     @staticmethod
     def _convert_little_endian_string_to_int(value: str) -> int:
@@ -183,10 +188,8 @@ class NetLogonAttributeHandler:
             signed=False,
         )
 
-    def get_attr(self, acc: bool) -> bytes:
+    def get_attr(self) -> bytes:
         """Get NetLogon response."""
-        self.set_acc(acc)
-
         ntver = self._convert_little_endian_string_to_int(self.__info.ntver)
 
         if bool(
@@ -302,8 +305,8 @@ class NetLogonAttributeHandler:
                 (self.__root_dse["dnsForestName"][0], "utf-8"),
                 (self.__root_dse["dnsDomainName"][0], "utf-8"),
                 (self.__root_dse["dnsHostName"][0], "utf-8"),
-                ("DC", "utf-8"),
-                ("DC.ad.local", "utf-8"),
+                (self._get_netbios_domain(), "utf-8"),
+                (self._get_netbios_hostname(), "utf-8"),
                 (self.__info.user, "utf-8"),
                 (self.__info.site, "utf-8"),
                 (self.__info.site, "utf-8"),

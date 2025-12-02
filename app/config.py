@@ -131,10 +131,34 @@ class Settings(BaseModel):
     DNS_BIND_HOST: str = "bind_dns"
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
+    PYTEST_XDIST_WORKER: str = "master"
 
     DHCP_HOST: str = "http://kea_ctrl_agent:8000"
 
     GSSAPI_MAX_OUTPUT_TOKEN_SIZE: int = 1024
+
+    @computed_field  # type: ignore
+    @cached_property
+    def TEST_WORKER_ID(self) -> int:  # noqa: N802
+        """Get worker id for tests."""
+        if self.PYTEST_XDIST_WORKER == "master":
+            return 0
+        try:
+            return int(self.PYTEST_XDIST_WORKER.removeprefix("gw"))
+        except ValueError:
+            return 0
+
+    @computed_field  # type: ignore
+    @cached_property
+    def TEST_POSTGRES_SCHEMA(self) -> str:  # noqa: N802
+        """Get test postgres schema name."""
+        if self.PYTEST_XDIST_WORKER == "master":
+            return "public"
+        return f"test_schema_{self.PYTEST_XDIST_WORKER}"
+
+    def set_test_port(self) -> None:
+        """Set test port."""
+        self.PORT += self.TEST_WORKER_ID
 
     @field_validator("TIMEZONE", mode="before")
     def create_tz(cls, tz: str) -> ZoneInfo:  # noqa: N805

@@ -133,8 +133,10 @@ class AuthManager(AbstractService):
             for r in group.roles
             if r.permissions
         ]
-
-        if not (sum(perms) & AuthorizationRules.AUTH_LOGIN):
+        can_auth = (
+            AuthorizationRules.combine(perms) & AuthorizationRules.AUTH_LOGIN
+        )
+        if not can_auth:
             raise LoginFailedError("User is not allowed to log in")
 
         uac_check = await get_check_uac(self._session, user.directory_id)

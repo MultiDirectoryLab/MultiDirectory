@@ -53,4 +53,4 @@ class IdentityProviderGateway:
             .where(qa(Role.id).in_(role_ids)),
         )  # fmt: skip
 
-        return AuthorizationRules(sum(permissions))
+        return AuthorizationRules.combine(permissions)
