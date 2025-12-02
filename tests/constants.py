@@ -109,6 +109,7 @@ TEST_DATA = [
                     ],
                     "description": ["123 desc"],
                     "badPwdCount": ["0"],
+                    "badPasswordTime": ["0"],
                 },
             },
             {
@@ -139,6 +140,7 @@ TEST_DATA = [
                         str(UserAccountControlFlag.NORMAL_ACCOUNT),
                     ],
                     "badPwdCount": ["0"],
+                    "badPasswordTime": ["0"],
                 },
             },
             {
@@ -169,6 +171,7 @@ TEST_DATA = [
                         str(UserAccountControlFlag.NORMAL_ACCOUNT),
                     ],
                     "badPwdCount": ["0"],
+                    "badPasswordTime": ["0"],
                 },
             },
             {
@@ -198,6 +201,7 @@ TEST_DATA = [
                         str(UserAccountControlFlag.NORMAL_ACCOUNT),
                     ],
                     "badPwdCount": ["0"],
+                    "badPasswordTime": ["0"],
                 },
             },
             {
@@ -244,6 +248,7 @@ TEST_DATA = [
                                         ),
                                     ],
                                     "badPwdCount": ["0"],
+                                    "badPasswordTime": ["0"],
                                 },
                             },
                         ],
@@ -288,6 +293,7 @@ TEST_DATA = [
                         ),
                     ],
                     "badPwdCount": ["0"],
+                    "badPasswordTime": ["0"],
                 },
             },
             {
@@ -319,6 +325,7 @@ TEST_DATA = [
                         ),
                     ],
                     "badPwdCount": ["0"],
+                    "badPasswordTime": ["0"],
                 },
             },
             {
@@ -347,6 +354,7 @@ TEST_DATA = [
                         str(UserAccountControlFlag.ACCOUNTDISABLE),
                     ],
                     "badPwdCount": ["0"],
+                    "badPasswordTime": ["0"],
                 },
             },
         ],

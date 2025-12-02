@@ -18,7 +18,7 @@ async def authenticate_user(
     username: str,
     password: str,
     password_utils: PasswordUtils,
-    update_bad_pwd_count: Callable | None,
+    update_bad_pwd_count: Callable,
 ) -> User | None:
     """Get user and verify password.
 
@@ -35,10 +35,8 @@ async def authenticate_user(
         password,
         user.password,
     ):
-        if update_bad_pwd_count:
-            await update_bad_pwd_count(user, is_increase=True)
+        await update_bad_pwd_count(user, is_increase=True)
         return None
 
-    if update_bad_pwd_count:
-        await update_bad_pwd_count(user, is_increase=False)
+    await update_bad_pwd_count(user, is_increase=False)
     return user
