@@ -212,7 +212,7 @@ DATA = [
 
 
 class _EntityTypeData(TypedDict):
-    name: str | EntityTypeNames
+    name: EntityTypeNames | str
     object_class_names: list[str]
 
 
@@ -270,9 +270,7 @@ ENTITY_TYPE_DATAS: list[_EntityTypeData] = [
         ],
     },
 ]
-PRIMARY_ENTITY_TYPE_NAMES = {
-    entity_type_data["name"] for entity_type_data in ENTITY_TYPE_DATAS
-}
+
 
 FIRST_SETUP_DATA = [
     {

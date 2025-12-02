@@ -872,10 +872,11 @@ async def setup_session(
 ) -> None:
     """Get session and acquire after completion."""
     object_class_dao = ObjectClassDAO(session)
+    attribute_value_validator = AttributeValueValidator()
     entity_type_dao = EntityTypeDAO(
         session,
         object_class_dao=object_class_dao,
-        attribute_value_validator=AttributeValueValidator(),
+        attribute_value_validator=attribute_value_validator,
     )
     for entity_type_data in ENTITY_TYPE_DATAS:
         await entity_type_dao.create(
@@ -898,7 +899,7 @@ async def setup_session(
     )
     password_policy_dao = PasswordPolicyDAO(
         session,
-        attribute_value_validator=AttributeValueValidator(),
+        attribute_value_validator=attribute_value_validator,
     )
     password_policy_validator = PasswordPolicyValidator(
         PasswordValidatorSettings(),
@@ -914,7 +915,7 @@ async def setup_session(
         session,
         password_utils,
         entity_type_dao,
-        attribute_value_validator=AttributeValueValidator(),
+        attribute_value_validator=attribute_value_validator,
     )
     await audit_use_case.create_policies()
     await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)

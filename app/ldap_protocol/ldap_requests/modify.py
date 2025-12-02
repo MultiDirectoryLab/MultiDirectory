@@ -14,9 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
-from constants import PRIMARY_ENTITY_TYPE_NAMES
 from entities import Attribute, Directory, Group, User
-from enums import AceType
+from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, unlock_principal
@@ -591,7 +590,7 @@ class ModifyRequest(BaseRequest):
     ) -> None:
         if not (
             directory.entity_type
-            and directory.entity_type.name in PRIMARY_ENTITY_TYPE_NAMES
+            and directory.entity_type.name in EntityTypeNames
         ):
             return
 

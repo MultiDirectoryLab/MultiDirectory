@@ -46,16 +46,17 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
         object_class_dao = ObjectClassDAO(session)
+        attribute_value_validator = AttributeValueValidator()
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao,
-            attribute_value_validator=AttributeValueValidator(),
+            attribute_value_validator=attribute_value_validator,
         )
         setup_gateway = SetupGateway(
             session,
             PasswordUtils(),
             entity_type_dao,
-            attribute_value_validator=AttributeValueValidator(),
+            attribute_value_validator=attribute_value_validator,
         )
 
         base_directories = await get_base_directories(session)
