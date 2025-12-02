@@ -41,3 +41,5 @@ RUN mkdir /var/log/named && \
     chmod 644 /var/log/named/bind.log
 
 EXPOSE 8000
+
+ENTRYPOINT [ "./entrypoint.sh" ]
