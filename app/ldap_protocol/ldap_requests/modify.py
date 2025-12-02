@@ -861,6 +861,14 @@ class ModifyRequest(BaseRequest):
                         ),
                     )  # fmt: skip
 
+                    await session.execute(
+                        delete(Attribute)
+                        .filter_by(
+                            name="lockoutTime",
+                            directory=directory,
+                        ),
+                    )  # fmt: skip
+
             if name == "pwdlastset" and value == "0" and directory.user:
                 await kadmin.force_princ_pw_change(
                     directory.user.get_upn_prefix(),

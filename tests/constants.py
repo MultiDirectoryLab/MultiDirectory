@@ -108,6 +108,7 @@ TEST_DATA = [
                         str(UserAccountControlFlag.NORMAL_ACCOUNT),
                     ],
                     "description": ["123 desc"],
+                    "badPwdCount": ["0"],
                 },
             },
             {
@@ -137,6 +138,7 @@ TEST_DATA = [
                     "userAccountControl": [
                         str(UserAccountControlFlag.NORMAL_ACCOUNT),
                     ],
+                    "badPwdCount": ["0"],
                 },
             },
             {
@@ -166,6 +168,7 @@ TEST_DATA = [
                     "userAccountControl": [
                         str(UserAccountControlFlag.NORMAL_ACCOUNT),
                     ],
+                    "badPwdCount": ["0"],
                 },
             },
             {
@@ -194,6 +197,7 @@ TEST_DATA = [
                     "userAccountControl": [
                         str(UserAccountControlFlag.NORMAL_ACCOUNT),
                     ],
+                    "badPwdCount": ["0"],
                 },
             },
             {
@@ -239,6 +243,7 @@ TEST_DATA = [
                                             UserAccountControlFlag.NORMAL_ACCOUNT,
                                         ),
                                     ],
+                                    "badPwdCount": ["0"],
                                 },
                             },
                         ],
@@ -282,6 +287,7 @@ TEST_DATA = [
                             + UserAccountControlFlag.ACCOUNTDISABLE,
                         ),
                     ],
+                    "badPwdCount": ["0"],
                 },
             },
             {
@@ -312,6 +318,7 @@ TEST_DATA = [
                             + UserAccountControlFlag.NORMAL_ACCOUNT,
                         ),
                     ],
+                    "badPwdCount": ["0"],
                 },
             },
             {
@@ -339,6 +346,7 @@ TEST_DATA = [
                     "userAccountControl": [
                         str(UserAccountControlFlag.ACCOUNTDISABLE),
                     ],
+                    "badPwdCount": ["0"],
                 },
             },
         ],

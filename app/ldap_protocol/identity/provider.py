@@ -181,3 +181,20 @@ class IdentityProvider:
 
         """
         return await UserSchema.from_db(user, session_id)
+
+    async def update_bad_pwd_attrs(
+        self,
+        user: User,
+        is_increase: bool,
+    ) -> None:
+        """Update bad password attributes for the user.
+
+        Args:
+            user: User entity to update
+            is_increase: Whether to increase or decrease the bad password count
+
+        """
+        await self._identity_provider_gateway.update_bad_pwd_attrs(
+            user,
+            is_increase,
+        )

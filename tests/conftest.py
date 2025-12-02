@@ -1401,6 +1401,14 @@ async def ctx_search(
         yield await c.get(LDAPSearchRequestContext)
 
 
+@pytest.fixture
+async def identity_provider(
+    request_container: AsyncContainer,
+) -> AsyncIterator[IdentityProvider]:
+    """Return session storage."""
+    yield await request_container.get(IdentityProvider)  # noqa: PT022
+
+
 def pytest_configure(config: pytest.Config) -> None:
     """Pytest hook to limit xdist workers based on Dragonfly DBs.
 

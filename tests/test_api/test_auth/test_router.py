@@ -13,7 +13,6 @@ import pytest_asyncio
 from fastapi import status
 from httpx import AsyncClient
 from jose import jwt
-from password_utils import PasswordUtils
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -21,11 +20,13 @@ from sqlalchemy.orm import joinedload
 from entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
 from ldap_protocol.auth.utils import authenticate_user
+from ldap_protocol.identity.provider import IdentityProvider
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
+from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
@@ -602,6 +603,7 @@ async def test_mfa_auth(
     session: AsyncSession,
     creds: TestCreds,
     password_utils: PasswordUtils,
+    identity_provider: IdentityProvider,
     enable_mfa: None,  # noqa: ARG001
 ) -> None:
     """Test auth with MFA."""
@@ -631,6 +633,7 @@ async def test_mfa_auth(
         creds.un,
         creds.pw,
         password_utils,
+        identity_provider.update_bad_pwd_attrs,
     )
 
     assert user

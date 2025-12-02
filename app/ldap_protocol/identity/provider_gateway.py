@@ -4,12 +4,13 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import select
+from sqlalchemy import Integer, String, cast, literal, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from entities import Group, Role, User
+from entities import Attribute, Group, Role, User
 from enums import AuthorizationRules
+from ldap_protocol.utils.helpers import ft_now
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -54,3 +55,51 @@ class IdentityProviderGateway:
         )  # fmt: skip
 
         return AuthorizationRules.combine(permissions)
+
+    async def update_bad_pwd_attrs(
+        self,
+        user: User,
+        is_increase: bool,
+    ) -> None:
+        await self.__update_bad_pwd_count(user, is_increase)
+        await self.__update_bad_pwd_time(user, is_increase)
+        await self.session.commit()
+
+    async def __update_bad_pwd_count(
+        self,
+        user: User,
+        is_increase: bool,
+    ) -> None:
+        """Increment the bad password count for a user."""
+        if is_increase:
+            new_value = cast(qa(Attribute.value), Integer) + 1
+        else:
+            new_value = literal(0)
+
+        q = (
+            update(Attribute)
+            .values(value=cast(new_value, String))
+            .filter_by(
+                directory_id=user.directory_id,
+                name="badPwdCount",
+            )
+            .execution_options(synchronize_session=False)
+        )
+        await self.session.execute(q)
+        await self.session.flush()
+
+    async def __update_bad_pwd_time(
+        self,
+        user: User,
+        is_increase: bool,
+    ) -> None:
+        if is_increase:
+            await self.session.execute(  # update bad password time attribute
+                update(Attribute)
+                .values({"value": ft_now()})
+                .filter_by(
+                    directory_id=user.directory_id,
+                    name="badPasswordTime",
+                ),
+            )
+            await self.session.flush()

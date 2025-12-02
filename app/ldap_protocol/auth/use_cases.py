@@ -109,6 +109,8 @@ class SetupUseCase:
                         "gidNumber": ["513"],
                         "userAccountControl": ["512"],
                         "primaryGroupID": ["512"],
+                        "badPwdCount": ["0"],
+                        "badPasswordTime": ["0"],
                     },
                     "objectSid": 500,
                 },

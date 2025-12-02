@@ -17,6 +17,7 @@ from config import Settings
 from enums import AuthorizationRules
 from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import LDAPSession, UserSchema
+from ldap_protocol.identity.provider import IdentityProvider
 from ldap_protocol.kerberos.exceptions import (
     KerberosBaseDnNotFoundError,
     KerberosDependencyError,
@@ -57,6 +58,7 @@ class KerberosService(AbstractService):
         krb_template_render: KRBTemplateRenderer,
         krb_ldap_manager: KRBLDAPStructureManager,
         password_utils: PasswordUtils,
+        identity_provider: IdentityProvider,
     ) -> None:
         """Initialize KerberosService dependencies.
 
@@ -70,6 +72,8 @@ class KerberosService(AbstractService):
                 LDAP structure manager for Kerberos (IoC-injected).
             password_utils (PasswordUtils):
                 Password utils (IoC-injected).
+            identity_provider (IdentityProvider):
+                Identity provider (IoC-injected).
 
 
         """
@@ -79,6 +83,7 @@ class KerberosService(AbstractService):
         self._template_render = krb_template_render
         self._ldap_manager = krb_ldap_manager
         self._password_utils = password_utils
+        self._identity_provider = identity_provider
 
     async def setup_krb_catalogue(
         self,
@@ -199,6 +204,8 @@ class KerberosService(AbstractService):
                         + UserAccountControlFlag.DONT_EXPIRE_PASSWORD,
                     ),
                 ],
+                "badPwdCount": ["0"],
+                "badPasswordTime": ["0"],
             },
         )
         return AddRequests(
@@ -308,6 +315,7 @@ class KerberosService(AbstractService):
             user.user_principal_name,
             password,
             self._password_utils,
+            self._identity_provider.update_bad_pwd_attrs,
         ):
             raise KerberosDependencyError("Incorrect password")
 

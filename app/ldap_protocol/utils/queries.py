@@ -438,6 +438,11 @@ async def add_lock_and_expire_attributes(
                 value=str(absolute_date),
                 directory_id=directory.id,
             ),
+            Attribute(
+                name="lockoutTime",
+                value=ft_now(),
+                directory_id=directory.id,
+            ),
         ],
     )
 

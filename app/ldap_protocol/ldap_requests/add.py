@@ -337,11 +337,23 @@ class AddRequest(BaseRequest):
                     ),
                 )
 
-            attributes.append(
-                Attribute(
-                    name="pwdLastSet",
-                    value=ft_now(),
-                    directory_id=new_dir.id,
+            attributes.extend(
+                (
+                    Attribute(
+                        name="pwdLastSet",
+                        value=ft_now(),
+                        directory_id=new_dir.id,
+                    ),
+                    Attribute(
+                        name="badPwdCount",
+                        value="0",
+                        directory_id=new_dir.id,
+                    ),
+                    Attribute(
+                        name="badPasswordTime",
+                        value="0",
+                        directory_id=new_dir.id,
+                    ),
                 ),
             )
 
