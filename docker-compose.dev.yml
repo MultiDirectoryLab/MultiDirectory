@@ -74,6 +74,15 @@ services:
       - "traefik.http.routers.interface.tls.certresolver=md-resolver"
       - "traefik.http.services.interface.loadbalancer.server.port=80"
 
+  pre_run_manager:
+    image: multidirectory
+    container_name: pre_run_manager
+    user: root
+    restart: "no"
+    volumes:
+      - kdc:/etc/kdc
+    command: sh -c "/app/extra/pre_run_setup.sh"
+
   cert_check:
     image: multidirectory
     container_name: multidirectory_certs_check
@@ -83,25 +92,6 @@ services:
       - ./app:/app
     command: ./extra/generate_cert.sh
     depends_on:
-      pre_run_manager:
-        condition: service_completed_successfully
-
-
-  pre_run_manager:
-    image: multidirectory
-    container_name: pre_run_manager
-    user: root
-    restart: "no"
-    volumes:
-      - ./app:/app
-      - ./certs:/certs
-      - ./logs:/app/logs
-      - d_ldap_keytab:/LDAP_keytab/
-      - d_dns_server_file:/DNS_server_file/
-      - d_dns_server_config:/DNS_server_configs/
-      - ./audit:/audit
-      - kdc:/etc/kdc
-    command: sh -c "/app/extra/pre_run_setup.sh"
 
   migrations:
     image: multidirectory
@@ -295,6 +285,7 @@ services:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully
+
     ports:
       - 8000:8000
     working_dir: /server
