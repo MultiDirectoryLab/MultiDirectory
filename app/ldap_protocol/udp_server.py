@@ -69,16 +69,16 @@ class CLDAPUDPServer:
             ValueError,
         ) as err:
             log.trace(f"Invalid LDAP schema from {addr_str}")
-
             return LDAPRequestMessage.from_err(data, err).encode()
 
         handler = request.context.handle_udp(container)
-        return b"".join(
-            [
-                response.encode()
-                async for response in request.create_response(handler)
-            ],
-        )
+        responses = [
+            response async for response in request.create_response(handler)
+        ]
+        for response in responses:
+            self._logger.rsp_log(addr_str, response)
+
+        return b"".join(response.encode() for response in responses)
 
     async def start(self) -> None:
         """Start UDP server for CLDAP protocol."""
