@@ -3,7 +3,7 @@
 fix_rndc_key() {
     local rndc_key="/etc/bind/rndc.key"
     if [ -f "$rndc_key" ]; then
-        chown bind:bind "$rndc_key" 2>/dev/null || chown 101:101 "$rndc_key" 2>/dev/null || true
+        chown bind:bind "$rndc_key" 2>/dev/null || chown 100:101 "$rndc_key" 2>/dev/null || true
         chmod 640 "$rndc_key" 2>/dev/null || true
     fi
 }
