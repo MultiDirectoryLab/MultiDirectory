@@ -117,12 +117,12 @@ class AttributeValueValidator:
         return " " not in value and "." not in value
 
     @staticmethod
-    def _not_contains_symbols(value: _ValueType) -> bool:
+    def _not_contains_symbols(value: _ValueType) -> bool:  # TODO rename
         forbidden_symbols = set(',+"\\<>;=')
         return not bool(set(value) & forbidden_symbols)
 
     @staticmethod
-    def _not_contains_symbols2(value: _ValueType) -> bool:
+    def _not_contains_symbols2(value: _ValueType) -> bool:  # TODO rename
         forbidden_symbols = set('"/\\[]:;|=,+*?<>')
         return not bool(set(value) & forbidden_symbols)
 
