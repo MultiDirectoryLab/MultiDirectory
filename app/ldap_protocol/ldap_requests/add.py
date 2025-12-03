@@ -221,8 +221,6 @@ class AddRequest(BaseRequest):
             ),
         )
 
-        before_attrs: dict[str, list[str | bytes]] = {}
-
         for attr in self.attributes:
             attr_name = attr.type.lower()
             # NOTE: Do not create a duplicate if the user has sent the rdn
@@ -238,7 +236,8 @@ class AddRequest(BaseRequest):
             ):
                 continue
 
-            before_attrs[attr_name] = attr.vals
+            if attr_name == "objectclass":
+                self.set_event_data({"before_attrs": {attr_name: attr.vals}})
 
             for value in attr.vals:
                 if (
@@ -265,8 +264,6 @@ class AddRequest(BaseRequest):
                             directory_id=new_dir.id,
                         ),
                     )
-
-        self.set_event_data({"before_attrs": before_attrs})
 
         parent_groups = await get_groups(group_attributes, ctx.session)
         is_group = "group" in self.attrs_dict.get("objectClass", [])
