@@ -237,7 +237,7 @@ class AddRequest(BaseRequest):
                 continue
 
             if attr_name == "objectclass":
-                self.set_event_data({"before_attrs": attr.vals})
+                self.set_event_data({"before_attrs": {attr_name: attr.vals}})
 
             for value in attr.vals:
                 if (
