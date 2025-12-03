@@ -13,7 +13,7 @@ import struct
 import uuid
 from collections import defaultdict
 
-from ldap_protocol.netlogon import (
+from ldap_protocol.rootdse.netlogon import (
     _NL_DEFAULT_SITE,
     _ZERO_UUID,
     _ZERO_VER,

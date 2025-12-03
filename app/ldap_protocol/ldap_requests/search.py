@@ -18,7 +18,6 @@ from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from config import Settings
 from entities import (
     Attribute,
     AttributeType,
@@ -42,13 +41,12 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
-from ldap_protocol.netlogon import NetLogonAttributeHandler
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
+from ldap_protocol.rootdse.netlogon import NetLogonAttributeHandler
 from ldap_protocol.utils.cte import get_all_parent_group_directories
 from ldap_protocol.utils.helpers import (
     dt_to_ft,
-    get_generalized_now,
     get_windows_timestamp,
     string_to_sid,
 )
@@ -217,70 +215,6 @@ class SearchRequest(BaseRequest):
             ],
         )
 
-    async def get_root_dse(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-    ) -> defaultdict[str, list[str]]:
-        """Get RootDSE.
-
-        :return defaultdict[str, list[str]]: queried attrs
-        """
-        data = defaultdict(list)
-        domain_query = select(Directory).filter_by(object_class="domain")
-        domain = (await session.scalars(domain_query)).one()
-
-        schema = "CN=Schema"
-        if self.requested_attrs == ["subschemasubentry"]:
-            data["subschemaSubentry"].append(schema)
-            return data
-
-        data["dnsHostName"].append(domain.name)
-        data["serverName"].append(domain.name)
-        data["serviceName"].append(domain.name)
-        data["dsServiceName"].append(domain.name)
-        data["LDAPServiceName"].append(domain.name)
-        data["dnsForestName"].append(domain.name)
-        data["dnsDomainName"].append(domain.name)
-        data["domainGuid"].append(str(domain.object_guid))
-        data["vendorName"].append(settings.VENDOR_NAME)
-        data["vendorVersion"].append(settings.VENDOR_VERSION)
-        data["namingContexts"].append(domain.path_dn)
-        data["namingContexts"].append(schema)
-        data["rootDomainNamingContext"].append(domain.path_dn)
-        data["supportedLDAPVersion"].append("3")
-        data["defaultNamingContext"].append(domain.path_dn)
-        data["currentTime"].append(get_generalized_now(settings.TIMEZONE))
-        data["subschemaSubentry"].append(schema)
-        data["schemaNamingContext"].append(schema)
-        data["supportedSASLMechanisms"] = [
-            "ANONYMOUS",
-            "PLAIN",
-            "GSSAPI",
-            "GSS-SPNEGO",
-        ]
-        data["highestCommittedUSN"].append("126991")
-        data["supportedExtension"] = [
-            "1.3.6.1.4.1.4203.1.11.3",  # whoami
-            "1.3.6.1.4.1.4203.1.11.1",  # password modify
-        ]
-        data["supportedControl"] = [
-            "2.16.840.1.113730.3.4.4",  # password expire policy
-        ]
-        data["domainFunctionality"].append("0")
-        data["supportedLDAPPolicies"] = [
-            "MaxConnIdleTime",
-            "MaxPageSize",
-            "MaxValRange",
-        ]
-        data["supportedCapabilities"] = [
-            "1.2.840.113556.1.4.800",  # ACTIVE_DIRECTORY_OID
-            "1.2.840.113556.1.4.1670",  # ACTIVE_DIRECTORY_V51_OID
-            "1.2.840.113556.1.4.1791",  # ACTIVE_DIRECTORY_LDAP_INTEG_OID
-        ]
-
-        return data
-
     def _cast_filter(self) -> UnaryExpression | ColumnElement:
         """Convert asn1 row filter_ to sqlalchemy obj.
 
@@ -308,7 +242,7 @@ class SearchRequest(BaseRequest):
         return "netlogon" in self.requested_attrs
 
     async def _get_netlogon(self, ctx: LDAPSearchRequestContext) -> bytes:
-        rootdse = await self.get_root_dse(ctx.session, ctx.settings)
+        rootdse = await ctx.rootdse_gw.get(self.requested_attrs)
         nl = NetLogonAttributeHandler.from_filter(rootdse, self.filter)
         return nl.get_attr()
 
@@ -343,7 +277,7 @@ class SearchRequest(BaseRequest):
                     ],
                 )
             elif is_root_dse:
-                attrs = await self.get_root_dse(ctx.session, ctx.settings)
+                attrs = await ctx.rootdse_gw.get(self.requested_attrs)
                 yield SearchResultEntry(
                     object_name="",
                     partial_attributes=[
