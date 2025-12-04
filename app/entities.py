@@ -385,12 +385,6 @@ class User:
         user_account_exp = self.account_exp.astimezone(timezone.utc)
         return now > user_account_exp
 
-    @property
-    def entity_type_name(self) -> Literal[EntityTypeNames.USER]:
-        # NOTE: Perfectly correct use `self.directory.entity_type.name`,
-        # but there is no point in this
-        return EntityTypeNames.USER
-
 
 @dataclass
 class Group:
@@ -446,12 +440,6 @@ class Group:
         compare=False,
     )
     search_fields: ClassVar[dict[str, str]] = {}
-
-    @property
-    def entity_type_name(self) -> Literal[EntityTypeNames.GROUP]:
-        # NOTE: Perfectly correct use `self.directory.entity_type.name`,
-        # but there is no point in this
-        return EntityTypeNames.GROUP
 
 
 @dataclass
