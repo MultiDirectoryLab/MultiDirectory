@@ -117,6 +117,8 @@ class _ValValidators:
 class AttributeValueValidator:
     """Validator for attribute values for different entity types."""
 
+    _compiled_validators: _CompiledValidatorsType
+
     def __init__(self) -> None:
         """Initialize AttributeValueValidator."""
         self._compiled_validators: _CompiledValidatorsType = (
