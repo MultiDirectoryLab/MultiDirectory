@@ -14,9 +14,11 @@ services:
       - "8080:8080"
       - "443:443"
       - "389:389"
+      - "389:389/udp"
       - "636:636"
-      - "88:88"
       - "749:749"
+      - "53:53"
+      - "53:53/udp"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
@@ -52,36 +54,27 @@ services:
 
   interface:
     container_name: multidirectory_interface
+    # image: ghcr.io/multidirectorylab/multidirectory-web-admin::beta
+    restart: unless-stopped
     build:
       context: ./interface
-      dockerfile: configurations/docker/Dockerfile.dev
+      dockerfile: configurations/docker/Dockerfile
       args:
-        - API_URL=https://${DOMAIN}/api
-    restart: unless-stopped
+        API_URL: https://${DOMAIN}/api
     environment:
       - HUSKY=0
       - API_URL=https://${DOMAIN}/api
       - NODE_ENV=development
-    ports:
-      - 9080:80
     working_dir: /app
-    command:  ng serve --host 0.0.0.0 --port 80 --poll 2000
+    env_file:
+      local.env
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.interface.rule=Host(`${DOMAIN}`)"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.interface.rule=Host(`${DOMAIN}`)'
       - "traefik.http.routers.interface.entrypoints=websecure"
       - "traefik.http.routers.interface.tls=true"
       - "traefik.http.routers.interface.tls.certresolver=md-resolver"
       - "traefik.http.services.interface.loadbalancer.server.port=80"
-
-  pre_run_manager:
-    image: multidirectory
-    container_name: pre_run_manager
-    user: root
-    restart: "no"
-    volumes:
-      - kdc:/etc/kdc
-    command: sh -c "/app/extra/pre_run_setup.sh"
 
   cert_check:
     image: multidirectory
@@ -91,24 +84,65 @@ services:
       - ./certs:/certs
       - ./app:/app
     command: ./extra/generate_cert.sh
+
+  cldap_server:
+    build:
+      context: .
+      dockerfile: ./.docker/dev.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
+    image: multidirectory
+    restart: unless-stopped
+    environment:
+      - SERVICE_NAME=cldap_server
+    # container_name: multidirectory
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - ldap_keytab:/LDAP_keytab/
+    env_file: local.env
+    command: python -OO multidirectory.py --cldap
+    tty: true
     depends_on:
+      migrations:
+        condition: service_completed_successfully
+      cert_local_check:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 100M
+    labels:
+      - traefik.enable=true
+
+      - traefik.udp.routers.cldap.entrypoints=cldap
+      - traefik.udp.routers.cldap.service=cldap
+      - traefik.udp.services.cldap.loadbalancer.server.port=389
+
+
+  cert_local_check:
+    image: multidirectory
+    container_name: multidirectory_local_certs_check
+    restart: "no"
+    volumes:
+      - ./certs:/certs
+    command: sh -c "test -f /certs/cert.pem && echo 'CERT EXISTS, SKIPPING...' || openssl req -nodes -new -x509 -keyout /certs/privkey.pem -out /certs/cert.pem -subj '/C=RU/ST=Moscow/L=Moscow/O=Global Security/OU=Multifactor/CN=md.multifactor.dev'";
 
   migrations:
     image: multidirectory
     container_name: multidirectory_migrations
     restart: "no"
-    environment:
-      DEBUG: 1
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-      DOMAIN: ${DOMAIN}
-    command: alembic upgrade head
+    command: python multidirectory.py --migrate
+    env_file:
+      local.env
     depends_on:
       postgres:
         condition: service_healthy
-      pre_run_manager:
-        condition: service_completed_successfully
+    volumes:
+      - ./app:/app
+
 
   ldap_server:
     build:
@@ -118,33 +152,30 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
-    user: root
     restart: unless-stopped
     hostname: multidirectory
     volumes:
+      - ./app:/app
       - ./certs:/certs
       - ./logs:/app/logs
+      - ldap_keytab:/LDAP_keytab/
     command: python multidirectory.py --ldap
     tty: true
+    env_file:
+      local.env
     environment:
-      DEBUG: 1
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-      MFA_API_SOURCE: dev
-      DOMAIN: ${DOMAIN}
       SERVICE_NAME: ldap_server
     depends_on:
       migrations:
         condition: service_completed_successfully
     deploy:
       mode: replicated
-      replicas: 4
+      replicas: 1
       endpoint_mode: dnsrr
       resources:
         reservations:
           cpus: '0.25'
-          memory: 100M
+          memory: 500M
     labels:
       - traefik.enable=true
 
@@ -174,21 +205,17 @@ services:
     restart: unless-stopped
     environment:
       USE_CORE_TLS: 1
-      DEBUG: 1
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
-      SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
-      MFA_API_SOURCE: dev
-      DOMAIN: ${DOMAIN}
       SERVICE_NAME: multidirectory_api
+      KRB5_LDAP_URI: ldap://ldap_server
     hostname: api_server
+    env_file:
+      local.env
     volumes:
       - ./app:/app
       - ./certs:/certs
-      - ./logs:/app/logs
-      - d_dns_server_file:/DNS_server_file/
-      - d_dns_server_config:/DNS_server_configs/
-      - d_ldap_keytab:/LDAP_keytab/
+      - dns_server_file:/DNS_server_file/
+      - dns_server_config:/DNS_server_configs/
+      - ldap_keytab:/LDAP_keytab/
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
@@ -199,7 +226,6 @@ services:
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
-      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"
 
     command:  python multidirectory.py --http
     depends_on:
@@ -226,18 +252,42 @@ services:
       local.env
     command: python multidirectory.py --shadow
 
+  maintence:
+    image: multidirectory
+    container_name: md_maintence
+    restart: unless-stopped
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
+      - ldap_keytab:/LDAP_keytab/
+    env_file:
+      local.env
+    command: python multidirectory.py --scheduler
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 500M
+        reservations:
+          cpus: '0.1'
+          memory: 6M
+
   postgres:
     container_name: MD-postgres
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 4002afa6900c4072a5577a30de99633e
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: password123
       PGDATA: /data/postgres
     volumes:
-       - d_postgres:/data/postgres
-    expose:
-      - 5432
+       - postgres:/data/postgres
+    ports:
+      - 5432:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U user"]
       interval: 1s
@@ -255,20 +305,18 @@ services:
     restart: unless-stopped
     hostname: kerberos
     volumes:
-      - d_keyfile:/etc/krb5.d/
-      - d_kdc:/etc
+      - kdc:/etc
     image: krb5md
     tty: true
     depends_on:
-      - ldap_server
+      ldap_server:
+        condition: service_healthy
+        restart: true
     command: krb5kdc -n
-
-    labels:
-      - traefik.enable=true
-      - traefik.tcp.routers.kdc.rule=HostSNI(`*`)
-      - traefik.tcp.routers.kdc.entrypoints=kdc
-      - traefik.tcp.routers.kdc.service=kdc
-      - traefik.tcp.services.kdc.loadbalancer.server.port=88
+    
+    ports:
+      - "88:88"
+      - "88:88/udp"
 
   kadmin_api:
     image: krb5md
@@ -276,31 +324,27 @@ services:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
-      - d_keyfile:/etc/krb5.d/
       - .kerberos/:/server/
-      - d_kdc:/etc
+      - ./certs:/certs
+      - kdc:/etc
     tty: true
     depends_on:
       ldap_server:
         condition: service_healthy
+        restart: true
       cert_check:
         condition: service_completed_successfully
-
-    ports:
-      - 8000:8000
+      kdc:
+        condition: service_started
     working_dir: /server
-    command: uvicorn --factory config_server:create_app
-             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
-             --ssl-certfile=/certs/krbcert.pem
-             --reload
+    command: ./entrypoint.sh
 
   kadmind:
     container_name: kadmind
     restart: unless-stopped
     hostname: kerberos
     volumes:
-      - d_keyfile:/etc/krb5.d/
-      - d_kdc:/etc
+      - kdc:/etc
     image: krb5md
     tty: true
     depends_on:
@@ -314,9 +358,16 @@ services:
       - traefik.tcp.routers.kadmind.service=kadmind
       - traefik.tcp.services.kadmind.loadbalancer.server.port=749
 
+      - traefik.tcp.routers.kpasswd.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kpasswd.entrypoints=kpasswd
+      - traefik.tcp.routers.kpasswd.service=kpasswd
+      - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
+
+
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly
+    restart: always
     expose:
       - 6379
     deploy:
@@ -329,13 +380,20 @@ services:
           memory: 0.5GiB
 
   bind_dns:
+    build:
+      context: .
+      dockerfile: ./.docker/bind9.Dockerfile
     image: bind9md
     container_name: bind9
     hostname: bind9
     restart: unless-stopped
+    environment:
+      - DEFAULT_NAMESERVER=192.168.69.241
+      - USE_CONFIG_FILE_LOGGING=true
     volumes:
-      - d_dns_server_file:/opt/
-      - d_dns_server_config:/etc/bind/
+      - dns_server_file:/opt/
+      - dns_server_config:/etc/bind/
+      - .dns/:/server/
     tty: true
     depends_on:
       ldap_server:
@@ -352,7 +410,7 @@ services:
     restart: unless-stopped
     tty: true
     env_file:
-      .env
+      local.env
     volumes:
       - ./app:/app
     command: python multidirectory.py --event_handler
@@ -374,16 +432,19 @@ services:
       - ./app:/app
       - ./audit:/audit
     env_file:
-      .env
+      local.env
     command: python multidirectory.py --event_sender
     environment:
       HANDLER_NAME: event_sender-1
 
+
+
 volumes:
-  d_postgres:
-  d_pgadmin:
-  d_keyfile:
-  d_kdc:
-  d_dns_server_file:
-  d_dns_server_config:
-  d_ldap_keytab:
+  postgres:
+  pgadmin:
+  wireshark:
+  kdc:
+  dns_server_file:
+  dns_server_config:
+  ldap_keytab:
+  dragonflydata:

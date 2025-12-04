@@ -236,7 +236,7 @@ async def get_group(
     )
 
     if validate_entry(dn):
-        query = query.filter_by(path=get_search_path(dn))
+        query = query.filter(get_filter_from_path(dn))
     else:
         query = query.filter_by(name=dn)
 
@@ -491,15 +491,30 @@ async def set_or_update_primary_group(
 
     group = await get_group(group_dn, session)
 
+    is_member = await session.scalar(
+        select(
+            exists().where(
+                directory_memberships_table.c.directory_id == directory.id,
+                directory_memberships_table.c.group_id == group.id,
+            ),
+        ),
+    )
+
+    if not is_member:
+        raise ValueError(
+            f"Directory '{directory_dn}' is not a member of "
+            f"group '{group_dn}'.",
+        )
+
     updated_attribute = await session.scalar(
         update(Attribute)
         .values(value=group.directory.relative_id)
         .where(
             qa(Attribute.name) == "primaryGroupID",
-            qa(Attribute.directory_id)==directory.id,
+            qa(Attribute.directory_id) == directory.id,
         )
         .returning(qa(Attribute.directory_id)),
-    )  # fmt: skip
+    )
 
     if not updated_attribute:
         session.add(

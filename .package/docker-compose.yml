@@ -83,7 +83,6 @@ services:
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     restart: unless-stopped
-    user: root
     hostname: multidirectory-ldap
     env_file:
       .env
@@ -191,15 +190,6 @@ services:
       - ./certs:/certs
     command: ./extra/generate_cert.sh
 
-  pre_run_manager:
-    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
-    container_name: pre_run_manager
-    user: root
-    restart: "no"
-    volumes:
-      - kdc:/etc/kdc
-    command: sh -c "/app/extra/pre_run_setup.sh"
-
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: md_maintence
@@ -253,10 +243,7 @@ services:
       cert_check:
         condition: service_completed_successfully
     working_dir: /server
-    command: uvicorn --factory config_server:create_app
-             --host 0.0.0.0 --ssl-keyfile=/certs/krbkey.pem
-             --ssl-certfile=/certs/krbcert.pem
-
+    command: ./entrypoint.sh
   kadmind:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
     container_name: kadmind
