@@ -149,7 +149,7 @@ class ModifyRequest(BaseRequest):
         now = datetime.now(timezone.utc) + timedelta(days=max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(  # noqa: C901
+    async def handle(
         self,
         ctx: LDAPModifyRequestContext,
     ) -> AsyncGenerator[ModifyResponse, None]:
@@ -289,20 +289,17 @@ class ModifyRequest(BaseRequest):
                     is_system_entity_type=False,
                 )
 
-            try:
-                await ctx.session.refresh(
-                    instance=directory,
-                    attribute_names=["attributes", "user", "entity_type"],
-                )
-                if not ctx.attribute_value_validator.validate_directory(
-                    directory,
-                ):
-                    raise ValueError
-            except ValueError:
+            await ctx.session.refresh(
+                instance=directory,
+                attribute_names=["attributes", "user", "entity_type"],
+            )
+            if not ctx.attribute_value_validator.validate_directory(
+                directory,
+            ):
                 await ctx.session.rollback()
                 yield ModifyResponse(
                     result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                    message="Invalid value.",
+                    message="Invalid attribute value(s)",
                 )
                 return
 

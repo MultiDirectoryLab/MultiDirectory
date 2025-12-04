@@ -261,11 +261,12 @@ class ModifyDNRequest(BaseRequest):
                     select(AccessControlEntry)
                     .options(selectinload(qa(AccessControlEntry.directories)))
                     .where(
-                        qa(AccessControlEntry.directories)
-                        .any(qa(Directory.id) == directory.id),
+                        qa(AccessControlEntry.directories).any(
+                            qa(Directory.id) == directory.id,
+                        ),
                         qa(AccessControlEntry.depth) == old_depth,
                     )
-                )  # fmt: skip
+                )
                 for ace in await ctx.session.scalars(explicit_aces_query):
                     ace.directories.append(directory)
                     ace.path = directory.path_dn

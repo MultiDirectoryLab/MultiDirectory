@@ -211,12 +211,14 @@ DATA = [
 ]
 
 
-class _EntityTypeData(TypedDict):
+class EntityTypeData(TypedDict):
+    """Entity Type data."""
+
     name: EntityTypeNames | str
     object_class_names: list[str]
 
 
-ENTITY_TYPE_DATAS: list[_EntityTypeData] = [
+ENTITY_TYPE_DATAS: list[EntityTypeData] = [
     {
         "name": EntityTypeNames.DOMAIN,
         "object_class_names": ["top", "domain", "domainDNS"],

@@ -451,12 +451,6 @@ attributes_table = Table(
         "value",
         postgresql_using="gin",
     ),
-    Index(
-        "idx_attributes_value_distinguished_name",
-        "value",
-        postgresql_where=text("lower(name::text) = 'distinguishedname'"),
-        unique=True,
-    ),
 )
 
 password_policies_table = Table(

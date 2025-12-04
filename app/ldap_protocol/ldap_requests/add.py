@@ -430,7 +430,7 @@ class AddRequest(BaseRequest):
             await ctx.session.rollback()
             yield AddResponse(
                 result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
-                errorMessage="Not valid attribute value(-s)",
+                errorMessage="Invalid attribute value(s)",
             )
         else:
             try:
