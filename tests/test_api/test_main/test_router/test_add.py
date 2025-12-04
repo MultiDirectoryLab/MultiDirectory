@@ -68,7 +68,7 @@ async def test_api_add_incorrect_computer_name(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get("resultCode") == LDAPCodes.INVALID_ATTRIBUTE_SYNTAX
+    assert data.get("resultCode") == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
 
 
 @pytest.mark.asyncio
@@ -111,7 +111,7 @@ async def test_api_add_incorrect_user_samaccount_with_dot(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get("resultCode") == LDAPCodes.INVALID_ATTRIBUTE_SYNTAX
+    assert data.get("resultCode") == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
 
 
 @pytest.mark.asyncio
