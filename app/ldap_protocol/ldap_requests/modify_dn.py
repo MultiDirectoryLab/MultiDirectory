@@ -249,11 +249,12 @@ class ModifyDNRequest(BaseRequest):
                     if not ctx.attribute_value_validator.validate_directory(
                         directory,
                     ):
-                        raise ValueError
+                        raise ValueError("Invalid attribute value(s)")
                 except ValueError:
                     await ctx.session.rollback()
                     yield ModifyDNResponse(
-                        result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                        result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                        message="Invalid attribute value(s)",
                     )
                     return
 

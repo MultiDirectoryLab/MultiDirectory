@@ -73,10 +73,10 @@ async def test_api_add_incorrect_computer_name(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_incorrect_user_samaccount(
+async def test_api_add_incorrect_user_samaccount_with_dot(
     http_client: AsyncClient,
 ) -> None:
-    """Test api incorrect (name) add."""
+    """Test api incorrect (sAMAccountName) add."""
     un = "test0"
 
     response = await http_client.post(

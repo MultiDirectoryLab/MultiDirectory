@@ -416,7 +416,7 @@ class AddRequest(BaseRequest):
                 object_class_names=self.object_class_names,
             )
             if not ctx.attribute_value_validator.validate_directory(new_dir):
-                raise ValueError
+                raise ValueError("Invalid attribute value(s)")
 
             await ctx.role_use_case.inherit_parent_aces(
                 parent_directory=parent,
@@ -429,7 +429,7 @@ class AddRequest(BaseRequest):
         except ValueError:
             await ctx.session.rollback()
             yield AddResponse(
-                result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
                 errorMessage="Invalid attribute value(s)",
             )
         else:
