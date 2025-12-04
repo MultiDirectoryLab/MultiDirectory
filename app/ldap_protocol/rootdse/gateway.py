@@ -61,7 +61,6 @@ class RootDSEGateway:
         data["dnsForestName"].append(domain.name)
         data["dnsDomainName"].append(domain.name)
         data["domainGuid"].append(str(domain.object_guid))
-        data["SID"].append(domain.object_sid)
         data["vendorName"].append(self._settings.VENDOR_NAME)
         data["vendorVersion"].append(self._settings.VENDOR_VERSION)
         data["namingContexts"].append(domain.path_dn)
