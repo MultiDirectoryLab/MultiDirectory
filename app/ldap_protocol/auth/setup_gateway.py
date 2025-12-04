@@ -98,7 +98,9 @@ class SetupGateway:
                 is_system_entity_type=True,
             )
             if not self._attribute_value_validator.validate_directory(domain):
-                raise
+                raise ValueError(
+                    "Invalid directory attribute values during environment setup",  # noqa: E501
+                )
             await self._session.flush()
 
         try:
@@ -212,7 +214,7 @@ class SetupGateway:
             is_system_entity_type=True,
         )
         if not self._attribute_value_validator.validate_directory(dir_):
-            raise
+            raise ValueError("Invalid directory attribute values")
         await self._session.flush()
 
         if "children" in data:

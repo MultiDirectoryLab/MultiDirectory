@@ -81,7 +81,7 @@ class _ValValidators:
 
     @staticmethod
     def _not_start_with_number(value: _ValueType) -> bool:
-        return not value[0].isdigit()
+        return bool(value and not value[0].isdigit())
 
     @staticmethod
     def _not_start_with_hash(value: _ValueType) -> bool:
@@ -157,9 +157,7 @@ class AttributeValueValidator:
 
         entity_type_name = tcast("EntityTypeNames", entity_type_name)
 
-        validator = self._compiled_validators\
-            .get(entity_type_name, {})\
-            .get(attr_name)  # fmt: skip
+        validator = self._compiled_validators.get(entity_type_name, {}).get(attr_name)  # noqa: E501  # fmt: skip
 
         if not validator:
             return True
@@ -169,7 +167,7 @@ class AttributeValueValidator:
     def validate_directory(self, directory: Directory) -> bool:
         """Validate all directory attributes."""
         if not directory.entity_type:
-            raise
+            raise ValueError("Directory must have an entity type")
 
         entity_type_name = directory.entity_type.name
         if entity_type_name not in EntityTypeNames:
@@ -182,7 +180,7 @@ class AttributeValueValidator:
 
         if entity_type_name == EntityTypeNames.USER:
             if not directory.user:
-                raise
+                raise ValueError("User directory must have associated User")
 
             if not self.validate_value(
                 entity_type_name,
