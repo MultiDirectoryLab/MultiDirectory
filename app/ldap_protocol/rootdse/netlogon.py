@@ -17,12 +17,12 @@ from dataclasses import dataclass
 from enum import IntEnum, IntFlag
 from typing import Any, Self
 
+from constants import DEFAULT_DC_POSTFIX
 from ldap_protocol.asn1parser import ASN1Row
 
 _NL_DEFAULT_SITE = "Default-First-Site-Name"
 _ZERO_UUID = uuid.UUID(int=0)
 _ZERO_VER = 0x00000000.to_bytes(4, byteorder="big").decode()  # ASN.1 oct zero
-_DEFAULT_DC = "DC1"
 
 
 class NetLogonOPCode(IntEnum):
@@ -122,7 +122,7 @@ class NetLogonAttributeHandler:
         return self.__root_dse["dnsDomainName"][0].split(".")[0].upper()
 
     def _get_netbios_hostname(self) -> str:
-        return self._get_netbios_domain() + _DEFAULT_DC
+        return self._get_netbios_domain() + DEFAULT_DC_POSTFIX
 
     @classmethod
     def from_filter(

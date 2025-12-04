@@ -16,7 +16,7 @@ from ldap_protocol.multifactor import LDAPMultiFactorAPI
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.rootdse.gateway import RootDSEGateway
+from ldap_protocol.rootdse.reader import RootDSEReader
 from ldap_protocol.session_storage import SessionStorage
 from password_utils import PasswordUtils
 
@@ -71,7 +71,7 @@ class LDAPSearchRequestContext:
     ldap_session: LDAPSession
     settings: Settings
     access_manager: AccessManager
-    rootdse_gw: RootDSEGateway
+    rootdse_rd: RootDSEReader
 
 
 @dataclass

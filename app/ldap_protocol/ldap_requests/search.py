@@ -242,7 +242,7 @@ class SearchRequest(BaseRequest):
         return "netlogon" in self.requested_attrs
 
     async def _get_netlogon(self, ctx: LDAPSearchRequestContext) -> bytes:
-        rootdse = await ctx.rootdse_gw.get(self.requested_attrs)
+        rootdse = await ctx.rootdse_rd.get(self.requested_attrs)
         nl = NetLogonAttributeHandler.from_filter(rootdse, self.filter)
         return nl.get_attr()
 
@@ -277,7 +277,7 @@ class SearchRequest(BaseRequest):
                     ],
                 )
             elif is_root_dse:
-                attrs = await ctx.rootdse_gw.get(self.requested_attrs)
+                attrs = await ctx.rootdse_rd.get(self.requested_attrs)
                 yield SearchResultEntry(
                     object_name="",
                     partial_attributes=[

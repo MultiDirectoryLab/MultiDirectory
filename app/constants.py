@@ -326,3 +326,5 @@ FIRST_SETUP_DATA = [
         "children": [],
     },
 ]
+
+DEFAULT_DC_POSTFIX = "DC1"
