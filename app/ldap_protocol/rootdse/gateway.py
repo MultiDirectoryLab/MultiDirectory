@@ -14,7 +14,7 @@ class SADomainGateway:
     """RootDSE gw."""
 
     def __init__(self, session: AsyncSession) -> None:
-        """Setu up gw."""
+        """Set up gw."""
         self._session = session
 
     async def get_domain(self) -> Directory:
