@@ -136,6 +136,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
+from ldap_protocol.rootdse.gateway import RootDSEGateway
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
@@ -686,6 +687,8 @@ class TestProvider(Provider):
         identity_provider: IdentityProvider,
     ) -> AuthorizationProvider:
         return AuthorizationProvider(identity_provider)
+
+    rootdse_gw = provide(RootDSEGateway, scope=Scope.REQUEST)
 
 
 @dataclass

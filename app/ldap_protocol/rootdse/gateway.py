@@ -34,7 +34,7 @@ class RootDSEGateway:
         self._session = session
         self._settings = settings
 
-    async def _query(self) -> Directory:
+    async def get_domain(self) -> Directory:
         domain_query = select(Directory).filter_by(object_class="domain")
         return (await self._session.scalars(domain_query)).one()
 
@@ -46,7 +46,7 @@ class RootDSEGateway:
 
         :return defaultdict[str, list[str]]: queried attrs
         """
-        domain = await self._query()
+        domain = await self.get_domain()
         data = defaultdict(list)
         schema = "CN=Schema"
         if requested_attrs == ["subschemasubentry"]:
