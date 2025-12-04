@@ -214,7 +214,7 @@ DATA = [
 class EntityTypeData(TypedDict):
     """Entity Type data."""
 
-    name: EntityTypeNames | str
+    name: EntityTypeNames
     object_class_names: list[str]
 
 
