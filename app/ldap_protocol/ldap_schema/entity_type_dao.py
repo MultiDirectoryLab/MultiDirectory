@@ -126,12 +126,13 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
             for directory in result.scalars():
                 for object_class_name in entity_type.object_class_names:
-                    self.__attribute_value_validator.validate_value(
-                        entity_type.name,  # TODO fixme
+                    if not self.__attribute_value_validator.validate_value(
+                        entity_type.name,
                         "objectClass",
                         object_class_name,
-                    )
-                    # TODO 7 validate attributes
+                    ):
+                        raise ValueError
+
                     self.__session.add(
                         Attribute(
                             directory_id=directory.id,

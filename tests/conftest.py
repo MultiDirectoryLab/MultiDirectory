@@ -882,8 +882,8 @@ async def setup_session(
         await entity_type_dao.create(
             dto=EntityTypeDTO(
                 id=None,
-                name=entity_type_data["name"],  # type: ignore
-                object_class_names=entity_type_data["object_class_names"],  # type: ignore
+                name=entity_type_data["name"],
+                object_class_names=entity_type_data["object_class_names"],
                 is_system=True,
             ),
         )

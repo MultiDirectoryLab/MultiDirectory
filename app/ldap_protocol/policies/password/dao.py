@@ -399,12 +399,13 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
 
         if not plset_attribute:
-            self.__attribute_value_validator.validate_value(
-                EntityTypeNames.USER,  # TODO ну тут точно же Юзер да?))) по хорошему надо get директори with энтити делать
+            if not self.__attribute_value_validator.validate_value(
+                EntityTypeNames.USER,
                 "pwdLastSet",
                 ft_now(),
-            )
-            # TODO 8 validate attributes
+            ):
+                raise ValueError
+
             plset_attribute = Attribute(
                 directory_id=directory_id,
                 name="pwdLastSet",

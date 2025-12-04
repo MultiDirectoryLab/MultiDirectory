@@ -93,7 +93,7 @@ class EntityTypeUseCase(AbstractService):
         for entity_type_data in ENTITY_TYPE_DATAS:
             await self.create(
                 EntityTypeDTO(
-                    name=entity_type_data["name"],  # type: ignore
+                    name=entity_type_data["name"],
                     object_class_names=list(
                         entity_type_data["object_class_names"],
                     ),

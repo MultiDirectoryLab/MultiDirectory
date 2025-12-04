@@ -571,7 +571,7 @@ class TestNoValidationRules:
 
         for entity_type, property_name, value in test_cases:
             assert validator.validate_value(
-                entity_type,  # type: ignore
+                entity_type,
                 property_name,
                 value,
             )

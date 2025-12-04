@@ -290,7 +290,6 @@ class AddRequest(BaseRequest):
                 "userPrincipalName",
                 f"{sam_account_name!r}@{base_dn.name}",
             )
-            # TODO 12 validate attributes
             user = User(
                 sam_account_name=sam_account_name,
                 user_principal_name=user_principal_name,
@@ -403,26 +402,22 @@ class AddRequest(BaseRequest):
         try:
             items_to_add.extend(attributes)
             ctx.session.add_all(items_to_add)
-
-            # TODO 2 validate attributes
-            # if self._attribute_value_validator.validate_value(
-            #     "???",
-            #     dir_.rdname,
-            #     dir_.name,
-            # ):
-            #     ASDASDASD
-            # else:
-            #     raise ValueError(
-            #         f"Invalid rdname '{dir_.rdname}' for directory '{dir_.name}'",
-            #     )
-
             await ctx.session.flush()
+
+            await ctx.session.refresh(
+                instance=new_dir,
+                attribute_names=["attributes", "user"],
+                with_for_update=None,
+            )
             await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
                 entity_type=entity_type,
                 object_class_names=self.object_class_names,
             )
+            if not ctx.attribute_value_validator.validate_directory(new_dir):
+                raise ValueError
+
             await ctx.role_use_case.inherit_parent_aces(
                 parent_directory=parent,
                 directory=new_dir,
@@ -431,6 +426,12 @@ class AddRequest(BaseRequest):
         except IntegrityError:
             await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
+        except ValueError:
+            await ctx.session.rollback()
+            yield AddResponse(
+                result_code=LDAPCodes.INVALID_ATTRIBUTE_SYNTAX,
+                errorMessage="Not valid attribute value(-s)",
+            )
         else:
             try:
                 # in case server is not available: raise error and rollback

@@ -111,9 +111,7 @@ class ModifyDNRequest(BaseRequest):
 
         query = (
             select(Directory)
-            .options(
-                selectinload(qa(Directory.parent)),
-            )
+            .options(selectinload(qa(Directory.parent)))
             .filter(get_filter_from_path(self.entry))
         )
 
@@ -209,7 +207,6 @@ class ModifyDNRequest(BaseRequest):
                     .values(name=new_dn, value=new_name),
                 )
             else:
-                # TODO 3 validate attributes
                 ctx.session.add(
                     Attribute(
                         directory_id=directory.id,
@@ -243,16 +240,32 @@ class ModifyDNRequest(BaseRequest):
                 )
                 await ctx.session.flush()
 
+                try:
+                    await ctx.session.refresh(
+                        instance=directory,
+                        attribute_names=["attributes", "user", "entity_type"],
+                        with_for_update=None,
+                    )
+                    if not ctx.attribute_value_validator.validate_directory(
+                        directory,
+                    ):
+                        raise ValueError
+                except ValueError:
+                    await ctx.session.rollback()
+                    yield ModifyDNResponse(
+                        result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                    )
+                    return
+
                 explicit_aces_query = (
                     select(AccessControlEntry)
                     .options(selectinload(qa(AccessControlEntry.directories)))
                     .where(
-                        qa(AccessControlEntry.directories).any(
-                            qa(Directory.id) == directory.id,
-                        ),
+                        qa(AccessControlEntry.directories)
+                        .any(qa(Directory.id) == directory.id),
                         qa(AccessControlEntry.depth) == old_depth,
                     )
-                )
+                )  # fmt: skip
                 for ace in await ctx.session.scalars(explicit_aces_query):
                     ace.directories.append(directory)
                     ace.path = directory.path_dn

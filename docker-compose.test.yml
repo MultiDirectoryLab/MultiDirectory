@@ -21,6 +21,7 @@ services:
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
     command: sh -c "python -B -m pytest -n auto -x -W ignore::DeprecationWarning -vv"
+    # command: sh -c "python -B -m pytest -n auto -x tests/test_api/test_main/test_router/test_add.py -W ignore::DeprecationWarning -vv"
     tty: true
 
   postgres:

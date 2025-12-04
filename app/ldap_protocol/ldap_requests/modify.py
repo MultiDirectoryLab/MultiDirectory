@@ -149,7 +149,7 @@ class ModifyRequest(BaseRequest):
         now = datetime.now(timezone.utc) + timedelta(days=max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         ctx: LDAPModifyRequestContext,
     ) -> AsyncGenerator[ModifyResponse, None]:
@@ -288,8 +288,27 @@ class ModifyRequest(BaseRequest):
                     directory=directory,
                     is_system_entity_type=False,
                 )
+
+            try:
+                await ctx.session.refresh(
+                    instance=directory,
+                    attribute_names=["attributes", "user", "entity_type"],
+                )
+                if not ctx.attribute_value_validator.validate_directory(
+                    directory,
+                ):
+                    raise ValueError
+            except ValueError:
+                await ctx.session.rollback()
+                yield ModifyResponse(
+                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                    message="Invalid value.",
+                )
+                return
+
             await ctx.session.commit()
             yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+
         finally:
             query = self._get_dir_query()
             directory = await ctx.session.scalar(query)
@@ -695,7 +714,6 @@ class ModifyRequest(BaseRequest):
             raise ModifyForbiddenError("Group with such RID not found.")
 
         directory.groups.append(rid_dir.group)
-        # TODO 4 validate attributes
         session.add(
             Attribute(
                 name="primaryGroupID",
@@ -890,13 +908,11 @@ class ModifyRequest(BaseRequest):
 
                     sam_account_name = create_user_name(directory.id)
                     user_principal_name = f"{sam_account_name}@{base_dn.name}"
-                    # TODO 13 validate attributes
                     user = User(
                         sam_account_name=sam_account_name,
                         user_principal_name=user_principal_name,
                         directory_id=directory.id,
                     )
-                    # TODO 5 validate attributes
                     uac_attr = Attribute(
                         name="userAccountControl",
                         value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
@@ -962,7 +978,6 @@ class ModifyRequest(BaseRequest):
                 await session_storage.clear_user_sessions(directory.user.id)
 
             else:
-                # TODO 6 validate attributes
                 attrs.append(
                     Attribute(
                         name=change.modification.type,

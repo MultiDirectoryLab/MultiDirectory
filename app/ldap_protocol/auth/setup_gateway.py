@@ -49,8 +49,9 @@ class SetupGateway:
         :return: bool (True if setup is performed, False otherwise)
         """
         query = select(
-            exists(Directory).where(qa(Directory.parent_id).is_(None)),
-        )
+            exists(Directory)
+            .where(qa(Directory.parent_id).is_(None)),
+        )  # fmt: skip
         retval = await self._session.scalars(query)
         return retval.one()
 
@@ -66,10 +67,7 @@ class SetupGateway:
             logger.warning("dev data already set up")
             return
 
-        domain = Directory(
-            name=dn,
-            object_class="domain",
-        )
+        domain = Directory(name=dn, object_class="domain")
         domain.object_sid = generate_domain_sid()
         domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
         domain.depth = len(domain.path)
@@ -99,6 +97,8 @@ class SetupGateway:
                 directory=domain,
                 is_system_entity_type=True,
             )
+            if not self._attribute_value_validator.validate_directory(domain):
+                raise
             await self._session.flush()
 
         try:
@@ -134,12 +134,6 @@ class SetupGateway:
         await self._session.flush()
         await self._session.refresh(dir_, ["id"])
 
-        # TODO 1 validate attributes
-        # if self._attribute_value_validator.validate_value(
-        #     "???",
-        #     dir_.rdname,
-        #     dir_.name,
-        # ):
         self._session.add(
             Attribute(
                 name=dir_.rdname,
@@ -147,10 +141,6 @@ class SetupGateway:
                 directory_id=dir_.id,
             ),
         )
-        # else:
-        #     raise ValueError(
-        #         f"Invalid rdname '{dir_.rdname}' for directory '{dir_.name}'",
-        #     )
 
         dir_.object_sid = create_object_sid(
             domain,
@@ -186,7 +176,6 @@ class SetupGateway:
 
         if "organizationalPerson" in data:
             user_data = data["organizationalPerson"]
-            # TODO 11 validate attributes
             user = User(
                 directory_id=dir_.id,
                 sam_account_name=user_data["sam_account_name"],
@@ -215,13 +204,15 @@ class SetupGateway:
 
         await self._session.refresh(
             instance=dir_,
-            attribute_names=["attributes"],
+            attribute_names=["attributes", "user"],
             with_for_update=None,
         )
         await self._entity_type_dao.attach_entity_type_to_directory(
             directory=dir_,
             is_system_entity_type=True,
         )
+        if not self._attribute_value_validator.validate_directory(dir_):
+            raise
         await self._session.flush()
 
         if "children" in data:
