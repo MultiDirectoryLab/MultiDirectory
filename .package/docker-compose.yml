@@ -127,6 +127,35 @@ services:
       - traefik.tcp.routers.ldaps.tls.certResolver=md-resolver
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
       - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
+  
+  cldap_server:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      - SERVICE_NAME=cldap_server
+    env_file:
+      .env
+    volumes:
+      - ./certs:/certs
+      - ./logs:/logs
+      - ldap_keytab:/LDAP_keytab/
+    command: python -OO multidirectory.py --cldap
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      cert_local_check:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 100M
+    labels:
+      - traefik.enable=true
+      - traefik.udp.routers.cldap.entrypoints=cldap
+      - traefik.udp.routers.cldap.service=cldap
+      - traefik.udp.services.cldap.loadbalancer.server.port=389
 
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
