@@ -175,6 +175,7 @@ ignore = [
     "B905",  # this is necessary. get-attr-with-constant
     "D107", # ignore missing docstrings in __init__ methods
     "D101", # ignore missing docstrings in public classes
+    "D103", # ignore missing docstrings in public functions
 ]
 
 extend-select = []
