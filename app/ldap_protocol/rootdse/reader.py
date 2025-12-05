@@ -7,16 +7,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from collections import defaultdict
 
 from config import Settings
+from constants import DEFAULT_DC_POSTFIX, UNC_PREFIX
 from ldap_protocol.utils.helpers import get_generalized_now
 
+from .dto import DomainControllerInfo
 from .gw_protocol import DomainReadProtocol
 
 
 class RootDSEReader:
-    """RootDSE interactor."""
-
     def __init__(self, settings: Settings, gw: DomainReadProtocol) -> None:
-        """Setu up gw."""
         self._settings = settings
         self._gw = gw
 
@@ -24,10 +23,6 @@ class RootDSEReader:
         self,
         requested_attrs: list[str],
     ) -> defaultdict[str, list[str]]:
-        """Get RootDSE.
-
-        :return defaultdict[str, list[str]]: queried attrs
-        """
         domain = await self._gw.get_domain()
         data = defaultdict(list)
         schema = "CN=Schema"
@@ -82,3 +77,24 @@ class RootDSEReader:
         ]
 
         return data
+
+
+class DCInfoReader:
+    def __init__(self, settings: Settings, gw: DomainReadProtocol) -> None:
+        self._settings = settings
+        self._gw = gw
+
+    async def get(self) -> DomainControllerInfo:
+        domain = await self._gw.get_domain()
+        dns = domain.name.lower()
+        nb_domain = dns.split(".")[0].upper()
+
+        return DomainControllerInfo(
+            net_bios_domain=nb_domain,
+            net_bios_hostname=nb_domain + DEFAULT_DC_POSTFIX,
+            unc=UNC_PREFIX + dns,
+            dns=dns,
+            dns_forest=dns,
+            object_sid=domain.object_sid,
+            object_guid=str(domain.object_guid),
+        )
