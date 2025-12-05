@@ -399,7 +399,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
 
         if not plset_attribute:
-            if not self.__attribute_value_validator.validate_value(
+            if not self.__attribute_value_validator.is_value_valid(
                 EntityTypeNames.USER,
                 "pwdLastSet",
                 ft_now(),

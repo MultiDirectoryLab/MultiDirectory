@@ -46,7 +46,11 @@ class MFAChallengeStatuses(StrEnum):
 
 
 class EntityTypeNames(StrEnum):
-    """Entity Type names."""
+    """Enum of base (system) Entity Types.
+
+    Used for system objects.
+    Custom Entity Types aren't included here.
+    """
 
     DOMAIN = "Domain"
     COMPUTER = "Computer"

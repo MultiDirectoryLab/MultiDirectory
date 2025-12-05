@@ -186,6 +186,18 @@ class AddRequest(BaseRequest):
                 return
 
         try:
+            if not ctx.attribute_value_validator.is_value_valid(
+                entity_type.name if entity_type else "",
+                "name",
+                name,
+            ):
+                await ctx.session.rollback()
+                yield AddResponse(
+                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                    errorMessage="Invalid attribute value(s)",
+                )
+                return
+
             new_dir = Directory(
                 object_class="",
                 name=name,
@@ -399,25 +411,28 @@ class AddRequest(BaseRequest):
                 ),
             )
 
+        if not ctx.attribute_value_validator.is_attributes_valid(
+            entity_type,
+            attributes,
+        ) or (user and not ctx.attribute_value_validator.is_user_valid(user)):
+            await ctx.session.rollback()
+            yield AddResponse(
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                errorMessage="Invalid attribute value(s)",
+            )
+            return
+
         try:
             items_to_add.extend(attributes)
             ctx.session.add_all(items_to_add)
             await ctx.session.flush()
 
-            await ctx.session.refresh(
-                instance=new_dir,
-                attribute_names=["attributes", "user"],
-                with_for_update=None,
-            )
             await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
                 entity_type=entity_type,
                 object_class_names=self.object_class_names,
             )
-            if not ctx.attribute_value_validator.validate_directory(new_dir):
-                raise ValueError("Invalid attribute value(s)")
-
             await ctx.role_use_case.inherit_parent_aces(
                 parent_directory=parent,
                 directory=new_dir,
@@ -426,12 +441,6 @@ class AddRequest(BaseRequest):
         except IntegrityError:
             await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
-        except ValueError:
-            await ctx.session.rollback()
-            yield AddResponse(
-                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                errorMessage="Invalid attribute value(s)",
-            )
         else:
             try:
                 # in case server is not available: raise error and rollback

@@ -97,7 +97,7 @@ class SetupGateway:
                 directory=domain,
                 is_system_entity_type=True,
             )
-            if not self._attribute_value_validator.validate_directory(domain):
+            if not self._attribute_value_validator.is_directory_valid(domain):
                 raise ValueError(
                     "Invalid directory attribute values during environment setup",  # noqa: E501
                 )
@@ -213,7 +213,7 @@ class SetupGateway:
             directory=dir_,
             is_system_entity_type=True,
         )
-        if not self._attribute_value_validator.validate_directory(dir_):
+        if not self._attribute_value_validator.is_directory_valid(dir_):
             raise ValueError("Invalid directory attribute values")
         await self._session.flush()
 

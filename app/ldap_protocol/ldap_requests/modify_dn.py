@@ -8,7 +8,7 @@ from typing import AsyncGenerator, ClassVar
 
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
@@ -111,7 +111,10 @@ class ModifyDNRequest(BaseRequest):
 
         query = (
             select(Directory)
-            .options(selectinload(qa(Directory.parent)))
+            .options(
+                joinedload(qa(Directory.parent)),
+                joinedload(qa(Directory.entity_type)),
+            )
             .filter(get_filter_from_path(self.entry))
         )
 
@@ -140,6 +143,21 @@ class ModifyDNRequest(BaseRequest):
         old_dn = old_path[-1].split("=")[0]
 
         old_depth = directory.depth
+
+        if (
+            directory.entity_type
+            and not ctx.attribute_value_validator.is_value_valid(
+                entity_type_name=directory.entity_type.name,
+                attr_name="name",
+                attr_value=new_name,
+            )
+        ):
+            await ctx.session.rollback()
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                message="Invalid attribute value(s)",
+            )
+            return
 
         if (
             self.new_superior
@@ -239,24 +257,6 @@ class ModifyDNRequest(BaseRequest):
                     execution_options={"synchronize_session": "fetch"},
                 )
                 await ctx.session.flush()
-
-                try:
-                    await ctx.session.refresh(
-                        instance=directory,
-                        attribute_names=["attributes", "user", "entity_type"],
-                        with_for_update=None,
-                    )
-                    if not ctx.attribute_value_validator.validate_directory(
-                        directory,
-                    ):
-                        raise ValueError("Invalid attribute value(s)")
-                except ValueError:
-                    await ctx.session.rollback()
-                    yield ModifyDNResponse(
-                        result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                        message="Invalid attribute value(s)",
-                    )
-                    return
 
                 explicit_aces_query = (
                     select(AccessControlEntry)

@@ -192,9 +192,7 @@ class ModifyRequest(BaseRequest):
 
         names = {change.get_name() for change in self.changes}
 
-        password_change_requested = self._check_password_change_requested(
-            names,
-        )
+        password_change_requested = self._is_password_change_requested(names)
         self_modify = directory.id == ctx.ldap_session.user.directory_id
 
         if (
@@ -209,7 +207,7 @@ class ModifyRequest(BaseRequest):
             return
 
         before_attrs = self.get_directory_attrs(directory)
-
+        entity_type = directory.entity_type
         try:
             if not can_modify and not (
                 password_change_requested and self_modify
@@ -222,6 +220,17 @@ class ModifyRequest(BaseRequest):
             for change in self.changes:
                 if change.modification.type.lower() in Directory.ro_fields:
                     continue
+
+                if not ctx.attribute_value_validator.is_change_valid(
+                    entity_type,
+                    change.modification,
+                ):
+                    await ctx.session.rollback()
+                    yield ModifyResponse(
+                        result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                        message="Invalid attribute value(s)",
+                    )
+                    return
 
                 await self._update_password_expiration(
                     change,
@@ -289,20 +298,6 @@ class ModifyRequest(BaseRequest):
                     is_system_entity_type=False,
                 )
 
-            await ctx.session.refresh(
-                instance=directory,
-                attribute_names=["attributes", "user", "entity_type"],
-            )
-            if not ctx.attribute_value_validator.validate_directory(
-                directory,
-            ):
-                await ctx.session.rollback()
-                yield ModifyResponse(
-                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                    message="Invalid attribute value(s)",
-                )
-                return
-
             await ctx.session.commit()
             yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
 
@@ -366,7 +361,7 @@ class ModifyRequest(BaseRequest):
             .filter(get_filter_from_path(self.object))
         )
 
-    def _check_password_change_requested(
+    def _is_password_change_requested(
         self,
         names: set[str],
     ) -> bool:

@@ -1004,10 +1004,13 @@ async def entity_type_dao(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         object_class_dao = ObjectClassDAO(session)
+        attribute_value_validator = await container.get(
+            AttributeValueValidator,
+        )
         yield EntityTypeDAO(
             session,
             object_class_dao,
-            attribute_value_validator=AttributeValueValidator(),
+            attribute_value_validator=attribute_value_validator,
         )
 
 
@@ -1018,9 +1021,12 @@ async def password_policy_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
+        attribute_value_validator = await container.get(
+            AttributeValueValidator,
+        )
         yield PasswordPolicyDAO(
             session,
-            attribute_value_validator=AttributeValueValidator(),
+            attribute_value_validator=attribute_value_validator,
         )
 
 

@@ -339,6 +339,7 @@ def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
 async def create_group(
     name: str,
     sid: int | None,
+    attribute_value_validator: AttributeValueValidator,
     session: AsyncSession,
 ) -> tuple[Directory, Group]:
     """Create group in default groups path.
@@ -398,7 +399,7 @@ async def create_group(
         attribute_names=["attributes", "user"],
         with_for_update=None,
     )
-    if not AttributeValueValidator().validate_directory(dir_):
+    if not attribute_value_validator.is_directory_valid(dir_):
         raise ValueError
 
     await session.refresh(group)

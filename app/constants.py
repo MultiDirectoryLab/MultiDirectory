@@ -218,30 +218,30 @@ class EntityTypeData(TypedDict):
     object_class_names: list[str]
 
 
-ENTITY_TYPE_DATAS: list[EntityTypeData] = [
-    {
-        "name": EntityTypeNames.DOMAIN,
-        "object_class_names": ["top", "domain", "domainDNS"],
-    },
-    {
-        "name": EntityTypeNames.COMPUTER,
-        "object_class_names": ["top", "computer"],
-    },
-    {
-        "name": EntityTypeNames.CONTAINER,
-        "object_class_names": ["top", "container"],
-    },
-    {
-        "name": EntityTypeNames.ORGANIZATIONAL_UNIT,
-        "object_class_names": ["top", "container", "organizationalUnit"],
-    },
-    {
-        "name": EntityTypeNames.GROUP,
-        "object_class_names": ["top", "group", "posixGroup"],
-    },
-    {
-        "name": EntityTypeNames.USER,
-        "object_class_names": [
+ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
+    EntityTypeData(
+        name=EntityTypeNames.DOMAIN,
+        object_class_names=["top", "domain", "domainDNS"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.COMPUTER,
+        object_class_names=["top", "computer"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.CONTAINER,
+        object_class_names=["top", "container"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.ORGANIZATIONAL_UNIT,
+        object_class_names=["top", "container", "organizationalUnit"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.GROUP,
+        object_class_names=["top", "group", "posixGroup"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.USER,
+        object_class_names=[
             "top",
             "user",
             "person",
@@ -250,28 +250,24 @@ ENTITY_TYPE_DATAS: list[EntityTypeData] = [
             "shadowAccount",
             "inetOrgPerson",
         ],
-    },
-    {
-        "name": EntityTypeNames.KRB_CONTAINER,
-        "object_class_names": ["krbContainer"],
-    },
-    {
-        "name": EntityTypeNames.KRB_PRINCIPAL,
-        "object_class_names": [
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_CONTAINER,
+        object_class_names=["krbContainer"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_PRINCIPAL,
+        object_class_names=[
             "krbprincipal",
             "krbprincipalaux",
             "krbTicketPolicyAux",
         ],
-    },
-    {
-        "name": EntityTypeNames.KRB_REALM_CONTAINER,
-        "object_class_names": [
-            "top",
-            "krbrealmcontainer",
-            "krbticketpolicyaux",
-        ],
-    },
-]
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_REALM_CONTAINER,
+        object_class_names=["top", "krbrealmcontainer", "krbticketpolicyaux"],
+    ),
+)
 
 
 FIRST_SETUP_DATA = [

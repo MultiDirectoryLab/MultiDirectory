@@ -126,7 +126,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
             for directory in result.scalars():
                 for object_class_name in entity_type.object_class_names:
-                    if not self.__attribute_value_validator.validate_value(
+                    if not self.__attribute_value_validator.is_value_valid(
                         entity_type.name,
                         "objectClass",
                         object_class_name,

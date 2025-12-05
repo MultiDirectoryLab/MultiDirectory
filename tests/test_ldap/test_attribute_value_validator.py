@@ -21,6 +21,8 @@ def validator() -> AttributeValueValidator:
 class TestOrganizationalUnitName:
     """Tests for Organizational Unit name validation."""
 
+    _entity_type_name = EntityTypeNames.ORGANIZATIONAL_UNIT
+
     def test_valid_names(self, validator: AttributeValueValidator) -> None:
         """Test valid organizational unit names."""
         valid_names = [
@@ -31,8 +33,8 @@ class TestOrganizationalUnitName:
             "Department123",
         ]
         for name in valid_names:
-            assert validator.validate_value(
-                EntityTypeNames.ORGANIZATIONAL_UNIT,
+            assert validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -44,8 +46,8 @@ class TestOrganizationalUnitName:
         """Test organizational unit names starting with space."""
         invalid_names = [" IT", " Sales", "  Marketing"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.ORGANIZATIONAL_UNIT,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -57,8 +59,8 @@ class TestOrganizationalUnitName:
         """Test organizational unit names starting with hash."""
         invalid_names = ["#IT", "#Sales", "#Marketing"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.ORGANIZATIONAL_UNIT,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -70,8 +72,8 @@ class TestOrganizationalUnitName:
         """Test organizational unit names ending with space."""
         invalid_names = ["IT ", "Sales  ", "Marketing   "]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.ORGANIZATIONAL_UNIT,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -91,8 +93,8 @@ class TestOrganizationalUnitName:
             "Group=B",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.ORGANIZATIONAL_UNIT,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -100,6 +102,8 @@ class TestOrganizationalUnitName:
 
 class TestGroupName:
     """Tests for Group name validation."""
+
+    _entity_type_name = EntityTypeNames.GROUP
 
     def test_valid_names(self, validator: AttributeValueValidator) -> None:
         """Test valid group names."""
@@ -111,8 +115,8 @@ class TestGroupName:
             "TeamA",
         ]
         for name in valid_names:
-            assert validator.validate_value(
-                EntityTypeNames.GROUP,
+            assert validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -124,8 +128,8 @@ class TestGroupName:
         """Test group names starting with space."""
         invalid_names = [" Admins", " Users", "  PowerUsers"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.GROUP,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -137,8 +141,8 @@ class TestGroupName:
         """Test group names starting with hash."""
         invalid_names = ["#Admins", "#Users", "#PowerUsers"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.GROUP,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -150,8 +154,8 @@ class TestGroupName:
         """Test group names ending with space."""
         invalid_names = ["Admins ", "Users  ", "PowerUsers   "]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.GROUP,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -171,8 +175,8 @@ class TestGroupName:
             "Group=C",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.GROUP,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -180,6 +184,8 @@ class TestGroupName:
 
 class TestUserName:
     """Tests for User name validation."""
+
+    _entity_type_name = EntityTypeNames.USER
 
     def test_valid_names(self, validator: AttributeValueValidator) -> None:
         """Test valid user names."""
@@ -191,8 +197,8 @@ class TestUserName:
             "User.Name",
         ]
         for name in valid_names:
-            assert validator.validate_value(
-                EntityTypeNames.USER,
+            assert validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -204,8 +210,8 @@ class TestUserName:
         """Test user names starting with space."""
         invalid_names = [" JohnDoe", " Jane", "  User123"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -217,8 +223,8 @@ class TestUserName:
         """Test user names starting with hash."""
         invalid_names = ["#JohnDoe", "#Jane", "#User123"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -230,8 +236,8 @@ class TestUserName:
         """Test user names ending with space."""
         invalid_names = ["JohnDoe ", "Jane  ", "User123   "]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -251,8 +257,8 @@ class TestUserName:
             "User=Name",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -260,6 +266,8 @@ class TestUserName:
 
 class TestUserSAMAccountName:
     """Tests for User sAMAccountName validation."""
+
+    _entity_type_name = EntityTypeNames.USER
 
     def test_valid_sam_account_names(
         self,
@@ -274,8 +282,8 @@ class TestUserSAMAccountName:
             "test-user",
         ]
         for name in valid_names:
-            assert validator.validate_value(
-                EntityTypeNames.USER,
+            assert validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -301,8 +309,8 @@ class TestUserSAMAccountName:
             "user<name>",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -314,8 +322,8 @@ class TestUserSAMAccountName:
         """Test sAMAccountName ending with dot."""
         invalid_names = ["user.", "john.doe.", "admin."]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -332,8 +340,8 @@ class TestUserSAMAccountName:
             "user\x7fname",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -345,8 +353,8 @@ class TestUserSAMAccountName:
         """Test sAMAccountName with @ symbol."""
         invalid_names = ["user@domain", "admin@test", "john@"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.USER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -354,6 +362,8 @@ class TestUserSAMAccountName:
 
 class TestComputerName:
     """Tests for Computer name validation."""
+
+    _entity_type_name = EntityTypeNames.COMPUTER
 
     def test_valid_names(self, validator: AttributeValueValidator) -> None:
         """Test valid computer names."""
@@ -364,8 +374,8 @@ class TestComputerName:
             "Desktop",
         ]
         for name in valid_names:
-            assert validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -377,8 +387,8 @@ class TestComputerName:
         """Test computer names starting with space."""
         invalid_names = [" WORKSTATION", " Server", "  PC123"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -390,8 +400,8 @@ class TestComputerName:
         """Test computer names starting with hash."""
         invalid_names = ["#WORKSTATION", "#Server", "#PC123"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -403,8 +413,8 @@ class TestComputerName:
         """Test computer names ending with space."""
         invalid_names = ["WORKSTATION ", "Server  ", "PC123   "]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -424,8 +434,8 @@ class TestComputerName:
             "Computer=01",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "name",
                 name,
             )
@@ -433,6 +443,8 @@ class TestComputerName:
 
 class TestComputerSAMAccountName:
     """Tests for Computer sAMAccountName validation."""
+
+    _entity_type_name = EntityTypeNames.COMPUTER
 
     def test_valid_sam_account_names(
         self,
@@ -445,8 +457,8 @@ class TestComputerSAMAccountName:
             "PC_LAB$",
         ]
         for name in valid_names:
-            assert validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -472,8 +484,8 @@ class TestComputerSAMAccountName:
             "PC<01>$",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -485,8 +497,8 @@ class TestComputerSAMAccountName:
         """Test computer sAMAccountName ending with dot."""
         invalid_names = ["PC01.", "SERVER.", "WORKSTATION."]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -503,8 +515,8 @@ class TestComputerSAMAccountName:
             "PC\x7fNAME$",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -521,8 +533,8 @@ class TestComputerSAMAccountName:
             "PC.01$",
         ]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -534,8 +546,8 @@ class TestComputerSAMAccountName:
         """Test computer sAMAccountName that are only numbers."""
         invalid_names = ["123", "456789", "0"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -547,8 +559,8 @@ class TestComputerSAMAccountName:
         """Test computer sAMAccountName starting with number."""
         invalid_names = ["1PC$", "2SERVER$", "9WORKSTATION$"]
         for name in invalid_names:
-            assert not validator.validate_value(
-                EntityTypeNames.COMPUTER,
+            assert not validator.is_value_valid(
+                self._entity_type_name,
                 "sAMAccountName",
                 name,
             )
@@ -570,7 +582,7 @@ class TestNoValidationRules:
         ]
 
         for entity_type, property_name, value in test_cases:
-            assert validator.validate_value(
+            assert validator.is_value_valid(
                 entity_type,
                 property_name,
                 value,

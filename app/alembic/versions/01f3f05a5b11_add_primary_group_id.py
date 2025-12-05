@@ -71,6 +71,7 @@ def upgrade() -> None:
             dir_, group_ = await create_group(
                 name="domain computers",
                 sid=515,
+                attribute_value_validator=AttributeValueValidator(),
                 session=session,
             )
 
