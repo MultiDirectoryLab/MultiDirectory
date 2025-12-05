@@ -26,7 +26,7 @@ AuditLogger = NewType("AuditLogger", type[logger])  # type: ignore
 class AuditEventSenderManager:
     """Audit event manager."""
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         normalized_audit_manager: NormalizedAuditManager,
         session: AsyncSession,
