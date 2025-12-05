@@ -87,7 +87,7 @@ services:
     user: root
     restart: unless-stopped
     environment:
-      - SERVICE_NAME=ldap_server
+      - SERVICE_NAME=cldap_server
     # container_name: multidirectory
     volumes:
       - ./app:/app
