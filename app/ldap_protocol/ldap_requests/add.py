@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from entities import Attribute, Directory, Group, User
-from enums import AceType
+from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -158,7 +158,7 @@ class AddRequest(BaseRequest):
                 object_class_names=self.object_class_names,
             )
         )
-        if entity_type and entity_type.name == "Container":
+        if entity_type and entity_type.name == EntityTypeNames.CONTAINER:
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
@@ -186,6 +186,18 @@ class AddRequest(BaseRequest):
                 return
 
         try:
+            if not ctx.attribute_value_validator.is_value_valid(
+                entity_type.name if entity_type else "",
+                "name",
+                name,
+            ):
+                await ctx.session.rollback()
+                yield AddResponse(
+                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                    errorMessage="Invalid attribute value(s)",
+                )
+                return
+
             new_dir = Directory(
                 object_class="",
                 name=name,
@@ -399,10 +411,22 @@ class AddRequest(BaseRequest):
                 ),
             )
 
+        if not ctx.attribute_value_validator.is_attributes_valid(
+            entity_type,
+            attributes,
+        ) or (user and not ctx.attribute_value_validator.is_user_valid(user)):
+            await ctx.session.rollback()
+            yield AddResponse(
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                errorMessage="Invalid attribute value(s)",
+            )
+            return
+
         try:
             items_to_add.extend(attributes)
             ctx.session.add_all(items_to_add)
             await ctx.session.flush()
+
             await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,

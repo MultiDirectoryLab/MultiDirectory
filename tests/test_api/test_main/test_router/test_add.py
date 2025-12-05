@@ -23,23 +23,12 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
             "entry": "cn=test,dc=md,dc=test",
             "password": None,
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
+                {"type": "name", "vals": ["test"]},
+                {"type": "cn", "vals": ["test"]},
+                {"type": "objectClass", "vals": ["organization", "top"]},
                 {
                     "type": "memberOf",
-                    "vals": [
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
-                    ],
+                    "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
                 },
             ],
         },
@@ -51,6 +40,78 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert data.get("errorMessage") == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_api_add_incorrect_computer_name(
+    http_client: AsyncClient,
+) -> None:
+    """Test api incorrect (name) add."""
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=test,dc=md,dc=test",
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": [" test;incorrect"]},
+                {"type": "cn", "vals": ["test"]},
+                {"type": "objectClass", "vals": ["computer", "top"]},
+                {
+                    "type": "memberOf",
+                    "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_api_add_incorrect_user_samaccount_with_dot(
+    http_client: AsyncClient,
+) -> None:
+    """Test api incorrect (sAMAccountName) add."""
+    un = "test0"
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=test0,dc=md,dc=test",
+            "password": "P@ssw0rd",
+            "attributes": [
+                {"type": "name", "vals": [un]},
+                {"type": "cn", "vals": [un]},
+                {
+                    "type": "objectClass",
+                    "vals": [
+                        "top",
+                        "user",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "shadowAccount",
+                        "inetOrgPerson",
+                    ],
+                },
+                {"type": "sAMAccountName", "vals": ["test0."]},
+                {"type": "userPrincipalName", "vals": [f"{un}@md.ru"]},
+                {"type": "mail", "vals": [f"{un}@md.ru"]},
+                {"type": "displayName", "vals": [un]},
+                {"type": "userAccountControl", "vals": ["516"]},
+            ],
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
 
 
 @pytest.mark.asyncio

@@ -13,6 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
 from extra.alembic_utils import temporary_stub_entity_type_name
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,
@@ -52,6 +55,7 @@ def upgrade() -> None:
                 dir_, _ = await create_group(
                     name="readonly domain controllers",
                     sid=521,
+                    attribute_value_validator=AttributeValueValidator(),
                     session=session,
                 )
 

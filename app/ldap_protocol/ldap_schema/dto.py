@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
-from enums import KindType
+from enums import EntityTypeNames, KindType
 
 _IdT = TypeVar("_IdT", int, None)
 
@@ -49,7 +49,7 @@ class ObjectClassDTO(Generic[_IdT, _LinkT]):
 class EntityTypeDTO(Generic[_IdT]):
     """Entity Type DTO."""
 
-    name: str
+    name: EntityTypeNames | str
     is_system: bool
     object_class_names: list[str]
     id: _IdT = None  # type: ignore

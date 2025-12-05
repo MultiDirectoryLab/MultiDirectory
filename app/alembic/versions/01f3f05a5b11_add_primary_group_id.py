@@ -13,6 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
 from entities import Attribute, Directory, EntityType, Group
+from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -48,6 +52,7 @@ def upgrade() -> None:
         entity_type_dao = EntityTypeDAO(
             session,
             object_class_dao=object_class_dao,
+            attribute_value_validator=AttributeValueValidator(),
         )
         role_dao = RoleDAO(session)
         ace_dao = AccessControlEntryDAO(session)
@@ -66,12 +71,15 @@ def upgrade() -> None:
             dir_, group_ = await create_group(
                 name="domain computers",
                 sid=515,
+                attribute_value_validator=AttributeValueValidator(),
                 session=session,
             )
 
             await session.flush()
 
-            computer_entity_type = await entity_type_dao.get("Computer")
+            computer_entity_type = await entity_type_dao.get(
+                EntityTypeNames.COMPUTER,
+            )
             computer_dirs = await session.scalars(
                 select(Directory)
                 .where(
@@ -126,7 +134,11 @@ def upgrade() -> None:
 
         entity_type = await session.scalars(
             select(qa(EntityType.id))
-            .where(qa(EntityType.name).in_(["User", "Computer"])),
+            .where(
+                qa(EntityType.name).in_(
+                    [EntityTypeNames.USER, EntityTypeNames.COMPUTER],
+                ),
+            ),
         )  # fmt: skip
 
         entity_type_ids = list(entity_type.all())

@@ -668,6 +668,12 @@ password_ban_word_table = Table(
     "PasswordBanWords",
     metadata,
     Column("word", String(255), primary_key=True),
+    Index(
+        "idx_password_ban_words_word_gin_trgm",
+        "word",
+        postgresql_ops={"word": "gin_trgm_ops"},
+        postgresql_using="gin",
+    ),
 )
 
 dedicated_servers_table = Table(

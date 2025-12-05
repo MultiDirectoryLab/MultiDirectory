@@ -4,6 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import TypedDict
+
+from enums import EntityTypeNames
+
 group_attrs = {
     "objectClass": ["top"],
     "groupType": ["-2147483646"],
@@ -207,24 +211,37 @@ DATA = [
 ]
 
 
-ENTITY_TYPE_DATAS = [
-    {
-        "name": "Domain",
-        "object_class_names": ["top", "domain", "domainDNS"],
-    },
-    {"name": "Computer", "object_class_names": ["top", "computer"]},
-    {"name": "Container", "object_class_names": ["top", "container"]},
-    {
-        "name": "Organizational Unit",
-        "object_class_names": ["top", "container", "organizationalUnit"],
-    },
-    {
-        "name": "Group",
-        "object_class_names": ["top", "group", "posixGroup"],
-    },
-    {
-        "name": "User",
-        "object_class_names": [
+class EntityTypeData(TypedDict):
+    """Entity Type data."""
+
+    name: EntityTypeNames
+    object_class_names: list[str]
+
+
+ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
+    EntityTypeData(
+        name=EntityTypeNames.DOMAIN,
+        object_class_names=["top", "domain", "domainDNS"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.COMPUTER,
+        object_class_names=["top", "computer"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.CONTAINER,
+        object_class_names=["top", "container"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.ORGANIZATIONAL_UNIT,
+        object_class_names=["top", "container", "organizationalUnit"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.GROUP,
+        object_class_names=["top", "group", "posixGroup"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.USER,
+        object_class_names=[
             "top",
             "user",
             "person",
@@ -233,28 +250,25 @@ ENTITY_TYPE_DATAS = [
             "shadowAccount",
             "inetOrgPerson",
         ],
-    },
-    {"name": "KRB Container", "object_class_names": ["krbContainer"]},
-    {
-        "name": "KRB Principal",
-        "object_class_names": [
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_CONTAINER,
+        object_class_names=["krbContainer"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_PRINCIPAL,
+        object_class_names=[
             "krbprincipal",
             "krbprincipalaux",
             "krbTicketPolicyAux",
         ],
-    },
-    {
-        "name": "KRB Realm Container",
-        "object_class_names": [
-            "top",
-            "krbrealmcontainer",
-            "krbticketpolicyaux",
-        ],
-    },
-]
-PRIMARY_ENTITY_TYPE_NAMES = {
-    entity_type_data["name"] for entity_type_data in ENTITY_TYPE_DATAS
-}
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_REALM_CONTAINER,
+        object_class_names=["top", "krbrealmcontainer", "krbticketpolicyaux"],
+    ),
+)
+
 
 FIRST_SETUP_DATA = [
     {

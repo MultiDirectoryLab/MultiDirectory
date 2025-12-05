@@ -49,12 +49,10 @@ async def disable_accounts(
         String,
     )
     conditions = [
-        (
-            cast(Attribute.value, Integer).op("&")(
-                UserAccountControlFlag.ACCOUNTDISABLE,
-            )
-            == 0
-        ),
+        cast(Attribute.value, Integer).op("&")(
+            UserAccountControlFlag.ACCOUNTDISABLE,
+        )
+        == 0,
         qa(Attribute.directory_id).in_(subquery),
         qa(Attribute.name) == "userAccountControl",
     ]
