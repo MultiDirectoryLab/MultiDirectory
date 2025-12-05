@@ -137,7 +137,7 @@ services:
       .env
     volumes:
       - ./certs:/certs
-      - ./logs:/logs
+      - ./logs:/app/logs
       - ldap_keytab:/LDAP_keytab/
     command: python -OO multidirectory.py --cldap
     tty: true
