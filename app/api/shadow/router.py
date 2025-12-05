@@ -11,6 +11,9 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Body
 
+from ldap_protocol.rootdse.dto import DomainControllerInfo
+from ldap_protocol.rootdse.reader import DCInfoReader
+
 from .adapter import ShadowAdapter
 
 shadow_router = APIRouter(route_class=DishkaRoute)
@@ -46,3 +49,10 @@ async def change_password(
     :return None: None
     """
     return await adapter.change_password(principal, new_password)
+
+
+@shadow_router.get("/metadata/dcinfo")
+async def get_dcinfo(
+    dcreader: FromDishka[DCInfoReader],
+) -> DomainControllerInfo:
+    return await dcreader.get()

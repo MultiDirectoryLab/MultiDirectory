@@ -131,6 +131,9 @@ from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
+from ldap_protocol.rootdse.gateway import SADomainGateway
+from ldap_protocol.rootdse.gw_protocol import DomainReadProtocol
+from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
@@ -458,6 +461,13 @@ class MainProvider(Provider):
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
+    rootdse_gw = provide(
+        SADomainGateway,
+        provides=DomainReadProtocol,
+        scope=Scope.REQUEST,
+    )
+    rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
+    dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
 
 
 class LDAPContextProvider(Provider):

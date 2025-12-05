@@ -3,7 +3,7 @@
 # License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 services:
   traefik:
-    image: "traefik:v3.3.4"
+    image: "traefik:v3.6.1"
     container_name: "traefik"
     command:
       - "--providers.file.filename=/traefik.yml"
@@ -87,7 +87,7 @@ services:
     user: root
     restart: unless-stopped
     environment:
-      - SERVICE_NAME=ldap_server
+      - SERVICE_NAME=cldap_server
     # container_name: multidirectory
     volumes:
       - ./app:/app
