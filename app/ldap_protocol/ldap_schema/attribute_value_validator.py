@@ -199,11 +199,12 @@ class AttributeValueValidator:
         if not entity_type:
             return True
 
-        if entity_type.name not in self._compiled_validators:
+        entity_type_name = entity_type.name
+        if entity_type_name not in self._compiled_validators:
             return True
-        entity_type.name = tcast("EntityTypeNames", entity_type.name)
+        entity_type_name = tcast("EntityTypeNames", entity_type_name)
 
-        collection_validators = self._compiled_validators.get(entity_type.name)
+        collection_validators = self._compiled_validators.get(entity_type_name)
         if not collection_validators:
             return True
 
@@ -240,19 +241,8 @@ class AttributeValueValidator:
                 raise AttributeValueValidatorError(
                     "User directory must have associated User",
                 )
-
-            if not self.is_value_valid(
-                entity_type_name,
-                "sAMAccountName",
-                directory.user.sam_account_name,
-            ):
-                return False
-            if not self.is_value_valid(
-                entity_type_name,
-                "userPrincipalName",
-                directory.user.user_principal_name,
-            ):
-                return False
+            else:
+                return self.is_user_valid(directory.user)
 
         if not self.is_attributes_valid(  # noqa: SIM103
             directory.entity_type,
@@ -264,17 +254,17 @@ class AttributeValueValidator:
 
     def is_user_valid(self, user: User) -> bool:
         """Validate all directory attributes."""
-        entity_type_name = EntityTypeNames.USER
+        user_entity_type_name = EntityTypeNames.USER
 
         if not self.is_value_valid(
-            entity_type_name,
+            user_entity_type_name,
             "sAMAccountName",
             user.sam_account_name,
         ):
             return False
 
         if not self.is_value_valid(  # noqa: SIM103
-            entity_type_name,
+            user_entity_type_name,
             "userPrincipalName",
             user.user_principal_name,
         ):

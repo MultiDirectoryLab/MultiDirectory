@@ -17,6 +17,7 @@ from entities import Attribute, Group, PasswordPolicy, User
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
+    AttributeValueValidatorError,
 )
 from ldap_protocol.objects import UserAccountControlFlag as UacFlag
 from ldap_protocol.policies.password.exceptions import (
@@ -404,7 +405,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
                 "pwdLastSet",
                 ft_now(),
             ):
-                raise ValueError
+                raise AttributeValueValidatorError("Invalid pwdLastSet value")
 
             plset_attribute = Attribute(
                 directory_id=directory_id,

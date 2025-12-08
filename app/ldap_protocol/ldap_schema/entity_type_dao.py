@@ -18,6 +18,7 @@ from abstract_dao import AbstractDAO
 from entities import Attribute, Directory, EntityType, ObjectClass
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
+    AttributeValueValidatorError,
 )
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -131,7 +132,9 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
                         "objectClass",
                         object_class_name,
                     ):
-                        raise ValueError
+                        raise AttributeValueValidatorError(
+                            f"Invalid objectClass value '{object_class_name}' for entity type '{entity_type.name}'.",  # noqa: E501
+                        )
 
                     self.__session.add(
                         Attribute(

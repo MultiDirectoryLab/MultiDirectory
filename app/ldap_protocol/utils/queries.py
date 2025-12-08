@@ -17,6 +17,7 @@ from sqlalchemy.sql.expression import ColumnElement
 from entities import Attribute, Directory, Group, User
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
+    AttributeValueValidatorError,
 )
 from repo.pg.tables import (
     directory_memberships_table,
@@ -400,7 +401,9 @@ async def create_group(
         with_for_update=None,
     )
     if not attribute_value_validator.is_directory_valid(dir_):
-        raise ValueError
+        raise AttributeValueValidatorError(
+            "Invalid directory attributes values",
+        )
 
     await session.refresh(group)
     return dir_, group
