@@ -162,6 +162,17 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
+        if not ctx.attribute_value_validator.is_value_valid(
+            entity_type.name if entity_type else "",
+            "name",
+            name,
+        ):
+            yield AddResponse(
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                errorMessage="Invalid attribute value(s)",
+            )
+            return
+
         can_add = ctx.access_manager.check_entity_level_access(
             aces=parent.access_control_entries,
             entity_type_id=entity_type.id if entity_type else None,
@@ -186,18 +197,6 @@ class AddRequest(BaseRequest):
                 return
 
         try:
-            if not ctx.attribute_value_validator.is_value_valid(
-                entity_type.name if entity_type else "",
-                "name",
-                name,
-            ):
-                await ctx.session.rollback()
-                yield AddResponse(
-                    result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                    errorMessage="Invalid attribute value(s)",
-                )
-                return
-
             new_dir = Directory(
                 object_class="",
                 name=name,
@@ -411,8 +410,8 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-        if not ctx.attribute_value_validator.is_attributes_valid(
-            entity_type,
+        if not ctx.attribute_value_validator.is_directory_attributes_valid(
+            entity_type.name if entity_type else "",
             attributes,
         ) or (user and not ctx.attribute_value_validator.is_user_valid(user)):
             await ctx.session.rollback()

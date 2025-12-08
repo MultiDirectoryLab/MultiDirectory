@@ -18,7 +18,6 @@ from enums import (
     AuditDestinationServiceType,
     AuditSeverity,
     AuthorizationRules,
-    EntityTypeNames,
     KindType,
     MFAFlags,
     RoleScope,
@@ -41,9 +40,7 @@ class EntityType:
     """Entity type grouping object classes; assigned to directories."""
 
     id: int | None = field(init=False, default=None)
-    # NOTE: cannot specify type annotation only from EntityTypeNames
-    # because custom Entities can exist. See `generate_entity_type_name`
-    name: EntityTypeNames | str = ""
+    name: str = ""
     object_class_names: list[str] = field(default_factory=list)
     is_system: bool = False
     directories: list[Directory] = field(

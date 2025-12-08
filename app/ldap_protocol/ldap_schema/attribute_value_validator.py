@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 from typing import Callable, cast as tcast
 
-from entities import Attribute, Directory, EntityType, User
+from entities import Attribute, Directory, User
 from enums import EntityTypeNames
 from ldap_protocol.objects import PartialAttribute
 
@@ -21,8 +21,7 @@ type _CompiledValidatorsType = dict[
 ]
 
 
-class AttributeValueValidatorError(Exception):
-    """Attribute Value Validator Error."""
+class AttributeValueValidatorError(Exception): ...
 
 
 # NOTE: Not validate `distinguishedName`, `member` and `memberOf` attributes,
@@ -119,12 +118,9 @@ class _ValValidators:
 
 
 class AttributeValueValidator:
-    """Validator for attribute values for different entity types."""
-
     _compiled_validators: _CompiledValidatorsType
 
     def __init__(self) -> None:
-        """Initialize AttributeValueValidator."""
         self._compiled_validators: _CompiledValidatorsType = (
             self.__compile_validators()
         )
@@ -150,69 +146,70 @@ class AttributeValueValidator:
 
         return combined
 
+    def _get_subset_validators(
+        self,
+        entity_type_name: EntityTypeNames | str,
+    ) -> dict[_AttrNameType, _ValueValidatorType] | None:
+        if entity_type_name in self._compiled_validators:
+            entity_type_name = tcast("EntityTypeNames", entity_type_name)
+        else:
+            return None
+        return self._compiled_validators.get(entity_type_name)
+
+    def _get_validator(
+        self,
+        entity_type_name: EntityTypeNames | str,
+        attr_name: str,
+    ) -> _ValueValidatorType | None:
+        subset_validators = self._get_subset_validators(entity_type_name)
+        return subset_validators.get(attr_name) if subset_validators else None
+
     def is_value_valid(
         self,
         entity_type_name: EntityTypeNames | str,
         attr_name: _AttrNameType,
         attr_value: _ValueType,
     ) -> bool:
-        if entity_type_name not in self._compiled_validators:
-            return True
-        entity_type_name = tcast("EntityTypeNames", entity_type_name)
-
-        validator = self._compiled_validators.get(entity_type_name, {}).get(attr_name)  # noqa: E501  # fmt: skip
+        validator = self._get_validator(entity_type_name, attr_name)
 
         if not validator:
             return True
 
         return validator(attr_value)
 
-    def is_change_valid(
+    def is_partial_attribute_valid(
         self,
-        entity_type: EntityType | None,
-        modification: PartialAttribute,
+        entity_type_name: EntityTypeNames | str,
+        partial_attribute: PartialAttribute,
     ) -> bool:
-        if not entity_type:
-            return True
+        validator = self._get_validator(
+            entity_type_name,
+            partial_attribute.type,
+        )
 
-        entity_type_name = entity_type.name
-        if entity_type_name not in EntityTypeNames:
-            return True
-        entity_type_name = tcast("EntityTypeNames", entity_type_name)
-
-        attr_name = modification.type
-        validator = self._compiled_validators.get(entity_type_name, {}).get(attr_name)  # noqa: E501  # fmt: skip
         if not validator:
             return True
 
-        for value in modification.vals:
+        for value in partial_attribute.vals:
             if isinstance(value, str) and not validator(value):
                 return False
 
         return True
 
-    def is_attributes_valid(
+    def is_directory_attributes_valid(
         self,
-        entity_type: EntityType | None,
+        entity_type_name: EntityTypeNames | str,
         attributes: list[Attribute],
     ) -> bool:
-        if not entity_type:
-            return True
-
-        entity_type_name = entity_type.name
-        if entity_type_name not in self._compiled_validators:
-            return True
-        entity_type_name = tcast("EntityTypeNames", entity_type_name)
-
-        collection_validators = self._compiled_validators.get(entity_type_name)
-        if not collection_validators:
+        subset_validators = self._get_subset_validators(entity_type_name)
+        if not subset_validators:
             return True
 
         for attribute in attributes:
             if not attribute.value:
                 continue
 
-            validator = collection_validators.get(attribute.name)
+            validator = subset_validators.get(attribute.name)
             if not validator:
                 continue
 
@@ -222,18 +219,18 @@ class AttributeValueValidator:
         return True
 
     def is_directory_valid(self, directory: Directory) -> bool:
-        """Validate all directory attributes."""
         if not directory.entity_type:
             raise AttributeValueValidatorError(
                 "Directory must have an entity type",
             )
 
         entity_type_name = directory.entity_type.name
-        if entity_type_name not in EntityTypeNames:
-            return True
-        entity_type_name = tcast("EntityTypeNames", entity_type_name)
 
-        if not self.is_value_valid(entity_type_name, "name", directory.name):
+        if entity_type_name and not self.is_value_valid(
+            entity_type_name,
+            "name",
+            directory.name,
+        ):
             return False
 
         if entity_type_name == EntityTypeNames.USER:
@@ -241,11 +238,12 @@ class AttributeValueValidator:
                 raise AttributeValueValidatorError(
                     "User directory must have associated User",
                 )
-            else:
-                return self.is_user_valid(directory.user)
 
-        if not self.is_attributes_valid(  # noqa: SIM103
-            directory.entity_type,
+            if not self.is_user_valid(directory.user):
+                return False
+
+        if not self.is_directory_attributes_valid(  # noqa: SIM103
+            entity_type_name,
             directory.attributes,
         ):
             return False
@@ -253,7 +251,6 @@ class AttributeValueValidator:
         return True
 
     def is_user_valid(self, user: User) -> bool:
-        """Validate all directory attributes."""
         user_entity_type_name = EntityTypeNames.USER
 
         if not self.is_value_valid(

@@ -221,8 +221,8 @@ class ModifyRequest(BaseRequest):
                 if change.modification.type.lower() in Directory.ro_fields:
                     continue
 
-                if not ctx.attribute_value_validator.is_change_valid(
-                    entity_type,
+                if not ctx.attribute_value_validator.is_partial_attribute_valid(  # noqa: E501
+                    entity_type.name if entity_type else "",
                     change.modification,
                 ):
                     await ctx.session.rollback()
