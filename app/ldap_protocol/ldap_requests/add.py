@@ -166,6 +166,10 @@ class AddRequest(BaseRequest):
             entity_type.name if entity_type else "",
             "name",
             name,
+        ) or not ctx.attribute_value_validator.is_value_valid(
+            entity_type.name if entity_type else "",
+            new_dn,
+            name,
         ):
             yield AddResponse(
                 result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
