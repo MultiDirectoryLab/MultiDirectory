@@ -14,7 +14,12 @@ from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
+from sqlalchemy.orm import (
+    contains_eager,
+    joinedload,
+    selectinload,
+    with_loader_criteria,
+)
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
