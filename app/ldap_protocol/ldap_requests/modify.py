@@ -103,6 +103,7 @@ class ModifyRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY
+    CONTEXT_TYPE: ClassVar[type] = LDAPModifyRequestContext
 
     object: str
     changes: list[Changes]

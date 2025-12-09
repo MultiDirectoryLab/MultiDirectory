@@ -27,7 +27,7 @@ class AbandonRequest(BaseRequest):
         """Create structure from ASN1Row dataclass list."""
         return cls(message_id=1)
 
-    async def handle(self) -> AsyncGenerator:
+    async def handle(self, ctx) -> AsyncGenerator:  # type: ignore
         """Handle message with current user."""
         await asyncio.sleep(0)
         return
