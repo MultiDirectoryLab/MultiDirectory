@@ -538,9 +538,9 @@ class SearchRequest(BaseRequest):
         access_manager: AccessManager,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
-        directories = await session.stream_scalars(query)
+        directories = await session.scalars(query)
 
-        async for directory in directories:
+        for directory in directories:
             attrs = defaultdict(list)
             obj_classes = []
 
