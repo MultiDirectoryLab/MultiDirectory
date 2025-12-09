@@ -420,7 +420,7 @@ class SearchRequest(BaseRequest):
 
         if self.member:
             query = query.options(
-                selectinload(qa(Directory.group)).selectinload(
+                joinedload(qa(Directory.group)).selectinload(
                     qa(Group.members),
                 ),
             )
