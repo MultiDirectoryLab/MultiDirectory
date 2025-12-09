@@ -214,7 +214,7 @@ class MainProvider(Provider):
             yield KadminHTTPClient(client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_kadmin(
+    def get_kadmin(
         self,
         client: KadminHTTPClient,
         kadmin_class: type[AbstractKadmin],
@@ -269,14 +269,14 @@ class MainProvider(Provider):
             yield DNSManagerHTTPClient(client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dns_mngr(
+    def get_dns_mngr(
         self,
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
         http_client: DNSManagerHTTPClient,
-    ) -> AsyncIterator[AbstractDNSManager]:
+    ) -> AbstractDNSManager:
         """Get DNSManager class."""
-        yield dns_manager_class(settings=settings, http_client=http_client)
+        return dns_manager_class(settings=settings, http_client=http_client)
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
@@ -293,7 +293,7 @@ class MainProvider(Provider):
         await client.aclose()
 
     @provide(scope=Scope.APP)
-    async def get_session_storage(
+    def get_session_storage(
         self,
         client: SessionStorageClient,
         settings: Settings,
@@ -306,7 +306,7 @@ class MainProvider(Provider):
         )
 
     @provide()
-    async def get_normalized_audit_event(
+    def get_normalized_audit_event(
         self,
     ) -> type[NormalizedAuditEvent]:
         """Get normalized audit event class."""
@@ -327,13 +327,13 @@ class MainProvider(Provider):
         await client.aclose()
 
     @provide(scope=Scope.APP)
-    async def get_raw_audit_manager(
+    def get_raw_audit_manager(
         self,
         client: AuditRedisClient,
         settings: Settings,
-    ) -> AsyncIterator[RawAuditManager]:
+    ) -> RawAuditManager:
         """Get raw audit manager."""
-        yield RawAuditManager(
+        return RawAuditManager(
             client,
             settings.RAW_EVENT_STREAM_NAME,
             settings.EVENT_HANDLER_GROUP,
@@ -342,13 +342,13 @@ class MainProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    async def get_normalized_audit_manager(
+    def get_normalized_audit_manager(
         self,
         client: AuditRedisClient,
         settings: Settings,
-    ) -> AsyncIterator[NormalizedAuditManager]:
+    ) -> NormalizedAuditManager:
         """Get raw audit manager."""
-        yield NormalizedAuditManager(
+        return NormalizedAuditManager(
             client,
             settings.NORMALIZED_EVENT_STREAM_NAME,
             settings.EVENT_SENDER_GROUP,
@@ -361,7 +361,7 @@ class MainProvider(Provider):
     audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_manager_repository(
+    def get_dhcp_manager_repository(
         self,
         session: AsyncSession,
     ) -> DHCPManagerRepository:
@@ -377,20 +377,20 @@ class MainProvider(Provider):
         return await dhcp_manager_repository.ensure_state()
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_mngr_class(
+    def get_dhcp_mngr_class(
         self,
         dhcp_state: DHCPManagerState,
     ) -> type[AbstractDHCPManager]:
         """Get DHCP manager type."""
-        return await get_dhcp_manager_class(dhcp_state)
+        return get_dhcp_manager_class(dhcp_state)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_api_repository_class(
+    def get_dhcp_api_repository_class(
         self,
         dhcp_state: DHCPManagerState,
     ) -> type[DHCPAPIRepository]:
         """Get DHCP API repository type."""
-        return await get_dhcp_api_repository_class(dhcp_state)
+        return get_dhcp_api_repository_class(dhcp_state)
 
     @provide(scope=Scope.APP)
     async def get_dhcp_http_client(
@@ -404,7 +404,7 @@ class MainProvider(Provider):
             yield DHCPManagerHTTPClient(http_client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_api_repository(
+    def get_dhcp_api_repository(
         self,
         http_client: DHCPManagerHTTPClient,
         dhcp_api_repository_class: type[DHCPAPIRepository],
@@ -413,7 +413,7 @@ class MainProvider(Provider):
         return dhcp_api_repository_class(http_client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_mngr(
+    def get_dhcp_mngr(
         self,
         dhcp_manager_class: type[AbstractDHCPManager],
         dhcp_api_repository: DHCPAPIRepository,
@@ -535,7 +535,7 @@ class HTTPProvider(LDAPContextProvider):
     )
 
     @provide()
-    async def get_audit_monitor(
+    def get_audit_monitor(
         self,
         session: AsyncSession,
         audit_use_case: "AuditUseCase",
@@ -595,7 +595,7 @@ class HTTPProvider(LDAPContextProvider):
         return auth_provider
 
     @provide()
-    async def get_identity_provider(
+    def get_identity_provider(
         self,
         request: Request,
         session_storage: SessionStorage,
@@ -816,7 +816,7 @@ class MFAProvider(Provider):
             yield MFAHTTPClient(client)
 
     @provide(provides=MultifactorAPI)
-    async def get_http_mfa(
+    def get_http_mfa(
         self,
         credentials: MFA_HTTP_Creds,
         client: MFAHTTPClient,
@@ -838,7 +838,7 @@ class MFAProvider(Provider):
         )
 
     @provide(provides=LDAPMultiFactorAPI)
-    async def get_ldap_mfa(
+    def get_ldap_mfa(
         self,
         credentials: MFA_LDAP_Creds,
         client: MFAHTTPClient,
