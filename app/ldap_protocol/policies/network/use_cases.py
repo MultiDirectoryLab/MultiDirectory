@@ -20,8 +20,11 @@ from ldap_protocol.policies.network.dto import (
     NetworkPolicyUpdateDTO,
     SwapPrioritiesDTO,
 )
-
-from .gateway import NetworkPolicyGateway
+from ldap_protocol.policies.network.exceptions import (
+    LastActivePolicyError,
+    NetworkPolicyAlreadyExistsError,
+)
+from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
 
 
 def _convert_groups(policy: NetworkPolicy) -> list[str]:
