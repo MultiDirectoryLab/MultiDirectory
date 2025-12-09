@@ -1,5 +1,6 @@
 """Network policies module."""
 
+from .constans import ProtocolType
 from .dto import NetworkPolicyDTO
 from .exceptions import NetworkPolicyAlreadyExistsError
 from .gateway import NetworkPolicyGateway
@@ -10,4 +11,5 @@ __all__ = [
     "NetworkPolicyAlreadyExistsError",
     "NetworkPolicyGateway",
     "NetworkPolicyUseCase",
+    "ProtocolType",
 ]

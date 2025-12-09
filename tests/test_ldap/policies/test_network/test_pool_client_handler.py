@@ -10,8 +10,9 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.policies.network_policy import is_user_group_valid
+from ldap_protocol.policies.network import NetworkPolicyUseCase
+from ldap_protocol.policies.network.constans import ProtocolType
+from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
 from ldap_protocol.utils.queries import get_group, get_user
 
 
@@ -19,18 +20,20 @@ from ldap_protocol.utils.queries import get_group, get_user
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_check_policy(
-    ldap_session: LDAPSession,
-    session: AsyncSession,
+    network_policy_gateway: NetworkPolicyGateway,
 ) -> None:
     """Check policy."""
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
+    policy = await network_policy_gateway.get_by_protocol(
+        IPv4Address("127.0.0.1"),
+        ProtocolType.IS_LDAP,
+    )
     assert policy
     assert policy.netmasks == [IPv4Network("0.0.0.0/0")]
 
 
 @pytest.mark.asyncio
 async def test_specific_policy_ok(
-    ldap_session: LDAPSession,
+    network_policy_gateway: NetworkPolicyGateway,
     session: AsyncSession,
 ) -> None:
     """Test specific ip."""
@@ -44,15 +47,15 @@ async def test_specific_policy_ok(
         ),
     )
     await session.commit()
-    policy = await ldap_session._get_policy(
+    policy = await network_policy_gateway.get_by_protocol(
         ip=IPv4Address("127.100.10.5"),
-        session=session,
+        protocol_type=ProtocolType.IS_LDAP,
     )
     assert policy
     assert policy.netmasks == [IPv4Network("127.100.10.5/32")]
-    assert not await ldap_session._get_policy(
+    assert not await network_policy_gateway.get_by_protocol(
         ip=IPv4Address("127.100.10.4"),
-        session=session,
+        protocol_type=ProtocolType.IS_LDAP,
     )
 
 
@@ -60,17 +63,21 @@ async def test_specific_policy_ok(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("settings")
 async def test_check_policy_group(
-    ldap_session: LDAPSession,
+    network_policy_use_case: NetworkPolicyUseCase,
+    network_policy_gateway: NetworkPolicyGateway,
     session: AsyncSession,
 ) -> None:
     """Check policy."""
     user = await get_user(session, "user0")
     assert user
 
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)
+    policy = await network_policy_gateway.get_by_protocol(
+        IPv4Address("127.0.0.1"),
+        ProtocolType.IS_LDAP,
+    )
     assert policy
 
-    assert await is_user_group_valid(user, policy, session)
+    assert await network_policy_use_case.is_user_group_valid(user, policy)
 
     group = await get_group(
         dn="cn=domain admins,cn=groups,dc=md,dc=test",
@@ -80,4 +87,4 @@ async def test_check_policy_group(
     policy.groups.append(group)
     await session.commit()
 
-    assert await is_user_group_valid(user, policy, session)
+    assert await network_policy_use_case.is_user_group_valid(user, policy)

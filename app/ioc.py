@@ -598,10 +598,11 @@ class HTTPProvider(LDAPContextProvider):
     async def get_session(
         self,
         request: Request,
+        network_policy_gateway: NetworkPolicyGateway,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         ip = get_ip_from_request(request)
-        session = LDAPSession()
+        session = LDAPSession(network_policy_gateway=network_policy_gateway)
         await session.start()
         session.ip = ip
         yield session
@@ -666,9 +667,13 @@ class LDAPServerProvider(LDAPContextProvider):
     async def get_session(
         self,
         storage: SessionStorage,
+        network_policy_gateway: NetworkPolicyGateway,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        session = LDAPSession(storage=storage)
+        session = LDAPSession(
+            storage=storage,
+            network_policy_gateway=network_policy_gateway,
+        )
         await session.start()
         yield session
         await session.disconnect()
