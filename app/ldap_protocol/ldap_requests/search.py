@@ -105,6 +105,7 @@ class SearchRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.SEARCH
+    CONTEXT_TYPE: ClassVar[type] = LDAPSearchRequestContext
 
     base_object: str = Field("", description="Any `DistinguishedName`")
     scope: Scope
