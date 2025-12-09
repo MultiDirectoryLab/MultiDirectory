@@ -5,6 +5,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from constants import ENTITY_TYPE_DATAS
+from enums import EntityTypeNames
 
 from .test_entity_type_router_datasets import (
     test_create_one_entity_type_dataset,
@@ -274,7 +275,7 @@ async def test_delete_bulk_entries(
 @pytest.mark.usefixtures("session")
 async def test_delete_entry_with_directory(http_client: AsyncClient) -> None:
     """Test deleting entry with directory."""
-    entity_type_name = "User"
+    entity_type_name = EntityTypeNames.USER
     response = await http_client.post(
         "/schema/entity_type/delete",
         json={"entity_type_names": [entity_type_name]},

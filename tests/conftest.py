@@ -100,6 +100,9 @@ from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
@@ -153,7 +156,7 @@ class TestProvider(Provider):
     __test__ = False
 
     scope = Scope.RUNTIME
-    settings = from_context(provides=Settings, scope=Scope.RUNTIME)
+    settings = from_context(provides=Settings, scope=scope)
     _cached_session: AsyncSession | None = None
     _cached_kadmin: Mock | None = None
     _cached_audit_service: Mock | None = None
@@ -328,13 +331,13 @@ class TestProvider(Provider):
         PasswordBanWordsFastAPIAdapter,
         scope=Scope.REQUEST,
     )
-    password_utils = provide(PasswordUtils, scope=Scope.RUNTIME)
+    password_utils = provide(PasswordUtils, scope=scope)
 
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
-    @provide(scope=Scope.RUNTIME, provides=AsyncEngine)
+    @provide(scope=scope, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
         """Get async engine."""
         return settings.engine
@@ -518,6 +521,7 @@ class TestProvider(Provider):
     audit_policy_dao = provide(AuditPoliciesDAO, scope=Scope.REQUEST)
     audit_use_case = provide(AuditUseCase, scope=Scope.REQUEST)
     audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
+    attribute_value_validator = provide(AttributeValueValidator, scope=scope)
 
     @provide(scope=Scope.REQUEST, provides=AuditService)
     async def get_audit_service(self) -> AsyncIterator[AsyncMock]:
@@ -543,7 +547,7 @@ class TestProvider(Provider):
 
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
-    @provide(scope=Scope.RUNTIME)
+    @provide(scope=scope)
     async def get_audit_redis_client(
         self,
         settings: Settings,
@@ -879,13 +883,18 @@ async def setup_session(
 ) -> None:
     """Get session and acquire after completion."""
     object_class_dao = ObjectClassDAO(session)
-    entity_type_dao = EntityTypeDAO(session, object_class_dao=object_class_dao)
+    attribute_value_validator = AttributeValueValidator()
+    entity_type_dao = EntityTypeDAO(
+        session,
+        object_class_dao=object_class_dao,
+        attribute_value_validator=attribute_value_validator,
+    )
     for entity_type_data in ENTITY_TYPE_DATAS:
         await entity_type_dao.create(
             dto=EntityTypeDTO(
                 id=None,
-                name=entity_type_data["name"],  # type: ignore
-                object_class_names=entity_type_data["object_class_names"],  # type: ignore
+                name=entity_type_data["name"],
+                object_class_names=entity_type_data["object_class_names"],
                 is_system=True,
             ),
         )
@@ -899,7 +908,10 @@ async def setup_session(
         audit_destination_dao,
         raw_audit_manager,
     )
-    password_policy_dao = PasswordPolicyDAO(session)
+    password_policy_dao = PasswordPolicyDAO(
+        session,
+        attribute_value_validator=attribute_value_validator,
+    )
     password_policy_validator = PasswordPolicyValidator(
         PasswordValidatorSettings(),
         password_utils,
@@ -910,7 +922,12 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
-    setup_gateway = SetupGateway(session, password_utils, entity_type_dao)
+    setup_gateway = SetupGateway(
+        session,
+        password_utils,
+        entity_type_dao,
+        attribute_value_validator=attribute_value_validator,
+    )
     await audit_use_case.create_policies()
     await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)
 
@@ -998,7 +1015,14 @@ async def entity_type_dao(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         object_class_dao = ObjectClassDAO(session)
-        yield EntityTypeDAO(session, object_class_dao)
+        attribute_value_validator = await container.get(
+            AttributeValueValidator,
+        )
+        yield EntityTypeDAO(
+            session,
+            object_class_dao,
+            attribute_value_validator=attribute_value_validator,
+        )
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -1008,7 +1032,13 @@ async def password_policy_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        yield PasswordPolicyDAO(session)
+        attribute_value_validator = await container.get(
+            AttributeValueValidator,
+        )
+        yield PasswordPolicyDAO(
+            session,
+            attribute_value_validator=attribute_value_validator,
+        )
 
 
 @pytest_asyncio.fixture(scope="function")

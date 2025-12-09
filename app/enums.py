@@ -45,6 +45,24 @@ class MFAChallengeStatuses(StrEnum):
     PENDING = "pending"
 
 
+class EntityTypeNames(StrEnum):
+    """Enum of base (system) Entity Types.
+
+    Used for system objects.
+    Custom Entity Types aren't included here.
+    """
+
+    DOMAIN = "Domain"
+    COMPUTER = "Computer"
+    CONTAINER = "Container"
+    ORGANIZATIONAL_UNIT = "Organizational Unit"
+    GROUP = "Group"
+    USER = "User"
+    KRB_CONTAINER = "KRB Container"
+    KRB_PRINCIPAL = "KRB Principal"
+    KRB_REALM_CONTAINER = "KRB Realm Container"
+
+
 class KindType(StrEnum):
     """Object kind types."""
 

@@ -11,6 +11,9 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -43,11 +46,17 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
         object_class_dao = ObjectClassDAO(session)
-        entity_type_dao = EntityTypeDAO(session, object_class_dao)
+        attribute_value_validator = AttributeValueValidator()
+        entity_type_dao = EntityTypeDAO(
+            session,
+            object_class_dao,
+            attribute_value_validator=attribute_value_validator,
+        )
         setup_gateway = SetupGateway(
             session,
             PasswordUtils(),
             entity_type_dao,
+            attribute_value_validator=attribute_value_validator,
         )
 
         base_directories = await get_base_directories(session)

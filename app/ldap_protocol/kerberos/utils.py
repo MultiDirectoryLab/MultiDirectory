@@ -9,7 +9,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, CatalogueSetting, Directory, EntityType
-from enums import StrEnum
+from enums import EntityTypeNames, StrEnum
 from repo.pg.tables import queryable_attr as qa
 
 from .exceptions import KRBAPIConnectionError, KRBAPIError
@@ -122,7 +122,7 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
         .outerjoin(qa(Directory.entity_type))
         .where(
             qa(Directory.name).ilike(name),
-            qa(EntityType.name) == "KRB Principal",
+            qa(EntityType.name) == EntityTypeNames.KRB_PRINCIPAL,
         )
         .scalar_subquery()
     )
