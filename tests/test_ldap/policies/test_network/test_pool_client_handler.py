@@ -10,8 +10,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy
-from ldap_protocol.policies.network import NetworkPolicyUseCase
-from ldap_protocol.policies.network.constans import ProtocolType
+from ldap_protocol.policies.network import NetworkPolicyUseCase, ProtocolType
 from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
 from ldap_protocol.utils.queries import get_group, get_user
 

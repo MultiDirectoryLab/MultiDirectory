@@ -14,15 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from abstract_service import AbstractService
 from entities import NetworkPolicy, User
 from enums import AuthorizationRules
-from ldap_protocol.policies.network.constans import ProtocolType
+from ldap_protocol.policies.network.constants import ProtocolType
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
     SwapPrioritiesDTO,
-)
-from ldap_protocol.policies.network.exceptions import (
-    LastActivePolicyError,
-    NetworkPolicyAlreadyExistsError,
 )
 
 from .gateway import NetworkPolicyGateway

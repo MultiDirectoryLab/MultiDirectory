@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, true
 
 from entities import Group, NetworkPolicy, User
-from ldap_protocol.policies.network.constans import ProtocolType
+from ldap_protocol.policies.network import ProtocolType
 from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,
