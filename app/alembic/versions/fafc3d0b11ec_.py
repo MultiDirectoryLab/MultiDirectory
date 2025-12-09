@@ -14,7 +14,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
-from extra.alembic_utils import temporary_stub_column
+from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -62,7 +62,7 @@ def upgrade(container: AsyncContainer) -> None:
                 dir_, _ = await create_group(
                     name="readonly domain controllers",
                     sid=521,
-                    attribute_value_validator=attribute_value_validator,
+                    attribute_value_validator=AttributeValueValidator(),
                     session=session,
                 )
 

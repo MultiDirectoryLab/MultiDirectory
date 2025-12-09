@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session, selectinload
 from constants import DOMAIN_COMPUTERS_GROUP_NAME
 from entities import Attribute, Directory, EntityType, Group
 from enums import EntityTypeNames
-from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -51,6 +50,16 @@ def upgrade(container: AsyncContainer) -> None:
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
+
+        object_class_dao = ObjectClassDAO(session)
+        entity_type_dao = EntityTypeDAO(
+            session,
+            object_class_dao=object_class_dao,
+            attribute_value_validator=AttributeValueValidator(),
+        )
+        role_dao = RoleDAO(session)
+        ace_dao = AccessControlEntryDAO(session)
+        role_use_case = RoleUseCase(role_dao, ace_dao)
 
         try:
             group_dir_query = select(

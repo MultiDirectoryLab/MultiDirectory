@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
-from constants import DOMAIN_ADMIN_GROUP_NAME
 from entities import Attribute, Directory, Group, User
 from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row

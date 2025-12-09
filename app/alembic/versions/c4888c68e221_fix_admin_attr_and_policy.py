@@ -13,7 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory, NetworkPolicy
-from extra.alembic_utils import temporary_stub_column
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.helpers import create_integer_hash
 from ldap_protocol.utils.queries import get_base_directories
@@ -40,6 +42,14 @@ def upgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
+        object_class_dao = ObjectClassDAO(
+            session,
+        )
+        entity_type_dao = EntityTypeDAO(
+            session,
+            object_class_dao=object_class_dao,
+            attribute_value_validator=AttributeValueValidator(),
+        )
         await entity_type_dao.attach_entity_type_to_directories()
         await session.commit()
 

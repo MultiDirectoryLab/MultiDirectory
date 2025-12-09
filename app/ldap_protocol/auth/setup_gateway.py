@@ -69,7 +69,6 @@ class SetupGateway:
             return
 
         domain = Directory(name=dn, object_class="domain")
-        domain.is_system = True
         domain.object_sid = generate_domain_sid()
         domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
         domain.depth = len(domain.path)
