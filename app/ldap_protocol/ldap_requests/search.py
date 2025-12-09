@@ -367,7 +367,7 @@ class SearchRequest(BaseRequest):
             select(Directory)
             .join(qa(Directory.user), isouter=True)
             .options(joinedload(qa(Directory.user)))
-            .options(selectinload(qa(Directory.group)))
+            .options(joinedload(qa(Directory.group)))
         )
 
         query = self._mutate_query_with_attributes_to_load(query)
