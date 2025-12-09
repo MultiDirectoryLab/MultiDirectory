@@ -16,10 +16,9 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncIterator
 
 import gssapi
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy, User
-from ldap_protocol.policies.network_policy import build_policy_query
+from ldap_protocol.policies.network import NetworkPolicyGateway, ProtocolType
 
 from .session_storage import SessionStorage
 
@@ -85,6 +84,7 @@ class LDAPSession:
         *,
         user: UserSchema | None = None,
         storage: SessionStorage | None = None,
+        network_policy_gateway: NetworkPolicyGateway,
     ) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
@@ -94,6 +94,7 @@ class LDAPSession:
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
+        self._network_policy_gateway = network_policy_gateway
 
     def __str__(self) -> str:
         """Session with id."""
@@ -142,21 +143,15 @@ class LDAPSession:
         async with self._lock:
             yield self._user
 
-    @staticmethod
-    async def _get_policy(
-        ip: IPv4Address,
-        session: AsyncSession,
-    ) -> NetworkPolicy | None:
-        query = build_policy_query(ip, "is_ldap")
-        return await session.scalar(query)
-
     async def validate_conn(
         self,
         ip: IPv4Address | IPv6Address,
-        session: AsyncSession,
     ) -> None:
         """Validate network policies."""
-        policy = await self._get_policy(ip, session)  # type: ignore
+        policy = await self._network_policy_gateway.get_by_protocol(
+            ip,
+            ProtocolType.IS_LDAP,
+        )
         if policy is not None:
             self.policy = policy
             await self.bind_session()

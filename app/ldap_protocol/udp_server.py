@@ -10,7 +10,6 @@ from traceback import format_exc
 from dishka import AsyncContainer, Scope
 from loguru import logger
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
@@ -50,8 +49,7 @@ class CLDAPUDPServer:
         ldap_session.ip = ip_address(addr[0])
 
         try:
-            session = await container.get(AsyncSession)
-            await ldap_session.validate_conn(ldap_session.ip, session)
+            await ldap_session.validate_conn(ldap_session.ip)
         except PermissionError:
             log.warning(f"Whitelist violation from UDP {addr_str}")
             raise ConnectionAbortedError
