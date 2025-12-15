@@ -103,7 +103,7 @@ jobs:
     steps:
       - name: run admin build - init event
         if: github.event.action != 'Workflow Response'
-        uses: peter-evans/repository-dispatch@v3
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.ACCESS_TOKEN_MD }}
           repository: MultiDirectoryLab/MultiDirectory-Web-Admin
@@ -111,7 +111,7 @@ jobs:
           client-payload: '{"repository": "$GITHUB_REPOSITORY", "tag": "${{ github.ref_name }}" }'
       - name: run admin build - responce event
         if: github.event.action == 'Workflow Response'
-        uses: peter-evans/repository-dispatch@v3
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.ACCESS_TOKEN_MD }}
           repository: MultiDirectoryLab/MultiDirectory-Web-Admin
