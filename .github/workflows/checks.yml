@@ -11,7 +11,7 @@ jobs:
   ruff_linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -31,7 +31,7 @@ jobs:
   ruff_format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -51,7 +51,7 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -71,7 +71,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
