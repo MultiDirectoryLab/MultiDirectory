@@ -8,6 +8,7 @@ Create Date: 2025-02-20 13:01:56.736774
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 
 # revision identifiers, used by Alembic.
 revision = "4334e2e871a4"
@@ -16,7 +17,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.add_column(
         "Policies",
@@ -38,7 +39,7 @@ def upgrade() -> None:
     )
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_column("Policies", "http_session_ttl")
     op.drop_column("Policies", "ldap_session_ttl")

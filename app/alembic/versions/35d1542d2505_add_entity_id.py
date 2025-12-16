@@ -8,6 +8,7 @@ Create Date: 2025-07-10 11:42:30.958798
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy.sql import text
 
 # revision identifiers, used by Alembic.
@@ -17,7 +18,7 @@ branch_labels: None = None
 depends_on: None = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.add_column(
         "EntityTypes",
@@ -87,7 +88,7 @@ def upgrade() -> None:
     op.drop_column("Directory", "entity_type_name")
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.add_column(
         "Directory",

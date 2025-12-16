@@ -7,17 +7,13 @@ Create Date: 2025-09-24 09:37:33.334259
 """
 
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -35,20 +31,17 @@ _OU_COMPUTERS_DATA = {
 }
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     from ldap_protocol.auth.setup_gateway import SetupGateway
 
     async def _create_ou_computers(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
-        object_class_dao = ObjectClassDAO(session)
-        entity_type_dao = EntityTypeDAO(session, object_class_dao)
-        setup_gateway = SetupGateway(
-            session,
-            PasswordUtils(),
-            entity_type_dao,
-        )
+
+        async with container(scope=Scope.REQUEST) as cnt:
+            setup_gateway = await cnt.get(SetupGateway)
+            role_use_case = await cnt.get(RoleUseCase)
 
         base_directories = await get_base_directories(session)
         if not base_directories:
@@ -77,9 +70,6 @@ def upgrade() -> None:
         if not ou_computers_dir:
             raise Exception("Directory 'ou=computers' not found.")
 
-        role_dao = RoleDAO(session)
-        ace_dao = AccessControlEntryDAO(session)
-        role_use_case = RoleUseCase(role_dao, ace_dao)
         await role_use_case.inherit_parent_aces(
             parent_directory=domain_dir,
             directory=ou_computers_dir,
@@ -90,7 +80,7 @@ def upgrade() -> None:
     op.run_async(_create_ou_computers)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
 
     async def _delete_ou_computers(connection: AsyncConnection) -> None:

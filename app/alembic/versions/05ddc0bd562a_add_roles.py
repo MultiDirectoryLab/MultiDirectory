@@ -7,6 +7,7 @@ Create Date: 2025-07-17 09:16:20.056149
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -24,7 +25,7 @@ branch_labels: None = None
 depends_on: None = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.create_table(
         "Roles",
@@ -184,7 +185,7 @@ def upgrade() -> None:
     op.run_async(_create_system_roles)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.create_table(
         "AccessPolicies",

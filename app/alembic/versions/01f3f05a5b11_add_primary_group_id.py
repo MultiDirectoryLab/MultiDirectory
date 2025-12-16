@@ -7,6 +7,7 @@ Create Date: 2025-09-26 12:36:05.974255
 """
 
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
@@ -14,9 +15,6 @@ from sqlalchemy.orm import Session, selectinload
 
 from entities import Attribute, Directory, EntityType, Group
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
     create_group,
@@ -33,25 +31,18 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_domain_computers_group(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _add_domain_computers_group(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            entity_type_dao = await cnt.get(EntityTypeDAO)
+            role_use_case = await cnt.get(RoleUseCase)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
-
-        object_class_dao = ObjectClassDAO(session)
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao=object_class_dao,
-        )
-        role_dao = RoleDAO(session)
-        ace_dao = AccessControlEntryDAO(session)
-        role_use_case = RoleUseCase(role_dao, ace_dao)
 
         try:
             group_dir_query = select(
@@ -118,7 +109,6 @@ def upgrade() -> None:
 
     async def _add_primary_group_id(connection: AsyncConnection) -> None:
         session = AsyncSession(connection)
-        await session.begin()
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
@@ -160,12 +150,10 @@ def upgrade() -> None:
         except (IntegrityError, DBAPIError):
             pass
 
-        await session.close()
-
     op.run_async(_add_primary_group_id)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -174,8 +162,6 @@ def downgrade() -> None:
         connection: AsyncConnection,
     ) -> None:
         session = AsyncSession(connection)
-        await session.begin()
-
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
