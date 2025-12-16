@@ -671,6 +671,23 @@ class HTTPProvider(LDAPContextProvider):
     )
     network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
+    @provide(scope=Scope.REQUEST, provides=LDAPSearchRequestContext)
+    async def get_search_request_context(
+        self,
+        session: AsyncSession,
+        ldap_session: LDAPSession,
+        settings: Settings,
+        access_manager: AccessManager,
+    ) -> LDAPSearchRequestContext:
+        """Get search request context."""
+        return LDAPSearchRequestContext(
+            session=session,  # type: ignore
+            ldap_session=ldap_session,
+            settings=settings,
+            access_manager=access_manager,
+            rootdse_rd=RootDSEReader(settings, SADomainGateway(session)),
+        )
+
 
 class LDAPServerProvider(LDAPContextProvider):
     """Provider with session scope."""
