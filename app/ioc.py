@@ -535,6 +535,7 @@ class LDAPContextProvider(Provider):
             rootdse_rd=RootDSEReader(settings, SADomainGateway(session)),
         )
 
+
 class HTTPProvider(LDAPContextProvider):
     """HTTP LDAP session."""
 
