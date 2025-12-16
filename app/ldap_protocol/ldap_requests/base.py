@@ -125,31 +125,32 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
             responses.append(response)
             yield response
 
-        ldap_session = await container.get(LDAPSession)
-        settings = await container.get(Settings)
-        audit_use_case = await container.get(AuditUseCase)
+        if self.PROTOCOL_OP != ProtocolRequests.SEARCH:
+            ldap_session = await container.get(LDAPSession)
+            settings = await container.get(Settings)
+            audit_use_case = await container.get(AuditUseCase)
 
-        if await audit_use_case.check_event_processing_enabled(
-            self.PROTOCOL_OP,
-        ):
-            username = getattr(
-                ldap_session.user,
-                "user_principal_name",
-                "ANONYMOUS",
-            )
-            event = RawAuditEventBuilderRedis.from_ldap_request(
-                self,
-                responses=responses,
-                username=username,
-                ip=ldap_session.ip,
-                protocol="TCP_LDAP",
-                settings=settings,
-                context=self.get_event_data(),
-            )
+            if await audit_use_case.check_event_processing_enabled(
+                self.PROTOCOL_OP,
+            ):
+                username = getattr(
+                    ldap_session.user,
+                    "user_principal_name",
+                    "ANONYMOUS",
+                )
+                event = RawAuditEventBuilderRedis.from_ldap_request(
+                    self,
+                    responses=responses,
+                    username=username,
+                    ip=ldap_session.ip,
+                    protocol="TCP_LDAP",
+                    settings=settings,
+                    context=self.get_event_data(),
+                )
 
-            ldap_session.event_task_group.create_task(
-                audit_use_case.manager.send_event(event),
-            )
+                ldap_session.event_task_group.create_task(
+                    audit_use_case.manager.send_event(event),
+                )
 
     async def _handle_api(
         self,
