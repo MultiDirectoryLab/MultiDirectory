@@ -675,20 +675,20 @@ class LDAPServerProvider(LDAPContextProvider):
 
     scope = Scope.SESSION
 
+    network_policy_validator_gateway = provide(
+        NetworkPolicyValidatorGateway,
+        scope=Scope.REQUEST,
+    )
+
     network_policy_validator = provide(
         NetworkPolicyValidatorGateway,
         provides=NetworkPolicyValidatorProtocol,
         scope=Scope.REQUEST,
     )
-
-    @provide(scope=Scope.REQUEST)
-    async def get_network_policy_use_case(
-        self,
-        session: AsyncSession,
-    ) -> NetworkPolicyValidatorUseCase:
-        """Create network policy use case with request scope."""
-        gateway = NetworkPolicyValidatorGateway(session)
-        return NetworkPolicyValidatorUseCase(gateway)
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.REQUEST,
+    )
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_session(
