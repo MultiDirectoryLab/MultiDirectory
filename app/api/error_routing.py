@@ -22,7 +22,6 @@ ERROR_MAP_TYPE = dict[type[Exception], int | Rule] | None
 class ErrorResponse:
     """Error response."""
 
-    type: str
     detail: str
     domain_code: DoaminCodes
     error_code: IntEnum
@@ -51,7 +50,6 @@ class DomainErrorTranslator(ErrorTranslator[ErrorResponse]):
             raise TypeError(f"Expected BaseDomainException, got {type(err)}")
 
         return ErrorResponse(
-            type=type(err).__name__,
             detail=str(err),
             domain_code=self.domain_code,
             error_code=err.code,
