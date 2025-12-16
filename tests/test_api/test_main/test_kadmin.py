@@ -125,7 +125,7 @@ async def test_tree_collision(http_client: AsyncClient) -> None:
         },
     )
 
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -228,21 +228,21 @@ async def test_ktadd(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_ktadd_404(
+async def test_ktadd_400(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
 ) -> None:
     """Test ktadd failure.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    :param AsyncClient http_client: http client
+    :param AbstractKadmin kadmin: kadmin
     """
     kadmin.ktadd.side_effect = KRBAPIPrincipalNotFoundError()  # type: ignore
 
     names = ["test1", "test2"]
     response = await http_client.post("/kerberos/ktadd", json=names)
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -528,4 +528,4 @@ async def test_update_password(
             "old_password": "password",
         },
     )
-    assert response.status_code == status.HTTP_424_FAILED_DEPENDENCY
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
