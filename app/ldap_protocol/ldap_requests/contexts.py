@@ -23,6 +23,7 @@ from password_utils import PasswordUtils
 
 AsyncSessionSearchRequest = NewType("AsyncSessionSearchRequest", AsyncSession)
 
+
 @dataclass
 class LDAPAddRequestContext:
     """Context for LDAP add request."""
