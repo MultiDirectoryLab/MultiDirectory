@@ -34,8 +34,7 @@ class NetworkPolicyValidatorGateway:
         """Build a base query for network policies.
 
         :param IPv4Address | IPv6Address ip: IP address to filter
-        :param ProtocolType protocol_type: Protocol type
-            protocol: Protocol to filter
+        :param ProtocolType protocol_type: Protocol to filter
         :param list[int] | None user_group_ids:
             List of user group IDs, optional
         :return: Select query
