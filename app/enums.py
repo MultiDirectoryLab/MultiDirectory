@@ -45,6 +45,24 @@ class MFAChallengeStatuses(StrEnum):
     PENDING = "pending"
 
 
+class EntityTypeNames(StrEnum):
+    """Enum of base (system) Entity Types.
+
+    Used for system objects.
+    Custom Entity Types aren't included here.
+    """
+
+    DOMAIN = "Domain"
+    COMPUTER = "Computer"
+    CONTAINER = "Container"
+    ORGANIZATIONAL_UNIT = "Organizational Unit"
+    GROUP = "Group"
+    USER = "User"
+    KRB_CONTAINER = "KRB Container"
+    KRB_PRINCIPAL = "KRB Principal"
+    KRB_REALM_CONTAINER = "KRB Realm Container"
+
+
 class KindType(StrEnum):
     """Object kind types."""
 
@@ -198,3 +216,22 @@ class AuthorizationRules(IntFlag):
         permissions: Iterable[AuthorizationRules],
     ) -> AuthorizationRules:
         return reduce(or_, permissions, AuthorizationRules(0))
+
+
+class DomainCodes(IntEnum):
+    """Error code parts."""
+
+    AUDIT = 1
+    AUTH = 2
+    SESSION = 3
+    DNS = 4
+    GENERAL = 5
+    KERBEROS = 6
+    LDAP = 7
+    MFA = 8
+    NETWORK = 9
+    PASSWORD_POLICY = 10
+    ROLES = 11
+    DHCP = 12
+    LDAP_SCHEMA = 13
+    SHADOW = 14

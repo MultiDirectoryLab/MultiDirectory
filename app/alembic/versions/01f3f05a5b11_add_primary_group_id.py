@@ -14,6 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
 from entities import Attribute, Directory, EntityType, Group
+from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
@@ -57,12 +61,15 @@ def upgrade(container: AsyncContainer) -> None:
             dir_, group_ = await create_group(
                 name="domain computers",
                 sid=515,
+                attribute_value_validator=AttributeValueValidator(),
                 session=session,
             )
 
             await session.flush()
 
-            computer_entity_type = await entity_type_dao.get("Computer")
+            computer_entity_type = await entity_type_dao.get(
+                EntityTypeNames.COMPUTER,
+            )
             computer_dirs = await session.scalars(
                 select(Directory)
                 .where(
@@ -116,7 +123,11 @@ def upgrade(container: AsyncContainer) -> None:
 
         entity_type = await session.scalars(
             select(qa(EntityType.id))
-            .where(qa(EntityType.name).in_(["User", "Computer"])),
+            .where(
+                qa(EntityType.name).in_(
+                    [EntityTypeNames.USER, EntityTypeNames.COMPUTER],
+                ),
+            ),
         )  # fmt: skip
 
         entity_type_ids = list(entity_type.all())

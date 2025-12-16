@@ -109,8 +109,8 @@ def upgrade(container: AsyncContainer) -> None:
         for entity_type_data in ENTITY_TYPE_DATAS:
             await entity_type_use_case.create(
                 EntityTypeDTO(
-                    name=entity_type_data["name"],  # type: ignore
-                    object_class_names=entity_type_data["object_class_names"],  # type: ignore
+                    name=entity_type_data["name"],
+                    object_class_names=entity_type_data["object_class_names"],
                     is_system=True,
                 ),
             )

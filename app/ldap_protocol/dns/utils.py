@@ -9,7 +9,8 @@ from typing import Any, Callable
 
 from dns.asyncresolver import Resolver as AsyncResolver
 
-from .base import DNSConnectionError, log
+from .base import log
+from .exceptions import DNSConnectionError
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:

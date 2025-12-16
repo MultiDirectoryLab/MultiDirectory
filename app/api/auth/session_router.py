@@ -1,9 +1,17 @@
 """Session router for handling user sessions."""
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, status
-from fastapi.routing import APIRouter
+from fastapi_error_map.routing import ErrorAwareRouter
+from fastapi_error_map.rules import rule
+
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
+)
+from enums import DomainCodes
+from ldap_protocol.session_storage.exceptions import SessionUserNotFoundError
 
 from .adapters.session_gateway import (
     SessionContentResponseSchema,
@@ -11,15 +19,25 @@ from .adapters.session_gateway import (
 )
 from .utils import verify_auth
 
-session_router = APIRouter(
+translator = DomainErrorTranslator(DomainCodes.SESSION)
+
+
+error_map: ERROR_MAP_TYPE = {
+    SessionUserNotFoundError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+}
+
+session_router = ErrorAwareRouter(
     prefix="/sessions",
     tags=["Session"],
-    route_class=DishkaRoute,
+    route_class=DishkaErrorAwareRoute,
     dependencies=[Depends(verify_auth)],
 )
 
 
-@session_router.get("/{upn}")
+@session_router.get("/{upn}", error_map=error_map)
 async def get_user_session(
     upn: str,
     gateway: FromDishka[SessionFastAPIGateway],
@@ -28,7 +46,11 @@ async def get_user_session(
     return await gateway.get_user_sessions(upn)
 
 
-@session_router.delete("/{upn}", status_code=status.HTTP_204_NO_CONTENT)
+@session_router.delete(
+    "/{upn}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    error_map=error_map,
+)
 async def delete_user_sessions(
     upn: str,
     gateway: FromDishka[SessionFastAPIGateway],
@@ -40,6 +62,7 @@ async def delete_user_sessions(
 @session_router.delete(
     "/session/{session_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    error_map=error_map,
 )
 async def delete_session(
     session_id: str,

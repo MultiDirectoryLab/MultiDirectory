@@ -5,6 +5,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from constants import ENTITY_TYPE_DATAS
+from enums import EntityTypeNames
 
 from .test_entity_type_router_datasets import (
     test_create_one_entity_type_dataset,
@@ -60,7 +61,7 @@ async def test_create_one_entity_type_value_400(
             "is_system": False,
         },
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -153,14 +154,14 @@ async def test_modify_entity_type_with_duplicate_data(
         f"/schema/entity_type/{update_entity}",
         json=update_data,
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     update_entity, update_data = new_statements["duplicate_name"]
     response = await http_client.patch(
         f"/schema/entity_type/{update_entity}",
         json=update_data,
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.parametrize(
@@ -223,7 +224,7 @@ async def test_modify_primary_entity_type_name(
             "object_class_names": entity_type_data["object_class_names"],
         },
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     response = await http_client.get(
         f"/schema/entity_type/{entity_type_data['name']}",
@@ -267,14 +268,14 @@ async def test_delete_bulk_entries(
         response = await http_client.get(
             f"/schema/entity_type/{entity_type_name}",
         )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_delete_entry_with_directory(http_client: AsyncClient) -> None:
     """Test deleting entry with directory."""
-    entity_type_name = "User"
+    entity_type_name = EntityTypeNames.USER
     response = await http_client.post(
         "/schema/entity_type/delete",
         json={"entity_type_names": [entity_type_name]},

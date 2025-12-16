@@ -14,6 +14,11 @@ from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
+from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+    AttributeValueValidatorError,
+)
 from ldap_protocol.objects import UserAccountControlFlag as UacFlag
 from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyAlreadyExistsError,
@@ -63,13 +68,16 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
     """Password Policy DAO."""
 
     _session: AsyncSession
+    __attribute_value_validator: AttributeValueValidator
 
     def __init__(
         self,
         session: AsyncSession,
+        attribute_value_validator: AttributeValueValidator,
     ) -> None:
         """Initialize Password Policy DAO with a database session."""
         self._session = session
+        self.__attribute_value_validator = attribute_value_validator
 
     async def _get_total_count(self) -> int:
         """Count all Password Policies."""
@@ -392,6 +400,13 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         )  # fmt: skip
 
         if not plset_attribute:
+            if not self.__attribute_value_validator.is_value_valid(
+                EntityTypeNames.USER,
+                "pwdLastSet",
+                ft_now(),
+            ):
+                raise AttributeValueValidatorError("Invalid pwdLastSet value")
+
             plset_attribute = Attribute(
                 directory_id=directory_id,
                 name="pwdLastSet",

@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 
 from config import Settings
 from entities import Directory
-from enums import AceType, RoleScope
+from enums import AceType, EntityTypeNames, RoleScope
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -37,7 +37,7 @@ async def test_multiple_access(
     custom_role: RoleDTO,
 ) -> None:
     """Test multiple access control entries in a role."""
-    user_entity_type = await entity_type_dao.get("User")
+    user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
     posix_email_attr = await attribute_type_dao.get("posixEmail")

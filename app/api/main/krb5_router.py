@@ -8,28 +8,67 @@ from typing import Annotated
 
 from annotated_types import Len
 from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
-from fastapi import Body, Request, Response
+from fastapi import Body, Request, Response, status
 from fastapi.params import Depends
 from fastapi.responses import StreamingResponse
-from fastapi.routing import APIRouter
+from fastapi_error_map.routing import ErrorAwareRouter
+from fastapi_error_map.rules import rule
 from pydantic import SecretStr
 
 from api.auth.adapters.auth import AuthFastAPIAdapter
 from api.auth.utils import verify_auth
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
+)
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
+from enums import DomainCodes
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import KerberosState
+from ldap_protocol.kerberos.exceptions import (
+    KerberosBaseDnNotFoundError,
+    KerberosConflictError,
+    KerberosDependencyError,
+    KerberosNotFoundError,
+    KerberosUnavailableError,
+)
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.utils.const import EmailStr
 
 from .utils import get_ldap_session
 
-krb5_router = APIRouter(
+translator = DomainErrorTranslator(DomainCodes.KERBEROS)
+
+
+error_map: ERROR_MAP_TYPE = {
+    KerberosBaseDnNotFoundError: rule(
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        translator=translator,
+    ),
+    KerberosConflictError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    KerberosDependencyError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    KerberosNotFoundError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    KerberosUnavailableError: rule(
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        translator=translator,
+    ),
+}
+
+krb5_router = ErrorAwareRouter(
     prefix="/kerberos",
     tags=["KRB5 API"],
-    route_class=DishkaRoute,
+    route_class=DishkaErrorAwareRoute,
 )
 KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 
@@ -37,6 +76,7 @@ KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 @krb5_router.post(
     "/setup/tree",
     response_class=Response,
+    error_map=error_map,
     dependencies=[Depends(verify_auth)],
 )
 async def setup_krb_catalogue(
@@ -61,7 +101,7 @@ async def setup_krb_catalogue(
     )
 
 
-@krb5_router.post("/setup", response_class=Response)
+@krb5_router.post("/setup", response_class=Response, error_map=error_map)
 async def setup_kdc(
     data: KerberosSetupRequest,
     identity_adapter: FromDishka[AuthFastAPIAdapter],
@@ -92,7 +132,11 @@ LIMITED_LIST = Annotated[
 ]
 
 
-@krb5_router.post("/ktadd", dependencies=[Depends(verify_auth)])
+@krb5_router.post(
+    "/ktadd",
+    dependencies=[Depends(verify_auth)],
+    error_map=error_map,
+)
 async def ktadd(
     names: Annotated[LIMITED_LIST, Body()],
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
@@ -105,7 +149,11 @@ async def ktadd(
     return await kerberos_adapter.ktadd(names)
 
 
-@krb5_router.get("/status", dependencies=[Depends(verify_auth)])
+@krb5_router.get(
+    "/status",
+    dependencies=[Depends(verify_auth)],
+    error_map=error_map,
+)
 async def get_krb_status(
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> KerberosState:
@@ -118,7 +166,11 @@ async def get_krb_status(
     return await kerberos_adapter.get_status()
 
 
-@krb5_router.post("/principal/add", dependencies=[Depends(verify_auth)])
+@krb5_router.post(
+    "/principal/add",
+    dependencies=[Depends(verify_auth)],
+    error_map=error_map,
+)
 async def add_principal(
     primary: Annotated[LIMITED_STR, Body()],
     instance: Annotated[LIMITED_STR, Body()],
@@ -137,6 +189,7 @@ async def add_principal(
 @krb5_router.patch(
     "/principal/rename",
     dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def rename_principal(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -160,6 +213,7 @@ async def rename_principal(
 @krb5_router.patch(
     "/principal/reset",
     dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def reset_principal_pw(
     principal_name: Annotated[LIMITED_STR, Body()],
@@ -180,6 +234,7 @@ async def reset_principal_pw(
 @krb5_router.delete(
     "/principal/delete",
     dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def delete_principal(
     principal_name: Annotated[LIMITED_STR, Body(embed=True)],

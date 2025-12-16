@@ -14,9 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
-from constants import PRIMARY_ENTITY_TYPE_NAMES
 from entities import Attribute, Directory, Group, User
-from enums import AceType
+from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, unlock_principal
@@ -193,9 +192,7 @@ class ModifyRequest(BaseRequest):
 
         names = {change.get_name() for change in self.changes}
 
-        password_change_requested = self._check_password_change_requested(
-            names,
-        )
+        password_change_requested = self._is_password_change_requested(names)
         self_modify = directory.id == ctx.ldap_session.user.directory_id
 
         if (
@@ -210,7 +207,7 @@ class ModifyRequest(BaseRequest):
             return
 
         before_attrs = self.get_directory_attrs(directory)
-
+        entity_type = directory.entity_type
         try:
             if not can_modify and not (
                 password_change_requested and self_modify
@@ -223,6 +220,17 @@ class ModifyRequest(BaseRequest):
             for change in self.changes:
                 if change.modification.type.lower() in Directory.ro_fields:
                     continue
+
+                if not ctx.attribute_value_validator.is_partial_attribute_valid(  # noqa: E501
+                    entity_type.name if entity_type else "",
+                    change.modification,
+                ):
+                    await ctx.session.rollback()
+                    yield ModifyResponse(
+                        result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                        message="Invalid attribute value(s)",
+                    )
+                    return
 
                 await self._update_password_expiration(
                     change,
@@ -289,8 +297,10 @@ class ModifyRequest(BaseRequest):
                     directory=directory,
                     is_system_entity_type=False,
                 )
+
             await ctx.session.commit()
             yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+
         finally:
             query = self._get_dir_query()
             directory = await ctx.session.scalar(query)
@@ -351,7 +361,7 @@ class ModifyRequest(BaseRequest):
             .filter(get_filter_from_path(self.object))
         )
 
-    def _check_password_change_requested(
+    def _is_password_change_requested(
         self,
         names: set[str],
     ) -> bool:
@@ -591,7 +601,7 @@ class ModifyRequest(BaseRequest):
     ) -> None:
         if not (
             directory.entity_type
-            and directory.entity_type.name in PRIMARY_ENTITY_TYPE_NAMES
+            and directory.entity_type.name in EntityTypeNames
         ):
             return
 
