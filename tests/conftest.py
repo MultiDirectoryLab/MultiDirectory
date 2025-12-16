@@ -126,7 +126,7 @@ from ldap_protocol.policies.network import (
     NetworkPolicyGateway,
     NetworkPolicyUseCase,
     NetworkPolicyValidatorGateway,
-    NetworkPolicyValidatorProtocol,
+    NetworkPolicyValidatorUseCase,
 )
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
@@ -340,6 +340,15 @@ class TestProvider(Provider):
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
+    network_policy_validator_gateway = provide(
+        NetworkPolicyValidatorGateway,
+        scope=Scope.SESSION,
+    )
+    network_policy_validator = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.SESSION,
+    )
 
     @provide(scope=scope, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -402,12 +411,12 @@ class TestProvider(Provider):
     async def get_ldap_session(
         self,
         storage: SessionStorage,
-        network_policy_gateway: NetworkPolicyGateway,
+        network_policy_validator_use_case: NetworkPolicyValidatorUseCase,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         session = LDAPSession(
             storage=storage,
-            network_policy_gateway=network_policy_gateway,
+            network_policy_validator_use_case=network_policy_validator_use_case,
         )
         await session.start()
         yield session
@@ -690,7 +699,6 @@ class TestProvider(Provider):
         NetworkPolicyUseCase,
         scope=Scope.REQUEST,
     )
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
 
     @provide(
         provides=AuthorizationProviderProtocol,
@@ -709,11 +717,6 @@ class TestProvider(Provider):
     )
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
-    network_policy_validator = provide(
-        NetworkPolicyValidatorGateway,
-        provides=NetworkPolicyValidatorProtocol,
-        scope=Scope.SESSION,
-    )
 
 
 @dataclass
@@ -1021,10 +1024,10 @@ async def network_policy_gateway(
 @pytest_asyncio.fixture(scope="function")
 async def network_policy_validator(
     container: AsyncContainer,
-) -> AsyncIterator[NetworkPolicyValidatorProtocol]:
+) -> AsyncIterator[NetworkPolicyValidatorUseCase]:
     """Get network policy validator."""
     async with container(scope=Scope.SESSION) as container:
-        yield await container.get(NetworkPolicyValidatorProtocol)
+        yield await container.get(NetworkPolicyValidatorUseCase)
 
 
 @pytest_asyncio.fixture(scope="session")

@@ -4,6 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv6Address
 from typing import ClassVar
 
 from adaptix import P
@@ -11,8 +12,8 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
-from entities import NetworkPolicy
-from enums import AuthorizationRules
+from entities import NetworkPolicy, User
+from enums import AuthorizationRules, ProtocolType
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -23,6 +24,9 @@ from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
 )
 from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
+from ldap_protocol.policies.network.validator_gateway import (
+    NetworkPolicyValidatorGateway,
+)
 
 
 def _convert_groups(policy: NetworkPolicy) -> list[str]:
@@ -195,4 +199,104 @@ class NetworkPolicyUseCase(AbstractService):
         switch_network_policy.__name__: AuthorizationRules.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
         update.__name__: AuthorizationRules.NETWORK_POLICY_UPDATE,
         swap_priorities.__name__: AuthorizationRules.NETWORK_POLICY_SWAP_PRIORITIES,  # noqa: E501
+    }
+
+
+class NetworkPolicyValidatorUseCase(AbstractService):
+    """Network policies validator use cases."""
+
+    def __init__(
+        self,
+        network_policy_validator_gateway: NetworkPolicyValidatorGateway,
+    ):
+        """Initialize Network policies validator use cases."""
+        self._gateway = network_policy_validator_gateway
+
+    async def get_by_protocol(
+        self,
+        ip: IPv4Address | IPv6Address,
+        protocol_type: ProtocolType,
+    ) -> NetworkPolicy | None:
+        """Get network policy by protocol."""
+        return await self._gateway.get_by_protocol(
+            ip,
+            protocol_type,
+        )
+
+    async def get_user_network_policy(
+        self,
+        ip: IPv4Address | IPv6Address,
+        user: User,
+        policy_type: ProtocolType,
+    ) -> NetworkPolicy | None:
+        """Get user network policy."""
+        return await self._gateway.get_user_network_policy(
+            ip,
+            user,
+            policy_type,
+        )
+
+    async def get_user_http_policy(
+        self,
+        ip: IPv4Address | IPv6Address,
+        user: User,
+    ) -> NetworkPolicy | None:
+        """Get user HTTP policy."""
+        return await self._gateway.get_user_http_policy(
+            ip,
+            user,
+        )
+
+    async def get_user_kerberos_policy(
+        self,
+        ip: IPv4Address | IPv6Address,
+        user: User,
+    ) -> NetworkPolicy | None:
+        """Get user Kerberos policy."""
+        return await self._gateway.get_user_kerberos_policy(
+            ip,
+            user,
+        )
+
+    async def get_user_ldap_policy(
+        self,
+        ip: IPv4Address | IPv6Address,
+        user: User,
+    ) -> NetworkPolicy | None:
+        """Get user LDAP policy."""
+        return await self._gateway.get_user_ldap_policy(
+            ip,
+            user,
+        )
+
+    async def is_user_group_valid(
+        self,
+        user: User | None,
+        policy: NetworkPolicy | None,
+    ) -> bool:
+        """Validate user groups, is it including to policy."""
+        return await self._gateway.is_user_group_valid(
+            user,
+            policy,
+        )
+
+    async def check_mfa_group(
+        self,
+        policy: NetworkPolicy,
+        user: User,
+    ) -> bool:
+        """Check if user is in a group with MFA policy."""
+        return await self._gateway.check_mfa_group(
+            policy,
+            user,
+        )
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        get_by_protocol.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_BY_PROTOCOL,  # noqa: E501
+        get_user_network_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_NETWORK_POLICY,  # noqa: E501
+        get_user_http_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_HTTP_POLICY,  # noqa: E501
+        get_user_kerberos_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_KERBEROS_POLICY,  # noqa: E501
+        get_user_ldap_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_LDAP_POLICY,  # noqa: E501
+        is_user_group_valid.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_IS_USER_GROUP_VALID,  # noqa: E501
+        check_mfa_group.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_CHECK_MFA_GROUP,  # noqa: E501
     }

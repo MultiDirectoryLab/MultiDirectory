@@ -32,9 +32,7 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
-from ldap_protocol.policies.network.validator_protocol import (
-    NetworkPolicyValidatorProtocol,
-)
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
@@ -60,7 +58,7 @@ class AuthManager(AbstractService):
         mfa_manager: MFAManager,
         setup_use_case: SetupUseCase,
         identity_provider: IdentityProvider,
-        network_policy_validator: NetworkPolicyValidatorProtocol,
+        network_policy_validator: NetworkPolicyValidatorUseCase,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 

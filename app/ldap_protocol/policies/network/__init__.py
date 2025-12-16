@@ -7,7 +7,7 @@ from .exceptions import (
     NetworkPolicyNotFoundError,
 )
 from .gateway import NetworkPolicyGateway
-from .use_cases import NetworkPolicyUseCase
+from .use_cases import NetworkPolicyUseCase, NetworkPolicyValidatorUseCase
 from .validator_gateway import NetworkPolicyValidatorGateway
 from .validator_protocol import NetworkPolicyValidatorProtocol
 
@@ -20,6 +20,7 @@ __all__ = [
     "NetworkPolicyNotFoundError",
     "NetworkPolicyGateway",
     "NetworkPolicyUseCase",
-    "NetworkPolicyValidatorProtocol",
+    "NetworkPolicyValidatorUseCase",
     "NetworkPolicyValidatorGateway",
+    "NetworkPolicyValidatorProtocol",
 ]

@@ -120,6 +120,7 @@ from ldap_protocol.policies.network import (
     NetworkPolicyUseCase,
     NetworkPolicyValidatorGateway,
     NetworkPolicyValidatorProtocol,
+    NetworkPolicyValidatorUseCase,
 )
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
@@ -517,6 +518,16 @@ class HTTPProvider(LDAPContextProvider):
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.SESSION,
+    )
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.SESSION,
+    )
 
     @provide()
     async def get_audit_monitor(
@@ -602,11 +613,13 @@ class HTTPProvider(LDAPContextProvider):
     async def get_session(
         self,
         request: Request,
-        network_policy_gateway: NetworkPolicyGateway,
+        network_policy_validator_use_case: NetworkPolicyValidatorUseCase,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         ip = get_ip_from_request(request)
-        session = LDAPSession(network_policy_gateway=network_policy_gateway)
+        session = LDAPSession(
+            network_policy_validator_use_case=network_policy_validator_use_case,
+        )
         await session.start()
         session.ip = ip
         yield session
@@ -659,12 +672,6 @@ class HTTPProvider(LDAPContextProvider):
         NetworkPolicyUseCase,
         scope=Scope.REQUEST,
     )
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
-    network_policy_validator = provide(
-        NetworkPolicyValidatorGateway,
-        provides=NetworkPolicyValidatorProtocol,
-        scope=Scope.SESSION,
-    )
 
 
 class LDAPServerProvider(LDAPContextProvider):
@@ -676,12 +683,12 @@ class LDAPServerProvider(LDAPContextProvider):
     async def get_session(
         self,
         storage: SessionStorage,
-        network_policy_gateway: NetworkPolicyGateway,
+        network_policy_validator_use_case: NetworkPolicyValidatorUseCase,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         session = LDAPSession(
             storage=storage,
-            network_policy_gateway=network_policy_gateway,
+            network_policy_validator_use_case=network_policy_validator_use_case,
         )
         await session.start()
         yield session

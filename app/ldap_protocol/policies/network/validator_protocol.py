@@ -8,6 +8,7 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Protocol
 
 from entities import NetworkPolicy, User
+from enums import ProtocolType
 
 
 class NetworkPolicyValidatorProtocol(Protocol):
@@ -51,4 +52,21 @@ class NetworkPolicyValidatorProtocol(Protocol):
         policy: NetworkPolicy | None,
     ) -> bool:
         """Validate user groups, is it including to policy."""
+        ...
+
+    async def get_user_network_policy(
+        self,
+        ip: IPv4Address | IPv6Address,
+        user: User,
+        policy_type: ProtocolType,
+    ) -> NetworkPolicy | None:
+        """Get the highest priority network policy."""
+        ...
+
+    async def get_by_protocol(
+        self,
+        ip: IPv4Address | IPv6Address,
+        protocol_type: ProtocolType,
+    ) -> NetworkPolicy | None:
+        """Get network policy by protocol."""
         ...

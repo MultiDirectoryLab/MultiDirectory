@@ -11,10 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy
 from enums import ProtocolType
-from ldap_protocol.policies.network import (
-    NetworkPolicyGateway,
-    NetworkPolicyValidatorProtocol,
-)
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.utils.queries import get_group, get_user
 
 
@@ -22,10 +19,10 @@ from ldap_protocol.utils.queries import get_group, get_user
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_check_policy(
-    network_policy_gateway: NetworkPolicyGateway,
+    network_policy_validator: NetworkPolicyValidatorUseCase,
 ) -> None:
     """Check policy."""
-    policy = await network_policy_gateway.get_by_protocol(
+    policy = await network_policy_validator.get_by_protocol(
         IPv4Address("127.0.0.1"),
         ProtocolType.LDAP,
     )
@@ -35,7 +32,7 @@ async def test_check_policy(
 
 @pytest.mark.asyncio
 async def test_specific_policy_ok(
-    network_policy_gateway: NetworkPolicyGateway,
+    network_policy_validator: NetworkPolicyValidatorUseCase,
     session: AsyncSession,
 ) -> None:
     """Test specific ip."""
@@ -49,13 +46,13 @@ async def test_specific_policy_ok(
         ),
     )
     await session.commit()
-    policy = await network_policy_gateway.get_by_protocol(
+    policy = await network_policy_validator.get_by_protocol(
         ip=IPv4Address("127.100.10.5"),
         protocol_type=ProtocolType.LDAP,
     )
     assert policy
     assert policy.netmasks == [IPv4Network("127.100.10.5/32")]
-    assert not await network_policy_gateway.get_by_protocol(
+    assert not await network_policy_validator.get_by_protocol(
         ip=IPv4Address("127.100.10.4"),
         protocol_type=ProtocolType.LDAP,
     )
@@ -65,15 +62,14 @@ async def test_specific_policy_ok(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("settings")
 async def test_check_policy_group(
-    network_policy_validator: NetworkPolicyValidatorProtocol,
-    network_policy_gateway: NetworkPolicyGateway,
+    network_policy_validator: NetworkPolicyValidatorUseCase,
     session: AsyncSession,
 ) -> None:
     """Check policy."""
     user = await get_user(session, "user0")
     assert user
 
-    policy = await network_policy_gateway.get_by_protocol(
+    policy = await network_policy_validator.get_by_protocol(
         IPv4Address("127.0.0.1"),
         ProtocolType.LDAP,
     )

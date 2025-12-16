@@ -20,10 +20,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
 from ldap_protocol.ldap_responses import SearchResultEntry
-from ldap_protocol.policies.network import (
-    NetworkPolicyGateway,
-    NetworkPolicyValidatorProtocol,
-)
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -310,10 +307,10 @@ async def test_bind_policy(
     session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
-    network_policy_gateway: NetworkPolicyGateway,
+    network_policy_validator: NetworkPolicyValidatorUseCase,
 ) -> None:
     """Bind with policy."""
-    policy = await network_policy_gateway.get_by_protocol(
+    policy = await network_policy_validator.get_by_protocol(
         IPv4Address("127.0.0.1"),
         ProtocolType.LDAP,
     )
@@ -353,11 +350,10 @@ async def test_bind_policy_missing_group(
     session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
-    network_policy_validator: NetworkPolicyValidatorProtocol,
-    network_policy_gateway: NetworkPolicyGateway,
+    network_policy_validator: NetworkPolicyValidatorUseCase,
 ) -> None:
     """Bind policy fail."""
-    policy = await network_policy_gateway.get_by_protocol(
+    policy = await network_policy_validator.get_by_protocol(
         IPv4Address("127.0.0.1"),
         ProtocolType.LDAP,
     )
