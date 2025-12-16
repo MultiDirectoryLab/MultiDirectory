@@ -162,7 +162,11 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        kwargs = await resolve_deps(func=self.handle, container=container)
+        if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
+            ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
+        else:
+            ctx = None
+
         ldap_session = await container.get(LDAPSession)
         settings = await container.get(Settings)
         audit_use_case = await container.get(AuditUseCase)
@@ -174,7 +178,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
-        responses = [response async for response in self.handle(**kwargs)]
+        responses = [response async for response in self.handle(ctx=ctx)]
 
         if settings.DEBUG:
             for response in responses:
