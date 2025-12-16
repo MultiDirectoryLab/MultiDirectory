@@ -65,6 +65,7 @@ from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
 from ldap_protocol.ldap_requests.contexts import (
+    AsyncSessionSearchRequest,
     LDAPAddRequestContext,
     LDAPBindRequestContext,
     LDAPDeleteRequestContext,
@@ -445,7 +446,7 @@ class MainProvider(Provider):
     )
     password_utils = provide(PasswordUtils, scope=Scope.RUNTIME)
 
-    access_manager = provide(AccessManager, scope=Scope.REQUEST)
+    access_manager = provide(AccessManager, scope=Scope.RUNTIME)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
@@ -490,15 +491,36 @@ class LDAPContextProvider(Provider):
         LDAPModifyDNRequestContext,
         scope=Scope.REQUEST,
     )
-    search_request_context = provide(
-        LDAPSearchRequestContext,
-        scope=Scope.REQUEST,
-    )
     unbind_request_context = provide(
         LDAPUnbindRequestContext,
         scope=Scope.REQUEST,
     )
 
+    @provide(scope=Scope.SESSION)
+    async def create_search_session(
+        self,
+        async_session: async_sessionmaker[AsyncSession],
+    ) -> AsyncIterator[AsyncSessionSearchRequest]:
+        """Create session for request."""
+        async with async_session() as session:
+            yield session  # type: ignore
+
+    @provide(scope=Scope.SESSION, provides=LDAPSearchRequestContext)
+    async def get_search_request_context(
+        self,
+        session: AsyncSessionSearchRequest,
+        ldap_session: LDAPSession,
+        settings: Settings,
+        access_manager: AccessManager,
+    ) -> LDAPSearchRequestContext:
+        """Get search request context."""
+        return LDAPSearchRequestContext(
+            session=session,
+            ldap_session=ldap_session,
+            settings=settings,
+            access_manager=access_manager,
+            rootdse_rd=RootDSEReader(settings, SADomainGateway(session)),
+        )
 
 class HTTPProvider(LDAPContextProvider):
     """HTTP LDAP session."""
