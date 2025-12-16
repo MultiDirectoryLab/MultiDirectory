@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from enum import IntEnum
 
 
-class BaseDomainException(Exception):  # noqa: N818
+class BaseDomainException(Exception):  # noqa N818
     """Base exception."""
 
     code: IntEnum

@@ -228,14 +228,6 @@ class AuthorizationRules(IntFlag):
         return reduce(or_, permissions, AuthorizationRules(0))
 
 
-class ProtocolType(StrEnum):
-    """Protocol fields."""
-
-    LDAP = "is_ldap"
-    HTTP = "is_http"
-    KERBEROS = "is_kerberos"
-
-
 class DomainCodes(IntEnum):
     """Error code parts."""
 

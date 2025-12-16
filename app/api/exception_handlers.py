@@ -29,6 +29,6 @@ async def handle_auth_error(
     exc: Exception,
 ) -> NoReturn:
     """Handle Auth error."""
-    # fastapi-error-map doesn't handle exceptions from dependencies
-    # (get_ldap_session), so we catch them manually here
+    # fastapi-error-map doesn't handle exceptions from dependencie,
+    # (get_ldap_session) потому ловим так
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=str(exc))
