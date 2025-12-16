@@ -665,10 +665,25 @@ class TestProvider(Provider):
         LDAPModifyDNRequestContext,
         scope=Scope.REQUEST,
     )
-    search_request_context = provide(
-        LDAPSearchRequestContext,
-        scope=Scope.REQUEST,
-    )
+
+    @provide(scope=Scope.REQUEST, provides=LDAPSearchRequestContext)
+    def get_search_request_context(
+        self,
+        session: AsyncSession,
+        ldap_session: LDAPSession,
+        settings: Settings,
+        access_manager: AccessManager,
+        rootdse_reader: RootDSEReader,
+    ) -> LDAPSearchRequestContext:
+        """Get search request context."""
+        return LDAPSearchRequestContext(
+            session=session,  # type: ignore
+            ldap_session=ldap_session,
+            settings=settings,
+            access_manager=access_manager,
+            rootdse_rd=rootdse_reader,
+        )
+
     unbind_request_context = provide(
         LDAPUnbindRequestContext,
         scope=Scope.REQUEST,
