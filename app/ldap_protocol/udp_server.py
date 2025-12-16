@@ -10,7 +10,6 @@ from traceback import format_exc
 from dishka import AsyncContainer, Scope
 from loguru import logger
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
@@ -51,7 +50,6 @@ class CLDAPUDPServer:
         ldap_session.ip = ip_address(addr[0])
 
         try:
-            await container.get(AsyncSession)
             network_policy_use_case = await container.get(
                 NetworkPolicyValidatorUseCase,
             )
