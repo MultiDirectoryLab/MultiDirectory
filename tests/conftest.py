@@ -875,6 +875,148 @@ async def raw_audit_manager(
         yield await container.get(RawAuditManager)
 
 
+@pytest.fixture(scope="session")
+def global_settings() -> Settings:
+    """Get settings."""
+    settings = Settings.from_os()
+    return settings.get_copy_4_global()
+
+
+@pytest_asyncio.fixture(scope="session")
+async def global_container(
+    global_settings: Settings,
+) -> AsyncIterator[AsyncContainer]:
+    """Create test container."""
+    ctnr = make_async_container(
+        TestProvider(),
+        MFACredsProvider(),
+        context={Settings: global_settings},
+        start_scope=Scope.RUNTIME,
+    )
+    yield ctnr
+    await ctnr.close()
+
+
+@pytest_asyncio.fixture(scope="session")
+async def global_handler(
+    global_settings: Settings,
+    global_container: AsyncContainer,
+) -> AsyncIterator[PoolClientHandler]:
+    """Create test handler."""
+    global_settings.set_test_global_port()
+    async with global_container(scope=Scope.APP) as app_scope:
+        yield PoolClientHandler(global_settings, app_scope)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def global_session(
+    global_container: AsyncContainer,
+    global_handler: PoolClientHandler,
+) -> AsyncIterator[AsyncSession]:
+    """Get session and acquire after completion."""
+    async with global_container(scope=Scope.APP) as global_container:
+        session = await global_container.get(AsyncSession)
+        global_handler.container = global_container
+        yield session
+
+
+@pytest_asyncio.fixture(scope="function")
+async def setup_global_session(
+    global_session: AsyncSession,
+    raw_audit_manager: RawAuditManager,
+    password_utils: PasswordUtils,
+) -> None:
+    """Get session and acquire after completion."""
+    object_class_dao = ObjectClassDAO(global_session)
+    attribute_value_validator = AttributeValueValidator()
+    entity_type_dao = EntityTypeDAO(
+        global_session,
+        object_class_dao=object_class_dao,
+        attribute_value_validator=attribute_value_validator,
+    )
+    for entity_type_data in ENTITY_TYPE_DATAS:
+        await entity_type_dao.create(
+            dto=EntityTypeDTO(
+                id=None,
+                name=entity_type_data["name"],
+                object_class_names=entity_type_data["object_class_names"],
+                is_system=True,
+            ),
+        )
+
+    await global_session.flush()
+
+    audit_policy_dao = AuditPoliciesDAO(global_session)
+    audit_destination_dao = AuditDestinationDAO(global_session)
+    audit_use_case = AuditUseCase(
+        audit_policy_dao,
+        audit_destination_dao,
+        raw_audit_manager,
+    )
+    password_policy_dao = PasswordPolicyDAO(
+        global_session,
+        attribute_value_validator=attribute_value_validator,
+    )
+    password_policy_validator = PasswordPolicyValidator(
+        PasswordValidatorSettings(),
+        password_utils,
+    )
+    password_ban_word_repository = PasswordBanWordRepository(global_session)
+    password_use_cases = PasswordPolicyUseCases(
+        password_policy_dao,
+        password_policy_validator,
+        password_ban_word_repository,
+    )
+    setup_gateway = SetupGateway(
+        global_session,
+        password_utils,
+        entity_type_dao,
+        attribute_value_validator=attribute_value_validator,
+    )
+    await audit_use_case.create_policies()
+    await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)
+
+    # NOTE: after setup environment we need base DN to be created
+    await password_use_cases.create_default_domain_policy()
+
+    role_dao = RoleDAO(global_session)
+    ace_dao = AccessControlEntryDAO(global_session)
+    role_use_case = RoleUseCase(role_dao, ace_dao)
+    await role_use_case.create_domain_admins_role()
+
+    await role_use_case._role_dao.create(  # noqa: SLF001
+        dto=RoleDTO(
+            name="TEST ONLY LOGIN ROLE",
+            creator_upn=None,
+            is_system=True,
+            groups=["cn=admin login only,cn=groups,dc=md,dc=test"],
+            permissions=AuthorizationRules.AUTH_LOGIN,
+        ),
+    )
+
+    global_session.add(
+        AttributeType(
+            oid="1.2.3.4.5.6.7.8",
+            name="attr_with_bvalue",
+            syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+        ),
+    )
+    global_session.add(
+        AttributeType(
+            oid="1.2.3.4.5.6.7.8.9",
+            name="testing_attr",
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+        ),
+    )
+    await global_session.commit()
+
+
 @pytest_asyncio.fixture(scope="function")
 async def setup_session(
     session: AsyncSession,

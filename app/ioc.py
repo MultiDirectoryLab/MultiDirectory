@@ -674,6 +674,36 @@ class LDAPServerProvider(LDAPContextProvider):
         await session.disconnect()
 
 
+class GlobalLDAPServerProvider(Provider):
+    """Provider with session scope."""
+
+    scope = Scope.SESSION
+
+    @provide(scope=Scope.SESSION, provides=LDAPSession)
+    async def get_session(
+        self,
+        storage: SessionStorage,
+    ) -> AsyncIterator[LDAPSession]:
+        """Create ldap session."""
+        session = LDAPSession(storage=storage)
+        await session.start()
+        yield session
+        await session.disconnect()
+
+    bind_request_context = provide(
+        LDAPBindRequestContext,
+        scope=Scope.REQUEST,
+    )
+    search_request_context = provide(
+        LDAPSearchRequestContext,
+        scope=Scope.REQUEST,
+    )
+    unbind_request_context = provide(
+        LDAPUnbindRequestContext,
+        scope=Scope.REQUEST,
+    )
+
+
 class MFACredsProvider(Provider):
     """Creds provider."""
 

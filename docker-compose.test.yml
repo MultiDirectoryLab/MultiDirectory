@@ -20,8 +20,30 @@ services:
       POSTGRES_HOST: postgres
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
-    command: sh -c "python -B -m pytest -n auto -x -W ignore::DeprecationWarning -vv"
+    command: sh -c "python -B -m pytest -n auto -x tests/test_global_ldap -W ignore::DeprecationWarning -vv"
     tty: true
+
+  # global_ldap_server:
+  #   build:
+  #     context: .
+  #     dockerfile: ./.docker/dev.Dockerfile
+  #     args:
+  #       DOCKER_BUILDKIT: 1
+  #     target: runtime
+  #   image: multidirectory
+  #   container_name: global_ldap_server
+  #   restart: unless-stopped
+  #   environment:
+  #     - SERVICE_NAME=global_ldap_server
+  #   volumes:
+  #     - ./app:/app
+  #     - ./certs:/certs
+  #     - ldap_keytab:/LDAP_keytab/
+  #   env_file: local.env
+  #   command: python multidirectory.py --global_ldap_server
+  #   ports:
+  #     - "3268:3268"
+  #     - "3269:3269"
 
   postgres:
     container_name: MD-test-postgres

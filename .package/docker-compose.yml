@@ -127,7 +127,7 @@ services:
       - traefik.tcp.routers.ldaps.tls.certResolver=md-resolver
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
       - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
-  
+
   cldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     restart: unless-stopped

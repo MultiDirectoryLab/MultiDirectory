@@ -41,6 +41,7 @@ from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
     EventSenderProvider,
+    GlobalLDAPServerProvider,
     HTTPProvider,
     LDAPServerProvider,
     MainProvider,
@@ -214,6 +215,28 @@ async def cldap_factory(settings: Settings) -> None:
     await CLDAPUDPServer(settings, container).start()
 
 
+async def global_ldap_server_factory(settings: Settings) -> None:
+    """Run global_ldap_server_factory."""
+    servers = []
+
+    for setting in (
+        settings.get_copy_4_global(),
+        settings.get_copy_4_global_tls(),
+    ):
+        container = make_async_container(
+            GlobalLDAPServerProvider(),
+            MainProvider(),
+            MFAProvider(),
+            MFACredsProvider(),
+            context={Settings: setting},
+        )
+
+        settings = await container.get(Settings)
+        servers.append(PoolClientHandler(settings, container).start())
+
+    await asyncio.gather(*servers)
+
+
 async def event_handler_factory(settings: Settings) -> None:
     """Run event handler."""
     main_container = make_async_container(
@@ -244,6 +267,10 @@ async def event_sender_factory(settings: Settings) -> None:
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
 cldap = partial(run_entrypoint, factory=cldap_factory)
+global_ldap_server = partial(
+    run_entrypoint,
+    factory=global_ldap_server_factory,
+)
 scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 event_handler = partial(run_entrypoint, factory=event_handler_factory)
@@ -257,6 +284,11 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--ldap", action="store_true", help="Run ldap")
     group.add_argument("--cldap", action="store_true", help="Run cldap")
+    group.add_argument(
+        "--global_ldap_server",
+        action="store_true",
+        help="Run global_ldap_server",
+    )
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
@@ -286,8 +318,11 @@ if __name__ == "__main__":
     if args.ldap:
         ldap(settings=settings)
 
-    if args.cldap:
+    elif args.cldap:
         cldap(settings=settings)
+
+    elif args.global_ldap_server:
+        global_ldap_server(settings=settings)
 
     elif args.event_sender:
         event_sender(settings=settings)
