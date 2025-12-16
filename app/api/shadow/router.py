@@ -24,7 +24,6 @@ from ldap_protocol.auth.exceptions.mfa import (
     NetworkPolicyError,
 )
 from ldap_protocol.policies.password.exceptions import PasswordPolicyError
-
 from ldap_protocol.rootdse.dto import DomainControllerInfo
 from ldap_protocol.rootdse.reader import DCInfoReader
 
