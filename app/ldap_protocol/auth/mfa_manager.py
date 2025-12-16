@@ -46,7 +46,9 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
 )
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
-from ldap_protocol.policies.network import NetworkPolicyUseCase
+from ldap_protocol.policies.network.validator_protocol import (
+    NetworkPolicyValidatorProtocol,
+)
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
@@ -69,7 +71,7 @@ class MFAManager(AbstractService):
         monitor: AuditMonitorUseCase,
         password_utils: PasswordUtils,
         identity_provider: IdentityProvider,
-        network_policy_use_case: NetworkPolicyUseCase,
+        network_policy_validator: NetworkPolicyValidatorProtocol,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -88,7 +90,7 @@ class MFAManager(AbstractService):
         self._monitor = monitor
         self._password_utils = password_utils
         self._identity_provider = identity_provider
-        self._network_policy_use_case = network_policy_use_case
+        self._network_policy_validator = network_policy_validator
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -328,7 +330,7 @@ class MFAManager(AbstractService):
             )
 
         network_policy = (
-            await self._network_policy_use_case.get_user_kerberos_policy(
+            await self._network_policy_validator.get_user_kerberos_policy(
                 ip,
                 user,
             )
@@ -350,7 +352,7 @@ class MFAManager(AbstractService):
         ):
             if (
                 network_policy.mfa_status == MFAFlags.WHITELIST
-                and not await self._network_policy_use_case.check_mfa_group(
+                and not await self._network_policy_validator.check_mfa_group(
                     network_policy,
                     user,
                 )

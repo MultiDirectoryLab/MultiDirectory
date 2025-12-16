@@ -1,6 +1,5 @@
 """Network policies module."""
 
-from .constants import ProtocolType
 from .dto import NetworkPolicyDTO, NetworkPolicyUpdateDTO, SwapPrioritiesDTO
 from .exceptions import (
     LastActivePolicyError,
@@ -9,6 +8,7 @@ from .exceptions import (
 )
 from .gateway import NetworkPolicyGateway
 from .use_cases import NetworkPolicyUseCase
+from .validator_protocol import NetworkPolicyValidatorProtocol
 
 __all__ = [
     "NetworkPolicyDTO",
@@ -19,5 +19,5 @@ __all__ = [
     "NetworkPolicyNotFoundError",
     "NetworkPolicyGateway",
     "NetworkPolicyUseCase",
-    "ProtocolType",
+    "NetworkPolicyValidatorProtocol",
 ]

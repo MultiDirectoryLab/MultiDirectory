@@ -119,6 +119,12 @@ from ldap_protocol.policies.network import (
     NetworkPolicyGateway,
     NetworkPolicyUseCase,
 )
+from ldap_protocol.policies.network.validator_gateway import (
+    NetworkPolicyValidatorGateway,
+)
+from ldap_protocol.policies.network.validator_protocol import (
+    NetworkPolicyValidatorProtocol,
+)
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
@@ -657,7 +663,12 @@ class HTTPProvider(LDAPContextProvider):
         NetworkPolicyUseCase,
         scope=Scope.REQUEST,
     )
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.SESSION,
+    )
 
 
 class LDAPServerProvider(LDAPContextProvider):

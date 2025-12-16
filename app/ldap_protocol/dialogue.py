@@ -18,7 +18,8 @@ from typing import TYPE_CHECKING, AsyncIterator
 import gssapi
 
 from entities import NetworkPolicy, User
-from ldap_protocol.policies.network import NetworkPolicyGateway, ProtocolType
+from enums import ProtocolType
+from ldap_protocol.policies.network import NetworkPolicyGateway
 
 from .session_storage import SessionStorage
 
@@ -150,7 +151,7 @@ class LDAPSession:
         """Validate network policies."""
         policy = await self._network_policy_gateway.get_by_protocol(
             ip,
-            ProtocolType.IS_LDAP,
+            ProtocolType.LDAP,
         )
         if policy is not None:
             self.policy = policy

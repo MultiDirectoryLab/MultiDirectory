@@ -4,7 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from ipaddress import IPv4Address, IPv6Address
 from typing import ClassVar
 
 from adaptix import P
@@ -12,9 +11,8 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
-from entities import NetworkPolicy, User
+from entities import NetworkPolicy
 from enums import AuthorizationRules
-from ldap_protocol.policies.network.constants import ProtocolType
 from ldap_protocol.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -188,64 +186,6 @@ class NetworkPolicyUseCase(AbstractService):
         return SwapPrioritiesDTO(
             priority1=policy1.priority,
             priority2=policy2.priority,
-        )
-
-    async def get_user_http_policy(
-        self,
-        ip: IPv4Address | IPv6Address,
-        user: User,
-    ) -> NetworkPolicy | None:
-        """Get user HTTP policy."""
-        return await self._network_policy_gateway.get_user_network_policy(
-            ip,
-            user,
-            ProtocolType.IS_HTTP,
-        )
-
-    async def get_user_kerberos_policy(
-        self,
-        ip: IPv4Address | IPv6Address,
-        user: User,
-    ) -> NetworkPolicy | None:
-        """Get user Kerberos policy."""
-        return await self._network_policy_gateway.get_user_network_policy(
-            ip,
-            user,
-            ProtocolType.IS_KERBEROS,
-        )
-
-    async def get_user_ldap_policy(
-        self,
-        ip: IPv4Address | IPv6Address,
-        user: User,
-    ) -> NetworkPolicy | None:
-        """Get user LDAP policy."""
-        return await self._network_policy_gateway.get_user_network_policy(
-            ip,
-            user,
-            ProtocolType.IS_LDAP,
-        )
-
-    async def check_mfa_group(
-        self,
-        policy: NetworkPolicy,
-        user: User,
-    ) -> bool:
-        """Check if user is in a group with MFA policy."""
-        return await self._network_policy_gateway.check_mfa_group(
-            policy,
-            user,
-        )
-
-    async def is_user_group_valid(
-        self,
-        user: User | None,
-        policy: NetworkPolicy | None,
-    ) -> bool:
-        """Validate user groups, is it including to policy."""
-        return await self._network_policy_gateway.is_user_group_valid(
-            user,
-            policy,
         )
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {

@@ -126,6 +126,12 @@ from ldap_protocol.policies.network import (
     NetworkPolicyGateway,
     NetworkPolicyUseCase,
 )
+from ldap_protocol.policies.network.validator_gateway import (
+    NetworkPolicyValidatorGateway,
+)
+from ldap_protocol.policies.network.validator_protocol import (
+    NetworkPolicyValidatorProtocol,
+)
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
@@ -688,7 +694,7 @@ class TestProvider(Provider):
         NetworkPolicyUseCase,
         scope=Scope.REQUEST,
     )
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
 
     @provide(
         provides=AuthorizationProviderProtocol,
@@ -707,6 +713,11 @@ class TestProvider(Provider):
     )
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.SESSION,
+    )
 
 
 @dataclass
@@ -1000,6 +1011,24 @@ async def ldap_bound_session(
     await ldap_session.set_user(user)
     yield ldap_session
     return
+
+
+@pytest_asyncio.fixture(scope="function")
+async def network_policy_gateway(
+    container: AsyncContainer,
+) -> AsyncIterator[NetworkPolicyGateway]:
+    """Get network policy gateway."""
+    async with container(scope=Scope.SESSION) as container:
+        yield await container.get(NetworkPolicyGateway)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def network_policy_validator(
+    container: AsyncContainer,
+) -> AsyncIterator[NetworkPolicyValidatorProtocol]:
+    """Get network policy validator."""
+    async with container(scope=Scope.SESSION) as container:
+        yield await container.get(NetworkPolicyValidatorProtocol)
 
 
 @pytest_asyncio.fixture(scope="session")

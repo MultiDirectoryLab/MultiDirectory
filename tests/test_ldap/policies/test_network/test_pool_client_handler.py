@@ -10,7 +10,8 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy
-from ldap_protocol.policies.network import NetworkPolicyUseCase, ProtocolType
+from enums import ProtocolType
+from ldap_protocol.policies.network import NetworkPolicyValidatorProtocol
 from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
 from ldap_protocol.utils.queries import get_group, get_user
 
@@ -24,7 +25,7 @@ async def test_check_policy(
     """Check policy."""
     policy = await network_policy_gateway.get_by_protocol(
         IPv4Address("127.0.0.1"),
-        ProtocolType.IS_LDAP,
+        ProtocolType.LDAP,
     )
     assert policy
     assert policy.netmasks == [IPv4Network("0.0.0.0/0")]
@@ -48,13 +49,13 @@ async def test_specific_policy_ok(
     await session.commit()
     policy = await network_policy_gateway.get_by_protocol(
         ip=IPv4Address("127.100.10.5"),
-        protocol_type=ProtocolType.IS_LDAP,
+        protocol_type=ProtocolType.LDAP,
     )
     assert policy
     assert policy.netmasks == [IPv4Network("127.100.10.5/32")]
     assert not await network_policy_gateway.get_by_protocol(
         ip=IPv4Address("127.100.10.4"),
-        protocol_type=ProtocolType.IS_LDAP,
+        protocol_type=ProtocolType.LDAP,
     )
 
 
@@ -62,7 +63,7 @@ async def test_specific_policy_ok(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("settings")
 async def test_check_policy_group(
-    network_policy_use_case: NetworkPolicyUseCase,
+    network_policy_validator: NetworkPolicyValidatorProtocol,
     network_policy_gateway: NetworkPolicyGateway,
     session: AsyncSession,
 ) -> None:
@@ -72,11 +73,11 @@ async def test_check_policy_group(
 
     policy = await network_policy_gateway.get_by_protocol(
         IPv4Address("127.0.0.1"),
-        ProtocolType.IS_LDAP,
+        ProtocolType.LDAP,
     )
     assert policy
 
-    assert await network_policy_use_case.is_user_group_valid(user, policy)
+    assert await network_policy_validator.is_user_group_valid(user, policy)
 
     group = await get_group(
         dn="cn=domain admins,cn=groups,dc=md,dc=test",
@@ -86,4 +87,4 @@ async def test_check_policy_group(
     policy.groups.append(group)
     await session.commit()
 
-    assert await network_policy_use_case.is_user_group_valid(user, policy)
+    assert await network_policy_validator.is_user_group_valid(user, policy)

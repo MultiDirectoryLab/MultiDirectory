@@ -32,7 +32,9 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
-from ldap_protocol.policies.network import NetworkPolicyUseCase
+from ldap_protocol.policies.network.validator_protocol import (
+    NetworkPolicyValidatorProtocol,
+)
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
@@ -58,7 +60,7 @@ class AuthManager(AbstractService):
         mfa_manager: MFAManager,
         setup_use_case: SetupUseCase,
         identity_provider: IdentityProvider,
-        network_policy_use_case: NetworkPolicyUseCase,
+        network_policy_validator: NetworkPolicyValidatorProtocol,
     ) -> None:
         """Initialize dependencies of the manager (via DI).
 
@@ -82,7 +84,7 @@ class AuthManager(AbstractService):
         self._mfa_manager = mfa_manager
         self._setup_use_case = setup_use_case
         self._identity_provider = identity_provider
-        self._network_policy_use_case = network_policy_use_case
+        self._network_policy_validator = network_policy_validator
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -147,7 +149,7 @@ class AuthManager(AbstractService):
             raise LoginFailedError("User account is expired")
 
         network_policy = (
-            await self._network_policy_use_case.get_user_http_policy(
+            await self._network_policy_validator.get_user_http_policy(
                 ip,
                 user,
             )
@@ -162,7 +164,7 @@ class AuthManager(AbstractService):
             request_2fa = True
             if network_policy.mfa_status == MFAFlags.WHITELIST:
                 request_2fa = (
-                    await self._network_policy_use_case.check_mfa_group(
+                    await self._network_policy_validator.check_mfa_group(
                         network_policy,
                         user,
                     )

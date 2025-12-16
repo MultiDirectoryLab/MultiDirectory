@@ -158,8 +158,10 @@ class BindRequest(BaseRequest):
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
-
-        if not await ctx.network_policy_use_case.is_user_group_valid(
+        policy = getattr(ctx.ldap_session, "policy", None)
+        if (
+            policy is not None
+        ) and not await ctx.network_policy_validator.is_user_group_valid(
             user,
             ctx.ldap_session.policy,
         ):
@@ -176,15 +178,14 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 
-        if (
-            (policy := getattr(ctx.ldap_session, "policy", None))
-            and policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
+        if (policy is not None) and (
+            policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
             and ctx.mfa is not None
         ):
             request_2fa = True
             if policy.mfa_status == MFAFlags.WHITELIST:
                 request_2fa = (
-                    await ctx.network_policy_use_case.check_mfa_group(
+                    await ctx.network_policy_validator.check_mfa_group(
                         policy,
                         user,
                     )

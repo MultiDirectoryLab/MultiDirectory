@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from config import Settings
 from entities import User
-from enums import AceType, RoleScope
+from enums import AceType, ProtocolType, RoleScope
 from ldap_protocol.asn1parser import ASN1Row, TagNumbers
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
@@ -22,8 +22,7 @@ from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
 from ldap_protocol.ldap_responses import SearchResultEntry
 from ldap_protocol.policies.network import (
     NetworkPolicyGateway,
-    NetworkPolicyUseCase,
-    ProtocolType,
+    NetworkPolicyValidatorProtocol,
 )
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
@@ -316,7 +315,7 @@ async def test_bind_policy(
     """Bind with policy."""
     policy = await network_policy_gateway.get_by_protocol(
         IPv4Address("127.0.0.1"),
-        ProtocolType.IS_LDAP,
+        ProtocolType.LDAP,
     )
     assert policy
 
@@ -354,13 +353,13 @@ async def test_bind_policy_missing_group(
     session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
-    network_policy_use_case: NetworkPolicyUseCase,
+    network_policy_validator: NetworkPolicyValidatorProtocol,
     network_policy_gateway: NetworkPolicyGateway,
 ) -> None:
     """Bind policy fail."""
     policy = await network_policy_gateway.get_by_protocol(
         IPv4Address("127.0.0.1"),
-        ProtocolType.IS_LDAP,
+        ProtocolType.LDAP,
     )
 
     assert policy
@@ -379,7 +378,7 @@ async def test_bind_policy_missing_group(
     user.groups.clear()
     await session.commit()
 
-    assert not await network_policy_use_case.is_user_group_valid(user, policy)
+    assert not await network_policy_validator.is_user_group_valid(user, policy)
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
