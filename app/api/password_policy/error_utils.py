@@ -8,7 +8,7 @@ from fastapi import status
 from fastapi_error_map.rules import rule
 
 from api.error_routing import ERROR_MAP_TYPE, DomainErrorTranslator
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.permissions_checker import AuthorizationError
 from ldap_protocol.policies.password.exceptions import (
     PasswordBanWordWrongFileExtensionError,
@@ -21,7 +21,7 @@ from ldap_protocol.policies.password.exceptions import (
     PasswordPolicyPriorityError,
 )
 
-translator = DomainErrorTranslator(DoaminCodes.PASSWORD_POLICY)
+translator = DomainErrorTranslator(DomainCodes.PASSWORD_POLICY)
 
 
 error_map: ERROR_MAP_TYPE = {

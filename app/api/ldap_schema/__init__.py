@@ -17,7 +17,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeCantModifyError,
@@ -36,7 +36,7 @@ LimitedListType = Annotated[
     Body(embed=True),
 ]
 
-translator = DomainErrorTranslator(DoaminCodes.LDAP_SCHEMA)
+translator = DomainErrorTranslator(DomainCodes.LDAP_SCHEMA)
 
 
 error_map: ERROR_MAP_TYPE = {

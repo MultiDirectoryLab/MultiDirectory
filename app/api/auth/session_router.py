@@ -10,7 +10,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.session_storage.exceptions import SessionUserNotFoundError
 
 from .adapters.session_gateway import (
@@ -19,7 +19,7 @@ from .adapters.session_gateway import (
 )
 from .utils import verify_auth
 
-translator = DomainErrorTranslator(DoaminCodes.SESSION)
+translator = DomainErrorTranslator(DomainCodes.SESSION)
 
 
 error_map: ERROR_MAP_TYPE = {

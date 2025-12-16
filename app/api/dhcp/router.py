@@ -17,7 +17,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.dhcp.exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
@@ -41,7 +41,7 @@ from ldap_protocol.dhcp.schemas import (
 
 from .adapter import DHCPAdapter
 
-translator = DomainErrorTranslator(DoaminCodes.DHCP)
+translator = DomainErrorTranslator(DomainCodes.DHCP)
 
 
 error_map: ERROR_MAP_TYPE = {

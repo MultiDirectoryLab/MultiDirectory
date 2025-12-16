@@ -23,7 +23,7 @@ from ldap_protocol.utils.pagination import PaginationParams
     "/attribute_type",
     status_code=status.HTTP_201_CREATED,
     error_map=error_map,
-    warn_on_unmapped=False,
+    # warn_on_unmapped=False,
 )
 async def create_one_attribute_type(
     request_data: AttributeTypeSchema[None],
@@ -36,7 +36,7 @@ async def create_one_attribute_type(
 @ldap_schema_router.get(
     "/attribute_type/{attribute_type_name}",
     error_map=error_map,
-    warn_on_unmapped=False,
+    # warn_on_unmapped=False,
 )
 async def get_one_attribute_type(
     attribute_type_name: str,
@@ -49,7 +49,7 @@ async def get_one_attribute_type(
 @ldap_schema_router.get(
     "/attribute_types",
     error_map=error_map,
-    warn_on_unmapped=False,
+    # warn_on_unmapped=False,
 )
 async def get_list_attribute_types_with_pagination(
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
@@ -62,7 +62,7 @@ async def get_list_attribute_types_with_pagination(
 @ldap_schema_router.patch(
     "/attribute_type/{attribute_type_name}",
     error_map=error_map,
-    warn_on_unmapped=False,
+    # warn_on_unmapped=False,
 )
 async def modify_one_attribute_type(
     attribute_type_name: str,
@@ -76,7 +76,7 @@ async def modify_one_attribute_type(
 @ldap_schema_router.post(
     "/attribute_types/delete",
     error_map=error_map,
-    warn_on_unmapped=False,
+    # warn_on_unmapped=False,
 )
 async def delete_bulk_attribute_types(
     attribute_types_names: LimitedListType,

@@ -18,7 +18,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.policies.network.exceptions import (
     LastActivePolicyError,
     NetworkPolicyAlreadyExistsError,
@@ -33,7 +33,7 @@ from .schema import (
     SwapResponse,
 )
 
-translator = DomainErrorTranslator(DoaminCodes.NETWORK)
+translator = DomainErrorTranslator(DomainCodes.NETWORK)
 
 
 error_map: ERROR_MAP_TYPE = {

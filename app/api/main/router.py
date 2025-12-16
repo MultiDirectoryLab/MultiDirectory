@@ -16,7 +16,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.ldap_requests import (
     AddRequest,
@@ -35,7 +35,7 @@ from .schema import (
 )
 from .utils import get_ldap_session
 
-translator = DomainErrorTranslator(DoaminCodes.LDAP)
+translator = DomainErrorTranslator(DomainCodes.LDAP)
 
 
 error_map: ERROR_MAP_TYPE = {

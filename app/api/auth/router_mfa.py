@@ -24,7 +24,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.auth.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
@@ -37,7 +37,7 @@ from ldap_protocol.auth.exceptions.mfa import (
 from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
-translator = DomainErrorTranslator(DoaminCodes.MFA)
+translator = DomainErrorTranslator(DomainCodes.MFA)
 
 
 error_map: ERROR_MAP_TYPE = {

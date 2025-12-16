@@ -15,7 +15,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DoaminCodes
+from enums import DomainCodes
 from ldap_protocol.policies.audit.exception import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
@@ -29,7 +29,7 @@ from ldap_protocol.policies.audit.schemas import (
 
 from .adapter import AuditPoliciesAdapter
 
-translator = DomainErrorTranslator(DoaminCodes.AUDIT)
+translator = DomainErrorTranslator(DomainCodes.AUDIT)
 
 
 error_map: ERROR_MAP_TYPE = {
