@@ -49,6 +49,7 @@ class BindRequest(BaseRequest):
     """Bind request fields mapping."""
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.BIND
+    CONTEXT_TYPE: ClassVar[type] = LDAPBindRequestContext
 
     version: int
     name: str
@@ -240,6 +241,7 @@ class UnbindRequest(BaseRequest):
     """Remove user from ldap_session."""
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.UNBIND
+    CONTEXT_TYPE: ClassVar[type] = LDAPUnbindRequestContext
 
     @classmethod
     def from_data(

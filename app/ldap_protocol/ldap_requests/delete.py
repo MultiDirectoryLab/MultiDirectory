@@ -43,6 +43,7 @@ class DeleteRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.DELETE
+    CONTEXT_TYPE: ClassVar[type] = LDAPDeleteRequestContext
 
     entry: str
 

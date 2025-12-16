@@ -65,6 +65,7 @@ class AddRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
+    CONTEXT_TYPE: ClassVar[type] = LDAPAddRequestContext
 
     entry: str = Field(..., description="Any `DistinguishedName`")
     attributes: list[PartialAttribute]
