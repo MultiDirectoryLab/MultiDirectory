@@ -16,10 +16,14 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncIterator
 
 import gssapi
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy, User
 from enums import ProtocolType
-from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
+from ldap_protocol.policies.network import (
+    NetworkPolicyValidatorGateway,
+    NetworkPolicyValidatorUseCase,
+)
 
 from .session_storage import SessionStorage
 
@@ -85,7 +89,6 @@ class LDAPSession:
         *,
         user: UserSchema | None = None,
         storage: SessionStorage | None = None,
-        network_policy_validator_use_case: NetworkPolicyValidatorUseCase,
     ) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
@@ -95,9 +98,6 @@ class LDAPSession:
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
-        self._network_policy_validator_use_case = (
-            network_policy_validator_use_case
-        )
 
     def __str__(self) -> str:
         """Session with id."""
@@ -149,9 +149,11 @@ class LDAPSession:
     async def validate_conn(
         self,
         ip: IPv4Address | IPv6Address,
+        session: AsyncSession,
     ) -> None:
         """Validate network policies."""
-        policy = await self._network_policy_validator_use_case.get_by_protocol(
+        gateway = NetworkPolicyValidatorGateway(session)
+        policy = await NetworkPolicyValidatorUseCase(gateway).get_by_protocol(
             ip,
             ProtocolType.LDAP,
         )

@@ -518,15 +518,18 @@ class HTTPProvider(LDAPContextProvider):
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
-    network_policy_validator = provide(
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
+    network_policy_use_case = provide(
+        NetworkPolicyUseCase,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_gateway = provide(
         NetworkPolicyValidatorGateway,
-        provides=NetworkPolicyValidatorProtocol,
-        scope=Scope.SESSION,
+        scope=Scope.REQUEST,
     )
     network_policy_validator_use_case = provide(
         NetworkPolicyValidatorUseCase,
-        scope=Scope.SESSION,
+        scope=Scope.REQUEST,
     )
 
     @provide()
@@ -613,13 +616,10 @@ class HTTPProvider(LDAPContextProvider):
     async def get_session(
         self,
         request: Request,
-        network_policy_validator_use_case: NetworkPolicyValidatorUseCase,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         ip = get_ip_from_request(request)
-        session = LDAPSession(
-            network_policy_validator_use_case=network_policy_validator_use_case,
-        )
+        session = LDAPSession()
         await session.start()
         session.ip = ip
         yield session
@@ -668,10 +668,6 @@ class HTTPProvider(LDAPContextProvider):
         NetworkPolicyFastAPIAdapter,
         scope=Scope.REQUEST,
     )
-    network_policy_use_case = provide(
-        NetworkPolicyUseCase,
-        scope=Scope.REQUEST,
-    )
 
 
 class LDAPServerProvider(LDAPContextProvider):
@@ -679,17 +675,28 @@ class LDAPServerProvider(LDAPContextProvider):
 
     scope = Scope.SESSION
 
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.REQUEST,
+    )
+
+    @provide(scope=Scope.REQUEST)
+    async def get_network_policy_use_case(
+        self,
+        session: AsyncSession,
+    ) -> NetworkPolicyValidatorUseCase:
+        """Create network policy use case with request scope."""
+        gateway = NetworkPolicyValidatorGateway(session)
+        return NetworkPolicyValidatorUseCase(gateway)
+
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_session(
         self,
         storage: SessionStorage,
-        network_policy_validator_use_case: NetworkPolicyValidatorUseCase,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        session = LDAPSession(
-            storage=storage,
-            network_policy_validator_use_case=network_policy_validator_use_case,
-        )
+        session = LDAPSession(storage=storage)
         await session.start()
         yield session
         await session.disconnect()

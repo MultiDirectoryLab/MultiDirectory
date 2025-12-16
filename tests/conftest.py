@@ -411,13 +411,9 @@ class TestProvider(Provider):
     async def get_ldap_session(
         self,
         storage: SessionStorage,
-        network_policy_validator_use_case: NetworkPolicyValidatorUseCase,
     ) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
-        session = LDAPSession(
-            storage=storage,
-            network_policy_validator_use_case=network_policy_validator_use_case,
-        )
+        session = LDAPSession(storage=storage)
         await session.start()
         yield session
         await session.disconnect()
