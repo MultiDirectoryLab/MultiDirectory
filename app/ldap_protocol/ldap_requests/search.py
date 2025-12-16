@@ -507,7 +507,6 @@ class SearchRequest(BaseRequest):
                     )
 
         if self.member_of:
-            logger.debug(f"Member of group: {directory.groups}")
             for group in directory.groups:
                 attrs["memberOf"].append(group.directory.path_dn)
 
