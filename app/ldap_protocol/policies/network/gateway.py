@@ -173,7 +173,7 @@ class NetworkPolicyGateway:
         if user_group_ids is not None:
             return query.filter(
                 or_(
-                    qa(NetworkPolicy.groups) == None,  # noqa
+                    qa(NetworkPolicy.groups).is_(None),
                     qa(NetworkPolicy.groups).any(
                         qa(Group.id).in_(user_group_ids),
                     ),
