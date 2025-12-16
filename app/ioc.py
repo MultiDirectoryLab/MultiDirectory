@@ -118,11 +118,7 @@ from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.policies.network import (
     NetworkPolicyGateway,
     NetworkPolicyUseCase,
-)
-from ldap_protocol.policies.network.validator_gateway import (
     NetworkPolicyValidatorGateway,
-)
-from ldap_protocol.policies.network.validator_protocol import (
     NetworkPolicyValidatorProtocol,
 )
 from ldap_protocol.policies.password import (

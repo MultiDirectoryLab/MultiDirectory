@@ -11,8 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy
 from enums import ProtocolType
-from ldap_protocol.policies.network import NetworkPolicyValidatorProtocol
-from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
+from ldap_protocol.policies.network import (
+    NetworkPolicyGateway,
+    NetworkPolicyValidatorProtocol,
+)
 from ldap_protocol.utils.queries import get_group, get_user
 
 

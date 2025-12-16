@@ -16,9 +16,7 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI
-from ldap_protocol.policies.network.validator_protocol import (
-    NetworkPolicyValidatorProtocol,
-)
+from ldap_protocol.policies.network import NetworkPolicyValidatorProtocol
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase

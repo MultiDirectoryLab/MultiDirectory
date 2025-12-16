@@ -173,7 +173,7 @@ class NetworkPolicyGateway:
         if user_group_ids is not None:
             return query.filter(
                 or_(
-                    qa(NetworkPolicy.groups).is_(None),
+                    qa(NetworkPolicy.groups) == None,  # noqa
                     qa(NetworkPolicy.groups).any(
                         qa(Group.id).in_(user_group_ids),
                     ),
@@ -219,7 +219,7 @@ class NetworkPolicyGateway:
         :param NetworkPolicy policy: db policy
         :return bool: status
         """
-        if user is None or policy is None:
+        if not (user and policy):
             return False
 
         if not policy.groups:

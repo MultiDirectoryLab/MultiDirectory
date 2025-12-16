@@ -163,7 +163,7 @@ class BindRequest(BaseRequest):
             policy is not None
         ) and not await ctx.network_policy_validator.is_user_group_valid(
             user,
-            ctx.ldap_session.policy,
+            policy,
         ):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return

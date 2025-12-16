@@ -8,6 +8,7 @@ from .exceptions import (
 )
 from .gateway import NetworkPolicyGateway
 from .use_cases import NetworkPolicyUseCase
+from .validator_gateway import NetworkPolicyValidatorGateway
 from .validator_protocol import NetworkPolicyValidatorProtocol
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "NetworkPolicyGateway",
     "NetworkPolicyUseCase",
     "NetworkPolicyValidatorProtocol",
+    "NetworkPolicyValidatorGateway",
 ]
