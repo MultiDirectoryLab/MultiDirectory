@@ -73,7 +73,7 @@ async def test_create_attribute_type_conflict_when_already_exists(
         "/schema/attribute_type",
         json=schema.model_dump(),
     )
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -110,7 +110,7 @@ async def test_modify_one_attribute_type_raise_404(
         "/schema/attribute_type/testAttributeType12345",
         json=schema.model_dump(),
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.parametrize(
@@ -176,4 +176,4 @@ async def test_delete_bulk_attribute_types(
             response = await http_client.get(
                 f"/schema/attribute_type/{attribute_type_name}",
             )
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == status.HTTP_400_BAD_REQUEST

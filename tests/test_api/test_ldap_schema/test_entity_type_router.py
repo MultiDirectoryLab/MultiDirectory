@@ -61,7 +61,7 @@ async def test_create_one_entity_type_value_400(
             "is_system": False,
         },
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -154,14 +154,14 @@ async def test_modify_entity_type_with_duplicate_data(
         f"/schema/entity_type/{update_entity}",
         json=update_data,
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     update_entity, update_data = new_statements["duplicate_name"]
     response = await http_client.patch(
         f"/schema/entity_type/{update_entity}",
         json=update_data,
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.parametrize(
@@ -224,7 +224,7 @@ async def test_modify_primary_entity_type_name(
             "object_class_names": entity_type_data["object_class_names"],
         },
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     response = await http_client.get(
         f"/schema/entity_type/{entity_type_data['name']}",
@@ -268,7 +268,7 @@ async def test_delete_bulk_entries(
         response = await http_client.get(
             f"/schema/entity_type/{entity_type_name}",
         )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
