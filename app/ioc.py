@@ -506,7 +506,7 @@ class LDAPContextProvider(Provider):
             yield session  # type: ignore
 
     @provide(scope=Scope.SESSION, provides=LDAPSearchRequestContext)
-    async def get_search_request_context(
+    def get_search_request_context(
         self,
         session: AsyncSessionSearchRequest,
         ldap_session: LDAPSession,
