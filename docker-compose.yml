@@ -123,11 +123,11 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
-    # container_name: global_ldap_server
+    container_name: global_ldap_server
     restart: unless-stopped
     deploy:
       mode: replicated
-      replicas: 2
+      # replicas: 1
       endpoint_mode: dnsrr
       resources:
         reservations:
