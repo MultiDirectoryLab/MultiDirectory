@@ -13,7 +13,6 @@ from tests.conftest import TestCreds
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("setup_global_session")
 @pytest.mark.usefixtures("global_session")
 async def test_ldap_search(
     global_settings: Settings,
@@ -41,7 +40,7 @@ async def test_ldap_search(
     data = raw_data.decode().split("\n")
     result = await proc.wait()
 
-    print("SOSI")
+    print("OLOLO")
     print(data)
     print(result)
     assert result == 0
