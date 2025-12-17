@@ -799,7 +799,7 @@ class MigrationProvider(Provider):
     scope = Scope.APP
 
     @provide(scope=Scope.APP)
-    async def get_session_factory(
+    def get_session_factory(
         self,
         connection: AsyncConnection,
     ) -> AsyncSession:

@@ -30,7 +30,7 @@ launch:  ## run standalone app without tty container
 	docker compose run sh -c "alembic upgrade head && python ."
 
 downgrade:  ## re-run migration
-	docker compose run ldap_server sh -c\
+	docker exec -it multidirectory_api sh -c\
 		"alembic downgrade -1; alembic upgrade head;"
 
 down:  ## shutdown services
@@ -71,4 +71,4 @@ migrations:  ## generate migration file
 	docker compose run ldap_server alembic revision --autogenerate
 
 migrate:  ## upgrade db
-	docker compose run ldap_server python multidirectory.py --migrate
+	docker compose run ldap_server alembic upgrade head

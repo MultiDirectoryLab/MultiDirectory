@@ -827,21 +827,15 @@ async def add_schema(
 class TestMigrationProvider(Provider):
     """Provider for migrations."""
 
-    scope = Scope.APP
-    _cached_conn: AsyncConnection | None = None
+    async_conn = from_context(provides=AsyncConnection, scope=Scope.RUNTIME)
 
     @provide(scope=Scope.APP, cache=False)
-    async def get_session_factory(
+    def get_session_factory(
         self,
-        connection: AsyncConnection,
+        async_conn: AsyncConnection,
     ) -> AsyncSession:
         """Create session factory."""
-        return AsyncSession(connection)
-
-    @provide(scope=Scope.RUNTIME, provides=AsyncConnection)
-    async def get_conn_factory(self) -> AsyncConnection | None:
-        """Create session factory."""
-        return self._cached_conn
+        return AsyncSession(async_conn)
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -867,31 +861,24 @@ async def _migrations(
     test_migration_provider = TestMigrationProvider()
     async with engine.begin() as conn:
         config.attributes["connection"] = conn
-        test_migration_provider._cached_conn = conn  # noqa: SLF001
         config.attributes["dishka_container"] = make_async_container(
             TestProvider(),
-            MFACredsProvider(),
             test_migration_provider,
-            context={Settings: settings},
+            context={Settings: settings, AsyncConnection: conn},
             start_scope=Scope.RUNTIME,
         )
         await conn.run_sync(upgrade)  # type: ignore
-        test_migration_provider._cached_conn = None  # noqa: SLF001
 
     yield
 
     async with engine.begin() as conn:
-        config.attributes["connection"] = conn
-        test_migration_provider._cached_conn = conn  # noqa: SLF001
         config.attributes["dishka_container"] = make_async_container(
             TestProvider(),
-            MFACredsProvider(),
             test_migration_provider,
-            context={Settings: settings},
+            context={Settings: settings, AsyncConnection: conn},
             start_scope=Scope.RUNTIME,
         )
         await conn.run_sync(downgrade)  # type: ignore
-        test_migration_provider._cached_conn = None  # noqa: SLF001
 
 
 @pytest_asyncio.fixture(scope="function")

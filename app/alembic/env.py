@@ -9,7 +9,13 @@ from sqlalchemy import Connection, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from config import Settings
-from ioc import MainProvider, MigrationProvider
+from ioc import (
+    HTTPProvider,
+    MainProvider,
+    MFACredsProvider,
+    MFAProvider,
+    MigrationProvider,
+)
 from repo.pg.tables import metadata
 
 # this is the Alembic Config object, which provides
@@ -72,6 +78,9 @@ def run_migrations_online() -> None:
     if not dishka_container:
         dishka_container = make_async_container(
             MainProvider(),
+            MFACredsProvider(),
+            MFAProvider(),
+            HTTPProvider(),
             MigrationProvider(),
             context={Settings: settings},
         )
