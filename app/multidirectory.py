@@ -221,7 +221,7 @@ async def global_ldap_server_factory(settings: Settings) -> None:
 
     for setting in (
         settings.get_copy_4_global(),
-        # settings.get_copy_4_global_tls(),
+        settings.get_copy_4_global_tls(),
     ):
         container = make_async_container(
             GlobalLDAPServerProvider(),
