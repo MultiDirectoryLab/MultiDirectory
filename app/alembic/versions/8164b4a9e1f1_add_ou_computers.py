@@ -14,13 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import COMPUTERS_CONTAINER_NAME
 from entities import Directory
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -40,7 +33,6 @@ _OU_COMPUTERS_DATA = {
 }
 
 
-@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     from ldap_protocol.auth.setup_gateway import SetupGateway
@@ -48,19 +40,10 @@ def upgrade(container: AsyncContainer) -> None:
     async def _create_ou_computers(connection: AsyncConnection) -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
-        object_class_dao = ObjectClassDAO(session)
-        attribute_value_validator = AttributeValueValidator()
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao,
-            attribute_value_validator=attribute_value_validator,
-        )
-        setup_gateway = SetupGateway(
-            session,
-            PasswordUtils(),
-            entity_type_dao,
-            attribute_value_validator=attribute_value_validator,
-        )
+
+        async with container(scope=Scope.REQUEST) as cnt:
+            setup_gateway = await cnt.get(SetupGateway)
+            role_use_case = await cnt.get(RoleUseCase)
 
         base_directories = await get_base_directories(session)
         if not base_directories:
@@ -100,8 +83,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_ou_computers)
 
 
-@temporary_stub_column("is_system", sa.Boolean())
-def downgrade(container: AsyncContainer) -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
 
     async def _delete_ou_computers(connection: AsyncConnection) -> None:  # noqa: ARG001

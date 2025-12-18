@@ -7,7 +7,7 @@ Create Date: 2025-07-17 09:16:20.056149
 
 import sqlalchemy as sa
 from alembic import op
-from dishka import AsyncContainer, Scope
+from dishka import AsyncContainer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -24,8 +24,7 @@ branch_labels: None = None
 depends_on: None = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
-def upgrade(container: AsyncContainer) -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.create_table(
         "Roles",

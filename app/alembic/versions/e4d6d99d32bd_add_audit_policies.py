@@ -28,7 +28,6 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -41,6 +40,9 @@ def upgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
+        async with container(scope=Scope.REQUEST) as cnt:
+            audit_dao = await cnt.get(AuditPoliciesDAO)
+            dest_dao = await cnt.get(AuditDestinationDAO)
         manager = Mock(spec=RawAuditManager)
         use_case = AuditUseCase(audit_dao, dest_dao, manager)
         await use_case.create_policies()

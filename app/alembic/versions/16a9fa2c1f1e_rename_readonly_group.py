@@ -25,7 +25,6 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
@@ -73,7 +72,6 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         session.close()
 
 
-@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()

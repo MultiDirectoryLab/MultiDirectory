@@ -37,7 +37,6 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -50,16 +49,6 @@ def upgrade(container: AsyncContainer) -> None:
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
-
-        object_class_dao = ObjectClassDAO(session)
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao=object_class_dao,
-            attribute_value_validator=AttributeValueValidator(),
-        )
-        role_dao = RoleDAO(session)
-        ace_dao = AccessControlEntryDAO(session)
-        role_use_case = RoleUseCase(role_dao, ace_dao)
 
         try:
             group_dir_query = select(
@@ -127,9 +116,8 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_add_domain_computers_group)
 
-    async def _add_primary_group_id(connection: AsyncConnection) -> None:  # noqa: ARG001
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
+    async def _add_primary_group_id(connection: AsyncConnection) -> None:
+        session = AsyncSession(connection)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
@@ -178,8 +166,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_add_primary_group_id)
 
 
-@temporary_stub_column("is_system", sa.Boolean())
-def downgrade(container: AsyncContainer) -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -187,9 +174,7 @@ def downgrade(container: AsyncContainer) -> None:
     async def _delete_domain_computers_group(
         connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
-
+        session = AsyncSession(connection)
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return

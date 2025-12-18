@@ -35,7 +35,7 @@ depends_on: None | str = None
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
-@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_entity_type_name
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
@@ -367,9 +367,13 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _modify_object_classes(connection: AsyncConnection) -> None:
+        session = AsyncSession(bind=connection)
+        await session.begin()
+
         async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
+            at_dao = await cnt.get(AttributeTypeDAO)
+            oc_dao = await cnt.get(ObjectClassDAO)
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
