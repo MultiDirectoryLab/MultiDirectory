@@ -10,6 +10,7 @@ from unittest.mock import Mock
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -26,7 +27,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _create_audit_policies(connection: AsyncConnection) -> None:
@@ -34,8 +35,10 @@ def upgrade() -> None:
 
         if not await get_base_directories(session):
             return
-        audit_dao = AuditPoliciesDAO(session)
-        dest_dao = AuditDestinationDAO(session)
+
+        async with container(scope=Scope.REQUEST) as cnt:
+            audit_dao = await cnt.get(AuditPoliciesDAO)
+            dest_dao = await cnt.get(AuditDestinationDAO)
         manager = Mock(spec=RawAuditManager)
         use_case = AuditUseCase(audit_dao, dest_dao, manager)
         await use_case.create_policies()
@@ -139,7 +142,7 @@ def upgrade() -> None:
     op.run_async(_create_audit_policies)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_table("AuditPolicyTriggers")
     op.drop_table("AuditPolicies")
