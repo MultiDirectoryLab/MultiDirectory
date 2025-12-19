@@ -525,6 +525,7 @@ class HTTPProvider(LDAPContextProvider):
     )
     network_policy_validator_gateway = provide(
         NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
         scope=Scope.REQUEST,
     )
     network_policy_validator_use_case = provide(

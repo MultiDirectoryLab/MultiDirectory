@@ -24,8 +24,8 @@ from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
 )
 from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
-from ldap_protocol.policies.network.validator_gateway import (
-    NetworkPolicyValidatorGateway,
+from ldap_protocol.policies.network.validator_protocol import (
+    NetworkPolicyValidatorProtocol,
 )
 
 
@@ -207,7 +207,7 @@ class NetworkPolicyValidatorUseCase(AbstractService):
 
     def __init__(
         self,
-        network_policy_validator_gateway: NetworkPolicyValidatorGateway,
+        network_policy_validator_gateway: NetworkPolicyValidatorProtocol,
     ):
         """Initialize Network policies validator use cases."""
         self._gateway = network_policy_validator_gateway
