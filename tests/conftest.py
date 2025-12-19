@@ -126,6 +126,7 @@ from ldap_protocol.policies.network import (
     NetworkPolicyGateway,
     NetworkPolicyUseCase,
     NetworkPolicyValidatorGateway,
+    NetworkPolicyValidatorProtocol,
     NetworkPolicyValidatorUseCase,
 )
 from ldap_protocol.policies.password import (
@@ -343,6 +344,7 @@ class TestProvider(Provider):
     network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
     network_policy_validator_gateway = provide(
         NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
         scope=Scope.SESSION,
     )
     network_policy_validator = provide(
