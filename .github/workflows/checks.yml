@@ -84,6 +84,8 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     needs: build_base
+    env:
+      TAG: tests:local
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
@@ -96,6 +98,6 @@ jobs:
           target: runtime
           cache-from: type=gha
           load: true
-          tags: tests:local
+          tags: ${{ env.TAG }}
       - name: Run tests
         run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test --exit-code-from md-test
