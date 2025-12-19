@@ -8,7 +8,7 @@ env:
   REPO: ${{ github.repository }}
 
 jobs:
-  ruff_linter:
+  build_linters:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,55 +18,71 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build linters
+      - name: Build and push linters image
         env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          NEW_TAG: linter
-        run: docker build --target=runtime -f .docker/lint.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-      - name: Run linters
+          CACHE_TAG: ghcr.io/${{ env.REPO }}_linters:latest
+          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
+        run: |
+          docker build \
+            --target=runtime \
+            -f .docker/lint.Dockerfile \
+            . \
+            -t $TAG \
+            --cache-to type=gha,mode=max \
+            --cache-from $CACHE_TAG \
+            --build-arg BUILDKIT_INLINE_CACHE=1
+          docker push $TAG
+
+  ruff_linter:
+    runs-on: ubuntu-latest
+    needs: build_linters
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull and run ruff check
         env:
-          NEW_TAG: linter
-        run: docker run $NEW_TAG ruff check --output-format=github .
+          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
+        run: |
+          docker pull $TAG
+          docker run $TAG ruff check --output-format=github .
 
   ruff_format:
     runs-on: ubuntu-latest
+    needs: build_linters
     steps:
-      - uses: actions/checkout@v4
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build linters
+      - name: Pull and run ruff format
         env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          NEW_TAG: linter
-        run: docker build --target=runtime -f .docker/lint.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-      - name: Run linters
-        env:
-          NEW_TAG: linter
-        run: docker run $NEW_TAG ruff format --check
+          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
+        run: |
+          docker pull $TAG
+          docker run $TAG ruff format --check
 
   mypy:
     runs-on: ubuntu-latest
+    needs: build_linters
     steps:
-      - uses: actions/checkout@v4
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build linters
+      - name: Pull and run mypy
         env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          NEW_TAG: linter
-        run: docker build --target=runtime -f .docker/lint.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-      - name: Run linters
-        env:
-          NEW_TAG: linter
-        run: docker run $NEW_TAG mypy .
+          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
+        run: |
+          docker pull $TAG
+          docker run $TAG mypy .
 
   tests:
     runs-on: ubuntu-latest
