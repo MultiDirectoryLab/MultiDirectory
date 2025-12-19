@@ -21,7 +21,7 @@ services:
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
     # command: sh -c "python -B -m pytest -n auto -x tests/test_ldap/test_util/test_add.py -W ignore::DeprecationWarning -vv"
-    command: sh -c "python -B -m pytest -x -s tests/test_global_ldap -W ignore::DeprecationWarning -vv"
+    command: sh -c "python -B -m pytest -n 0 -x -s tests/test_global_ldap -W ignore::DeprecationWarning -vv"
     # command: sh -c "python -B -m pytest -x -s tests/test_ldap/test_util/test_search.py -W ignore::DeprecationWarning -vv"
     tty: true
 

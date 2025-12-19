@@ -771,6 +771,16 @@ def event_loop() -> Generator:
 
 
 @pytest.fixture(scope="session")
+def global_event_loop() -> Generator:
+    """Create uvloop event loop."""
+    loop = uvloop.new_event_loop()
+    yield loop
+    with suppress(asyncio.CancelledError, RuntimeError):
+        asyncio.gather(*asyncio.tasks.all_tasks(loop)).cancel()
+        loop.close()
+
+
+@pytest.fixture(scope="session")
 def settings() -> Settings:
     """Get settings."""
     return Settings.from_os()
@@ -1178,32 +1188,32 @@ async def role_use_case(
         yield RoleUseCase(role_dao, ace_dao)
 
 
+# @pytest.fixture(scope="session", autouse=True)
+# def _server(
+#     event_loop: asyncio.BaseEventLoop,
+#     handler: PoolClientHandler,
+#     _migrations: None,
+# ) -> Generator:
+#     """Run server in background."""
+#     task = asyncio.ensure_future(handler.start(), loop=event_loop)
+#     event_loop.run_until_complete(asyncio.sleep(0.1))
+#     yield
+#     with suppress(asyncio.CancelledError):
+#         task.cancel()
+
+
 @pytest.fixture(scope="session", autouse=True)
-def _server(
-    event_loop: asyncio.BaseEventLoop,
-    handler: PoolClientHandler,
-    _migrations: None,
-) -> Generator:
-    """Run server in background."""
-    task = asyncio.ensure_future(handler.start(), loop=event_loop)
-    event_loop.run_until_complete(asyncio.sleep(0.1))
-    yield
-    with suppress(asyncio.CancelledError):
-        task.cancel()
-
-
-@pytest.fixture(scope="session")
 def _global_server(
-    event_loop: asyncio.BaseEventLoop,
+    global_event_loop: asyncio.BaseEventLoop,
     global_handler: PoolClientHandler,
     _migrations: None,
 ) -> Generator:
     """Run global LDAP server in background."""
     task = asyncio.ensure_future(
         global_handler.start(),
-        loop=event_loop,
+        loop=global_event_loop,
     )
-    event_loop.run_until_complete(asyncio.sleep(1))
+    global_event_loop.run_until_complete(asyncio.sleep(0.1))
     yield
     with suppress(asyncio.CancelledError):
         task.cancel()

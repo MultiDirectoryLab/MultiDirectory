@@ -161,6 +161,7 @@ class Settings(BaseModel):
     def set_test_global_port(self) -> None:
         """Set test port."""
         self.GLOBAL_LDAP_PORT += self.TEST_WORKER_ID
+        self.PORT = self.GLOBAL_LDAP_PORT
 
     def set_test_port(self) -> None:
         """Set test port."""
