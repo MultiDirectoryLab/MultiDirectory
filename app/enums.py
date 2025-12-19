@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from __future__ import annotations
 
-from enum import UNIQUE, IntEnum, IntFlag, StrEnum, auto, verify
+from enum import UNIQUE, IntEnum, IntFlag, StrEnum, auto, unique, verify
 from functools import reduce
 from operator import or_
 from typing import Iterable, Self
@@ -218,6 +218,7 @@ class AuthorizationRules(IntFlag):
         return reduce(or_, permissions, AuthorizationRules(0))
 
 
+@unique
 class DomainCodes(IntEnum):
     """Error code parts."""
 

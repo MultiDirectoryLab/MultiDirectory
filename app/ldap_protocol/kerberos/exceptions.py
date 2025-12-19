@@ -4,11 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import IntEnum
+from enum import IntEnum, unique
 
 from api.error_routing import BaseDomainException
 
 
+@unique
 class ErrorCodes(IntEnum):
     """Error codes."""
 

@@ -4,11 +4,12 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import IntEnum
+from enum import IntEnum, unique
 
 from errors import BaseDomainException
 
 
+@unique
 class ErrorCodes(IntEnum):
     """Error codes for LDAP Schema operations."""
 
