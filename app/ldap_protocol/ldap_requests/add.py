@@ -413,7 +413,7 @@ class AddRequest(BaseRequest):
                 parent_directory=parent,
                 directory=new_dir,
             )
-            await ctx.session.flush()
+            await ctx.session.commit()
         except IntegrityError:
             await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)

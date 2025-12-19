@@ -57,20 +57,20 @@ class KRBLDAPStructureManager:
         :return None.
         """
         async with self._session.begin_nested():
-            results = (
-                await anext(services.handle(ctx)),
-                await anext(group.handle(ctx)),
-                await anext(krb_user.handle(ctx)),
-            )
-            await self._session.flush()
+            service_result = await anext(services.handle(ctx))
+            if service_result.result_code != 0:
+                raise KerberosConflictError("Service error")
 
-            if not all(result.result_code == 0 for result in results):
-                await self._session.rollback()
-                raise KerberosConflictError(
-                    "Error creating Kerberos structure in directory",
-                )
+        async with self._session.begin_nested():
+            group_result = await anext(group.handle(ctx))
+            if group_result.result_code != 0:
+                raise KerberosConflictError("Group error")
+
+        async with self._session.begin_nested():
             await self._role_use_case.create_kerberos_system_role()
-            await self._session.commit()
+            user_result = await anext(krb_user.handle(ctx))
+            if user_result.result_code != 0:
+                raise KerberosConflictError("User error")
 
     async def rollback_kerberos_structure(
         self,
