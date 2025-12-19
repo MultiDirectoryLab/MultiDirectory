@@ -5,11 +5,13 @@ on:
   pull_request: null
 
 env:
-  REPO: ${{ lower(github.repository) }}
+  REPO: ${{ github.repository }}
 
 jobs:
   build_linters:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
     steps:
       - uses: actions/checkout@v4
       - name: Login to GitHub Container Registry
@@ -18,20 +20,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}_linters
+          tags: type=sha
       - name: Build and push linters image
-        env:
-          CACHE_TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
-        run: |
-          docker build \
-            --target=runtime \
-            -f .docker/lint.Dockerfile \
-            . \
-            -t $TAG \
-            --cache-to type=gha,mode=max \
-            --cache-from $CACHE_TAG \
-            --build-arg BUILDKIT_INLINE_CACHE=1
-          docker push $TAG
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/lint.Dockerfile
+          target: runtime
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: true
 
   ruff_linter:
     runs-on: ubuntu-latest
@@ -43,12 +49,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull and run ruff check
-        env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
-        run: |
-          docker pull $TAG
-          docker run $TAG ruff check --output-format=github .
+      - name: Run ruff check
+        run: docker run ${{ needs.build_linters.outputs.image_tag }} ruff check --output-format=github .
 
   ruff_format:
     runs-on: ubuntu-latest
@@ -60,12 +62,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull and run ruff format
-        env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
-        run: |
-          docker pull $TAG
-          docker run $TAG ruff format --check
+      - name: Run ruff format
+        run: docker run ${{ needs.build_linters.outputs.image_tag }} ruff format --check
 
   mypy:
     runs-on: ubuntu-latest
@@ -77,12 +75,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull and run mypy
-        env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:${{ github.sha }}
-        run: |
-          docker pull $TAG
-          docker run $TAG mypy .
+      - name: Run mypy
+        run: docker run ${{ needs.build_linters.outputs.image_tag }} mypy .
 
   tests:
     runs-on: ubuntu-latest
