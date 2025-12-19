@@ -83,6 +83,7 @@ jobs:
       - name: Download base image
         uses: actions/download-artifact@v4
         with:
+          tags: ${{ env.TAG }}
           name: base-image
           path: /tmp
       - name: Load image
