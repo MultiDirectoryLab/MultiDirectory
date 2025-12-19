@@ -5,7 +5,7 @@ on:
   pull_request: null
 
 env:
-  REPO: ${{ github.repository }}
+  REPO: ${{ lower(github.repository) }}
 
 jobs:
   build_linters:
