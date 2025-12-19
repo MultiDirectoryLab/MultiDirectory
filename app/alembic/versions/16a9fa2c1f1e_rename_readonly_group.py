@@ -7,6 +7,7 @@ Create Date: 2025-11-21 13:50:36.452766
 """
 
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy import select, update
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session, selectinload
@@ -21,7 +22,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -72,7 +73,7 @@ def upgrade() -> None:
         session.close()
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)

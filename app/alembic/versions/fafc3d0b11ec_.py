@@ -7,6 +7,7 @@ Create Date: 2024-11-11 15:21:23.568233
 """
 
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
@@ -31,7 +32,7 @@ depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
 
     async def _create_readonly_grp_and_plcy(
@@ -70,7 +71,7 @@ def upgrade() -> None:
 
 
 @temporary_stub_entity_type_name
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
 
     async def _delete_readonly_grp_and_plcy(

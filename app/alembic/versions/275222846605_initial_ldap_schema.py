@@ -10,6 +10,7 @@ import json
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
 from sqlalchemy import delete, or_
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
@@ -36,7 +37,7 @@ ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
 @temporary_stub_entity_type_name
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -371,8 +372,9 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        at_dao = AttributeTypeDAO(session)
-        oc_dao = ObjectClassDAO(session)
+        async with container(scope=Scope.REQUEST) as cnt:
+            at_dao = await cnt.get(AttributeTypeDAO)
+            oc_dao = await cnt.get(ObjectClassDAO)
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
@@ -393,7 +395,7 @@ def upgrade() -> None:
     session.commit()
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_index(
         "idx_object_classes_name_gin_trgm",

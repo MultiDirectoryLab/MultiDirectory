@@ -7,6 +7,7 @@ Create Date: 2025-10-24 15:33:31.478490
 """
 
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
@@ -23,7 +24,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
 
     async def _update_krbadmin_uac(connection: AsyncConnection) -> None:
@@ -89,7 +90,7 @@ def upgrade() -> None:
     op.run_async(_change_uid_admin)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
 
     async def _downgrade_krbadmin_uac(connection: AsyncConnection) -> None:

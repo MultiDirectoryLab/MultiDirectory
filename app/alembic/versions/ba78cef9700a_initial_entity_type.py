@@ -8,6 +8,7 @@ Create Date: 2025-05-15 11:54:03.712099
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
@@ -15,13 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from constants import ENTITY_TYPE_DATAS
 from entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_entity_type_name
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
@@ -33,7 +30,7 @@ depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade database schema and data, creating Entity Types."""
     op.create_table(
         "EntityTypes",
@@ -106,16 +103,8 @@ def upgrade() -> None:
         if not await get_base_directories(session):
             return
 
-        object_class_dao = ObjectClassDAO(session)
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao=object_class_dao,
-            attribute_value_validator=AttributeValueValidator(),
-        )
-        entity_type_use_case = EntityTypeUseCase(
-            entity_type_dao,
-            object_class_dao,
-        )
+        async with container(scope=Scope.REQUEST) as cnt:
+            entity_type_use_case = await cnt.get(EntityTypeUseCase)
 
         for entity_type_data in ENTITY_TYPE_DATAS:
             await entity_type_use_case.create(
@@ -175,12 +164,8 @@ def upgrade() -> None:
         if not await get_base_directories(session):
             return
 
-        object_class_dao = ObjectClassDAO(session)
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao=object_class_dao,
-            attribute_value_validator=AttributeValueValidator(),
-        )
+        async with container(scope=Scope.REQUEST) as cnt:
+            entity_type_dao = await cnt.get(EntityTypeDAO)
 
         await entity_type_dao.attach_entity_type_to_directories()
 
@@ -192,7 +177,7 @@ def upgrade() -> None:
     op.drop_column("EntityTypes", "id")
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade database schema and data back to the previous state."""
     op.drop_index(
         "idx_entity_types_name_gin_trgm",

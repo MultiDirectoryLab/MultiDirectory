@@ -836,6 +836,20 @@ async def add_schema(
         )
 
 
+class TestMigrationProvider(Provider):
+    """Provider for migrations."""
+
+    async_conn = from_context(provides=AsyncConnection, scope=Scope.RUNTIME)
+
+    @provide(scope=Scope.APP, cache=False)
+    def get_session_factory(
+        self,
+        async_conn: AsyncConnection,
+    ) -> AsyncSession:
+        """Create session factory."""
+        return AsyncSession(async_conn)
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _migrations(
     add_schema: None,  # noqa: ARG001
@@ -856,13 +870,26 @@ async def _migrations(
         config.attributes["connection"] = conn
         command.downgrade(config, "base")
 
+    test_migration_provider = TestMigrationProvider()
     async with engine.begin() as conn:
         config.attributes["connection"] = conn
+        config.attributes["dishka_container"] = make_async_container(
+            TestProvider(),
+            test_migration_provider,
+            context={Settings: settings, AsyncConnection: conn},
+            start_scope=Scope.RUNTIME,
+        )
         await conn.run_sync(upgrade)  # type: ignore
 
     yield
 
     async with engine.begin() as conn:
+        config.attributes["dishka_container"] = make_async_container(
+            TestProvider(),
+            test_migration_provider,
+            context={Settings: settings, AsyncConnection: conn},
+            start_scope=Scope.RUNTIME,
+        )
         await conn.run_sync(downgrade)  # type: ignore
 
 

@@ -8,6 +8,7 @@ Create Date: 2024-10-23 10:46:24.419163
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
 from entities import Attribute, Directory
@@ -22,7 +23,7 @@ depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.add_column("Directory", sa.Column("rdname", sa.String(length=64)))
 
@@ -57,7 +58,7 @@ def upgrade() -> None:
 
 
 @temporary_stub_entity_type_name
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)

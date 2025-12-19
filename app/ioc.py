@@ -12,6 +12,7 @@ from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
@@ -819,3 +820,26 @@ class MFAProvider(Provider):
                 settings,
             ),
         )
+
+
+class MigrationProvider(Provider):
+    """Provider for migrations."""
+
+    scope = Scope.APP
+
+    @provide(scope=Scope.APP)
+    def get_session_factory(
+        self,
+        connection: AsyncConnection,
+    ) -> AsyncSession:
+        """Create session factory."""
+        return AsyncSession(connection)
+
+    @provide(scope=Scope.APP)
+    async def get_conn_factory(
+        self,
+        engine: AsyncEngine,
+    ) -> AsyncIterator[AsyncConnection]:
+        """Create session factory."""
+        async with engine.connect() as connection:
+            yield connection
