@@ -909,18 +909,6 @@ async def global_handler(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def global_session(
-    global_container: AsyncContainer,
-    global_handler: PoolClientHandler,
-) -> AsyncIterator[AsyncSession]:
-    """Get session and acquire after completion."""
-    async with global_container(scope=Scope.APP) as global_container:
-        session = await global_container.get(AsyncSession)
-        global_handler.container = global_container
-        yield session
-
-
-@pytest_asyncio.fixture(scope="function")
 async def setup_session(
     session: AsyncSession,
     raw_audit_manager: RawAuditManager,
@@ -1194,10 +1182,28 @@ async def role_use_case(
 def _server(
     event_loop: asyncio.BaseEventLoop,
     handler: PoolClientHandler,
+    _migrations: None,
 ) -> Generator:
     """Run server in background."""
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(0.1))
+    yield
+    with suppress(asyncio.CancelledError):
+        task.cancel()
+
+
+@pytest.fixture(scope="session")
+def _global_server(
+    event_loop: asyncio.BaseEventLoop,
+    global_handler: PoolClientHandler,
+    _migrations: None,
+) -> Generator:
+    """Run global LDAP server in background."""
+    task = asyncio.ensure_future(
+        global_handler.start(),
+        loop=event_loop,
+    )
+    event_loop.run_until_complete(asyncio.sleep(1))
     yield
     with suppress(asyncio.CancelledError):
         task.cancel()
