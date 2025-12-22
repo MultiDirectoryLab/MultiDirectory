@@ -89,7 +89,7 @@ class RFC5424Serializer:
     def _format_priority(self, severity: int) -> int:
         """Calculate PRIORITY value (RFC 5424 section 6.2.1)."""
         if not 0 <= severity <= 7:
-            raise ValueError(f"Severity must be 0-7, got {severity}")
+            raise NotImplementedError(f"Severity must be 0-7, got {severity}")
 
         facility_code = self.SYSLOG_FACILITIES.get(
             self.facility.lower(),
@@ -101,7 +101,7 @@ class RFC5424Serializer:
     def _format_timestamp(self, timestamp: float) -> str:
         """Format TIMESTAMP field (RFC 5424 section 6.2.3)."""
         dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        return dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
     def _format_hostname(self, hostname: str | None) -> str:
         """Format HOSTNAME field (RFC 5424 section 6.2.4)."""
