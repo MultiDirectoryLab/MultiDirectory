@@ -215,8 +215,6 @@ class AuthorizationRules(IntFlag):
     NETWORK_POLICY_VALIDATOR_IS_USER_GROUP_VALID = auto()
     NETWORK_POLICY_VALIDATOR_CHECK_MFA_GROUP = auto()
 
-    USER_CLEAR_PASSWORD_HISTORY = auto()
-
     @classmethod
     def get_all(cls) -> Self:
         return cls(sum(cls))
@@ -226,6 +224,14 @@ class AuthorizationRules(IntFlag):
         permissions: Iterable[AuthorizationRules],
     ) -> AuthorizationRules:
         return reduce(or_, permissions, AuthorizationRules(0))
+
+
+class ProtocolType(StrEnum):
+    """Protocol fields."""
+
+    LDAP = "is_ldap"
+    HTTP = "is_http"
+    KERBEROS = "is_kerberos"
 
 
 class DomainCodes(IntEnum):
