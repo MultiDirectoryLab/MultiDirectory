@@ -18,8 +18,8 @@ jobs:
           context: .
           file: .docker/lint.Dockerfile
           target: runtime
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}
           outputs: type=docker,dest=/tmp/linter_image.tar
           tags: linter:latest
       - name: Upload linter image
@@ -84,8 +84,8 @@ jobs:
           context: .
           file: .docker/test.Dockerfile
           target: runtime
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}
           outputs: type=docker,dest=/tmp/test_image.tar
           tags: test:latest
       - name: Upload test image
