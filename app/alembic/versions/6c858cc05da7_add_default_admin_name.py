@@ -47,22 +47,6 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     session.commit()
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
-    users = session.query(User).all()
-
-    for user in users:
-        attr_to_delete = session.scalar(
-            sa.select(Attribute).filter_by(
-                directory_id=user.directory_id,
-                name="givenName",
-                value=user.sam_account_name,
-            ),
-        )
-        if attr_to_delete:
-            session.delete(attr_to_delete)
-
-    session.commit()
+    # Откатывать не нужно
