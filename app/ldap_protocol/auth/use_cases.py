@@ -109,6 +109,7 @@ class SetupUseCase:
                         "gidNumber": ["513"],
                         "userAccountControl": ["512"],
                         "primaryGroupID": ["512"],
+                        "givenName": [dto.username],
                     },
                     "objectSid": 500,
                 },
