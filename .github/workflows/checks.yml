@@ -4,14 +4,12 @@ on:
     branches: [main]
   pull_request: null
 
-env:
-  REPO: ${{ github.repository }}
-
 jobs:
-  build_linter:
+  build_linter_image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build linter image
@@ -22,18 +20,18 @@ jobs:
           target: runtime
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/linter.tar
+          outputs: type=docker,dest=/tmp/linter_image.tar
           tags: linter:latest
       - name: Upload linter image
         uses: actions/upload-artifact@v4
         with:
           name: linter-image
-          path: /tmp/linter.tar
+          path: /tmp/linter_image.tar
           retention-days: 1
 
-  ruff_linter:
+  run_ruff_check:
     runs-on: ubuntu-latest
-    needs: build_linter
+    needs: build_linter_image
     steps:
       - name: Download linter image
         uses: actions/download-artifact@v4
@@ -41,13 +39,13 @@ jobs:
           name: linter-image
           path: /tmp
       - name: Load image
-        run: docker load -i /tmp/linter.tar
+        run: docker load -i /tmp/linter_image.tar
       - name: Run ruff check
         run: docker run linter:latest ruff check --output-format=github .
 
-  ruff_format:
+  run_ruff_format:
     runs-on: ubuntu-latest
-    needs: build_linter
+    needs: build_linter_image
     steps:
       - name: Download linter image
         uses: actions/download-artifact@v4
@@ -55,13 +53,13 @@ jobs:
           name: linter-image
           path: /tmp
       - name: Load image
-        run: docker load -i /tmp/linter.tar
+        run: docker load -i /tmp/linter_image.tar
       - name: Run ruff format
         run: docker run linter:latest ruff format --check
 
-  mypy:
+  run_mypy:
     runs-on: ubuntu-latest
-    needs: build_linter
+    needs: build_linter_image
     steps:
       - name: Download linter image
         uses: actions/download-artifact@v4
@@ -69,17 +67,18 @@ jobs:
           name: linter-image
           path: /tmp
       - name: Load image
-        run: docker load -i /tmp/linter.tar
+        run: docker load -i /tmp/linter_image.tar
       - name: Run mypy
         run: docker run linter:latest mypy .
 
-  build_test:
+  build_test_image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build tests image
+      - name: Build test image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -87,28 +86,29 @@ jobs:
           target: runtime
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/tests.tar
-          tags: tests:latest
-      - name: Upload tests image
+          outputs: type=docker,dest=/tmp/test_image.tar
+          tags: test:latest
+      - name: Upload test image
         uses: actions/upload-artifact@v4
         with:
-          name: tests-image
-          path: /tmp/tests.tar
+          name: test-image
+          path: /tmp/test_image.tar
           retention-days: 1
 
-  tests:
+  run_tests:
     runs-on: ubuntu-latest
-    needs: build_test
+    needs: build_test_image
     env:
-      TAG: tests:latest
+      TAG: test:latest  # Injected into docker-compose.remote.test.yml as ${TAG}
     steps:
-      - uses: actions/checkout@v4
-      - name: Download tests image
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download test image
         uses: actions/download-artifact@v4
         with:
-          name: tests-image
+          name: test-image
           path: /tmp
       - name: Load image
-        run: docker load -i /tmp/tests.tar
+        run: docker load -i /tmp/test_image.tar
       - name: Run tests
         run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test --exit-code-from md-test
