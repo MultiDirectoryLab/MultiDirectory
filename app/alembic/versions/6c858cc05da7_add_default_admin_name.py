@@ -12,7 +12,6 @@ from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
 from entities import Attribute, User
-from extra.alembic_utils import temporary_stub_column
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -22,7 +21,6 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
@@ -55,3 +53,4 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
+    # Откатывать не нужно
