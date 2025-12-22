@@ -89,6 +89,7 @@ cache_dir ="/app/.pytest_cache"
 
 [tool.coverage.report]
 show_missing = true
+disable_warnings = ["couldnt-parse"]
 
 [tool.coverage.run]
 concurrency = ["thread", "gevent"]
