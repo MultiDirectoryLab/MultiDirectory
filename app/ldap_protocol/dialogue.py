@@ -16,10 +16,10 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, AsyncIterator
 
 import gssapi
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import NetworkPolicy, User
-from ldap_protocol.policies.network_policy import build_policy_query
+from enums import ProtocolType
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 
 from .session_storage import SessionStorage
 
@@ -142,21 +142,16 @@ class LDAPSession:
         async with self._lock:
             yield self._user
 
-    @staticmethod
-    async def _get_policy(
-        ip: IPv4Address,
-        session: AsyncSession,
-    ) -> NetworkPolicy | None:
-        query = build_policy_query(ip, "is_ldap")
-        return await session.scalar(query)
-
     async def validate_conn(
         self,
         ip: IPv4Address | IPv6Address,
-        session: AsyncSession,
+        network_policy_use_case: NetworkPolicyValidatorUseCase,
     ) -> None:
         """Validate network policies."""
-        policy = await self._get_policy(ip, session)  # type: ignore
+        policy = await network_policy_use_case.get_by_protocol(
+            ip,
+            ProtocolType.LDAP,
+        )
         if policy is not None:
             self.policy = policy
             await self.bind_session()

@@ -19,11 +19,11 @@ from api.network.schema import (
     PolicyUpdate,
     SwapResponse,
 )
-from ldap_protocol.policies.network.dto import (
+from ldap_protocol.policies.network import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
+    NetworkPolicyUseCase,
 )
-from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
 
 
 def _convert_netmasks(

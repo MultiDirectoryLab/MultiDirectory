@@ -18,11 +18,11 @@ from loguru import logger
 from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 
 from .data_logger import DataLogger
 
@@ -83,8 +83,13 @@ class PoolClientHandler:
             try:
                 async with session_scope(scope=Scope.REQUEST) as r:
                     try:
-                        session = await r.get(AsyncSession)
-                        await ldap_session.validate_conn(addr, session)
+                        network_policy_use_case = await r.get(
+                            NetworkPolicyValidatorUseCase,
+                        )
+                        await ldap_session.validate_conn(
+                            addr,
+                            network_policy_use_case,
+                        )
                     except PermissionError:
                         log.warning(f"Whitelist violation from {addr}")
                         return
