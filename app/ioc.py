@@ -116,8 +116,13 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
-from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
-from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
+from ldap_protocol.policies.network import (
+    NetworkPolicyGateway,
+    NetworkPolicyUseCase,
+    NetworkPolicyValidatorGateway,
+    NetworkPolicyValidatorProtocol,
+    NetworkPolicyValidatorUseCase,
+)
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
@@ -514,6 +519,20 @@ class HTTPProvider(LDAPContextProvider):
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
+    network_policy_use_case = provide(
+        NetworkPolicyUseCase,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_gateway = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.REQUEST,
+    )
 
     @provide()
     async def get_audit_monitor(
@@ -651,17 +670,27 @@ class HTTPProvider(LDAPContextProvider):
         NetworkPolicyFastAPIAdapter,
         scope=Scope.REQUEST,
     )
-    network_policy_use_case = provide(
-        NetworkPolicyUseCase,
-        scope=Scope.REQUEST,
-    )
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
     """Provider with session scope."""
 
     scope = Scope.SESSION
+
+    network_policy_validator_gateway = provide(
+        NetworkPolicyValidatorGateway,
+        scope=Scope.REQUEST,
+    )
+
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.REQUEST,
+    )
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_session(

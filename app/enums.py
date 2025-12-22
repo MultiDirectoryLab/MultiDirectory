@@ -207,6 +207,14 @@ class AuthorizationRules(IntFlag):
     SESSION_CLEAR_USER_SESSIONS = auto()
     SESSION_DELETE = auto()
 
+    NETWORK_POLICY_VALIDATOR_GET_BY_PROTOCOL = auto()
+    NETWORK_POLICY_VALIDATOR_GET_USER_NETWORK_POLICY = auto()
+    NETWORK_POLICY_VALIDATOR_GET_USER_HTTP_POLICY = auto()
+    NETWORK_POLICY_VALIDATOR_GET_USER_KERBEROS_POLICY = auto()
+    NETWORK_POLICY_VALIDATOR_GET_USER_LDAP_POLICY = auto()
+    NETWORK_POLICY_VALIDATOR_IS_USER_GROUP_VALID = auto()
+    NETWORK_POLICY_VALIDATOR_CHECK_MFA_GROUP = auto()
+
     @classmethod
     def get_all(cls) -> Self:
         return cls(sum(cls))
@@ -216,6 +224,14 @@ class AuthorizationRules(IntFlag):
         permissions: Iterable[AuthorizationRules],
     ) -> AuthorizationRules:
         return reduce(or_, permissions, AuthorizationRules(0))
+
+
+class ProtocolType(StrEnum):
+    """Protocol fields."""
+
+    LDAP = "is_ldap"
+    HTTP = "is_http"
+    KERBEROS = "is_kerberos"
 
 
 class DomainCodes(IntEnum):
