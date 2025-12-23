@@ -1204,6 +1204,19 @@ async def role_use_case(
         yield RoleUseCase(role_dao, ace_dao)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _server(
+    event_loop: asyncio.BaseEventLoop,
+    handler: PoolClientHandler,
+) -> Generator:
+    """Run server in background."""
+    task = asyncio.ensure_future(handler.start(), loop=event_loop)
+    event_loop.run_until_complete(asyncio.sleep(0.1))
+    yield
+    with suppress(asyncio.CancelledError):
+        task.cancel()
+
+
 @pytest.fixture
 async def ldap_client(
     settings: Settings,
