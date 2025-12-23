@@ -452,7 +452,7 @@ class PoolClientHandler:
         server = await self._get_server()
         log.info(
             f"started {'DEBUG' if self.settings.DEBUG else 'PROD'} "
-            f"{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server {self.settings.HOST}:{self.settings.PORT}",
+            f"{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server",
         )
 
         try:
