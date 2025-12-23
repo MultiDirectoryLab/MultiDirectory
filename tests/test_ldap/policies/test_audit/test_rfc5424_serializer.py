@@ -24,24 +24,24 @@ def serializer() -> RFC5424Serializer:
 
 
 @pytest.mark.parametrize(
-    ("facility", "severity", "expected_priority"),
+    ("facility", "severity", "expected_severity"),
     [
-        ("kernel", 5, 5),  # (0 * 8) + 5
-        ("user", 3, 11),  # (1 * 8) + 3
-        ("authpriv", 6, 86),  # (10 * 8) + 6
-        ("local0", 7, 135),  # (16 * 8) + 7
-        ("local7", 2, 186),  # (23 * 8) + 2
+        ("kernel", 5, 5),
+        ("user", 3, 11),
+        ("authpriv", 6, 86),
+        ("local0", 7, 135),
+        ("local7", 2, 186),
     ],
 )
 def test_format_priority(
     facility: str,
     severity: int,
-    expected_priority: int,
+    expected_severity: int,
 ) -> None:
     """Test _format_priority with different facilities and severities."""
     serializer = RFC5424Serializer(app_name="Test", facility=facility)
-    priority = serializer._format_priority(severity)
-    assert priority == expected_priority
+    severity = serializer._format_severity(severity)  # noqa: SLF001
+    assert severity == expected_severity
 
 
 @pytest.mark.parametrize(
@@ -54,12 +54,11 @@ def test_format_priority_invalid_severity(
 ) -> None:
     """Test _format_priority with invalid severity values."""
     with pytest.raises(NotImplementedError, match="Severity must be 0-7"):
-        serializer._format_priority(invalid_severity)  # noqa: SLF001
+        serializer._format_severity(invalid_severity)  # noqa: SLF001
 
 
 def test_format_timestamp(serializer: RFC5424Serializer) -> None:
     """Test _format_timestamp formats timestamp correctly."""
-    # 2025-12-23 10:30:45.123 UTC
     dt = datetime(2025, 12, 23, 10, 30, 45, 123000, tzinfo=timezone.utc)
     timestamp = dt.timestamp()
 

@@ -66,7 +66,7 @@ class RFC5424Serializer:
         syslog_version: int,
     ) -> str:
         """Serialize audit event to RFC 5424 format."""
-        priority = self._format_priority(event.severity)
+        severity = self._format_severity(event.severity)
         timestamp = self._format_timestamp(event.timestamp)
         hostname = self._format_hostname(event.hostname)
         app_name = self._format_field(self.app_name, 48)
@@ -76,12 +76,12 @@ class RFC5424Serializer:
         msg = self._format_message(event.syslog_message)
 
         return (
-            f"<{priority}>{syslog_version} "
+            f"<{severity}>{syslog_version} "
             f"{timestamp} {hostname} {app_name} {proc_id} {msg_id} "
             f"{sd_str}{msg}"
         )
 
-    def _format_priority(self, severity: int) -> int:
+    def _format_severity(self, severity: int) -> int:
         """Calculate PRIORITY value (RFC 5424 section 6.2.1)."""
         if not 0 <= severity <= 7:
             raise NotImplementedError(f"Severity must be 0-7, got {severity}")

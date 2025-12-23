@@ -82,7 +82,7 @@ class SyslogSender(AuditDestinationSenderABC):
         elif self._destination.protocol == AuditDestinationProtocolType.TCP:
             callback = self._send_tcp
         else:
-            raise ValueError(
+            raise NotImplementedError(
                 f"Unsupported protocol: {self._destination.protocol}",
             )
 
