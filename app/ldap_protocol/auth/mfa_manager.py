@@ -46,10 +46,7 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
 )
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
-from ldap_protocol.policies.network_policy import (
-    check_mfa_group,
-    get_user_network_policy,
-)
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
@@ -72,6 +69,7 @@ class MFAManager(AbstractService):
         monitor: AuditMonitorUseCase,
         password_utils: PasswordUtils,
         identity_provider: IdentityProvider,
+        network_policy_validator: NetworkPolicyValidatorUseCase,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -90,6 +88,7 @@ class MFAManager(AbstractService):
         self._monitor = monitor
         self._password_utils = password_utils
         self._identity_provider = identity_provider
+        self._network_policy_validator = network_policy_validator
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -328,11 +327,11 @@ class MFAManager(AbstractService):
                 f"User {principal} not found in the database.",
             )
 
-        network_policy = await get_user_network_policy(
-            ip,
-            user,
-            self._session,
-            policy_type="is_kerberos",
+        network_policy = (
+            await self._network_policy_validator.get_user_kerberos_policy(
+                ip,
+                user,
+            )
         )
 
         if network_policy is None or not network_policy.is_kerberos:
@@ -351,10 +350,9 @@ class MFAManager(AbstractService):
         ):
             if (
                 network_policy.mfa_status == MFAFlags.WHITELIST
-                and not await check_mfa_group(
+                and not await self._network_policy_validator.check_mfa_group(
                     network_policy,
                     user,
-                    self._session,
                 )
             ):
                 return

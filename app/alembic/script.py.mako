@@ -7,6 +7,7 @@ Create Date: ${create_date}
 """
 from alembic import op
 import sqlalchemy as sa
+from dishka import AsyncContainer
 ${imports if imports else ""}
 
 # revision identifiers, used by Alembic.
@@ -16,11 +17,11 @@ branch_labels: None | list[str] = ${repr(branch_labels)}
 depends_on: None | list[str] = ${repr(depends_on)}
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     ${upgrades if upgrades else "pass"}
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     ${downgrades if downgrades else "pass"}

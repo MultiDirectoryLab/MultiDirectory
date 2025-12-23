@@ -8,12 +8,10 @@ import contextlib
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import NetworkPolicy, User
+from entities import NetworkPolicy
 from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
@@ -34,10 +32,6 @@ from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import (
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import ProtocolRequests, UserAccountControlFlag
-from ldap_protocol.policies.network_policy import (
-    check_mfa_group,
-    is_user_group_valid,
-)
 from ldap_protocol.user_account_control import get_check_uac
 from ldap_protocol.utils.queries import set_user_logon_attrs
 
@@ -92,15 +86,6 @@ class BindRequest(BaseRequest):
             name=data[1].value,
             AuthenticationChoice=auth_choice,
         )
-
-    @staticmethod
-    async def is_user_group_valid(
-        user: User,
-        ldap_session: LDAPSession,
-        session: AsyncSession,
-    ) -> bool:
-        """Test compability."""
-        return await is_user_group_valid(user, ldap_session.policy, session)
 
     @staticmethod
     async def check_mfa(
@@ -173,11 +158,12 @@ class BindRequest(BaseRequest):
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
-
-        if not await self.is_user_group_valid(
+        policy = getattr(ctx.ldap_session, "policy", None)
+        if (
+            policy is not None
+        ) and not await ctx.network_policy_validator.is_user_group_valid(
             user,
-            ctx.ldap_session,
-            ctx.session,
+            policy,
         ):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
@@ -192,14 +178,18 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 
-        if (
-            (policy := getattr(ctx.ldap_session, "policy", None))
-            and policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
+        if (policy is not None) and (
+            policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
             and ctx.mfa is not None
         ):
             request_2fa = True
             if policy.mfa_status == MFAFlags.WHITELIST:
-                request_2fa = await check_mfa_group(policy, user, ctx.session)
+                request_2fa = (
+                    await ctx.network_policy_validator.check_mfa_group(
+                        policy,
+                        user,
+                    )
+                )
 
             if request_2fa:
                 mfa_status = await self.check_mfa(

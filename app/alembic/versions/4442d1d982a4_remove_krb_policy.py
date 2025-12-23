@@ -7,6 +7,7 @@ Create Date: 2025-02-28 12:01:56.745334
 """
 
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
@@ -21,7 +22,7 @@ depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -29,5 +30,5 @@ def upgrade() -> None:
     session.execute(delete(Attribute).filter_by(name="krbpwdpolicyreference"))
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""

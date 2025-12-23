@@ -8,6 +8,7 @@ Create Date: 2025-11-06 10:38:31.124118
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -28,7 +29,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
 
     async def _attach_entity_type_to_directories(
@@ -105,5 +106,5 @@ def upgrade() -> None:
     op.run_async(_attach_entity_type_to_directories)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""

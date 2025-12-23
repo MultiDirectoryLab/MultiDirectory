@@ -8,6 +8,7 @@ Create Date: 2024-12-20 16:28:24.419163
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
 from entities import Attribute, CatalogueSetting, User
@@ -23,7 +24,7 @@ depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -76,7 +77,7 @@ def upgrade() -> None:
     )
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
     op.create_index(

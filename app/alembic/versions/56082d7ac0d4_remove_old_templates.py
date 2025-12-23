@@ -6,6 +6,8 @@ Create Date: 2025-12-03 11:07:16.097669
 
 """
 
+from dishka import AsyncContainer
+
 # revision identifiers, used by Alembic.
 revision: None | str = "56082d7ac0d4"
 down_revision: None | str = "16a9fa2c1f1e"
@@ -13,9 +15,9 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""

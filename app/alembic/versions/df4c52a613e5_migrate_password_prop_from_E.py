@@ -8,6 +8,7 @@ Create Date: 2025-11-18 14:56:02.122357
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
@@ -27,7 +28,7 @@ with open("extra/common_passwords.txt") as f:
     _BAN_WORDS = set(f.read().split("\n"))
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -49,7 +50,9 @@ def upgrade() -> None:
         session = AsyncSession(bind=connection)
         await session.begin()
 
-        password_ban_word_repo = PasswordBanWordRepository(session)
+        async with container(scope=Scope.REQUEST) as cnt:
+            password_ban_word_repo = await cnt.get(PasswordBanWordRepository)
+
         await password_ban_word_repo.replace(_BAN_WORDS)
 
         await session.commit()
@@ -256,7 +259,7 @@ def upgrade() -> None:
     )
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.execute(
         sa.text("DROP INDEX IF EXISTS idx_password_ban_words_word_gin_trgm"),
