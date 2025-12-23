@@ -34,6 +34,7 @@ from api import (
     password_policy_router,
     session_router,
     shadow_router,
+    user_password_history_router,
 )
 from api.exception_handlers import handle_auth_error, handle_db_connect_error
 from api.middlewares import proc_time_header_middleware, set_key_middleware
@@ -82,6 +83,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(password_policy_router)
     app.include_router(krb5_router)
     app.include_router(dns_router)
+    app.include_router(user_password_history_router)
     app.include_router(session_router)
     app.include_router(ldap_schema_router)
     app.include_router(dhcp_router)

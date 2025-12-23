@@ -35,6 +35,7 @@ from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import (
     PasswordBanWordsFastAPIAdapter,
     PasswordPolicyFastAPIAdapter,
+    UserPasswordHistoryResetFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
@@ -132,7 +133,10 @@ from ldap_protocol.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
-from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases
+from ldap_protocol.policies.password.use_cases import (
+    PasswordBanWordUseCases,
+    UserPasswordHistoryUseCases,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -438,6 +442,10 @@ class MainProvider(Provider):
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
+    user_password_history_use_cases = provide(
+        UserPasswordHistoryUseCases,
+        scope=Scope.REQUEST,
+    )
     password_policy_validator = provide(
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
@@ -563,6 +571,10 @@ class HTTPProvider(LDAPContextProvider):
         scope=Scope.REQUEST,
     )
 
+    user_password_history_reset_adapter = provide(
+        UserPasswordHistoryResetFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
     password_policies_adapter = provide(
         PasswordPolicyFastAPIAdapter,
         scope=Scope.REQUEST,

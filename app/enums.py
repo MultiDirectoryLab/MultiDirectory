@@ -215,6 +215,8 @@ class AuthorizationRules(IntFlag):
     NETWORK_POLICY_VALIDATOR_IS_USER_GROUP_VALID = auto()
     NETWORK_POLICY_VALIDATOR_CHECK_MFA_GROUP = auto()
 
+    USER_RESET_PASSWORD_HISTORY = auto()
+
     @classmethod
     def get_all(cls) -> Self:
         return cls(sum(cls))

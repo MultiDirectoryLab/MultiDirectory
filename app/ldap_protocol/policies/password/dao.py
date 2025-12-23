@@ -10,7 +10,7 @@ from adaptix import P
 from adaptix.conversion import get_converter, link_function
 from sqlalchemy import Integer, String, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import attributes, selectinload
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Group, PasswordPolicy, User
@@ -440,6 +440,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
         await self._session.execute(query)
 
         user.password_history.append(tcast("str", user.password))
+        attributes.flag_modified(user, "password_history")
         await self._session.flush()
 
     async def is_password_change_restricted(
