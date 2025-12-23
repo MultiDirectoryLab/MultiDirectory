@@ -19,7 +19,9 @@ class RFC5424Serializer:
     NILVALUE: str = "-"
     UTF8_BOM: str = "\ufeff"
 
-    ENTERPRISE_ID: str = "32473"
+    # SD-ID suffix for STRUCTURED-DATA: audit@32473
+    # Change to your registered Private Enterprise Number (PEN)
+    STRUCTURED_DATA_ID_SUFFIX: str = "32473"
 
     SYSLOG_FACILITIES: dict[str, int] = {
         "kernel": 0,
@@ -50,8 +52,8 @@ class RFC5424Serializer:
 
     def __init__(
         self,
-        app_name: str = "MultiDirectory",
-        facility: str = "authpriv",
+        app_name: str,
+        facility: str,
     ) -> None:
         """Initialize RFC 5424 serializer."""
         self.app_name = app_name
@@ -65,19 +67,12 @@ class RFC5424Serializer:
     ) -> str:
         """Serialize audit event to RFC 5424 format."""
         priority = self._format_priority(event.severity)
-
         timestamp = self._format_timestamp(event.timestamp)
-
         hostname = self._format_hostname(event.hostname)
-
         app_name = self._format_field(self.app_name, 48)
-
         proc_id = self._format_field(event.service_name, 128)
-
         msg_id = self._format_field(event.event_type, 32)
-
         sd_str = self._format_structured_data(structured_data)
-
         msg = self._format_message(event.syslog_message)
 
         return (
@@ -145,11 +140,16 @@ class RFC5424Serializer:
         if not params:
             return self.NILVALUE
 
-        sd_id = f"audit@{self.ENTERPRISE_ID}"
+        sd_id = f"audit@{self.STRUCTURED_DATA_ID_SUFFIX}"
         return f"[{sd_id} {' '.join(params)}]"
 
     def _sanitize_param_name(self, name: str) -> str:
-        """Sanitize PARAM-NAME for STRUCTURED-DATA."""
+        """Sanitize PARAM-NAME for STRUCTURED-DATA.
+
+        RFC 5424 allows only printable ASCII (33-126)
+        except: =, space, ], "
+        Max length: 32 characters
+        """
         return "".join(
             c
             for c in name

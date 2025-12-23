@@ -35,7 +35,7 @@ class SyslogSender(AuditDestinationSenderABC):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize syslog sender with RFC 5424 serializer."""
         super().__init__(*args, **kwargs)
-        self.__serializer = RFC5424Serializer(
+        self.__rfc_serializer = RFC5424Serializer(
             app_name=self.DEFAULT_APP_NAME,
             facility="authpriv",
         )
@@ -71,7 +71,7 @@ class SyslogSender(AuditDestinationSenderABC):
         """Send event."""
         structured_data = deepcopy(event.destination_dict)
 
-        syslog_message = self.__serializer.serialize(
+        syslog_message = self.__rfc_serializer.serialize(
             event=event,
             structured_data=structured_data,
             syslog_version=self.SYSLOG_VERSION,
