@@ -36,16 +36,16 @@ error_map: ERROR_MAP_TYPE = {
 }
 
 user_password_history_router = ErrorAwareRouter(
-    prefix="/user/reset_password_history",
+    prefix="/user/password_history",
     dependencies=[Depends(verify_auth)],
     tags=["User Password history"],
     route_class=DishkaErrorAwareRoute,
 )
 
 
-@user_password_history_router.post("/{user_name}", error_map=error_map)
-async def reset(
+@user_password_history_router.post("/clear/{user_name}", error_map=error_map)
+async def clear(
     user_name: str,
     adapter: FromDishka[UserPasswordHistoryResetFastAPIAdapter],
 ) -> None:
-    await adapter.reset(user_name)
+    await adapter.clear(user_name)

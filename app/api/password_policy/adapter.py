@@ -32,10 +32,10 @@ _convert_dto_to_schema = get_converter(
 class UserPasswordHistoryResetFastAPIAdapter(
     BaseAdapter[UserPasswordHistoryUseCases],
 ):
-    """Adapter for resetting user password history."""
+    """Adapter for clearing user password history."""
 
-    async def reset(self, user_name: str) -> None:
-        await self._service.reset(user_name)
+    async def clear(self, user_name: str) -> None:
+        await self._service.clear(user_name)
 
 
 class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):

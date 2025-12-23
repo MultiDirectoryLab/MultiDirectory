@@ -35,7 +35,7 @@ class UserPasswordHistoryUseCases(AbstractService):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def reset(self, user_name: str) -> None:
+    async def clear(self, user_name: str) -> None:
         user = await get_user(self._session, user_name)
 
         if not user:
@@ -48,7 +48,7 @@ class UserPasswordHistoryUseCases(AbstractService):
         await self._session.flush()
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
-        reset.__name__: AuthorizationRules.USER_RESET_PASSWORD_HISTORY,
+        clear.__name__: AuthorizationRules.USER_CLEAR_PASSWORD_HISTORY,
     }
 
 

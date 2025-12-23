@@ -32,7 +32,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         )  # fmt: skip
         role = (await session.scalars(query)).first()
         if role:
-            role.permissions |= AuthorizationRules.USER_RESET_PASSWORD_HISTORY
+            role.permissions |= AuthorizationRules.USER_CLEAR_PASSWORD_HISTORY
 
     op.run_async(_add_api_permission)
 
@@ -48,6 +48,6 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         )  # fmt: skip
         role = (await session.scalars(query)).first()
         if role:
-            role.permissions &= ~AuthorizationRules.USER_RESET_PASSWORD_HISTORY
+            role.permissions &= ~AuthorizationRules.USER_CLEAR_PASSWORD_HISTORY
 
     op.run_async(_remove_api_permission)

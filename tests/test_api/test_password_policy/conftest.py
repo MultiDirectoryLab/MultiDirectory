@@ -143,9 +143,7 @@ class TestLocalProvider(Provider):
         if self._cached_user_password_history_use_cases is None:
             session = Mock()
             use_cases = UserPasswordHistoryUseCases(session)
-            use_cases.reset = make_mock(  # type: ignore
-                "reset",
-            )
+            use_cases.clear = make_mock("clear")  # type: ignore
             self._cached_user_password_history_use_cases = use_cases
 
         yield self._cached_user_password_history_use_cases
