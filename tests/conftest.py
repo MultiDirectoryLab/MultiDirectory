@@ -785,16 +785,6 @@ def event_loop() -> Generator:
 
 
 @pytest.fixture(scope="session")
-def global_event_loop() -> Generator:
-    """Create uvloop event loop."""
-    loop = uvloop.new_event_loop()
-    yield loop
-    with suppress(asyncio.CancelledError, RuntimeError):
-        asyncio.gather(*asyncio.tasks.all_tasks(loop)).cancel()
-        loop.close()
-
-
-@pytest.fixture(scope="session")
 def settings() -> Settings:
     """Get settings."""
     return Settings.from_os()
@@ -924,39 +914,6 @@ async def raw_audit_manager(
     """Get raw audit adapter."""
     async with container(scope=Scope.APP) as container:
         yield await container.get(RawAuditManager)
-
-
-@pytest.fixture(scope="session")
-def global_settings() -> Settings:
-    """Get settings."""
-    settings = Settings.from_os()
-    return settings.get_copy_4_global()
-
-
-@pytest_asyncio.fixture(scope="session")
-async def global_container(
-    global_settings: Settings,
-) -> AsyncIterator[AsyncContainer]:
-    """Create test container."""
-    ctnr = make_async_container(
-        TestProvider(),
-        MFACredsProvider(),
-        context={Settings: global_settings},
-        start_scope=Scope.RUNTIME,
-    )
-    yield ctnr
-    await ctnr.close()
-
-
-@pytest_asyncio.fixture(scope="session")
-async def global_handler(
-    global_settings: Settings,
-    global_container: AsyncContainer,
-) -> AsyncIterator[PoolClientHandler]:
-    """Create test handler."""
-    global_settings.set_test_global_port()
-    async with global_container(scope=Scope.APP) as app_scope:
-        yield PoolClientHandler(global_settings, app_scope)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -1245,37 +1202,6 @@ async def role_use_case(
         role_dao = RoleDAO(session)
         ace_dao = AccessControlEntryDAO(session)
         yield RoleUseCase(role_dao, ace_dao)
-
-
-# @pytest.fixture(scope="session", autouse=True)
-# def _server(
-#     event_loop: asyncio.BaseEventLoop,
-#     handler: PoolClientHandler,
-#     _migrations: None,
-# ) -> Generator:
-#     """Run server in background."""
-#     task = asyncio.ensure_future(handler.start(), loop=event_loop)
-#     event_loop.run_until_complete(asyncio.sleep(0.1))
-#     yield
-#     with suppress(asyncio.CancelledError):
-#         task.cancel()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def _global_server(
-    global_event_loop: asyncio.BaseEventLoop,
-    global_handler: PoolClientHandler,
-    _migrations: None,
-) -> Generator:
-    """Run global LDAP server in background."""
-    task = asyncio.ensure_future(
-        global_handler.start(),
-        loop=global_event_loop,
-    )
-    global_event_loop.run_until_complete(asyncio.sleep(0.1))
-    yield
-    with suppress(asyncio.CancelledError):
-        task.cancel()
 
 
 @pytest.fixture
