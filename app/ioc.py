@@ -733,6 +733,16 @@ class GlobalLDAPServerProvider(Provider):
         scope=Scope.REQUEST,
     )
 
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.REQUEST,
+    )
+
 
 class MFACredsProvider(Provider):
     """Creds provider."""

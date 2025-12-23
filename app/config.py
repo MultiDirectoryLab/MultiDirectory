@@ -158,11 +158,6 @@ class Settings(BaseModel):
             return "public"
         return f"test_schema_{self.PYTEST_XDIST_WORKER}"
 
-    def set_test_global_port(self) -> None:
-        """Set test port."""
-        self.GLOBAL_LDAP_PORT += self.TEST_WORKER_ID
-        self.PORT = self.GLOBAL_LDAP_PORT
-
     def set_test_port(self) -> None:
         """Set test port."""
         self.PORT += self.TEST_WORKER_ID

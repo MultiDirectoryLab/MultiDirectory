@@ -426,9 +426,6 @@ class PoolClientHandler:
 
     async def _get_server(self) -> asyncio.base_events.Server:
         """Get async server."""
-        log.info(
-            f"SOSAI _get_server {self.settings.HOST}, {self.settings.PORT}",
-        )
         return await asyncio.start_server(
             self,
             str(self.settings.HOST),
