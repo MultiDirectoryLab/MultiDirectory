@@ -69,7 +69,6 @@ class PoolClientHandler:
         writer: asyncio.StreamWriter,
     ) -> None:
         """Create session, queue and start message handlers concurrently."""
-        log.info("SOSI4")
         async with self.container(scope=Scope.SESSION) as session_scope:
             ldap_session = await session_scope.get(LDAPSession)
             addr, first_chunk = await self.recieve(
@@ -435,11 +434,8 @@ class PoolClientHandler:
     @staticmethod
     async def _run_server(server: asyncio.base_events.Server) -> None:
         """Run server."""
-        log.info("SOSI1")
         async with server:
-            log.info("SOSI2")
             await server.serve_forever()
-        log.info("SOSI3")
 
     @staticmethod
     def log_addrs(server: asyncio.base_events.Server) -> None:
@@ -455,7 +451,6 @@ class PoolClientHandler:
         )
 
         try:
-            log.info("SOSI")
             await self._run_server(server)
         finally:
             server.close()
