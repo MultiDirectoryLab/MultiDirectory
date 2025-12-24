@@ -177,7 +177,7 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
             DNSZoneMasterDTO(
                 id=data.zone_name,
                 name=data.zone_name,
-                dnssec=False,
+                dnssec=data.dnssec,
             ),
         )
 
