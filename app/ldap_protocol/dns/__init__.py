@@ -40,7 +40,6 @@ __all__ = [
     "AbstractDNSManager",
     "PowerDNSManager",
     "RemoteDNSManager",
-    "SelfHostedDNSManager",
     "StubDNSManager",
     "DNSStateGateway",
     "DNSForwardServerStatus",
