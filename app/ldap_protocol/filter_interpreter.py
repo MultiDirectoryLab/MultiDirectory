@@ -31,6 +31,7 @@ from entities import (
     User,
 )
 from ldap_protocol.utils.helpers import ft_to_dt
+from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from repo.pg.tables import groups_table, queryable_attr as qa, users_table
 
 from .asn1parser import ASN1Row, TagNumbers
@@ -397,6 +398,14 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
         self.attributes.add(attr)
 
         is_substring = item.tag_id == TagNumbers.SUBSTRING
+
+        if attr == "distinguishedname" and not is_substring:
+            try:
+                dn_search_path = get_search_path(right.value)
+            except Exception:  # noqa: S110
+                pass
+            else:
+                return get_path_filter(dn_search_path)
 
         if attr == "anr":
             if is_substring:
