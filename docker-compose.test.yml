@@ -16,6 +16,8 @@ services:
       DOMAIN: md.test
       POSTGRES_USER: user1
       POSTGRES_PASSWORD: password123
+      DEFAULT_NAMESERVER: 192.168.1.1
+      PDNS_API_KEY: testkey123
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d7407694278fd84cce
       POSTGRES_HOST: postgres
       # PYTHONTRACEMALLOC: 1
