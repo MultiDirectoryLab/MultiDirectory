@@ -12,11 +12,11 @@ from ipaddress import IPv4Address, IPv6Address
 from loguru import logger as loguru_logger
 
 from .dto import (
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
     DNSRRSetDTO,
     DNSSettingsDTO,
     DNSZoneBaseDTO,
-    DNSZoneForwardDTO,
-    DNSZoneMasterDTO,
 )
 from .enums import DNSForwarderServerStatus
 from ldap_protocol.dns.dto import DNSSettingDTO
@@ -196,10 +196,10 @@ class AbstractDNSManager:
     ) -> list[DNSRRSetDTO]: ...
 
     @abstractmethod
-    async def get_zones(self) -> list[DNSZoneMasterDTO]: ...
+    async def get_zones(self) -> list[DNSMasterZoneDTO]: ...
 
     @abstractmethod
-    async def get_forward_zones(self) -> list[DNSZoneForwardDTO]:
+    async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         raise DNSNotImplementedError
 
     @abstractmethod
