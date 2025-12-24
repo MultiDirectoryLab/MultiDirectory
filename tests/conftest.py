@@ -10,6 +10,7 @@ import uuid
 import weakref
 from contextlib import suppress
 from dataclasses import dataclass
+from ipaddress import IPv4Address
 from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
@@ -77,7 +78,7 @@ from ldap_protocol.dns import (
     StubDNSManager,
 )
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
-from ldap_protocol.dns.dto import DNSSettingDTO
+from ldap_protocol.dns.dto import DNSSettingsDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
@@ -213,55 +214,58 @@ class TestProvider(Provider):
         """Get mock DNS manager."""
         dns_manager = AsyncMock(spec=StubDNSManager)
 
-        dns_manager.setup.return_value = DNSSettingDTO(
-            zone_name="example.com",
-            dns_server_ip="127.0.0.1",
+        dns_manager.setup.return_value = DNSSettingsDTO(
+            domain="example.com",
+            dns_server_ip=IPv4Address("127.0.0.1"),
             tsig_key=None,
         )
-        dns_manager.get_all_records.return_value = [
+        dns_manager.get_records.return_value = [
             {
+                "name": "example.com",
                 "type": "A",
                 "records": [
                     {
-                        "name": "example.com",
-                        "value": "127.0.0.1",
-                        "ttl": 3600,
+                        "content": "127.0.0.1",
+                        "disabled": False,
+                        "modified_at": None,
                     },
                 ],
-            },
-        ]
-        dns_manager.get_server_options.return_value = [
-            {
-                "name": "dnssec-validation",
-                "value": "no",
+                "ttl": 3600,
             },
         ]
         dns_manager.get_forward_zones.return_value = [
             {
-                "name": "test.local",
-                "type": "forward",
-                "forwarders": [
-                    "127.0.0.1",
-                    "127.0.0.2",
-                ],
+                "id": "forward1",
+                "name": "forward1.",
+                "rrsets": [],
+                "kind": "Forwarded",
+                "type": "zone",
+                "servers": ["127.0.0.1"],
+                "recursion_desired": False,
             },
         ]
-        dns_manager.get_all_zones_records.return_value = [
+        dns_manager.get_zones.return_value = [
             {
-                "name": "test.local",
-                "type": "master",
-                "records": [
+                "id": "zone1",
+                "name": "example.com.",
+                "rrsets": [
                     {
+                        "name": "example.com",
                         "type": "A",
                         "records": [
                             {
-                                "name": "example.com",
-                                "value": "127.0.0.1",
-                                "ttl": 3600,
+                                "content": "127.0.0.1",
+                                "disabled": False,
+                                "modified_at": None,
                             },
                         ],
+                        "ttl": 3600,
                     },
                 ],
+                "dnssec": False,
+                "nameservers": ["ns1.example.com."],
+                "kind": "Master",
+                "type": "zone",
             },
         ]
 
