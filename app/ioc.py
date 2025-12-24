@@ -54,6 +54,7 @@ from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
+    PowerDNSManager,
     get_dns_manager_class,
 )
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
@@ -146,7 +147,11 @@ from password_utils import PasswordUtils
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
-DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
+PDNSAuthServerClient = NewType("PDNSAuthServerClient", httpx.AsyncClient)
+PDNSRecursorServerClient = NewType(
+    "PDNSRecursorServerClient",
+    httpx.AsyncClient,
+)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 DHCPManagerHTTPClient = NewType("DHCPManagerHTTPClient", httpx.AsyncClient)
 
@@ -251,32 +256,55 @@ class MainProvider(Provider):
     ) -> DNSManagerSettings:
         """Get DNS manager's settings."""
         resolve_coro = resolve_dns_server_ip(
-            settings.DNS_BIND_HOST,
+            settings.PDNS_RECURSOR_SERVER_HOST,
         )
         return await dns_state_gateway.get_dns_manager_settings(
             resolve_coro,
         )
 
     @provide(scope=Scope.APP)
-    async def get_dns_http_client(
+    async def get_pdns_auth_server_client(
         self,
         settings: Settings,
-    ) -> AsyncIterator[DNSManagerHTTPClient]:
-        """Get async client for DNS manager."""
+    ) -> AsyncIterator[PDNSAuthServerClient]:
+        """Get async client for PDNS auth server."""
         async with httpx.AsyncClient(
-            base_url=f"http://{settings.DNS_BIND_HOST}:8000",
+            base_url=f"http://{settings.PDNS_AUTH_SERVER_HOST}"
+            + ":8082/api/v1/servers/localhost",
+            headers={"X-API-Key": settings.PDNS_API_KEY},
         ) as client:
-            yield DNSManagerHTTPClient(client)
+            yield PDNSAuthServerClient(client)
+
+    @provide(scope=Scope.APP)
+    async def get_pdns_recursor_server_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[PDNSRecursorServerClient]:
+        """Get async client for PDNS recursor server."""
+        async with httpx.AsyncClient(
+            base_url=f"http://{settings.PDNS_RECURSOR_SERVER_HOST}"
+            + ":8083/api/v1/servers/localhost",
+            headers={"X-API-Key": settings.PDNS_API_KEY},
+        ) as client:
+            yield PDNSRecursorServerClient(client)
 
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr(
         self,
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
-        http_client: DNSManagerHTTPClient,
+        auth_server_client: PDNSAuthServerClient,
+        recursor_server_client: PDNSRecursorServerClient,
     ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class."""
-        yield dns_manager_class(settings=settings, http_client=http_client)
+        if issubclass(dns_manager_class, PowerDNSManager):
+            yield dns_manager_class(
+                settings=settings,
+                client_authoritative=auth_server_client,
+                client_recursor=recursor_server_client,
+            )
+        else:
+            yield dns_manager_class(settings=settings)
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
