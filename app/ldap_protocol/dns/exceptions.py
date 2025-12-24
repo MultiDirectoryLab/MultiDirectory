@@ -89,3 +89,31 @@ class DNSNotImplementedError(DNSError):
     """DNS not implemented error."""
 
     code = ErrorCodes.DNS_NOT_IMPLEMENTED_ERROR
+
+
+class DNSUnavailableError(DNSError):
+    """DNS server is unavailable."""
+
+
+class DNSCreateEntryError(DNSError):
+    """DNS create entry error."""
+
+
+class DNSDeleteEntryError(DNSError):
+    """DNS delete entry error."""
+
+
+class DNSUpdateEntryError(DNSError):
+    """DNS update entry error."""
+
+
+class DNSEntryNotFoundError(DNSError):
+    """DNS entry not found error."""
+
+
+class DNSValidationError(DNSError):
+    """DNS validation error."""
+
+
+class DNSNotSupportedError(DNSError):
+    """DNS not supported error."""
