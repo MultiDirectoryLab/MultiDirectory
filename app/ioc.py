@@ -269,8 +269,7 @@ class MainProvider(Provider):
     ) -> AsyncIterator[PDNSAuthServerClient]:
         """Get async client for PDNS auth server."""
         async with httpx.AsyncClient(
-            base_url=f"http://{settings.PDNS_AUTH_SERVER_HOST}"
-            + ":8082/api/v1/servers/localhost",
+            base_url=f"http://{settings.PDNS_AUTH_SERVER_HOST}:8082/api/v1/servers/localhost",
             headers={"X-API-Key": settings.PDNS_API_KEY},
         ) as client:
             yield PDNSAuthServerClient(client)
@@ -282,8 +281,7 @@ class MainProvider(Provider):
     ) -> AsyncIterator[PDNSRecursorServerClient]:
         """Get async client for PDNS recursor server."""
         async with httpx.AsyncClient(
-            base_url=f"http://{settings.PDNS_RECURSOR_SERVER_HOST}"
-            + ":8083/api/v1/servers/localhost",
+            base_url=f"http://{settings.PDNS_RECURSOR_SERVER_HOST}:8083/api/v1/servers/localhost",
             headers={"X-API-Key": settings.PDNS_API_KEY},
         ) as client:
             yield PDNSRecursorServerClient(client)

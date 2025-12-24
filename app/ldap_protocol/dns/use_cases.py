@@ -62,41 +62,21 @@ class DNSUseCase(AbstractService):
         record: DNSRRSetDTO,
     ) -> None:
         """Create DNS record."""
-        await self._dns_manager.create_record(
-            zone_id,
-            record,
-        )
+        await self._dns_manager.create_record(zone_id, record)
 
     async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Get all DNS records."""
         return await self._dns_manager.get_records(zone_id)
 
-    async def update_record(
-        self,
-        zone_id: str,
-        record: DNSRRSetDTO,
-    ) -> None:
+    async def update_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Update DNS record."""
-        await self._dns_manager.update_record(
-            zone_id,
-            record,
-        )
+        await self._dns_manager.update_record(zone_id, record)
 
-    async def delete_record(
-        self,
-        zone_id: str,
-        record: DNSRRSetDTO,
-    ) -> None:
+    async def delete_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Delete DNS record."""
-        await self._dns_manager.delete_record(
-            zone_id,
-            record,
-        )
+        await self._dns_manager.delete_record(zone_id, record)
 
-    async def create_zone(
-        self,
-        zone: DNSZoneBaseDTO,
-    ) -> None:
+    async def create_zone(self, zone: DNSZoneBaseDTO) -> None:
         """Create DNS zone."""
         await self._dns_manager.create_zone(zone)
 
@@ -108,10 +88,7 @@ class DNSUseCase(AbstractService):
         """Get all forward zones."""
         return await self._dns_manager.get_forward_zones()
 
-    async def update_zone(
-        self,
-        zone: DNSZoneBaseDTO,
-    ) -> None:
+    async def update_zone(self, zone: DNSZoneBaseDTO) -> None:
         """Update DNS zone."""
         await self._dns_manager.update_zone(zone)
 
@@ -144,10 +121,7 @@ class DNSUseCase(AbstractService):
             "dns_server_ip": str(self._dns_settings.dns_server_ip),
         }
 
-    async def set_state(
-        self,
-        state: DNSManagerState,
-    ) -> None:
+    async def set_state(self, state: DNSManagerState) -> None:
         """Set DNS manager state."""
         await self._dns_gateway.set_state(state)
 

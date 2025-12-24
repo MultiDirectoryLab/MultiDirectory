@@ -7,12 +7,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass, field
 from ipaddress import IPv4Address, IPv6Address
 
-from .enums import DNSRecordType, PowerDNSRecordChangeType
+from .enums import DNSRecordType, PowerDNSRecordChangeType, PowerDNSZoneType
 
 
 @dataclass
 class DNSSettingsDTO:
-    """DNS settings entity."""
+    """DNS settings DTO."""
 
     domain: str
     dns_server_ip: IPv4Address | IPv6Address | None
@@ -21,7 +21,7 @@ class DNSSettingsDTO:
 
 @dataclass
 class DNSServerDTO:
-    """DNS server entity."""
+    """DNS server DTO."""
 
     id: str
     daemon_type: str
@@ -31,7 +31,7 @@ class DNSServerDTO:
 
 @dataclass
 class DNSRecordDTO:
-    """DNS record entity."""
+    """DNS record DTO."""
 
     content: str
     disabled: bool
@@ -40,7 +40,7 @@ class DNSRecordDTO:
 
 @dataclass
 class DNSRRSetDTO:
-    """DNS RRSet(Resource Record Set) entity."""
+    """DNS RRSet(Resource Record Set) DTO."""
 
     name: str
     type: DNSRecordType
@@ -51,7 +51,7 @@ class DNSRRSetDTO:
 
 @dataclass
 class DNSZoneBaseDTO:
-    """DNS zone entity."""
+    """DNS zone DTO."""
 
     id: str
     name: str
@@ -61,17 +61,17 @@ class DNSZoneBaseDTO:
 
 @dataclass
 class DNSMasterZoneDTO(DNSZoneBaseDTO):
-    """DNS master zone entity."""
+    """DNS master zone DTO."""
 
     dnssec: bool = field(default=False)
     nameservers: list[str] = field(default_factory=list)
-    kind: str = "Master"
+    kind: PowerDNSZoneType = PowerDNSZoneType.MASTER
 
 
 @dataclass
 class DNSForwardZoneDTO(DNSZoneBaseDTO):
-    """DNS forward zone entity."""
+    """DNS forward zone DTO."""
 
     servers: list[str] = field(default_factory=list)
     recursion_desired: bool = field(default=False)
-    kind: str = "Forwarded"
+    kind: PowerDNSZoneType = PowerDNSZoneType.FORWARDED
