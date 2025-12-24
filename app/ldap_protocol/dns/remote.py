@@ -13,7 +13,7 @@ from dns.tsig import Key as TsigKey
 from dns.update import Update
 from dns.zone import Zone
 
-from .base import AbstractDNSManager, DNSConnectionError
+from .base import AbstractDNSManager
 from .dto import DNSRecordDTO, DNSRRSetDTO
 from .exceptions import DNSConnectionError
 from .utils import logger_wraps
