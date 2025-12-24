@@ -70,7 +70,7 @@ class PowerDNSManager(AbstractDNSManager):
         """Get the appropriate HTTP client based on zone kind."""
         if isinstance(zone, DNSForwardZoneDTO):
             return self._client_recursor
-        elif isinstance(zone, DNSMasterZoneDTO):
+        else:
             return self._client_authoritative
 
     async def _validate_response(self, response: httpx.Response) -> None:
