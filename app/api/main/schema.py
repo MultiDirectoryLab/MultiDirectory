@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from entities import Directory
-from ldap_protocol.dns import DNSManagerState, DNSZoneParam, DNSZoneType
+from ldap_protocol.dns.enums import DNSManagerState, DNSRecordType
 from ldap_protocol.filter_interpreter import (
     Filter,
     FilterInterpreterProtocol,
@@ -70,10 +70,15 @@ class KerberosSetupRequest(BaseModel):
     stash_password: SecretStr
 
 
+class DNSServiceSetStateRequest(BaseModel):
+    """DNS set state request schema."""
+
+    state: DNSManagerState
+
+
 class DNSServiceSetupRequest(BaseModel):
     """DNS setup request schema."""
 
-    dns_status: DNSManagerState
     domain: str
     dns_ip_address: IPv4Address | IPv6Address | None = None
     tsig_key: str | None = None
@@ -83,8 +88,7 @@ class DNSServiceRecordBaseRequest(BaseModel):
     """DNS setup base schema."""
 
     record_name: str
-    record_type: str
-    zone_name: str | None = None
+    record_type: DNSRecordType
 
 
 class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
@@ -103,49 +107,35 @@ class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
 class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
     """DNS update request schema."""
 
-    record_value: str | None = None
+    record_value: str
     ttl: int | None = None
 
 
-class DNSServiceZoneCreateRequest(BaseModel):
+class DNSServiceForwardZoneRequest(BaseModel):
     """DNS zone create request scheme."""
 
     zone_name: str
-    zone_type: DNSZoneType
-    nameserver: str | None = None
-    params: list[DNSZoneParam]
+    servers: list[str]
 
 
-class DNSServiceZoneUpdateRequest(BaseModel):
-    """DNS zone update request scheme."""
+class DNSServiceMasterZoneRequest(BaseModel):
+    """DNS zone create request scheme."""
 
     zone_name: str
-    params: list[DNSZoneParam]
+    nameserver_ip: str
+    dnssec: bool = False
 
 
 class DNSServiceZoneDeleteRequest(BaseModel):
     """DNS zone delete request scheme."""
 
-    zone_names: list[str]
-
-
-class DNSServiceReloadZoneRequest(BaseModel):
-    """DNS zone reload request scheme."""
-
-    zone_name: str
+    zone_ids: list[str]
 
 
 class DNSServiceForwardZoneCheckRequest(BaseModel):
     """Forwarder DNS server check request scheme."""
 
     dns_server_ips: list[IPv4Address | IPv6Address]
-
-
-class DNSServiceOptionsUpdateRequest(BaseModel):
-    """DNS server options update request scheme."""
-
-    name: str
-    value: str | list[str] = ""
 
 
 class PrimaryGroupRequest(BaseModel):
