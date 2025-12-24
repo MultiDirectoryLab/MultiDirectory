@@ -40,7 +40,7 @@ entryPoints:
     address: ":749"
   kpasswd:
     address: ":464"
-  bind_dns_udp:
+  power_dns_recursor_udp:
     address: ":53/udp"
   websecure:
     address: ":443"
