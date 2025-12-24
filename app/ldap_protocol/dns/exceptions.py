@@ -51,6 +51,7 @@ class DNSRecordGetError(DNSError):
 
     code = ErrorCodes.DNS_RECORD_GET_ERROR
 
+
 class DNSRecordUpdateError(DNSError):
     """DNS record update error."""
 
@@ -68,10 +69,12 @@ class DNSZoneCreateError(DNSError):
 
     code = ErrorCodes.DNS_ZONE_CREATE_ERROR
 
+
 class DNSZoneGetError(DNSError):
     """DNS zone get error."""
 
     code = ErrorCodes.DNS_ZONE_GET_ERROR
+
 
 class DNSZoneUpdateError(DNSError):
     """DNS zone update error."""
