@@ -46,7 +46,8 @@ class StubDNSManager(AbstractDNSManager):
         return []
 
     @logger_wraps(is_stub=True)
-    async def get_zones(self) -> list[DNSZoneMasterDTO]: ...
+    async def get_zones(self) -> list[DNSZoneMasterDTO]:
+        return []
 
     @logger_wraps(is_stub=True)
     async def get_forward_zones(self) -> list[DNSZoneForwardDTO]:
