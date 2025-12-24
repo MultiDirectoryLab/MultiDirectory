@@ -29,6 +29,7 @@ from .dto import (
 from .enums import DNSRecordType, PowerDNSRecordChangeType
 from .exceptions import (
     DNSEntryNotFoundError,
+    DNSError,
     DNSNotSupportedError,
     DNSRecordCreateError,
     DNSRecordDeleteError,
@@ -134,7 +135,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._validate_response(response)
-        except httpx.HTTPError as e:
+        except DNSError as e:
             raise DNSRecordCreateError(
                 f"Failed to create DNS record: {e}",
             )
@@ -164,7 +165,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._validate_response(response)
-        except httpx.HTTPError as e:
+        except DNSError as e:
             raise DNSRecordUpdateError(
                 f"Failed to update DNS record: {e}",
             )
@@ -183,7 +184,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._validate_response(response)
-        except httpx.HTTPError as e:
+        except DNSError as e:
             raise DNSRecordDeleteError(
                 f"Failed to delete DNS record: {e}",
             )
@@ -213,7 +214,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._validate_response(response)
-        except httpx.HTTPError as e:
+        except DNSError as e:
             raise DNSZoneCreateError(
                 f"Failed to create DNS zone: {e}",
             )
@@ -262,7 +263,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._validate_response(response)
-        except httpx.HTTPError as e:
+        except DNSError as e:
             raise DNSZoneUpdateError(
                 f"Failed to update DNS zone: {e}",
             )
@@ -275,7 +276,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._validate_response(response)
-        except httpx.HTTPError as e:
+        except DNSError as e:
             raise DNSZoneDeleteError(
                 f"Failed to delete DNS zone: {e}",
             )
@@ -288,7 +289,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._validate_response(response)
-        except httpx.HTTPError as e:
+        except DNSError as e:
             raise DNSZoneDeleteError(
                 f"Failed to delete DNS zone: {e}",
             )
