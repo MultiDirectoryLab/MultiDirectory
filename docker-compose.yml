@@ -234,31 +234,6 @@ services:
     working_dir: /server
     command: ./entrypoint.sh
 
-  bind_dns:
-    build:
-      context: .
-      dockerfile: ./.docker/bind9.Dockerfile
-    image: bind9md
-    container_name: bind9
-    hostname: bind9
-    restart: unless-stopped
-    environment:
-      - DEFAULT_NAMESERVER=127.0.0.2
-      - USE_CONFIG_FILE_LOGGING=true
-    volumes:
-      - dns_server_file:/opt/
-      - dns_server_config:/etc/bind/
-      - .dns/:/server/
-    tty: true
-    depends_on:
-      ldap_server:
-        condition: service_healthy
-        restart: true
-    labels:
-      - traefik.enable=true
-      - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
-      - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
-
   kea_dhcp4:
     image: kea_image:0.1
     network_mode: host
@@ -474,6 +449,39 @@ services:
     privileged: true
     restart: always
 
+  pdns_auth:
+    build:
+      context: .
+      dockerfile: ./.docker/pdns_auth.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    image: pdns_auth_md
+    container_name: pdns_auth
+    expose:
+      - 8082
+      - 53
+    volumes:
+      - dns_lmdb:/var/lib/pdns-lmdb
+      - dns_config:/etc/powerdns
+
+
+  pdns_recursor:
+    image: powerdns/pdns-recursor-51:5.1.7
+    container_name: pdns_recursor
+    expose:
+      - 8083
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ./recursor.conf:/etc/powerdns/recursor.conf
+      - forward_zones:/etc/powerdns/recursor.d/
+    labels:
+      - traefik.enable=true
+      - traefik.udp.routers.power_dns_recursor_udp.entrypoints=power_dns_recursor_udp
+      - traefik.udp.services.power_dns_recursor_udp.loadbalancer.server.port=53
+
+
 volumes:
   postgres:
   pgadmin:
@@ -486,3 +494,6 @@ volumes:
   leases:
   sockets:
   dhcp:
+  dns_lmdb:
+  dns_config:
+  forward_zones:
