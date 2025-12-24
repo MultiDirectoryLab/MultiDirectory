@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from starlette import status
 
 from ldap_protocol.dns import AbstractDNSManager
-from ldap_protocol.dns.dto import DNSRecordDTO, DNSRRSetDTO, DNSZoneMasterDTO
+from ldap_protocol.dns.dto import DNSMasterZoneDTO, DNSRecordDTO, DNSRRSetDTO
 
 
 @pytest.mark.asyncio
@@ -226,7 +226,7 @@ async def test_dns_create_zone(
     assert (
         dns_manager.create_zone.call_args.args  # type: ignore
     ) == (
-        DNSZoneMasterDTO(
+        DNSMasterZoneDTO(
             id=zone_name,
             rrsets=[],
             name=zone_name,
@@ -262,7 +262,7 @@ async def test_dns_update_zone(
     assert (
         dns_manager.update_zone.call_args.args  # type: ignore
     ) == (
-        DNSZoneMasterDTO(
+        DNSMasterZoneDTO(
             id=zone_name,
             rrsets=[],
             name=zone_name,
