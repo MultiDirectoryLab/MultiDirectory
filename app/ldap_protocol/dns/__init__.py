@@ -18,8 +18,8 @@ from .base import (
 from .dns_gateway import DNSStateGateway
 from .enums import DNSManagerState
 from .exceptions import DNSConnectionError, DNSError
-from .powerdns import PowerDNSManager
-from .remote import RemoteDNSManager
+from .power_dns_manager import PowerDNSManager
+from .remote_dns_manager import RemoteDNSManager
 from .stub import StubDNSManager
 
 

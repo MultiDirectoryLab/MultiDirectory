@@ -33,8 +33,9 @@ class DNSStateGateway:
     async def get(self, name: str) -> CatalogueSetting | None:
         """Get DNS by name."""
         return await self._session.scalar(
-            select(CatalogueSetting).filter_by(name=name),
-        )
+            select(CatalogueSetting)
+            .filter_by(name=name),
+        )  # fmt: skip
 
     async def create(self, data: CatalogueSetting) -> None:
         """Create DNS."""
@@ -43,20 +44,22 @@ class DNSStateGateway:
 
     async def get_dns_settings(self) -> dict[str, str]:
         """Get DNS managers."""
-        return {
-            setting.name: setting.value
-            for setting in await self._session.scalars(
-                select(CatalogueSetting).filter(
-                    qa(CatalogueSetting.name).in_(
-                        [
-                            DNS_MANAGER_ZONE_NAME,
-                            DNS_MANAGER_IP_ADDRESS_NAME,
-                            DNS_MANAGER_TSIG_KEY_NAME,
-                        ],
-                    ),
+        settings = await self._session.scalars(
+            select(CatalogueSetting)
+            .filter(
+                qa(CatalogueSetting.name)
+                .in_(
+                    [
+                        DNS_MANAGER_ZONE_NAME,
+                        DNS_MANAGER_IP_ADDRESS_NAME,
+                        DNS_MANAGER_TSIG_KEY_NAME,
+                    ],
                 ),
-            )
-        }
+            ),
+        )  # fmt: skip
+        result = {setting.name: setting.value for setting in settings}
+
+        return result
 
     async def update_settings(
         self,

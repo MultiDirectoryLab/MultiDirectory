@@ -52,7 +52,7 @@ async def resolve_dns_server_ip(host: str) -> str:
     return dns_server_ip_resolve.rrset[0].address
 
 
-async def get_new_zone_records(
+async def create_initial_zone_records(
     domain: str,
     nameserver: str,
 ) -> list[DNSRRSetDTO]:
