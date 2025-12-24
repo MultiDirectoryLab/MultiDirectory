@@ -20,7 +20,6 @@ from .enums import DNSManagerState
 from .exceptions import DNSConnectionError, DNSError
 from .powerdns import PowerDNSManager
 from .remote import RemoteDNSManager
-from .selfhosted import SelfHostedDNSManager
 from .stub import StubDNSManager
 
 

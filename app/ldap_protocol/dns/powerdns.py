@@ -30,8 +30,15 @@ from .enums import DNSRecordType, PowerDNSRecordChangeType
 from .exceptions import (
     DNSEntryNotFoundError,
     DNSNotSupportedError,
+    DNSRecordCreateError,
+    DNSRecordDeleteError,
+    DNSRecordUpdateError,
+    DNSSetupError,
     DNSUnavailableError,
     DNSValidationError,
+    DNSZoneCreateError,
+    DNSZoneDeleteError,
+    DNSZoneUpdateError,
 )
 from .utils import get_new_zone_records
 
@@ -99,14 +106,19 @@ class PowerDNSManager(AbstractDNSManager):
                 ),
             )
 
-        await self.create_zone(
-            DNSZoneMasterDTO(
-                id=dns_server_settings.domain,
-                name=dns_server_settings.domain,
-                dnssec=False,
-                rrsets=records,
-            ),
-        )
+        try:
+            await self.create_zone(
+                DNSZoneMasterDTO(
+                    id=dns_server_settings.domain,
+                    name=dns_server_settings.domain,
+                    dnssec=False,
+                    rrsets=records,
+                ),
+            )
+        except DNSZoneCreateError as e:
+            raise DNSSetupError(
+                f"Failed to set up DNS: {e}",
+            )
 
     async def create_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Create a DNS record in the specified zone."""
@@ -120,7 +132,12 @@ class PowerDNSManager(AbstractDNSManager):
             json={"rrsets": [base_retort.dump(record)]},
         )
 
-        await self._validate_response(response)
+        try:
+            await self._validate_response(response)
+        except httpx.HTTPError as e:
+            raise DNSRecordCreateError(
+                f"Failed to create DNS record: {e}",
+            )
 
     async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Retrieve all DNS records for the specified zone."""
@@ -144,7 +161,13 @@ class PowerDNSManager(AbstractDNSManager):
             f"/zones/{zone_id}",
             json={"rrsets": [base_retort.dump(record)]},
         )
-        await self._validate_response(response)
+
+        try:
+            await self._validate_response(response)
+        except httpx.HTTPError as e:
+            raise DNSRecordUpdateError(
+                f"Failed to update DNS record: {e}",
+            )
 
     async def delete_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Delete a DNS record from the specified zone."""
@@ -157,7 +180,13 @@ class PowerDNSManager(AbstractDNSManager):
             f"/zones/{zone_id}",
             json={"rrsets": [base_retort.dump(record)]},
         )
-        await self._validate_response(response)
+
+        try:
+            await self._validate_response(response)
+        except httpx.HTTPError as e:
+            raise DNSRecordDeleteError(
+                f"Failed to delete DNS record: {e}",
+            )
 
     async def create_zone(self, zone: DNSZoneBaseDTO) -> None:
         """Create a DNS zone."""
@@ -181,7 +210,13 @@ class PowerDNSManager(AbstractDNSManager):
             "/zones",
             json=base_retort.dump(zone),
         )
-        await self._validate_response(response)
+
+        try:
+            await self._validate_response(response)
+        except httpx.HTTPError as e:
+            raise DNSZoneCreateError(
+                f"Failed to create DNS zone: {e}",
+            )
 
     async def get_zones(self) -> list[DNSZoneMasterDTO]:
         """Retrieve all DNS zones."""
@@ -224,21 +259,39 @@ class PowerDNSManager(AbstractDNSManager):
             f"/zones/{zone.id}",
             json=base_retort.dump(zone),
         )
-        await self._validate_response(response)
+
+        try:
+            await self._validate_response(response)
+        except httpx.HTTPError as e:
+            raise DNSZoneUpdateError(
+                f"Failed to update DNS zone: {e}",
+            )
 
     async def delete_zone(self, zone_id: str) -> None:
         """Delete a DNS zone."""
         response = await self._client_authoritative.delete(
             f"/zones/{zone_id}",
         )
-        await self._validate_response(response)
+
+        try:
+            await self._validate_response(response)
+        except httpx.HTTPError as e:
+            raise DNSZoneDeleteError(
+                f"Failed to delete DNS zone: {e}",
+            )
 
     async def delete_forward_zone(self, zone_id: str) -> None:
         """Delete a DNS forward zone."""
         response = await self._client_recursor.delete(
             f"/zones/{zone_id}",
         )
-        await self._validate_response(response)
+
+        try:
+            await self._validate_response(response)
+        except httpx.HTTPError as e:
+            raise DNSZoneDeleteError(
+                f"Failed to delete DNS zone: {e}",
+            )
 
     async def find_forward_dns_fqdn(
         self,
