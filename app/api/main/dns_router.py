@@ -49,6 +49,10 @@ error_map: ERROR_MAP_TYPE = {
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
+    dns_exc.DNSRecordGetError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
     dns_exc.DNSRecordUpdateError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
@@ -58,6 +62,10 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     dns_exc.DNSZoneCreateError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    dns_exc.DNSZoneGetError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
