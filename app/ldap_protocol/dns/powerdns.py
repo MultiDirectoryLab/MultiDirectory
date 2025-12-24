@@ -33,12 +33,14 @@ from .exceptions import (
     DNSNotSupportedError,
     DNSRecordCreateError,
     DNSRecordDeleteError,
+    DNSRecordGetError,
     DNSRecordUpdateError,
     DNSSetupError,
     DNSUnavailableError,
     DNSValidationError,
     DNSZoneCreateError,
     DNSZoneDeleteError,
+    DNSZoneGetError,
     DNSZoneUpdateError,
 )
 from .utils import get_new_zone_records
@@ -156,7 +158,13 @@ class PowerDNSManager(AbstractDNSManager):
             f"/zones/{zone_id}",
         )
 
-        await self._validate_response(response)
+        try:
+            await self._validate_response(response)
+        except DNSError as e:
+            raise DNSRecordGetError(
+                f"Failed to get DNS records: {e}",
+            )
+
         zone = base_retort.load(response.json(), DNSMasterZoneDTO)
 
         return zone.rrsets
@@ -228,7 +236,10 @@ class PowerDNSManager(AbstractDNSManager):
     async def get_zones(self) -> list[DNSMasterZoneDTO]:
         """Retrieve all DNS zones."""
         response = await self._client_authoritative.get("/zones")
-        await self._validate_response(response)
+        try:
+            await self._validate_response(response)
+        except DNSError as e:
+            raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
         zones = base_retort.load(response.json(), list[DNSMasterZoneDTO])
         for zone in zones:
