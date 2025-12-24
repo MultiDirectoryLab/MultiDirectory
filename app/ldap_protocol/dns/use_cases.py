@@ -171,9 +171,10 @@ class DNSUseCase(AbstractService):
         update_record.__name__: AuthorizationRules.DNS_UPDATE_RECORD,
         get_records.__name__: AuthorizationRules.DNS_GET_ALL_RECORDS,
         get_dns_status.__name__: AuthorizationRules.DNS_GET_DNS_STATUS,
+        delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
         get_forward_zones.__name__: AuthorizationRules.DNS_GET_FORWARD_ZONES,
         create_zone.__name__: AuthorizationRules.DNS_CREATE_ZONE,
         update_zone.__name__: AuthorizationRules.DNS_UPDATE_ZONE,
-        # delete_zone.__name__: AuthorizationRules.DNS_DELETE_ZONE,
+        delete_zones.__name__: AuthorizationRules.DNS_DELETE_ZONE,
         check_dns_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
     }

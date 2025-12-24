@@ -24,7 +24,7 @@ from ldap_protocol.dns.dto import (
     DNSZoneForwardDTO,
     DNSZoneMasterDTO,
 )
-from ldap_protocol.dns.enums import DNSRecordType, PowerDNSRecordChangeType
+from ldap_protocol.dns.enums import DNSRecordType
 from ldap_protocol.dns.use_cases import DNSUseCase
 
 
@@ -89,7 +89,6 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
                         disabled=False,
                     ),
                 ],
-                changetype=PowerDNSRecordChangeType.REPLACE,
                 ttl=data.ttl,
             ),
         )
