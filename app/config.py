@@ -130,7 +130,10 @@ class Settings(BaseModel):
         autoescape=True,
     )
 
-    DNS_BIND_HOST: str = "bind_dns"
+    PDNS_AUTH_SERVER_HOST: str = "pdns_auth"
+    PDNS_RECURSOR_SERVER_HOST: str = "pdns_recursor"
+    PDNS_API_KEY: str
+    DEFAULT_NAMESERVER: str
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
     PYTEST_XDIST_WORKER: str = "master"
