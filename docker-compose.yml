@@ -116,14 +116,14 @@ services:
       - traefik.udp.services.cldap.loadbalancer.server.port=389
 
   global_ldap_server:
+    image: multidirectory
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ./.docker/dev.Dockerfile
       args:
         DOCKER_BUILDKIT: 1
       target: runtime
-    image: multidirectory
-    restart: unless-stopped
     deploy:
       mode: replicated
       replicas: 2

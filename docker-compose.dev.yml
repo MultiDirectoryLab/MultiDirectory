@@ -121,6 +121,58 @@ services:
       - traefik.udp.routers.cldap.service=cldap
       - traefik.udp.services.cldap.loadbalancer.server.port=389
 
+  global_ldap_server:
+    image: multidirectory
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./.docker/dev.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+      target: runtime
+    deploy:
+      mode: replicated
+      replicas: 2
+      endpoint_mode: dnsrr
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 100M
+    environment:
+      - SERVICE_NAME=global_ldap_server
+    volumes:
+      - ./app:/app
+      - ./certs:/certs
+      - ldap_keytab:/LDAP_keytab/
+    env_file: local.env
+    command: python -OO multidirectory.py --global_ldap_server
+    tty: true
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      cert_local_check:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv 127.0.0.1 3268 3269"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    labels:
+      - traefik.enable=true
+
+      - traefik.tcp.routers.global_ldap.rule=HostSNI(`*`)
+      - traefik.tcp.routers.global_ldap.entrypoints=global_ldap
+      - traefik.tcp.routers.global_ldap.service=global_ldap
+      - traefik.tcp.services.global_ldap.loadbalancer.server.port=3268
+      - traefik.tcp.services.global_ldap.loadbalancer.proxyprotocol.version=2
+
+      - traefik.tcp.routers.global_ldap_tls.rule=HostSNI(`*`)
+      - traefik.tcp.routers.global_ldap_tls.entrypoints=global_ldap_tls
+      - traefik.tcp.routers.global_ldap_tls.service=global_ldap_tls
+      - traefik.tcp.routers.global_ldap_tls.tls=true
+      - traefik.tcp.services.global_ldap_tls.loadbalancer.server.port=3269
+      - traefik.tcp.services.global_ldap_tls.loadbalancer.proxyprotocol.version=2
 
   cert_local_check:
     image: multidirectory
@@ -313,7 +365,7 @@ services:
         condition: service_healthy
         restart: true
     command: krb5kdc -n
-    
+
     ports:
       - "88:88"
       - "88:88/udp"

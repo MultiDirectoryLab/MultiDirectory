@@ -24,6 +24,10 @@ entryPoints:
     address: ":389"
     proxyProtocol:
       insecure: true
+  global_ldap:
+    address: ":3268"
+  global_ldap_tls:
+    address: ":3269"
   ldaps:
     address: ":636"
     proxyProtocol:
