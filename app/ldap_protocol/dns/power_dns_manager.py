@@ -10,6 +10,7 @@ from ipaddress import IPv4Address, IPv6Address
 import dns.asyncresolver
 import httpx
 from adaptix import Retort
+from fastapi import status
 
 from .base import (
     AbstractDNSManager,
@@ -43,7 +44,7 @@ from .exceptions import (
     DNSZoneGetError,
     DNSZoneUpdateError,
 )
-from .utils import get_new_zone_records
+from .utils import create_initial_zone_records
 
 base_retort = Retort()
 
@@ -65,6 +66,11 @@ class PowerDNSManager(AbstractDNSManager):
         self._client_authoritative = client_authoritative
         self._client_recursor = client_recursor
 
+    @staticmethod
+    def _normalize_dns_name(name: str) -> str:
+        """Normalize DNS name by ensuring it ends with a dot."""
+        return name if name.endswith(".") else f"{name}."
+
     def _get_client_by_zone_kind(
         self,
         zone: DNSZoneBaseDTO,
@@ -78,27 +84,20 @@ class PowerDNSManager(AbstractDNSManager):
     async def _validate_response(self, response: httpx.Response) -> None:
         """Validate the API response."""
         match response.status_code:
-            case 400:
-                raise DNSNotSupportedError(
-                    response.text or "Bad Request",
-                )
-            case 404:
-                raise DNSEntryNotFoundError(
-                    response.text or "Not Found",
-                )
-            case 422:
+            case status.HTTP_400_BAD_REQUEST:
+                raise DNSNotSupportedError(response.text or "Bad Request")
+            case status.HTTP_404_NOT_FOUND:
+                raise DNSEntryNotFoundError(response.text or "Not Found")
+            case status.HTTP_422_UNPROCESSABLE_ENTITY:
                 raise DNSValidationError(
                     response.text or "Unprocessable Entity",
                 )
-            case 500:
+            case status.HTTP_500_INTERNAL_SERVER_ERROR:
                 raise DNSUnavailableError(
                     response.text or "Internal Server Error",
                 )
 
-    async def setup(
-        self,
-        dns_server_settings: DNSSettingsDTO,
-    ) -> None:
+    async def setup(self, dns_server_settings: DNSSettingsDTO) -> None:
         """Set up DNS server and DNS manager."""
         records = []
 
@@ -129,14 +128,11 @@ class PowerDNSManager(AbstractDNSManager):
                 ),
             )
         except DNSZoneCreateError as e:
-            raise DNSSetupError(
-                f"Failed to set up DNS: {e}",
-            )
+            raise DNSSetupError(f"Failed to set up DNS: {e}")
 
     async def create_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Create a DNS record in the specified zone."""
-        if not record.name.endswith("."):
-            record.name += "."
+        record.name = self._normalize_dns_name(record.name)
 
         record.changetype = PowerDNSRecordChangeType.REPLACE
 
@@ -148,22 +144,16 @@ class PowerDNSManager(AbstractDNSManager):
         try:
             await self._validate_response(response)
         except DNSError as e:
-            raise DNSRecordCreateError(
-                f"Failed to create DNS record: {e}",
-            )
+            raise DNSRecordCreateError(f"Failed to create DNS record: {e}")
 
     async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Retrieve all DNS records for the specified zone."""
-        response = await self._client_authoritative.get(
-            f"/zones/{zone_id}",
-        )
+        response = await self._client_authoritative.get(f"/zones/{zone_id}")
 
         try:
             await self._validate_response(response)
         except DNSError as e:
-            raise DNSRecordGetError(
-                f"Failed to get DNS records: {e}",
-            )
+            raise DNSRecordGetError(f"Failed to get DNS records: {e}")
 
         zone = base_retort.load(response.json(), DNSMasterZoneDTO)
 
@@ -171,8 +161,7 @@ class PowerDNSManager(AbstractDNSManager):
 
     async def update_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Update a DNS record in the specified zone."""
-        if not record.name.endswith("."):
-            record.name += "."
+        record.name = self._normalize_dns_name(record.name)
 
         record.changetype = PowerDNSRecordChangeType.REPLACE
 
@@ -184,14 +173,11 @@ class PowerDNSManager(AbstractDNSManager):
         try:
             await self._validate_response(response)
         except DNSError as e:
-            raise DNSRecordUpdateError(
-                f"Failed to update DNS record: {e}",
-            )
+            raise DNSRecordUpdateError(f"Failed to update DNS record: {e}")
 
     async def delete_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Delete a DNS record from the specified zone."""
-        if not record.name.endswith("."):
-            record.name += "."
+        record.name = self._normalize_dns_name(record.name)
 
         record.changetype = PowerDNSRecordChangeType.DELETE
 
@@ -203,30 +189,24 @@ class PowerDNSManager(AbstractDNSManager):
         try:
             await self._validate_response(response)
         except DNSError as e:
-            raise DNSRecordDeleteError(
-                f"Failed to delete DNS record: {e}",
-            )
+            raise DNSRecordDeleteError(f"Failed to delete DNS record: {e}")
 
     async def create_zone(self, zone: DNSZoneBaseDTO) -> None:
         """Create a DNS zone."""
-        if not zone.name.endswith("."):
-            zone.name += "."
+        zone.name = self._normalize_dns_name(zone.name)
 
         client = self._get_client_by_zone_kind(zone)
 
         if isinstance(zone, DNSMasterZoneDTO):
             zone.nameservers.append(f"ns1.{zone.name}")
 
-            records = await get_new_zone_records(
+            records = await create_initial_zone_records(
                 zone.name,
                 str(self._dns_settings.dns_server_ip),
             )
             zone.rrsets.extend(records)
 
-        response = await client.post(
-            "/zones",
-            json=base_retort.dump(zone),
-        )
+        response = await client.post("/zones", json=base_retort.dump(zone))
 
         try:
             await self._validate_response(response)
@@ -264,6 +244,8 @@ class PowerDNSManager(AbstractDNSManager):
 
     async def update_zone(self, zone: DNSZoneBaseDTO) -> None:
         """Update a DNS zone."""
+        zone.name = self._normalize_dns_name(zone.name)
+
         client = self._get_client_by_zone_kind(zone)
 
         response = await client.put(
@@ -278,9 +260,7 @@ class PowerDNSManager(AbstractDNSManager):
 
     async def delete_zone(self, zone_id: str) -> None:
         """Delete a DNS zone."""
-        response = await self._client_authoritative.delete(
-            f"/zones/{zone_id}",
-        )
+        response = await self._client_authoritative.delete(f"/zones/{zone_id}")
 
         try:
             await self._validate_response(response)
@@ -317,10 +297,7 @@ class PowerDNSManager(AbstractDNSManager):
             try:
                 event_loop = asyncio.get_running_loop()
                 start_time = event_loop.time()
-                fqdn = await resolver.resolve(
-                    reversed_ip,
-                    "PTR",
-                )
+                fqdn = await resolver.resolve(reversed_ip, DNSRecordType.PTR)
                 latency = event_loop.time() - start_time
 
                 return (latency, fqdn[0].to_text())
