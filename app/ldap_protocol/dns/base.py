@@ -9,9 +9,16 @@ from dataclasses import dataclass
 from enum import StrEnum
 from ipaddress import IPv4Address, IPv6Address
 
-import httpx
 from loguru import logger as loguru_logger
 
+from .dto import (
+    DNSRRSetDTO,
+    DNSSettingsDTO,
+    DNSZoneBaseDTO,
+    DNSZoneForwardDTO,
+    DNSZoneMasterDTO,
+)
+from .enums import DNSForwarderServerStatus
 from ldap_protocol.dns.dto import DNSSettingDTO
 
 from .exceptions import DNSNotImplementedError, DNSSetupError
@@ -38,26 +45,12 @@ class DNSZoneType(StrEnum):
     FORWARD = "forward"
 
 
-class DNSForwarderServerStatus(StrEnum):
-    """Forwarder DNS server statuses."""
-
-    VALIDATED = "validated"
-    NOT_VALIDATED = "not validated"
-    NOT_FOUND = "not found"
+class DNSConnectionError(ConnectionError):
+    """API Error."""
 
 
-class DNSRecordType(StrEnum):
-    """DNS record types."""
-
-    a = "A"
-    aaaa = "AAAA"
-    cname = "CNAME"
-    mx = "MX"
-    ns = "NS"
-    txt = "TXT"
-    soa = "SOA"
-    ptr = "PTR"
-    srv = "SRV"
+class DNSError(Exception):
+    """DNS Error."""
 
 
 class DNSZoneParamName(StrEnum):
@@ -72,14 +65,6 @@ class DNSServerParamName(StrEnum):
     """Possible DNS server option names."""
 
     dnssec = "dnssec-validation"
-
-
-class DNSManagerState(StrEnum):
-    """DNSManager state enum."""
-
-    NOT_CONFIGURED = "0"
-    SELFHOSTED = "1"
-    HOSTED = "2"
 
 
 @dataclass
@@ -167,106 +152,81 @@ class AbstractDNSManager:
     """Abstract DNS manager class."""
 
     _dns_settings: DNSManagerSettings
-    _http_client: httpx.AsyncClient
 
     def __init__(
         self,
         settings: DNSManagerSettings,
-        http_client: httpx.AsyncClient,
     ) -> None:
         """Set up DNS manager."""
         self._dns_settings = settings
-        self._http_client = http_client
 
+    @abstractmethod
     async def setup(
         self,
-        dns_status: str,
-        domain: str,
-        dns_ip_address: str | IPv4Address | IPv6Address | None,
-        tsig_key: str | None,
-    ) -> DNSSettingDTO:
+        dns_server_settings: DNSSettingsDTO,
+    ) -> None:
         """Set up DNS server and DNS manager."""
-        try:
-            if (
-                dns_status == DNSManagerState.SELFHOSTED
-                and self._http_client is not None
-            ):
-                await self._http_client.post(
-                    "/server/setup",
-                    json={"zone_name": domain},
-                )
-                tsig_key = None
-            return DNSSettingDTO(
-                zone_name=domain,
-                dns_server_ip=dns_ip_address,
-                tsig_key=tsig_key,
-            )
-
-        except Exception as e:
-            raise DNSSetupError(e)
+        raise DNSNotImplementedError
 
     @abstractmethod
     async def create_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        ttl: int | None,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None: ...
 
     @abstractmethod
     async def update_record(
         self,
-        hostname: str,
-        ip: str | None,
-        record_type: str,
-        ttl: int | None,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None: ...
 
     @abstractmethod
     async def delete_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None: ...
 
     @abstractmethod
-    async def get_all_records(self) -> list[DNSRecords]: ...
+    async def get_records(
+        self,
+        zone_id: str,
+    ) -> list[DNSRRSetDTO]: ...
 
     @abstractmethod
-    async def get_all_zones_records(self) -> list[DNSZone]:
-        raise DNSNotImplementedError
+    async def get_zones(self) -> list[DNSZoneMasterDTO]: ...
 
     @abstractmethod
-    async def get_forward_zones(self) -> list[DNSForwardZone]:
+    async def get_forward_zones(self) -> list[DNSZoneForwardDTO]:
         raise DNSNotImplementedError
 
     @abstractmethod
     async def create_zone(
         self,
-        zone_name: str,
-        zone_type: DNSZoneType,
-        nameserver: str | None,
-        params: list[DNSZoneParam],
+        zone: DNSZoneBaseDTO,
     ) -> None:
         raise DNSNotImplementedError
 
     @abstractmethod
     async def update_zone(
         self,
-        zone_name: str,
-        params: list[DNSZoneParam] | None,
+        zone: DNSZoneBaseDTO,
     ) -> None:
         raise DNSNotImplementedError
 
     @abstractmethod
     async def delete_zone(
         self,
-        zone_names: list[str],
+        zone_id: str,
+    ) -> None:
+        raise DNSNotImplementedError
+
+    @abstractmethod
+    async def delete_forward_zone(
+        self,
+        zone_id: str,
     ) -> None:
         raise DNSNotImplementedError
 
@@ -276,27 +236,4 @@ class AbstractDNSManager:
         dns_server_ip: IPv4Address | IPv6Address,
         host_dns_servers: list[str],
     ) -> DNSForwardServerStatus:
-        raise DNSNotImplementedError
-
-    @abstractmethod
-    async def update_server_options(
-        self,
-        params: list[DNSServerParam],
-    ) -> None:
-        raise DNSNotImplementedError
-
-    @abstractmethod
-    async def get_server_options(self) -> list[DNSServerParam]: ...
-
-    @abstractmethod
-    async def restart_server(
-        self,
-    ) -> None:
-        raise DNSNotImplementedError
-
-    @abstractmethod
-    async def reload_zone(
-        self,
-        zone_name: str,
-    ) -> None:
         raise DNSNotImplementedError

@@ -10,6 +10,8 @@ from typing import Any, Callable
 from dns.asyncresolver import Resolver as AsyncResolver
 
 from .base import log
+from .dto import DNSRecordDTO, DNSRRSetDTO
+from .enums import DNSRecordType, PowerDNSRecordChangeType
 from .exceptions import DNSConnectionError
 
 
@@ -48,3 +50,52 @@ async def resolve_dns_server_ip(host: str) -> str:
     if dns_server_ip_resolve is None or dns_server_ip_resolve.rrset is None:
         raise DNSConnectionError
     return dns_server_ip_resolve.rrset[0].address
+
+
+async def get_new_zone_records(
+    domain: str,
+    nameserver: str,
+) -> list[DNSRRSetDTO]:
+    """Get first setup records."""
+    return [
+        DNSRRSetDTO(
+            name=f"{domain}",
+            type=DNSRecordType.A,
+            records=[
+                DNSRecordDTO(
+                    content=nameserver,
+                    disabled=False,
+                    modified_at=None,
+                ),
+            ],
+            changetype=PowerDNSRecordChangeType.EXTEND,
+            ttl=3600,
+        ),
+        DNSRRSetDTO(
+            name=f"ns1.{domain}",
+            type=DNSRecordType.A,
+            records=[
+                DNSRecordDTO(
+                    content=nameserver,
+                    disabled=False,
+                    modified_at=None,
+                ),
+            ],
+            changetype=PowerDNSRecordChangeType.EXTEND,
+            ttl=3600,
+        ),
+        DNSRRSetDTO(
+            name=f"{domain}",
+            type=DNSRecordType.SOA,
+            records=[
+                DNSRecordDTO(
+                    content=f"ns1.{domain} hostmaster.{domain}"
+                    + " 1 10800 3600 604800 3600",
+                    disabled=False,
+                    modified_at=None,
+                ),
+            ],
+            changetype=PowerDNSRecordChangeType.EXTEND,
+            ttl=3600,
+        ),
+    ]
