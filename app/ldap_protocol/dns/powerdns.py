@@ -63,6 +63,16 @@ class PowerDNSManager(AbstractDNSManager):
         self._client_authoritative = client_authoritative
         self._client_recursor = client_recursor
 
+    def _get_client_by_zone_kind(
+        self,
+        zone: DNSZoneBaseDTO,
+    ) -> httpx.AsyncClient:
+        """Get the appropriate HTTP client based on zone kind."""
+        if isinstance(zone, DNSForwardZoneDTO):
+            return self._client_recursor
+        elif isinstance(zone, DNSMasterZoneDTO):
+            return self._client_authoritative
+
     async def _validate_response(self, response: httpx.Response) -> None:
         """Validate the API response."""
         match response.status_code:
@@ -194,17 +204,15 @@ class PowerDNSManager(AbstractDNSManager):
         if not zone.name.endswith("."):
             zone.name += "."
 
-        if isinstance(zone, DNSForwardZoneDTO):
-            client = self._client_recursor
-        elif isinstance(zone, DNSMasterZoneDTO):
-            client = self._client_authoritative
+        client = self._get_client_by_zone_kind(zone)
+
+        if isinstance(zone, DNSMasterZoneDTO):
             zone.nameservers.append(f"ns1.{zone.name}")
 
             records = await get_new_zone_records(
                 zone.name,
                 str(self._dns_settings.dns_server_ip),
             )
-
             zone.rrsets.extend(records)
 
         response = await client.post(
@@ -245,10 +253,7 @@ class PowerDNSManager(AbstractDNSManager):
 
     async def update_zone(self, zone: DNSZoneBaseDTO) -> None:
         """Update a DNS zone."""
-        if isinstance(zone, DNSForwardZoneDTO):
-            client = self._client_recursor
-        elif isinstance(zone, DNSMasterZoneDTO):
-            client = self._client_authoritative
+        client = self._get_client_by_zone_kind(zone)
 
         response = await client.put(
             f"/zones/{zone.id}",
