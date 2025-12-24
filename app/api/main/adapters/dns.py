@@ -18,11 +18,11 @@ from api.main.schema import (
 )
 from ldap_protocol.dns.base import DNSForwardServerStatus
 from ldap_protocol.dns.dto import (
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
     DNSRecordDTO,
     DNSRRSetDTO,
     DNSSettingsDTO,
-    DNSZoneForwardDTO,
-    DNSZoneMasterDTO,
 )
 from ldap_protocol.dns.enums import DNSRecordType
 from ldap_protocol.dns.use_cases import DNSUseCase
@@ -123,14 +123,14 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
     ) -> None:
         """Create new DNS forward zone."""
         await self._service.create_zone(
-            DNSZoneForwardDTO(
+            DNSForwardZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
                 servers=data.servers,
             ),
         )
 
-    async def get_forward_dns_zones(self) -> list[DNSZoneForwardDTO]:
+    async def get_dns_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Get list of DNS forward zones with forwarders."""
         return await self._service.get_forward_zones()
 
@@ -140,7 +140,7 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
     ) -> None:
         """Update DNS forward zone with given params."""
         await self._service.update_zone(
-            DNSZoneForwardDTO(
+            DNSForwardZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
                 servers=data.servers,
@@ -160,21 +160,21 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
     ) -> None:
         """Create new DNS zone."""
         await self._service.create_zone(
-            DNSZoneMasterDTO(
+            DNSMasterZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
                 dnssec=data.dnssec,
             ),
         )
 
-    async def get_dns_zone(self) -> list[DNSZoneMasterDTO]:
-        """Get all DNS zones."""
+    async def get_dns_master_zones(self) -> list[DNSMasterZoneDTO]:
+        """Get all DNS master zones."""
         return await self._service.get_zones()
 
     async def update_zone(self, data: DNSServiceMasterZoneRequest) -> None:
         """Update DNS zone with given params."""
         await self._service.update_zone(
-            DNSZoneMasterDTO(
+            DNSMasterZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
                 dnssec=data.dnssec,

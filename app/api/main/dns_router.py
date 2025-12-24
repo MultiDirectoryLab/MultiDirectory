@@ -32,9 +32,9 @@ from api.main.schema import (
 from enums import DomainCodes
 from ldap_protocol.dns import DNSForwardServerStatus
 from ldap_protocol.dns.dto import (
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
     DNSRRSetDTO,
-    DNSZoneForwardDTO,
-    DNSZoneMasterDTO,
 )
 
 translator = DomainErrorTranslator(DomainCodes.DNS)
@@ -172,9 +172,9 @@ async def create_forward_zone(
 @dns_router.get("/zone/forward", error_map=error_map)
 async def get_forward_dns_zones(
     adapter: FromDishka[DNSFastAPIAdapter],
-) -> list[DNSZoneForwardDTO]:
+) -> list[DNSForwardZoneDTO]:
     """Get list of DNS forward zones with forwarders."""
-    return await adapter.get_forward_dns_zones()
+    return await adapter.get_dns_forward_zones()
 
 
 @dns_router.patch("/zone/forward", error_map=error_map)
@@ -210,11 +210,11 @@ async def create_zone(
 
 
 @dns_router.get("/zone", error_map=error_map)
-async def get_dns_zone(
+async def get_dns_zones(
     adapter: FromDishka[DNSFastAPIAdapter],
-) -> list[DNSZoneMasterDTO]:
+) -> list[DNSMasterZoneDTO]:
     """Get all DNS records of all zones."""
-    return await adapter.get_dns_zone()
+    return await adapter.get_dns_master_zones()
 
 
 @dns_router.patch("/zone", error_map=error_map)

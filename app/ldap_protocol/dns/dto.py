@@ -40,7 +40,7 @@ class DNSRecordDTO:
 
 @dataclass
 class DNSRRSetDTO:
-    """DNS RRSet entity."""
+    """DNS RRSet(Resource Record Set) entity."""
 
     name: str
     type: DNSRecordType
@@ -60,7 +60,7 @@ class DNSZoneBaseDTO:
 
 
 @dataclass
-class DNSZoneMasterDTO(DNSZoneBaseDTO):
+class DNSMasterZoneDTO(DNSZoneBaseDTO):
     """DNS master zone entity."""
 
     dnssec: bool = field(default=False)
@@ -69,7 +69,7 @@ class DNSZoneMasterDTO(DNSZoneBaseDTO):
 
 
 @dataclass
-class DNSZoneForwardDTO(DNSZoneBaseDTO):
+class DNSForwardZoneDTO(DNSZoneBaseDTO):
     """DNS forward zone entity."""
 
     servers: list[str] = field(default_factory=list)

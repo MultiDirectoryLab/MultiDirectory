@@ -56,7 +56,7 @@ async def get_new_zone_records(
     domain: str,
     nameserver: str,
 ) -> list[DNSRRSetDTO]:
-    """Get first setup records."""
+    """Get initial records for new zone."""
     return [
         DNSRRSetDTO(
             name=f"{domain}",

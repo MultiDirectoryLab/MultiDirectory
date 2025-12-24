@@ -22,9 +22,9 @@ RUN apk add --no-cache \
 RUN git clone https://github.com/PowerDNS/pdns.git /pdns
 WORKDIR /pdns
 
-RUN git submodule init 
-RUN git submodule update
-RUN git checkout auth-5.0.1
+RUN git submodule init &&\
+    git submodule update &&\
+    git checkout auth-5.0.1
 
 RUN autoreconf -vi
 

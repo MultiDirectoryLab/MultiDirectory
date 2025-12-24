@@ -25,7 +25,7 @@ class PowerDNSZoneType(StrEnum):
     """PowerDNS Zone Types."""
 
     MASTER = "Master"
-    FORWARD = "Forwarded"
+    FORWARDED = "Forwarded"
 
 
 class PowerDNSRecordChangeType(StrEnum):

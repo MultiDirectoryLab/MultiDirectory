@@ -33,7 +33,8 @@ class DNSStateGateway:
     async def get(self, name: str) -> CatalogueSetting | None:
         """Get DNS by name."""
         return await self._session.scalar(
-            select(CatalogueSetting).filter_by(name=name),
+            select(CatalogueSetting)
+            .filter_by(name=name),
         )
 
     async def create(self, data: CatalogueSetting) -> None:

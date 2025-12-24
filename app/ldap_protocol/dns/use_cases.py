@@ -17,11 +17,11 @@ from ldap_protocol.dns.base import (
 )
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.dto import (
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
     DNSRRSetDTO,
     DNSSettingsDTO,
     DNSZoneBaseDTO,
-    DNSZoneForwardDTO,
-    DNSZoneMasterDTO,
 )
 
 from .enums import DNSManagerState
@@ -100,11 +100,11 @@ class DNSUseCase(AbstractService):
         """Create DNS zone."""
         await self._dns_manager.create_zone(zone)
 
-    async def get_zones(self) -> list[DNSZoneMasterDTO]:
+    async def get_zones(self) -> list[DNSMasterZoneDTO]:
         """Get all DNS zones."""
         return await self._dns_manager.get_zones()
 
-    async def get_forward_zones(self) -> list[DNSZoneForwardDTO]:
+    async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Get all forward zones."""
         return await self._dns_manager.get_forward_zones()
 

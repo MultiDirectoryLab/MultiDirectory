@@ -6,10 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from .base import AbstractDNSManager
 from .dto import (
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
     DNSRRSetDTO,
     DNSZoneBaseDTO,
-    DNSZoneForwardDTO,
-    DNSZoneMasterDTO,
 )
 from .utils import logger_wraps
 
@@ -46,11 +46,11 @@ class StubDNSManager(AbstractDNSManager):
         return []
 
     @logger_wraps(is_stub=True)
-    async def get_zones(self) -> list[DNSZoneMasterDTO]:
+    async def get_zones(self) -> list[DNSMasterZoneDTO]:
         return []
 
     @logger_wraps(is_stub=True)
-    async def get_forward_zones(self) -> list[DNSZoneForwardDTO]:
+    async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         return []
 
     @logger_wraps(is_stub=True)
