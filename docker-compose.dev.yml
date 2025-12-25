@@ -171,6 +171,7 @@ services:
       - traefik.tcp.routers.global_ldap_tls.entrypoints=global_ldap_tls
       - traefik.tcp.routers.global_ldap_tls.service=global_ldap_tls
       - traefik.tcp.routers.global_ldap_tls.tls=true
+      - traefik.tcp.routers.global_ldap_tls.tls.certresolver=md-resolver
       - traefik.tcp.services.global_ldap_tls.loadbalancer.server.port=3269
       - traefik.tcp.services.global_ldap_tls.loadbalancer.proxyprotocol.version=2
 

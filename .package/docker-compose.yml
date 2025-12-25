@@ -13,6 +13,8 @@ services:
       - "53:53/udp"
       - "80:80"
       - "389:389"
+      - "3268:3268"
+      - "3269:3269"
       - "443:443"
       - "464:464"
       - "636:636"
@@ -156,12 +158,6 @@ services:
   global_ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     restart: unless-stopped
-    build:
-      context: .
-      dockerfile: ./.docker/dev.Dockerfile
-      args:
-        DOCKER_BUILDKIT: 1
-      target: runtime
     deploy:
       mode: replicated
       replicas: 2
@@ -201,6 +197,7 @@ services:
       - traefik.tcp.routers.global_ldap_tls.entrypoints=global_ldap_tls
       - traefik.tcp.routers.global_ldap_tls.service=global_ldap_tls
       - traefik.tcp.routers.global_ldap_tls.tls=true
+      - traefik.tcp.routers.global_ldap_tls.tls.certresolver=md-resolver
       - traefik.tcp.services.global_ldap_tls.loadbalancer.server.port=3269
       - traefik.tcp.services.global_ldap_tls.loadbalancer.proxyprotocol.version=2
 
