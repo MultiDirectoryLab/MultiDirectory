@@ -4,86 +4,111 @@ on:
     branches: [main]
   pull_request: null
 
-env:
-  REPO: ${{ github.repository }}
-
 jobs:
-  ruff_linter:
+  build_linter_image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build linter image
+        uses: docker/build-push-action@v6
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build linters
-        env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          NEW_TAG: linter
-        run: docker build --target=runtime -f .docker/lint.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-      - name: Run linters
-        env:
-          NEW_TAG: linter
-        run: docker run $NEW_TAG ruff check --output-format=github .
+          context: .
+          file: .docker/lint.Dockerfile
+          target: runtime
+          cache-from: type=gha,scope=${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}
+          outputs: type=docker,dest=/tmp/linter_image.tar
+          tags: linter:latest
+      - name: Upload linter image
+        uses: actions/upload-artifact@v4
+        with:
+          name: linter-image
+          path: /tmp/linter_image.tar
+          retention-days: 1
 
-  ruff_format:
+  run_ruff_check:
     runs-on: ubuntu-latest
+    needs: build_linter_image
     steps:
-      - uses: actions/checkout@v4
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Download linter image
+        uses: actions/download-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build linters
-        env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          NEW_TAG: linter
-        run: docker build --target=runtime -f .docker/lint.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-      - name: Run linters
-        env:
-          NEW_TAG: linter
-        run: docker run $NEW_TAG ruff format --check
+          name: linter-image
+          path: /tmp
+      - name: Load image
+        run: docker load -i /tmp/linter_image.tar
+      - name: Run ruff check
+        run: docker run linter:latest ruff check --output-format=github .
 
-  mypy:
+  run_ruff_format:
     runs-on: ubuntu-latest
+    needs: build_linter_image
     steps:
-      - uses: actions/checkout@v4
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Download linter image
+        uses: actions/download-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build linters
-        env:
-          TAG: ghcr.io/${{ env.REPO }}_linters:latest
-          NEW_TAG: linter
-        run: docker build --target=runtime -f .docker/lint.Dockerfile . -t $NEW_TAG --cache-to type=gha,mode=max --cache-from $TAG --build-arg BUILDKIT_INLINE_CACHE=1
-      - name: Run linters
-        env:
-          NEW_TAG: linter
-        run: docker run $NEW_TAG mypy .
+          name: linter-image
+          path: /tmp
+      - name: Load image
+        run: docker load -i /tmp/linter_image.tar
+      - name: Run ruff format
+        run: docker run linter:latest ruff format --check
 
-  tests:
+  run_mypy:
+    runs-on: ubuntu-latest
+    needs: build_linter_image
+    steps:
+      - name: Download linter image
+        uses: actions/download-artifact@v4
+        with:
+          name: linter-image
+          path: /tmp
+      - name: Load image
+        run: docker load -i /tmp/linter_image.tar
+      - name: Run mypy
+        run: docker run linter:latest mypy .
+
+  build_test_image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build test image
+        uses: docker/build-push-action@v6
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build tests
-        env:
-          CACHE: ghcr.io/${{ env.REPO }}_test:latest
-          TAG: tests
-        run: docker build --target=runtime -f .docker/test.Dockerfile . -t $TAG --cache-to type=gha,mode=max --cache-from $CACHE --build-arg BUILDKIT_INLINE_CACHE=1
+          context: .
+          file: .docker/test.Dockerfile
+          target: runtime
+          cache-from: type=gha,scope=${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}
+          outputs: type=docker,dest=/tmp/test_image.tar
+          tags: test:latest
+      - name: Upload test image
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-image
+          path: /tmp/test_image.tar
+          retention-days: 1
+
+  run_tests:
+    runs-on: ubuntu-latest
+    needs: build_test_image
+    env:
+      TAG: test:latest  # Injected into docker-compose.remote.test.yml as ${TAG}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download test image
+        uses: actions/download-artifact@v4
+        with:
+          name: test-image
+          path: /tmp
+      - name: Load image
+        run: docker load -i /tmp/test_image.tar
       - name: Run tests
-        env:
-          TAG: tests
         run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test --exit-code-from md-test
