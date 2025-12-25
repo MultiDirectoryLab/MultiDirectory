@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from collections import defaultdict
-
 from dns.asyncquery import inbound_xfr as make_inbound_xfr, tcp as asynctcp
 from dns.message import Message, make_query as make_dns_query
 from dns.name import from_text
@@ -15,7 +13,8 @@ from dns.tsig import Key as TsigKey
 from dns.update import Update
 from dns.zone import Zone
 
-from .base import AbstractDNSManager, DNSRecord, DNSRecords
+from .base import AbstractDNSManager
+from .dto import DNSRecordDTO, DNSRRSetDTO
 from .exceptions import DNSConnectionError
 from .utils import logger_wraps
 
@@ -39,20 +38,22 @@ class RemoteDNSManager(AbstractDNSManager):
     @logger_wraps()
     async def create_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        ttl: int | None,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None:
         """Create DNS record."""
-        action = Update(self._dns_settings.zone_name or zone_name)
-        action.add(hostname, ttl, record_type, ip)
+        action = Update(self._dns_settings.zone_name or zone_id)
+        action.add(
+            record.name,
+            record.ttl,
+            record.type,
+            record.records[0].content,
+        )
 
         await self._send(action)
 
     @logger_wraps()
-    async def get_all_records(self) -> list[DNSRecords]:
+    async def get_all_records(self) -> list[DNSRRSetDTO]:
         """Get all DNS records."""
         if (
             self._dns_settings.dns_server_ip is None
@@ -75,51 +76,48 @@ class RemoteDNSManager(AbstractDNSManager):
             zone_tm,
         )
 
-        result: defaultdict[str, list] = defaultdict(list)
-        for name, ttl, rdata in zone_tm.iterate_rdatas():
-            record_type = rdata.rdtype.name
-
-            if record_type == "SOA":
-                continue
-
-            result[record_type].append(
-                DNSRecord(
-                    name=(name.to_text() + f".{self._dns_settings.zone_name}"),
-                    value=rdata.to_text(),
-                    ttl=ttl,
-                ),
-            )
-
         return [
-            DNSRecords(type=record_type, records=records)
-            for record_type, records in result.items()
+            DNSRRSetDTO(
+                name=name.to_text() + f".{self._dns_settings.zone_name}.",
+                type=rdata.rdtype.name,
+                records=[
+                    DNSRecordDTO(
+                        content=rdata.to_text(),
+                        disabled=False,
+                    ),
+                ],
+                ttl=ttl,
+            )
+            for name, ttl, rdata in zone_tm.iterate_rdatas()
         ]
 
     @logger_wraps()
     async def update_record(
         self,
-        hostname: str,
-        ip: str | None,
-        record_type: str,
-        ttl: int | None,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None:
         """Update DNS record."""
-        action = Update(self._dns_settings.zone_name or zone_name)
-        action.replace(hostname, ttl, record_type, ip)
-
+        action = Update(self._dns_settings.zone_name or zone_id)
+        action.replace(
+            record.name,
+            record.ttl,
+            record.type,
+            record.records[0].content,
+        )
         await self._send(action)
 
     @logger_wraps()
     async def delete_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None:
         """Delete DNS record."""
-        action = Update(self._dns_settings.zone_name or zone_name)
-        action.delete(hostname, record_type, ip)
-
+        action = Update(self._dns_settings.zone_name or zone_id)
+        action.delete(
+            record.name,
+            record.type,
+            record.records[0].content,
+        )
         await self._send(action)

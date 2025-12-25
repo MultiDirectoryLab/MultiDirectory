@@ -7,22 +7,24 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from api.base_adapter import BaseAdapter
 from api.main.schema import (
     DNSServiceForwardZoneCheckRequest,
+    DNSServiceForwardZoneRequest,
+    DNSServiceMasterZoneRequest,
     DNSServiceRecordCreateRequest,
     DNSServiceRecordDeleteRequest,
     DNSServiceRecordUpdateRequest,
-    DNSServiceReloadZoneRequest,
+    DNSServiceSetStateRequest,
     DNSServiceSetupRequest,
-    DNSServiceZoneCreateRequest,
     DNSServiceZoneDeleteRequest,
-    DNSServiceZoneUpdateRequest,
 )
-from ldap_protocol.dns.base import (
-    DNSForwardServerStatus,
-    DNSForwardZone,
-    DNSRecords,
-    DNSServerParam,
-    DNSZone,
+from ldap_protocol.dns.base import DNSForwardServerStatus
+from ldap_protocol.dns.dto import (
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
+    DNSRecordDTO,
+    DNSRRSetDTO,
+    DNSSettingsDTO,
 )
+from ldap_protocol.dns.enums import DNSRecordType
 from ldap_protocol.dns.use_cases import DNSUseCase
 
 
@@ -31,85 +33,157 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
 
     async def create_record(
         self,
+        zone_id: str,
         data: DNSServiceRecordCreateRequest,
     ) -> None:
         """Create DNS record."""
         await self._service.create_record(
-            data.record_name,
-            data.record_value,
-            data.record_type,
-            data.ttl,
-            data.zone_name,
+            zone_id,
+            DNSRRSetDTO(
+                name=data.record_name,
+                type=DNSRecordType(data.record_type),
+                records=[
+                    DNSRecordDTO(
+                        content=data.record_value,
+                        disabled=False,
+                    ),
+                ],
+                ttl=data.ttl,
+            ),
         )
 
     async def delete_record(
         self,
+        zone_id: str,
         data: DNSServiceRecordDeleteRequest,
     ) -> None:
         """Delete DNS record."""
         await self._service.delete_record(
-            data.record_name,
-            data.record_value,
-            data.record_type,
-            data.zone_name,
+            zone_id,
+            DNSRRSetDTO(
+                name=data.record_name,
+                type=data.record_type,
+                records=[
+                    DNSRecordDTO(
+                        content=data.record_value,
+                        disabled=False,
+                    ),
+                ],
+            ),
         )
 
     async def update_record(
         self,
+        zone_id: str,
         data: DNSServiceRecordUpdateRequest,
     ) -> None:
         """Update DNS record."""
         await self._service.update_record(
-            data.record_name,
-            data.record_value,
-            data.record_type,
-            data.ttl,
-            data.zone_name,
+            zone_id,
+            DNSRRSetDTO(
+                name=data.record_name,
+                type=data.record_type,
+                records=[
+                    DNSRecordDTO(
+                        content=data.record_value,
+                        disabled=False,
+                    ),
+                ],
+                ttl=data.ttl,
+            ),
         )
 
-    async def get_all_records(self) -> list[DNSRecords]:
+    async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Get all DNS records of current zone."""
-        return await self._service.get_all_records()
+        return await self._service.get_records(zone_id)
 
     async def get_dns_status(self) -> dict[str, str | None]:
         """Get DNS service status."""
         return await self._service.get_dns_status()
 
+    async def set_dns_state(
+        self,
+        data: DNSServiceSetStateRequest,
+    ) -> None:
+        """Set DNS manager state."""
+        await self._service.set_state(data.state)
+
     async def setup_dns(self, data: DNSServiceSetupRequest) -> None:
         await self._service.setup_dns(
-            dns_status=data.dns_status,
-            domain=data.domain,
-            dns_ip_address=data.dns_ip_address,
-            tsig_key=data.tsig_key,
+            DNSSettingsDTO(
+                dns_server_ip=data.dns_ip_address,
+                tsig_key=data.tsig_key,
+                domain=data.domain,
+            ),
         )
 
-    async def get_dns_zone(self) -> list[DNSZone]:
-        """Get all DNS zones."""
-        return await self._service.get_all_zones_records()
+    async def create_forward_zone(
+        self,
+        data: DNSServiceForwardZoneRequest,
+    ) -> None:
+        """Create new DNS forward zone."""
+        await self._service.create_zone(
+            DNSForwardZoneDTO(
+                id=data.zone_name,
+                name=data.zone_name,
+                servers=data.servers,
+            ),
+        )
 
-    async def get_forward_dns_zones(self) -> list[DNSForwardZone]:
+    async def get_dns_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Get list of DNS forward zones with forwarders."""
         return await self._service.get_forward_zones()
 
-    async def create_zone(self, data: DNSServiceZoneCreateRequest) -> None:
+    async def update_forward_zone(
+        self,
+        data: DNSServiceForwardZoneRequest,
+    ) -> None:
+        """Update DNS forward zone with given params."""
+        await self._service.update_zone(
+            DNSForwardZoneDTO(
+                id=data.zone_name,
+                name=data.zone_name,
+                servers=data.servers,
+            ),
+        )
+
+    async def delete_forward_zones(
+        self,
+        data: DNSServiceZoneDeleteRequest,
+    ) -> None:
+        """Delete DNS forward zones."""
+        await self._service.delete_forward_zones(data.zone_ids)
+
+    async def create_zone(
+        self,
+        data: DNSServiceMasterZoneRequest,
+    ) -> None:
         """Create new DNS zone."""
         await self._service.create_zone(
-            data.zone_name,
-            data.zone_type,
-            data.nameserver,
-            data.params,
+            DNSMasterZoneDTO(
+                id=data.zone_name,
+                name=data.zone_name,
+                dnssec=data.dnssec,
+            ),
         )
 
-    async def update_zone(self, data: DNSServiceZoneUpdateRequest) -> None:
+    async def get_dns_master_zones(self) -> list[DNSMasterZoneDTO]:
+        """Get all DNS master zones."""
+        return await self._service.get_zones()
+
+    async def update_zone(self, data: DNSServiceMasterZoneRequest) -> None:
         """Update DNS zone with given params."""
         await self._service.update_zone(
-            data.zone_name,
-            data.params,
+            DNSMasterZoneDTO(
+                id=data.zone_name,
+                name=data.zone_name,
+                dnssec=data.dnssec,
+            ),
         )
 
-    async def delete_zone(self, data: DNSServiceZoneDeleteRequest) -> None:
-        """Delete DNS zone."""
-        await self._service.delete_zone(data.zone_names)
+    async def delete_zones(self, data: DNSServiceZoneDeleteRequest) -> None:
+        """Delete DNS zones."""
+        await self._service.delete_zones(data.zone_ids)
 
     async def check_dns_forward_zone(
         self,
@@ -117,22 +191,3 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
     ) -> list[DNSForwardServerStatus]:
         """Check DNS forward zone for availability."""
         return await self._service.check_dns_forward_zone(data.dns_server_ips)
-
-    async def reload_zone(self, data: DNSServiceReloadZoneRequest) -> None:
-        """Reload DNS zone."""
-        await self._service.reload_zone(data.zone_name)
-
-    async def update_server_options(
-        self,
-        data: list[DNSServerParam],
-    ) -> None:
-        """Update DNS server options."""
-        await self._service.update_server_options(data)
-
-    async def get_server_options(self) -> list[DNSServerParam]:
-        """Get list of modifiable DNS server params."""
-        return await self._service.get_server_options()
-
-    async def restart_server(self) -> None:
-        """Restart DNS server."""
-        await self._service.restart_server()

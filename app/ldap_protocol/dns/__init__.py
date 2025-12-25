@@ -6,7 +6,6 @@ from .base import (
     DNSForwardServerStatus,
     DNSForwardZone,
     DNSManagerSettings,
-    DNSManagerState,
     DNSNotImplementedError,
     DNSRecords,
     DNSServerParam,
@@ -17,9 +16,10 @@ from .base import (
     DNSZoneType,
 )
 from .dns_gateway import DNSStateGateway
+from .enums import DNSManagerState
 from .exceptions import DNSConnectionError, DNSError
-from .remote import RemoteDNSManager
-from .selfhosted import SelfHostedDNSManager
+from .power_dns_manager import PowerDNSManager
+from .remote_dns_manager import RemoteDNSManager
 from .stub import StubDNSManager
 
 
@@ -29,7 +29,7 @@ async def get_dns_manager_class(
     """Get DNS manager class."""
     dns_state = await dns_state_gateway.get_dns_state()
     if dns_state == DNSManagerState.SELFHOSTED:
-        return SelfHostedDNSManager
+        return PowerDNSManager
     elif dns_state == DNSManagerState.HOSTED:
         return RemoteDNSManager
     return StubDNSManager
@@ -38,8 +38,8 @@ async def get_dns_manager_class(
 __all__ = [
     "get_dns_manager_class",
     "AbstractDNSManager",
+    "PowerDNSManager",
     "RemoteDNSManager",
-    "SelfHostedDNSManager",
     "StubDNSManager",
     "DNSStateGateway",
     "DNSForwardServerStatus",

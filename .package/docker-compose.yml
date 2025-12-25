@@ -342,27 +342,32 @@ services:
       - traefik.tcp.routers.kpasswd.service=kpasswd
       - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
 
-  bind_dns:
-    image: ghcr.io/multidirectorylab/multidirectory_bind9:${VERSION:-latest}
-    container_name: bind9
-    hostname: bind9
-    restart: unless-stopped
+  pdns_auth:
+    image: ghcr.io/multidirectorylab/multidirectory_pdns_auth:${VERSION:-latest}
+    container_name: pdns_auth
+    expose:
+      - 8082
+      - 53
     volumes:
-      - dns_server_file:/opt/
-      - dns_server_config:/etc/bind/
-    tty: true
-    env_file:
-      - .env
-    environment:
-      - USE_CONFIG_FILE_LOGGING=true
-    depends_on:
-      ldap_server:
-        condition: service_healthy
-        restart: true
+      - dns_lmdb:/var/lib/pdns-lmdb
+      - dns_config:/etc/powerdns
+
+
+  pdns_recursor:
+    image: powerdns/pdns-recursor-51:5.1.7
+    container_name: pdns_recursor
+    expose:
+      - 8083
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ./recursor.conf:/etc/powerdns/recursor.conf
+      - forward_zones:/etc/powerdns/recursor.d/
     labels:
       - traefik.enable=true
-      - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
-      - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
+      - traefik.udp.routers.power_dns_recursor_udp.entrypoints=power_dns_recursor_udp
+      - traefik.udp.services.power_dns_recursor_udp.loadbalancer.server.port=53
 
   kea_dhcp4:
     image: ghcr.io/multidirectorylab/multidirectory_dhcp4:${VERSION:-latest}
@@ -473,3 +478,6 @@ volumes:
   leases:
   sockets:
   dhcp:
+  dns_lmdb:
+  dns_config:
+  forward_zones:

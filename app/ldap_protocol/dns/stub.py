@@ -4,13 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .base import (
-    AbstractDNSManager,
-    DNSForwardZone,
-    DNSRecords,
-    DNSServerParam,
-    DNSZoneParam,
-    DNSZoneType,
+from .base import AbstractDNSManager
+from .dto import (
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
+    DNSRRSetDTO,
+    DNSZoneBaseDTO,
 )
 from .utils import logger_wraps
 
@@ -21,59 +20,55 @@ class StubDNSManager(AbstractDNSManager):
     @logger_wraps(is_stub=True)
     async def create_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        ttl: int | None,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def update_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        ttl: int,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def delete_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def get_all_zones_records(self) -> None: ...
+    async def get_records(
+        self,
+        zone_id: str,  # noqa: ARG002
+    ) -> list[DNSRRSetDTO]:
+        return []
 
     @logger_wraps(is_stub=True)
-    async def get_forward_zones(self) -> list[DNSForwardZone]:
+    async def get_zones(self) -> list[DNSMasterZoneDTO]:
+        return []
+
+    @logger_wraps(is_stub=True)
+    async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         return []
 
     @logger_wraps(is_stub=True)
     async def create_zone(
         self,
-        zone_name: str,
-        zone_type: DNSZoneType,
-        nameserver: str | None,
-        params: list[DNSZoneParam],
+        zone: DNSZoneBaseDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def update_zone(
         self,
-        zone_name: str,
-        params: list[DNSZoneParam] | None,
+        zone: DNSZoneBaseDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def delete_zone(
         self,
-        zone_names: list[str],
+        zone_id: str,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -83,27 +78,7 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def update_server_options(
+    async def delete_forward_zone(
         self,
-        params: list[DNSServerParam],
+        zone_id: str,
     ) -> None: ...
-
-    @logger_wraps(is_stub=True)
-    async def get_server_options(self) -> list[DNSServerParam]:
-        return []
-
-    @logger_wraps(is_stub=True)
-    async def restart_server(
-        self,
-    ) -> None: ...
-
-    @logger_wraps(is_stub=True)
-    async def reload_zone(
-        self,
-        zone_name: str,
-    ) -> None: ...
-
-    @logger_wraps(is_stub=True)
-    async def get_all_records(self) -> list[DNSRecords]:
-        """Stub DNS manager get all records."""
-        return []
