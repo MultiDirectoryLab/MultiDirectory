@@ -22,6 +22,14 @@ entryPoints:
     address: ":636"
     proxyProtocol:
       insecure: true
+  global_ldap:
+    address: ":3268"
+    proxyProtocol:
+      insecure: true
+  global_ldap_tls:
+    address: ":3269"
+    proxyProtocol:
+      insecure: true
   kadmind:
     address: ":749"
   kpasswd:
