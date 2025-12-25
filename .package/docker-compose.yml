@@ -169,10 +169,10 @@ services:
     environment:
       - SERVICE_NAME=global_ldap_server
     volumes:
-      - ./app:/app
       - ./certs:/certs
       - ldap_keytab:/LDAP_keytab/
-    env_file: local.env
+    env_file:
+      - .env
     command: python -OO multidirectory.py --global_ldap_server
     tty: true
     depends_on:
