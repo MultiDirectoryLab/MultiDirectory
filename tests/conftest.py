@@ -138,7 +138,10 @@ from ldap_protocol.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
-from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases
+from ldap_protocol.policies.password.use_cases import (
+    PasswordBanWordUseCases,
+    UserPasswordHistoryUseCases,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
@@ -310,6 +313,10 @@ class TestProvider(Provider):
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
+    user_password_history_use_cases = provide(
+        UserPasswordHistoryUseCases,
+        scope=Scope.REQUEST,
+    )
     password_ban_word_repository = provide(
         PasswordBanWordRepository,
         scope=Scope.REQUEST,
