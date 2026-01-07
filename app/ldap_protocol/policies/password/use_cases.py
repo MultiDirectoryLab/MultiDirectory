@@ -6,9 +6,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import ClassVar, Iterable
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import attributes
+
 from abstract_service import AbstractService
 from entities import User
 from enums import AuthorizationRules
+from ldap_protocol.identity.exceptions import UserNotFoundError
 from ldap_protocol.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
@@ -16,10 +20,36 @@ from ldap_protocol.policies.password.constants import (
     MAX_BANWORD_LENGTH,
     MIN_LENGTH_FOR_TRGM,
 )
+from ldap_protocol.utils.queries import get_user
 
 from .dao import PasswordPolicyDAO
 from .dataclasses import PasswordPolicyDTO, PriorityT
 from .validator import PasswordPolicyValidator
+
+
+class UserPasswordHistoryUseCases(AbstractService):
+    """User Password History Use Cases."""
+
+    _session: AsyncSession
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def clear(self, user_name: str) -> None:
+        user = await get_user(self._session, user_name)
+
+        if not user:
+            raise UserNotFoundError(
+                f"User {user_name} not found in the database.",
+            )
+
+        user.password_history.clear()
+        attributes.flag_modified(user, "password_history")
+        await self._session.flush()
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
+        clear.__name__: AuthorizationRules.USER_CLEAR_PASSWORD_HISTORY,
+    }
 
 
 class PasswordPolicyUseCases(AbstractService):

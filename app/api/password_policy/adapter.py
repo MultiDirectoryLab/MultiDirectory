@@ -19,6 +19,7 @@ from ldap_protocol.policies.password.exceptions import (
 from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     PasswordPolicyUseCases,
+    UserPasswordHistoryUseCases,
 )
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
@@ -26,6 +27,15 @@ _convert_dto_to_schema = get_converter(
     PasswordPolicyDTO[int, int],
     PasswordPolicySchema[int],
 )
+
+
+class UserPasswordHistoryResetFastAPIAdapter(
+    BaseAdapter[UserPasswordHistoryUseCases],
+):
+    """Adapter for clearing user password history."""
+
+    async def clear(self, user_name: str) -> None:
+        await self._service.clear(user_name)
 
 
 class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
@@ -46,9 +56,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         path_dn: str,
     ) -> PasswordPolicySchema[int]:
         """Get one Password Policy for one Directory by its path."""
-        dto = await self._service.get_password_policy_by_dir_path_dn(
-            path_dn,
-        )
+        dto = await self._service.get_password_policy_by_dir_path_dn(path_dn)
         return _convert_dto_to_schema(dto)
 
     async def update(
