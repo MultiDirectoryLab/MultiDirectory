@@ -308,6 +308,7 @@ class ExtendedRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.EXTENDED
+    CONTEXT_TYPE: ClassVar[type] = LDAPExtendedRequestContext
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 

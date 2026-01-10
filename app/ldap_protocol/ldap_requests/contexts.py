@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dataclasses import dataclass
+from typing import NewType
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,8 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.rootdse.reader import RootDSEReader
 from ldap_protocol.session_storage import SessionStorage
 from password_utils import PasswordUtils
+
+AsyncSessionSearchRequest = NewType("AsyncSessionSearchRequest", AsyncSession)
 
 
 @dataclass
@@ -74,7 +77,7 @@ class LDAPBindRequestContext:
 class LDAPSearchRequestContext:
     """Context for LDAP search request."""
 
-    session: AsyncSession
+    session: AsyncSessionSearchRequest
     ldap_session: LDAPSession
     settings: Settings
     access_manager: AccessManager

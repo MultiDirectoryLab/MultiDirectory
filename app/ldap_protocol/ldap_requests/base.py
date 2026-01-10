@@ -24,6 +24,7 @@ from entities import Directory
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
+from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.events.factory import (
     RawAuditEventBuilderRedis,
@@ -62,6 +63,7 @@ else:
 class BaseRequest(ABC, _APIProtocol, BaseModel):
     """Base request builder."""
 
+    CONTEXT_TYPE: ClassVar[type]
     handle: ClassVar[handler]
     from_data: ClassVar[serializer]
     __event_data: dict = {}
@@ -113,38 +115,42 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         container: AsyncContainer,
     ) -> AsyncIterator[BaseResponse]:
         """Hanlde response with tcp."""
-        kwargs = await resolve_deps(func=self.handle, container=container)
-        responses = []
+        if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
+            ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
+        else:
+            ctx = None
 
-        async for response in self.handle(**kwargs):
+        responses = []
+        async for response in self.handle(ctx=ctx):
             responses.append(response)
             yield response
 
-        ldap_session = await container.get(LDAPSession)
-        settings = await container.get(Settings)
-        audit_use_case = await container.get(AuditUseCase)
+        if self.PROTOCOL_OP != ProtocolRequests.SEARCH:
+            ldap_session = await container.get(LDAPSession)
+            settings = await container.get(Settings)
+            audit_use_case = await container.get(AuditUseCase)
 
-        if await audit_use_case.check_event_processing_enabled(
-            self.PROTOCOL_OP,
-        ):
-            username = getattr(
-                ldap_session.user,
-                "user_principal_name",
-                "ANONYMOUS",
-            )
-            event = RawAuditEventBuilderRedis.from_ldap_request(
-                self,
-                responses=responses,
-                username=username,
-                ip=ldap_session.ip,
-                protocol="TCP_LDAP",
-                settings=settings,
-                context=self.get_event_data(),
-            )
+            if await audit_use_case.check_event_processing_enabled(
+                self.PROTOCOL_OP,
+            ):
+                username = getattr(
+                    ldap_session.user,
+                    "user_principal_name",
+                    "ANONYMOUS",
+                )
+                event = RawAuditEventBuilderRedis.from_ldap_request(
+                    self,
+                    responses=responses,
+                    username=username,
+                    ip=ldap_session.ip,
+                    protocol="TCP_LDAP",
+                    settings=settings,
+                    context=self.get_event_data(),
+                )
 
-            ldap_session.event_task_group.create_task(
-                audit_use_case.manager.send_event(event),
-            )
+                ldap_session.event_task_group.create_task(
+                    audit_use_case.manager.send_event(event),
+                )
 
     async def _handle_api(
         self,
@@ -156,7 +162,11 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        kwargs = await resolve_deps(func=self.handle, container=container)
+        if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
+            ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
+        else:
+            ctx = None
+
         ldap_session = await container.get(LDAPSession)
         settings = await container.get(Settings)
         audit_use_case = await container.get(AuditUseCase)
@@ -168,7 +178,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
-        responses = [response async for response in self.handle(**kwargs)]
+        responses = [response async for response in self.handle(ctx=ctx)]
 
         if settings.DEBUG:
             for response in responses:
