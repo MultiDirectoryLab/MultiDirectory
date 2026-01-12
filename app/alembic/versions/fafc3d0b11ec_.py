@@ -36,10 +36,13 @@ def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _create_readonly_grp_and_plcy(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            attribute_value_validator = await cnt.get(
+                AttributeValueValidator,
+            )
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
@@ -51,11 +54,6 @@ def upgrade(container: AsyncContainer) -> None:
                 ),
             )
             group_dir = (await session.scalars(group_dir_query)).one()
-
-            async with container(scope=Scope.REQUEST) as cnt:
-                attribute_value_validator = await cnt.get(
-                    AttributeValueValidator,
-                )
 
             if not group_dir:
                 dir_, _ = await create_group(

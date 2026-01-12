@@ -7,7 +7,7 @@ Create Date: 2025-10-10 06:23:58.238864
 """
 
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -22,15 +22,15 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _migrate_ou_to_cn_containers(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
         """Migrate existing ou= containers to cn= containers."""
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         containers_to_migrate = ["groups", "computers", "users"]
         directories = await session.scalars(
@@ -107,15 +107,15 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.run_async(_migrate_ou_to_cn_containers)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
     async def _migrate_cn_to_ou_containers(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
         """Migrate existing cn= containers back to ou= containers."""
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         containers_to_migrate = ["groups", "computers", "users"]
         directories = await session.scalars(

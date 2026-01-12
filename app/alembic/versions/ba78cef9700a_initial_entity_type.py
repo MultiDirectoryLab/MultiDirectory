@@ -96,15 +96,13 @@ def upgrade(container: AsyncContainer) -> None:
         ["oid"],
     )
 
-    async def _create_entity_types(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _create_entity_types(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            entity_type_use_case = await cnt.get(EntityTypeUseCase)
 
         if not await get_base_directories(session):
             return
-
-        async with container(scope=Scope.REQUEST) as cnt:
-            entity_type_use_case = await cnt.get(EntityTypeUseCase)
 
         for entity_type_data in ENTITY_TYPE_DATAS:
             await entity_type_use_case.create(
@@ -118,10 +116,10 @@ def upgrade(container: AsyncContainer) -> None:
         await session.commit()
 
     async def _append_object_class_to_user_dirs(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         if not await get_base_directories(session):
             return
@@ -156,16 +154,14 @@ def upgrade(container: AsyncContainer) -> None:
         await session.commit()
 
     async def _attach_entity_type_to_directories(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            entity_type_dao = await cnt.get(EntityTypeDAO)
 
         if not await get_base_directories(session):
             return
-
-        async with container(scope=Scope.REQUEST) as cnt:
-            entity_type_dao = await cnt.get(EntityTypeDAO)
 
         await entity_type_dao.attach_entity_type_to_directories()
 

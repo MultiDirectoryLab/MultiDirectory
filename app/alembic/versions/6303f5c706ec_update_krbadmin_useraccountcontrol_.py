@@ -7,7 +7,7 @@ Create Date: 2025-10-24 15:33:31.478490
 """
 
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
@@ -24,12 +24,12 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _update_krbadmin_uac(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _update_krbadmin_uac(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         krbadmin_user_dir = await session.scalar(
             select(Directory)
@@ -52,9 +52,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
                 ),
             )
 
-    async def _change_uid_admin(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _change_uid_admin(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         directory = await session.scalar(
             select(Directory)

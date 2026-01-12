@@ -268,9 +268,9 @@ def upgrade(container: AsyncContainer) -> None:
     session.commit()
 
     # NOTE: Load objectClasses into the database
-    async def _create_object_classes(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _create_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         oc_already_created_oids = set()
         oc_first_priority_raw_definitions = (
@@ -343,11 +343,11 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_create_object_classes)
 
-    async def _create_attribute_types(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            attribute_type_dao = await cnt.get(AttributeTypeDAO)
 
-        attribute_type_dao = AttributeTypeDAO(session)
         for oid, name in (
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
@@ -368,11 +368,9 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
-
+    async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
             at_dao = await cnt.get(AttributeTypeDAO)
             oc_dao = await cnt.get(ObjectClassDAO)
 

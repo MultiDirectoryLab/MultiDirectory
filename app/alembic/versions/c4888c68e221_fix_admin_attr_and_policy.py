@@ -29,23 +29,21 @@ def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _attach_entity_type_to_directories(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            entity_type_dao = await cnt.get(EntityTypeDAO)
 
         if not await get_base_directories(session):
             return
 
-        async with container(scope=Scope.REQUEST) as cnt:
-            entity_type_dao = await cnt.get(EntityTypeDAO)
-
         await entity_type_dao.attach_entity_type_to_directories()
         await session.commit()
 
-    async def _change_uid_admin(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _change_uid_admin(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         directory = await session.scalar(
             sa.select(Directory)
@@ -77,9 +75,9 @@ def upgrade(container: AsyncContainer) -> None:
         )
         await session.commit()
 
-    async def _change_ldap_session_ttl(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _change_ldap_session_ttl(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         await session.execute(
             sa.update(NetworkPolicy)
