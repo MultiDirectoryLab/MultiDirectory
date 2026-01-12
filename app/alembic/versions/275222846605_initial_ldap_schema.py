@@ -12,15 +12,14 @@ import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
-from sqlalchemy import delete, or_
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from entities import Attribute
+from entities import Attribute, AttributeType, ObjectClass
 from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -368,11 +367,8 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
-            at_dao = await cnt.get(AttributeTypeDAO)
-            oc_dao = await cnt.get(ObjectClassDAO)
+    async def _modify_object_classes(connection: AsyncConnection) -> None:
+        session = AsyncSession(bind=connection)
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
@@ -380,9 +376,22 @@ def upgrade(container: AsyncContainer) -> None:
             ("posixAccount", ["posixEmail"]),
             ("organizationalUnit", ["title", "jpegPhoto"]),
         ):
-            object_class = await oc_dao.get(oc_name)
-            attribute_types_may = await at_dao.get_all_by_names(at_names)
-            object_class.attribute_types_may.extend(attribute_types_may)
+            object_class = await session.scalar(
+                select(ObjectClass)
+                .filter_by(name=oc_name)
+                .options(selectinload(qa(ObjectClass.attribute_types_may))),
+            )
+
+            if not object_class:
+                continue
+
+            attribute_types = await session.scalars(
+                select(AttributeType).where(
+                    qa(AttributeType.name).in_(at_names),
+                ),
+            )
+
+            object_class.attribute_types_may.extend(attribute_types.all())
 
         await session.commit()
 
