@@ -8,16 +8,12 @@ Create Date: 2025-11-06 10:38:31.124118
 
 import sqlalchemy as sa
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory, NetworkPolicy
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.helpers import create_integer_hash
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -29,7 +25,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _attach_entity_type_to_directories(
@@ -41,14 +37,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         if not await get_base_directories(session):
             return
 
-        object_class_dao = ObjectClassDAO(
-            session,
-        )
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao=object_class_dao,
-            attribute_value_validator=AttributeValueValidator(),
-        )
+        async with container(scope=Scope.REQUEST) as cnt:
+            entity_type_dao = await cnt.get(EntityTypeDAO)
+
         await entity_type_dao.attach_entity_type_to_directories()
         await session.commit()
 

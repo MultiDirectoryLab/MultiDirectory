@@ -7,13 +7,11 @@ Create Date: 2025-07-17 09:16:20.056149
 
 import sqlalchemy as sa
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory, Group
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -25,7 +23,7 @@ branch_labels: None = None
 depends_on: None = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     op.create_table(
         "Roles",
@@ -161,9 +159,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         if not base_dn_list:
             return
 
-        role_dao = RoleDAO(session)
-        ace_dao = AccessControlEntryDAO(session)
-        role_use_case = RoleUseCase(role_dao, ace_dao)
+        async with container(scope=Scope.REQUEST) as cnt:
+            role_use_case = await cnt.get(RoleUseCase)
+
         await role_use_case.create_domain_admins_role()
         await role_use_case.create_read_only_role()
 
