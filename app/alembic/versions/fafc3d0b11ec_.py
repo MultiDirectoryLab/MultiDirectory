@@ -7,7 +7,7 @@ Create Date: 2024-11-11 15:21:23.568233
 """
 
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
@@ -32,7 +32,7 @@ depends_on: None | str = None
 
 
 @temporary_stub_entity_type_name
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _create_readonly_grp_and_plcy(
@@ -52,11 +52,16 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             )
             group_dir = (await session.scalars(group_dir_query)).one()
 
+            async with container(scope=Scope.REQUEST) as cnt:
+                attribute_value_validator = await cnt.get(
+                    AttributeValueValidator,
+                )
+
             if not group_dir:
                 dir_, _ = await create_group(
                     name="readonly domain controllers",
                     sid=521,
-                    attribute_value_validator=AttributeValueValidator(),
+                    attribute_value_validator=attribute_value_validator,
                     session=session,
                 )
 
