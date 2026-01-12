@@ -151,16 +151,14 @@ def upgrade(container: AsyncContainer) -> None:
     op.drop_table("AccessPolicyMemberships")
     op.drop_table("AccessPolicies")
 
-    async def _create_system_roles(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _create_system_roles(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            role_use_case = await cnt.get(RoleUseCase)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
-
-        async with container(scope=Scope.REQUEST) as cnt:
-            role_use_case = await cnt.get(RoleUseCase)
 
         await role_use_case.create_domain_admins_role()
         await role_use_case.create_read_only_role()

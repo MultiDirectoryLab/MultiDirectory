@@ -90,12 +90,12 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_change_uid_admin)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _downgrade_krbadmin_uac(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _downgrade_krbadmin_uac(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         krbadmin_user_dir = await session.scalar(
             select(Directory)
