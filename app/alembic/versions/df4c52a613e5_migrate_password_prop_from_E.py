@@ -46,11 +46,9 @@ def upgrade(container: AsyncContainer) -> None:
         ),
     )
 
-    async def _create_common_passwords(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
-
+    async def _create_common_passwords(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
             password_ban_word_repo = await cnt.get(PasswordBanWordRepository)
 
         await password_ban_word_repo.replace(_BAN_WORDS)

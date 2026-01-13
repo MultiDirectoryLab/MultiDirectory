@@ -30,15 +30,15 @@ depends_on: None | str = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _create_audit_policies(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
+    async def _create_audit_policies(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            audit_dao = await cnt.get(AuditPoliciesDAO)
+            dest_dao = await cnt.get(AuditDestinationDAO)
 
         if not await get_base_directories(session):
             return
 
-        async with container(scope=Scope.REQUEST) as cnt:
-            audit_dao = await cnt.get(AuditPoliciesDAO)
-            dest_dao = await cnt.get(AuditDestinationDAO)
         manager = Mock(spec=RawAuditManager)
         use_case = AuditUseCase(audit_dao, dest_dao, manager)
         await use_case.create_policies()
