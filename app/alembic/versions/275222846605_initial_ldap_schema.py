@@ -36,7 +36,7 @@ ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
 @temporary_stub_entity_type_name
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
