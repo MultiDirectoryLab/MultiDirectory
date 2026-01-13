@@ -4,11 +4,18 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from constants import (
+    DOMAIN_ADMIN_GROUP_NAME,
+    DOMAIN_COMPUTERS_GROUP_NAME,
+    DOMAIN_USERS_GROUP_NAME,
+    GROUPS_CONTAINER_NAME,
+    USERS_CONTAINER_NAME,
+)
 from ldap_protocol.objects import UserAccountControlFlag
 
 TEST_DATA = [
     {
-        "name": "groups",
+        "name": GROUPS_CONTAINER_NAME,
         "object_class": "container",
         "attributes": {
             "objectClass": ["top"],
@@ -16,20 +23,20 @@ TEST_DATA = [
         },
         "children": [
             {
-                "name": "domain admins",
+                "name": DOMAIN_ADMIN_GROUP_NAME,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["domain admins"],
+                    "sAMAccountName": [DOMAIN_ADMIN_GROUP_NAME],
                     "sAMAccountType": ["268435456"],
                 },
             },
             {
                 "name": "developers",
                 "object_class": "group",
-                "groups": ["domain admins"],
+                "groups": [DOMAIN_ADMIN_GROUP_NAME],
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -50,31 +57,31 @@ TEST_DATA = [
                 },
             },
             {
-                "name": "domain users",
+                "name": DOMAIN_USERS_GROUP_NAME,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["domain users"],
+                    "sAMAccountName": [DOMAIN_USERS_GROUP_NAME],
                     "sAMAccountType": ["268435456"],
                 },
             },
             {
-                "name": "domain computers",
+                "name": DOMAIN_COMPUTERS_GROUP_NAME,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["domain computers"],
+                    "sAMAccountName": [DOMAIN_COMPUTERS_GROUP_NAME],
                     "sAMAccountType": ["268435456"],
                 },
             },
         ],
     },
     {
-        "name": "users",
+        "name": USERS_CONTAINER_NAME,
         "object_class": "container",
         "attributes": {"objectClass": ["top"]},
         "children": [
@@ -87,9 +94,7 @@ TEST_DATA = [
                     "mail": "user0@mail.com",
                     "display_name": "user0",
                     "password": "password",
-                    "groups": [
-                        "domain admins",
-                    ],
+                    "groups": [DOMAIN_ADMIN_GROUP_NAME],
                 },
                 "attributes": {
                     "givenName": ["John"],
@@ -119,9 +124,7 @@ TEST_DATA = [
                     "mail": "user_admin@mail.com",
                     "display_name": "user_admin",
                     "password": "password",
-                    "groups": [
-                        "domain admins",
-                    ],
+                    "groups": [DOMAIN_ADMIN_GROUP_NAME],
                 },
                 "attributes": {
                     "objectClass": [
@@ -148,9 +151,7 @@ TEST_DATA = [
                     "mail": "user_admin_for_roles@mail.com",
                     "display_name": "user_admin_for_roles",
                     "password": "password",
-                    "groups": [
-                        "admin login only",
-                    ],
+                    "groups": ["admin login only"],
                 },
                 "attributes": {
                     "objectClass": [
@@ -177,7 +178,7 @@ TEST_DATA = [
                     "mail": "user_non_admin@mail.com",
                     "display_name": "user_non_admin",
                     "password": "password",
-                    "groups": ["domain users"],
+                    "groups": [DOMAIN_USERS_GROUP_NAME],
                 },
                 "attributes": {
                     "objectClass": [

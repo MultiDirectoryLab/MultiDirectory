@@ -97,6 +97,12 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
+        if directory.is_system:
+            yield DeleteResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
+            return
+
         self.set_event_data(
             {"before_attrs": self.get_directory_attrs(directory)},
         )

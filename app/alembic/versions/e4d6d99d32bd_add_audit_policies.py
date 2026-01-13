@@ -14,6 +14,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import RawAuditManager
@@ -27,6 +28,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 

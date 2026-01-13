@@ -29,7 +29,6 @@ async def test_api_correct_delete(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
@@ -49,7 +48,6 @@ async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_delete_non_exist_object(http_client: AsyncClient) -> None:

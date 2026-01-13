@@ -970,7 +970,11 @@ async def setup_session(
         attribute_value_validator=attribute_value_validator,
     )
     await audit_use_case.create_policies()
-    await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)
+    await setup_gateway.setup_enviroment(
+        dn="md.test",
+        data=TEST_DATA,
+        is_system=False,
+    )
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()

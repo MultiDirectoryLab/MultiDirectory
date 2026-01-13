@@ -12,7 +12,7 @@ from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
 from entities import Attribute, Directory
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import temporary_stub_column
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -22,7 +22,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.add_column("Directory", sa.Column("rdname", sa.String(length=64)))
@@ -32,7 +33,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
     attrs = []
 
-    for directory in session.query(Directory):
+    for directory in session.query(Directory).options():
         if directory.is_domain:
             directory.rdname = ""
             continue
@@ -57,7 +58,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.alter_column("Directory", "rdname", nullable=False)
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()

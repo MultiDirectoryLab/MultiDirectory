@@ -6,6 +6,7 @@ Create Date: 2024-11-11 15:21:23.568233
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
@@ -13,7 +14,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -31,7 +32,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -73,7 +75,8 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_readonly_grp_and_plcy)
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
 

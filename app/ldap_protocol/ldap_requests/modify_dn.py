@@ -135,6 +135,12 @@ class ModifyDNRequest(BaseRequest):
             yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
+        if directory.is_system:
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
+            return
+
         old_name = directory.name
         new_dn, new_name = self.newrdn.split("=")
         directory.name = new_name

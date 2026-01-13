@@ -1,11 +1,12 @@
 """Add primaryGroupId attribute and domain computers group.
 
 Revision ID: 01f3f05a5b11
-Revises: 8164b4a9e1f1
+Revises: c007129b7973
 Create Date: 2025-09-26 12:36:05.974255
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
@@ -13,8 +14,10 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
+from constants import DOMAIN_COMPUTERS_GROUP_NAME
 from entities import Attribute, Directory, EntityType, Group
 from enums import EntityTypeNames
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -35,6 +38,7 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -51,7 +55,7 @@ def upgrade(container: AsyncContainer) -> None:
         try:
             group_dir_query = select(
                 exists(Directory)
-                .where(qa(Directory.name) == "domain computers"),
+                .where(qa(Directory.name) == DOMAIN_COMPUTERS_GROUP_NAME),
             )  # fmt: skip
             group_dir = (await session.scalars(group_dir_query)).one()
 
@@ -59,7 +63,7 @@ def upgrade(container: AsyncContainer) -> None:
                 return
 
             dir_, group_ = await create_group(
-                name="domain computers",
+                name=DOMAIN_COMPUTERS_GROUP_NAME,
                 sid=515,
                 attribute_value_validator=AttributeValueValidator(),
                 session=session,
@@ -165,6 +169,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_add_primary_group_id)
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()

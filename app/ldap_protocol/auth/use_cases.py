@@ -9,7 +9,11 @@ import copy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import FIRST_SETUP_DATA
+from constants import (
+    DOMAIN_ADMIN_GROUP_NAME,
+    FIRST_SETUP_DATA,
+    USERS_CONTAINER_NAME,
+)
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.identity.exceptions import (
@@ -79,7 +83,7 @@ class SetupUseCase:
         :return: dict with user data
         """
         return {
-            "name": "users",
+            "name": USERS_CONTAINER_NAME,
             "object_class": "container",
             "attributes": {"objectClass": ["top"]},
             "children": [
@@ -92,7 +96,7 @@ class SetupUseCase:
                         "mail": dto.mail,
                         "display_name": dto.display_name,
                         "password": dto.password,
-                        "groups": ["domain admins"],
+                        "groups": [DOMAIN_ADMIN_GROUP_NAME],
                     },
                     "attributes": {
                         "objectClass": [
@@ -127,6 +131,7 @@ class SetupUseCase:
             await self._setup_gateway.setup_enviroment(
                 data=data,
                 dn=dto.domain,
+                is_system=True,
             )
             await self._password_use_cases.create_default_domain_policy()
 
