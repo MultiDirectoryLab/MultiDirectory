@@ -36,12 +36,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
                 return
 
             services_dirs = await session.scalars(
-                select(Directory).where(
-                    and_(
-                        qa(Directory.name) == "services",
-                        qa(Directory.object_class) == "organizationalUnit",
-                    ),
-                ),
+                select(Directory).where(qa(Directory.name) == "services"),
             )
 
             for services_dir in services_dirs:
@@ -50,7 +45,6 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
                         and_(
                             qa(Directory.name) == "System",
                             qa(Directory.parent_id) == services_dir.parent_id,
-                            qa(Directory.object_class) == "organizationalUnit",
                         ),
                     ),
                 )
@@ -126,12 +120,7 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
                 return
 
             system_dirs = await session.scalars(
-                select(Directory).where(
-                    and_(
-                        qa(Directory.name) == "System",
-                        qa(Directory.object_class) == "organizationalUnit",
-                    ),
-                ),
+                select(Directory).where(qa(Directory.name) == "System"),
             )
 
             for system_dir in system_dirs:
