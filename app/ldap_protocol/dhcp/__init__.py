@@ -26,7 +26,7 @@ from .schemas import (
 from .stub import StubDHCPAPIRepository, StubDHCPManager
 
 
-async def get_dhcp_manager_class(
+def get_dhcp_manager_class(
     dhcp_state: DHCPManagerState,
 ) -> type[AbstractDHCPManager]:
     """Get an instance of the DHCP manager."""
@@ -35,7 +35,7 @@ async def get_dhcp_manager_class(
     return StubDHCPManager
 
 
-async def get_dhcp_api_repository_class(
+def get_dhcp_api_repository_class(
     dhcp_state: DHCPManagerState,
 ) -> type[DHCPAPIRepository]:
     """Get an instance of the DHCP API repository."""

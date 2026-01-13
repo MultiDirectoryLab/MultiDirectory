@@ -68,6 +68,7 @@ class ModifyDNRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY_DN
+    CONTEXT_TYPE: ClassVar[type] = LDAPModifyDNRequestContext
 
     entry: str
     newrdn: str
