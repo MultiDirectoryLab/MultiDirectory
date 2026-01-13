@@ -66,8 +66,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
                 await session.flush()
                 await _update_descendants(session, services_dir.id)
-                await _update_attributes(session, "ou=services", "ou=System")
 
+            await _update_attributes(session, "ou=services", "ou=System")
             await session.commit()
 
         except Exception:
@@ -96,9 +96,12 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         new_value: str,
     ) -> None:
         """Update attribute values containing old DN."""
-        attributes = await session.scalars(
-            select(Attribute).where(Attribute.value.contains(old_value)),  # type: ignore
+        result = await session.execute(
+            select(Attribute).where(
+                Attribute.value.ilike(f"%{old_value}%"),  # type: ignore
+            ),
         )
+        attributes = result.scalars().all()
 
         for attr in attributes:
             if attr.value and old_value in attr.value:
@@ -140,12 +143,12 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
                 await session.flush()
                 await _update_descendants_downgrade(session, system_dir.id)
-                await _update_attributes_downgrade(
-                    session,
-                    "ou=System",
-                    "ou=services",
-                )
 
+            await _update_attributes_downgrade(
+                session,
+                "ou=System",
+                "ou=services",
+            )
             await session.commit()
 
         except Exception:
@@ -174,9 +177,12 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         new_value: str,
     ) -> None:
         """Update attribute values during downgrade."""
-        attributes = await session.scalars(
-            select(Attribute).where(Attribute.value.contains(old_value)),  # type: ignore
+        result = await session.execute(
+            select(Attribute).where(
+                Attribute.value.ilike(f"%{old_value}%"),  # type: ignore
+            ),
         )
+        attributes = result.scalars().all()
 
         for attr in attributes:
             if attr.value and old_value in attr.value:
