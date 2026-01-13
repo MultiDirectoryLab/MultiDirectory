@@ -34,12 +34,12 @@ class UserPasswordHistoryUseCases(AbstractService):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def clear(self, user_name: str) -> None:
-        user = await get_user(self._session, user_name)
+    async def clear(self, identity: str) -> None:
+        user = await get_user(self._session, identity)
 
         if not user:
             raise UserNotFoundError(
-                f"User {user_name} not found in the database.",
+                f"User {identity} not found in the database.",
             )
 
         user.password_history = []

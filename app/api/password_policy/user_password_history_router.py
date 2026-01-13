@@ -4,8 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import Annotated
+
 from dishka import FromDishka
-from fastapi import Depends, status
+from fastapi import Body, Depends, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
@@ -43,9 +45,9 @@ user_password_history_router = ErrorAwareRouter(
 )
 
 
-@user_password_history_router.post("/clear/{username}", error_map=error_map)
+@user_password_history_router.post("/clear", error_map=error_map)
 async def clear(
-    username: str,
+    identity: Annotated[str, Body(examples=["admin"])],
     adapter: FromDishka[UserPasswordHistoryResetFastAPIAdapter],
 ) -> None:
-    await adapter.clear(username)
+    await adapter.clear(identity)

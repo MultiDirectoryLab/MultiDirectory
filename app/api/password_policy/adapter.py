@@ -34,8 +34,8 @@ class UserPasswordHistoryResetFastAPIAdapter(
 ):
     """Adapter for clearing user password history."""
 
-    async def clear(self, user_name: str) -> None:
-        await self._service.clear(user_name)
+    async def clear(self, identity: str) -> None:
+        await self._service.clear(identity)
 
 
 class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
