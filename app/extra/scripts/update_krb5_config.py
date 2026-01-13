@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.kerberos.utils import get_services_container_dn
 from ldap_protocol.utils.queries import get_base_directories
 
 
@@ -27,7 +28,7 @@ async def update_krb5_config(
     domain: str = base_dn_list[0].name
 
     krbadmin = "cn=krbadmin,cn=users," + base_dn
-    services_container = "ou=services," + base_dn
+    services_container = get_services_container_dn(base_dn)
 
     krb5_template = settings.TEMPLATES.get_template("krb5.conf")
     kdc_template = settings.TEMPLATES.get_template("kdc.conf")

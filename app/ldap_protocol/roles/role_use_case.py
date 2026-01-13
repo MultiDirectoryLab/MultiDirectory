@@ -8,6 +8,7 @@ from sqlalchemy import and_, insert, literal, or_, select
 
 from entities import AccessControlEntry, AceType, Directory, Role
 from enums import AuthorizationRules, RoleConstants, RoleScope
+from ldap_protocol.kerberos.utils import get_services_container_dn
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import (
     access_control_entries_table,
@@ -211,7 +212,7 @@ class RoleUseCase:
 
         aces = self._get_full_access_aces(
             role_id=self._role_dao.get_last_id(),
-            base_dn="ou=services," + base_dn_list[0].path_dn,
+            base_dn=get_services_container_dn(base_dn_list[0].path_dn),
         )
         await self._access_control_entry_dao.create_bulk(aces)
 

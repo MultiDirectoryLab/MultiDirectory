@@ -77,7 +77,7 @@ async def test_tree_creation(
     response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "ou=services,dc=md,dc=test",
+            "base_object": "ou=System,dc=md,dc=test",
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -90,7 +90,7 @@ async def test_tree_creation(
     )
     assert (
         response.json()["search_result"][0]["object_name"]
-        == "ou=services,dc=md,dc=test"
+        == "ou=System,dc=md,dc=test"
     )
 
     bind = MutePolicyBindRequest(
@@ -163,7 +163,7 @@ async def test_setup_call(
     assert kadmin.setup.call_args.kwargs == {
         "domain": "md.test",
         "admin_dn": "cn=user0,cn=users,dc=md,dc=test",
-        "services_dn": "ou=services,dc=md,dc=test",
+        "services_dn": "ou=System,dc=md,dc=test",
         "krbadmin_dn": "cn=krbadmin,cn=users,dc=md,dc=test",
         "krbadmin_password": "Password123",
         "ldap_keytab_path": "/LDAP_keytab/ldap.keytab",
