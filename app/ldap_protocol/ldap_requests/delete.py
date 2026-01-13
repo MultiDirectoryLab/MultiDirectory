@@ -99,7 +99,7 @@ class DeleteRequest(BaseRequest):
 
         if directory.is_system:
             yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
             )
             return
 

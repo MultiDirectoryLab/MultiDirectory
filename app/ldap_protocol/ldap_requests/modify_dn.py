@@ -137,7 +137,7 @@ class ModifyDNRequest(BaseRequest):
 
         if directory.is_system:
             yield ModifyDNResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
             )
             return
 

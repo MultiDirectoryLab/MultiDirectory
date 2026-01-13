@@ -185,7 +185,7 @@ class ModifyRequest(BaseRequest):
 
         if directory.is_system:
             yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
             )
             return
 

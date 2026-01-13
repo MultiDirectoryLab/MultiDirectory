@@ -9,7 +9,7 @@ Create Date: 2025-12-25 08:58:20.074356
 import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
@@ -60,8 +60,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
         await session.flush()
 
-        directories = await session.scalars(
-            select(Directory).where(
+        await session.execute(
+            update(Directory)
+            .where(
                 qa(Directory.is_system).is_(False),
                 qa(Directory.name).in_(
                     (
@@ -77,20 +78,19 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
                         "kerberos",
                     ),
                 ),
-            ),
+            )
+            .values(is_system=True),
         )
-        for directory in directories:
-            directory.is_system = True
+        await session.flush()
 
-        user_directories = await session.scalars(
-            select(Directory).where(
+        await session.execute(
+            update(Directory)
+            .where(
                 qa(Directory.is_system).is_(False),
                 qa(Directory.object_class) == "user",
-            ),
+            )
+            .values(is_system=True),
         )
-        for user_directory in user_directories:
-            user_directory.is_system = True
-
         await session.flush()
 
     op.run_async(_indicate_system_directories)
