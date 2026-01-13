@@ -367,11 +367,9 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
-
+    async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
             at_dao = await cnt.get(AttributeTypeDAO)
             oc_dao = await cnt.get(ObjectClassDAO)
 

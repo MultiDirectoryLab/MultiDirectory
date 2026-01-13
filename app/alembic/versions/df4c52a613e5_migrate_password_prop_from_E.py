@@ -51,9 +51,6 @@ def upgrade(container: AsyncContainer) -> None:
             session = await cnt.get(AsyncSession)
             password_ban_word_repo = await cnt.get(PasswordBanWordRepository)
 
-        async with container(scope=Scope.REQUEST) as cnt:
-            password_ban_word_repo = await cnt.get(PasswordBanWordRepository)
-
         await password_ban_word_repo.replace(_BAN_WORDS)
 
         await session.commit()

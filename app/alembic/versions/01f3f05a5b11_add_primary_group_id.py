@@ -116,8 +116,9 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_add_domain_computers_group)
 
-    async def _add_primary_group_id(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
+    async def _add_primary_group_id(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
@@ -166,7 +167,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_add_primary_group_id)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -174,7 +175,9 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     async def _delete_domain_computers_group(
         connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(connection)
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return

@@ -104,9 +104,6 @@ def upgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
-        async with container(scope=Scope.REQUEST) as cnt:
-            entity_type_use_case = await cnt.get(EntityTypeUseCase)
-
         for entity_type_data in ENTITY_TYPE_DATAS:
             await entity_type_use_case.create(
                 EntityTypeDTO(
@@ -165,9 +162,6 @@ def upgrade(container: AsyncContainer) -> None:
 
         if not await get_base_directories(session):
             return
-
-        async with container(scope=Scope.REQUEST) as cnt:
-            entity_type_dao = await cnt.get(EntityTypeDAO)
 
         await entity_type_dao.attach_entity_type_to_directories()
 

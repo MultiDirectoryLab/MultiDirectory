@@ -37,11 +37,9 @@ def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     from ldap_protocol.auth.setup_gateway import SetupGateway
 
-    async def _create_ou_computers(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
-
+    async def _create_ou_computers(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
             setup_gateway = await cnt.get(SetupGateway)
             role_use_case = await cnt.get(RoleUseCase)
 
@@ -83,7 +81,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_ou_computers)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
     async def _delete_ou_computers(connection: AsyncConnection) -> None:  # noqa: ARG001

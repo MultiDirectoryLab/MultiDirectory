@@ -8,7 +8,7 @@ Create Date: 2025-10-10 06:23:58.238864
 
 import sqlalchemy as sa
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -23,7 +23,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _migrate_ou_to_cn_containers(
@@ -108,7 +108,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.run_async(_migrate_ou_to_cn_containers)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
     async def _migrate_cn_to_ou_containers(
