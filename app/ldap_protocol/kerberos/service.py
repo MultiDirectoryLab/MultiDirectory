@@ -298,7 +298,6 @@ class KerberosService(AbstractService):
         base_dn, domain = await self._get_base_dn()
         krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
-        # Use new System container name (AD-compatible, renamed from services)
         services_container = get_services_container_dn(base_dn)
         return KDCContext(
             base_dn=base_dn,
