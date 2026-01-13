@@ -124,6 +124,6 @@ class LDAPModifyDNRequestContext:
     role_use_case: RoleUseCase
     attribute_value_validator: AttributeValueValidator
 
+
 @dataclass
-class LDAPAbandonRequestContext:
-    ...
+class LDAPAbandonRequestContext: ...
