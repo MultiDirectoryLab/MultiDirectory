@@ -8,7 +8,7 @@ Create Date: 2025-12-25 08:58:20.074356
 
 import sqlalchemy as sa
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
@@ -33,7 +33,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -47,9 +47,10 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.alter_column("Directory", "is_system", nullable=False)
 
     async def _indicate_system_directories(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(connection)
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
