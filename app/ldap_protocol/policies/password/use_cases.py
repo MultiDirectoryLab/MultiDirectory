@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import ClassVar, Iterable
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import attributes
 
 from abstract_service import AbstractService
 from entities import User
@@ -43,8 +42,7 @@ class UserPasswordHistoryUseCases(AbstractService):
                 f"User {user_name} not found in the database.",
             )
 
-        user.password_history.clear()
-        attributes.flag_modified(user, "password_history")
+        user.password_history = []
         await self._session.flush()
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {

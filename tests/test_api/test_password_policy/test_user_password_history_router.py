@@ -17,9 +17,9 @@ async def test_clear_success(
     user_password_history_use_cases: Mock,
 ) -> None:
     """Test clear user password history endpoint."""
-    user_name = "testuser"
+    username = "testuser"
     response = await http_client.post(
-        f"/user/password_history/clear/{user_name}",
+        f"/user/password_history/clear/{username}",
     )
 
     # NOTE to user_password_history_use_cases.reset returned Mock, not wrapper  # noqa: E501
@@ -34,9 +34,9 @@ async def test_clear_unauthorized(
     user_password_history_use_cases: Mock,
 ) -> None:
     """Test clear user password history endpoint without permissions."""
-    user_name = "testuser"
+    username = "testuser"
     response = await http_client_with_login_perm.post(
-        f"/user/password_history/clear/{user_name}",
+        f"/user/password_history/clear/{username}",
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 

@@ -43,9 +43,9 @@ user_password_history_router = ErrorAwareRouter(
 )
 
 
-@user_password_history_router.post("/clear/{user_name}", error_map=error_map)
+@user_password_history_router.post("/clear/{username}", error_map=error_map)
 async def clear(
-    user_name: str,
+    username: str,
     adapter: FromDishka[UserPasswordHistoryResetFastAPIAdapter],
 ) -> None:
-    await adapter.clear(user_name)
+    await adapter.clear(username)

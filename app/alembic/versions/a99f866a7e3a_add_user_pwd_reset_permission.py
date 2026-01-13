@@ -7,7 +7,7 @@ Create Date: 2025-12-23 10:20:29.147813
 """
 
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -21,32 +21,38 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_api_permission(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
+    async def _add_api_permission(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+
         query = (
             select(Role)
             .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         )  # fmt: skip
-        role = (await session.scalars(query)).first()
+        role = await session.scalar(query)
+
         if role:
             role.permissions |= AuthorizationRules.USER_CLEAR_PASSWORD_HISTORY
 
     op.run_async(_add_api_permission)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _remove_api_permission(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
+    async def _remove_api_permission(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+
         query = (
             select(Role)
             .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         )  # fmt: skip
-        role = (await session.scalars(query)).first()
+        role = await session.scalar(query)
+
         if role:
             role.permissions &= ~AuthorizationRules.USER_CLEAR_PASSWORD_HISTORY
 

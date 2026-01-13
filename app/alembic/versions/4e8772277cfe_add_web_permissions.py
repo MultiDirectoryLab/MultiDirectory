@@ -28,11 +28,13 @@ def upgrade(container: AsyncContainer) -> None:
     async def _add_api_permissions(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+
         query = (
             select(Role)
             .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         )  # fmt: skip
-        role = (await session.scalars(query)).first()
+        role = await session.scalar(query)
+
         if role:
             role.permissions = AuthorizationRules.get_all()
             await session.commit()
