@@ -184,7 +184,6 @@ class ModifyRequest(BaseRequest):
             return
 
         if directory.is_system:
-            print("SOSI", directory)
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
