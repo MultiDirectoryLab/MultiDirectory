@@ -115,10 +115,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         container: AsyncContainer,
     ) -> AsyncIterator[BaseResponse]:
         """Hanlde response with tcp."""
-        if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
-            ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
-        else:
-            ctx = None
+        ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
 
         responses = []
         async for response in self.handle(ctx=ctx):
@@ -162,10 +159,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         :param AsyncSession session: db session
         :return list[BaseResponse]: list of handled responses
         """
-        if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
-            ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
-        else:
-            ctx = None
+        ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
 
         ldap_session = await container.get(LDAPSession)
         settings = await container.get(Settings)

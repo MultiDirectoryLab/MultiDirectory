@@ -87,6 +87,7 @@ from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
 from ldap_protocol.ldap_requests.bind import BindRequest
 from ldap_protocol.ldap_requests.contexts import (
+    LDAPAbandonRequestContext,
     LDAPAddRequestContext,
     LDAPBindRequestContext,
     LDAPDeleteRequestContext,
@@ -667,6 +668,10 @@ class TestProvider(Provider):
     )
     search_request_context = provide(
         LDAPSearchRequestContext,
+        scope=Scope.REQUEST,
+    )
+    abandon_request_context = provide(
+        LDAPAbandonRequestContext,
         scope=Scope.REQUEST,
     )
 
