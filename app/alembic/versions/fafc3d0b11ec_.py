@@ -44,6 +44,7 @@ def upgrade(container: AsyncContainer) -> None:
             attribute_value_validator = await cnt.get(
                 AttributeValueValidator,
             )
+
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
@@ -75,7 +76,7 @@ def upgrade(container: AsyncContainer) -> None:
 
 
 @temporary_stub_entity_type_name
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
     async def _delete_readonly_grp_and_plcy(

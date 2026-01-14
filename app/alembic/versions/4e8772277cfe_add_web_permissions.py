@@ -28,6 +28,7 @@ def upgrade(container: AsyncContainer) -> None:
     async def _add_api_permissions(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+
         query = (
             select(Role)
             .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
