@@ -102,6 +102,7 @@ async def test_role_search_3(
         creds=creds,
         search_base=BASE_DN,
         expected_dn=[
+            "dn: cn=System Administrator,dc=md,dc=test",
             "dn: cn=groups,dc=md,dc=test",
             "dn: cn=users,dc=md,dc=test",
             "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
@@ -189,6 +190,7 @@ async def test_role_search_5(
         creds=creds,
         search_base=BASE_DN,
         expected_dn=[
+            "dn: cn=System Administrator,dc=md,dc=test",
             "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
             "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
             "dn: cn=user_admin_for_roles,cn=users,dc=md,dc=test",
