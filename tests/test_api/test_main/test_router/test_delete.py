@@ -31,6 +31,25 @@ async def test_api_correct_delete(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+async def test_api_cant_delete_system_directory(
+    http_client: AsyncClient,
+) -> None:
+    """Test API for delete system directory."""
+    response = await http_client.request(
+        "delete",
+        "/entry/delete",
+        json={"entry": "cn=System Administrator,dc=md,dc=test"},
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.UNWILLING_TO_PERFORM
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
 async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for delete object with incorrect DN."""
     response = await http_client.request(

@@ -33,7 +33,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
     attrs = []
 
-    for directory in session.query(Directory).options():
+    for directory in session.query(Directory):
         if directory.is_domain:
             directory.rdname = ""
             continue

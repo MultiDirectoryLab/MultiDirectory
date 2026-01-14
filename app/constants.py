@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import TypedDict
 
 from enums import EntityTypeNames
+from ldap_protocol.objects import UserAccountControlFlag
 
 GROUPS_CONTAINER_NAME = "groups"
 COMPUTERS_CONTAINER_NAME = "computers"
@@ -351,6 +352,34 @@ FIRST_SETUP_DATA = [
         "children": [],
     },
 ]
+
+SYSTEM_ADMIN_DATA = {
+    "name": "System Administrator",
+    "object_class": "user",
+    "organizationalPerson": {
+        "sam_account_name": "system_admin",
+        "user_principal_name": "system_admin",
+        "mail": "system_admin@mail.com",
+        "display_name": "system_admin",
+        "password": "password",
+        "groups": [DOMAIN_ADMIN_GROUP_NAME],
+    },
+    "attributes": {
+        "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "posixAccount",
+            "inetOrgPerson",
+            "shadowAccount",
+        ],
+        "posixEmail": ["abctest@mail.com"],
+        "attr_with_bvalue": [b"any"],
+        "userAccountControl": [
+            str(UserAccountControlFlag.NORMAL_ACCOUNT),
+        ],
+    },
+}
 
 DEFAULT_DC_POSTFIX = "DC1"
 UNC_PREFIX = "\\\\"

@@ -84,6 +84,8 @@ def upgrade(container: AsyncContainer) -> None:
         )
         await session.flush()
 
+        # NOTE: It's required to mark only administrator users as system.
+        # Because only main administrator has object_class=='user'.
         await session.execute(
             update(Directory)
             .where(
