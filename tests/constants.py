@@ -408,3 +408,29 @@ TEST_DATA = [
         ],
     },
 ]
+
+TEST_SYSTEM_ADMIN_DATA = {
+    "name": "System Administrator",
+    "object_class": "user",
+    "organizationalPerson": {
+        "sam_account_name": "system_admin",
+        "user_principal_name": "system_admin",
+        "mail": "system_admin@mail.com",
+        "display_name": "system_admin",
+        "password": "password",
+        "groups": [DOMAIN_ADMIN_GROUP_NAME],
+    },
+    "attributes": {
+        "objectClass": [
+            "top",
+            "person",
+            "organizationalPerson",
+            "posixAccount",
+            "inetOrgPerson",
+            "shadowAccount",
+        ],
+        "posixEmail": ["abctest@mail.com"],
+        "attr_with_bvalue": [b"any"],
+        "userAccountControl": [str(UserAccountControlFlag.NORMAL_ACCOUNT)],
+    },
+}

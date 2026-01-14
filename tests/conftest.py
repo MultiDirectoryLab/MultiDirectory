@@ -62,7 +62,7 @@ from api.password_policy.adapter import (
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from constants import ENTITY_TYPE_DATAS, SYSTEM_ADMIN_DATA
+from constants import ENTITY_TYPE_DATAS
 from entities import AttributeType
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
@@ -153,7 +153,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from password_utils import PasswordUtils
-from tests.constants import TEST_DATA
+from tests.constants import TEST_DATA, TEST_SYSTEM_ADMIN_DATA
 
 
 class TestProvider(Provider):
@@ -984,7 +984,7 @@ async def setup_session(
 
     domain = (await get_base_directories(session))[0]
     await setup_gateway.create_dir(
-        data=SYSTEM_ADMIN_DATA,
+        data=TEST_SYSTEM_ADMIN_DATA,
         is_system=True,
         domain=domain,
         parent=domain,
