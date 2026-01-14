@@ -1,4 +1,4 @@
-"""Password Policy router.
+"""User Password history router.
 
 Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
