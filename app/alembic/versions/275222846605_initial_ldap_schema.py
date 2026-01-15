@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
 from entities import Attribute, AttributeType, ObjectClass
-from extra.alembic_utils import temporary_stub_column
+from extra.alembic_utils import temporary_stub_entity_type_name
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.utils.raw_definition_parser import (
@@ -370,8 +370,6 @@ def upgrade(container: AsyncContainer) -> None:
     async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_dao = await cnt.get(AttributeTypeDAO)
-            oc_dao = await cnt.get(ObjectClassDAO)
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
