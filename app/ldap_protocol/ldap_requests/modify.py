@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
+from constants import DOMAIN_ADMIN_GROUP_NAME
 from entities import Attribute, Directory, Group, User
 from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
@@ -79,8 +80,6 @@ MODIFY_EXCEPTION_STACK = (
     KRBAPILockPrincipalError,
     KRBAPIForcePasswordChangeError,
 )
-
-_DOMAIN_ADMIN_NAME = "domain admins"
 
 
 class ModifyRequest(BaseRequest):
@@ -150,7 +149,7 @@ class ModifyRequest(BaseRequest):
         now = datetime.now(timezone.utc) + timedelta(days=max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(
+    async def handle(  # noqa: C901
         self,
         ctx: LDAPModifyRequestContext,
     ) -> AsyncGenerator[ModifyResponse, None]:
@@ -183,6 +182,12 @@ class ModifyRequest(BaseRequest):
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if directory.is_system:
+            yield ModifyResponse(
+                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
+            )
             return
 
         can_modify = ctx.access_manager.check_modify_access(
@@ -448,7 +453,7 @@ class ModifyRequest(BaseRequest):
         if operation == Operation.REPLACE:
             for group in directory.groups:
                 if (
-                    group.directory.name == _DOMAIN_ADMIN_NAME
+                    group.directory.name == DOMAIN_ADMIN_GROUP_NAME
                     and directory.path_dn == user.dn
                     and group not in groups
                 ):
@@ -459,7 +464,7 @@ class ModifyRequest(BaseRequest):
         elif operation == Operation.DELETE:
             for group in groups:
                 if (
-                    group.directory.name == _DOMAIN_ADMIN_NAME
+                    group.directory.name == DOMAIN_ADMIN_GROUP_NAME
                     and directory.path_dn == user.dn
                 ):
                     raise ModifyForbiddenError(
@@ -493,7 +498,7 @@ class ModifyRequest(BaseRequest):
             operation == Operation.DELETE and user.dn in modified_members_dns
         )
 
-        if directory.name == _DOMAIN_ADMIN_NAME and (
+        if directory.name == DOMAIN_ADMIN_GROUP_NAME and (
             is_user_in_deleted or is_user_not_in_replaced
         ):
             raise ModifyForbiddenError("Can't delete yourself from group.")

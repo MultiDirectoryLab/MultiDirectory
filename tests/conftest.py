@@ -154,9 +154,9 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from ldap_protocol.utils.queries import get_user
+from ldap_protocol.utils.queries import get_base_directories, get_user
 from password_utils import PasswordUtils
-from tests.constants import TEST_DATA
+from tests.constants import TEST_DATA, TEST_SYSTEM_ADMIN_DATA
 
 
 class TestProvider(Provider):
@@ -983,7 +983,19 @@ async def setup_session(
         attribute_value_validator=attribute_value_validator,
     )
     await audit_use_case.create_policies()
-    await setup_gateway.setup_enviroment(dn="md.test", data=TEST_DATA)
+    await setup_gateway.setup_enviroment(
+        dn="md.test",
+        data=TEST_DATA,
+        is_system=False,
+    )
+
+    domain = (await get_base_directories(session))[0]
+    await setup_gateway.create_dir(
+        data=TEST_SYSTEM_ADMIN_DATA,
+        is_system=True,
+        domain=domain,
+        parent=domain,
+    )
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()

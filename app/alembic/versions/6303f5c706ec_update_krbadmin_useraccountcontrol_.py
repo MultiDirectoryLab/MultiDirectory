@@ -6,6 +6,7 @@ Create Date: 2025-10-24 15:33:31.478490
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy import select, update
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.utils.helpers import create_integer_hash
 from repo.pg.tables import queryable_attr as qa
@@ -24,6 +26,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -90,6 +93,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_change_uid_admin)
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 

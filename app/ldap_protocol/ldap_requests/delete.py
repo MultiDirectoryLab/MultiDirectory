@@ -98,6 +98,12 @@ class DeleteRequest(BaseRequest):
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
+        if directory.is_system:
+            yield DeleteResponse(
+                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
+            )
+            return
+
         self.set_event_data(
             {"before_attrs": self.get_directory_attrs(directory)},
         )

@@ -12,7 +12,7 @@ from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
 from entities import Attribute, CatalogueSetting, User
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
 from repo.pg.tables import queryable_attr as qa
 
@@ -23,7 +23,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()

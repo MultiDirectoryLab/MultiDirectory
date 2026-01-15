@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
 from entities import Attribute, AttributeType, ObjectClass
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.utils.raw_definition_parser import (
@@ -35,7 +35,7 @@ depends_on: None | str = None
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()

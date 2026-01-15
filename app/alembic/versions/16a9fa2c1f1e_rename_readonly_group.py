@@ -6,13 +6,16 @@ Create Date: 2025-11-21 13:50:36.452766
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer
 from sqlalchemy import select, update
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from constants import READ_ONLY_GROUP_NAME
 from entities import Attribute, Directory
+from extra.alembic_utils import temporary_stub_column
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -22,6 +25,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
@@ -30,19 +34,15 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     try:
         ro_dir_query = (
             select(Directory)
-            .options(
-                selectinload(qa(Directory.parent)),
-            )
-            .where(
-                qa(Directory.name) == "readonly domain controllers",
-            )
-        )  # fmt: skip
+            .options(selectinload(qa(Directory.parent)))
+            .where(qa(Directory.name) == "readonly domain controllers")
+        )
         ro_dir = session.scalar(ro_dir_query)
 
         if not ro_dir:
             return
 
-        ro_dir.name = "read-only"
+        ro_dir.name = READ_ONLY_GROUP_NAME
 
         ro_dir.create_path(ro_dir.parent, ro_dir.get_dn_prefix())
 
@@ -73,6 +73,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         session.close()
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()
@@ -81,13 +82,9 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     try:
         ro_dir_query = (
             select(Directory)
-            .options(
-                selectinload(qa(Directory.parent)),
-            )
-            .where(
-                qa(Directory.name) == "read-only",
-            )
-        )  # fmt: skip
+            .options(selectinload(qa(Directory.parent)))
+            .where(qa(Directory.name) == READ_ONLY_GROUP_NAME)
+        )
         ro_dir = session.scalar(ro_dir_query)
 
         if not ro_dir:
@@ -102,7 +99,7 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             .filter_by(
                 name="sAMAccountName",
                 directory=ro_dir,
-                value="read-only",
+                value=READ_ONLY_GROUP_NAME,
             )
             .values({"value": ro_dir.name}),
         )
@@ -112,7 +109,7 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             .filter_by(
                 name="cn",
                 directory=ro_dir,
-                value="read-only",
+                value=READ_ONLY_GROUP_NAME,
             )
             .values({"value": ro_dir.name}),
         )

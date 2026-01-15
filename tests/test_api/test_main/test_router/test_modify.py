@@ -67,7 +67,6 @@ async def test_api_correct_modify(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_duplicate_with_spaces_modify(
@@ -204,7 +203,6 @@ async def test_api_modify_many(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_with_incorrect_dn(http_client: AsyncClient) -> None:
@@ -258,7 +256,34 @@ async def test_api_modify_non_exist_object(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("session")
+async def test_api_cant_modify_system_directory(
+    http_client: AsyncClient,
+) -> None:
+    """Test API for modify system directory."""
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": "cn=System Administrator,dc=md,dc=test",
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "name",
+                        "vals": ["new_test"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.UNWILLING_TO_PERFORM
+
+
+@pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_correct_modify_replace_memberof(
@@ -398,7 +423,6 @@ async def test_api_modify_replace_loop_detect_member(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_replace_loop_detect_memberof(
@@ -429,7 +453,6 @@ async def test_api_modify_replace_loop_detect_memberof(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
@@ -454,7 +477,6 @@ async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_qpi_modify_primary_object_classes(

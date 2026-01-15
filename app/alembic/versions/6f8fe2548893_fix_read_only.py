@@ -6,13 +6,15 @@ Create Date: 2024-11-14 13:02:33.899640
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from constants import DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.utils.helpers import create_integer_hash
 
 # revision identifiers, used by Alembic.
@@ -22,7 +24,8 @@ branch_labels: None = None
 depends_on: None = None
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
@@ -43,7 +46,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             .filter_by(
                 name="sAMAccountName",
                 directory=ro_dir,
-                value="domain users",
+                value=DOMAIN_USERS_GROUP_NAME,
             )
             .values({"value": ro_dir.name}),
         )

@@ -172,10 +172,12 @@ class KerberosService(AbstractService):
                 "description": ["Kerberos administrator's group."],
                 "gidNumber": ["800"],
             },
+            is_system=True,
         )
         services = AddRequest.from_dict(
             dns.services_container_dn,
             {"objectClass": ["organizationalUnit", "top", "container"]},
+            is_system=True,
         )
         krb_user = AddRequest.from_dict(
             dns.krbadmin_dn,
@@ -209,6 +211,7 @@ class KerberosService(AbstractService):
                     ),
                 ],
             },
+            is_system=True,
         )
         return AddRequests(
             group=group,

@@ -10,6 +10,7 @@ from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory, Group, User
 from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
@@ -23,10 +24,6 @@ from ldap_protocol.objects import (
     PartialAttribute,
     ProtocolRequests,
     UserAccountControlFlag,
-)
-from ldap_protocol.utils.const import (
-    DOMAIN_COMPUTERS_GROUP_NAME,
-    DOMAIN_USERS_GROUP_NAME,
 )
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -68,6 +65,11 @@ class AddRequest(BaseRequest):
     CONTEXT_TYPE: ClassVar[type] = LDAPAddRequestContext
 
     entry: str = Field(..., description="Any `DistinguishedName`")
+    is_system: bool = Field(
+        False,
+        description="Mark as system directory (cannot be modified)",
+    )
+
     attributes: list[PartialAttribute]
 
     password: SecretStr | None = Field(None, examples=["password"])
@@ -205,6 +207,7 @@ class AddRequest(BaseRequest):
             new_dir = Directory(
                 object_class="",
                 name=name,
+                is_system=self.is_system or bool(name == "kerberos"),
                 parent=parent,
             )
 
@@ -481,6 +484,7 @@ class AddRequest(BaseRequest):
         entry: str,
         attributes: dict[str, list[str]],
         password: str | None = None,
+        is_system: bool = False,
     ) -> "AddRequest":
         """Create AddRequest from dict.
 
@@ -490,6 +494,7 @@ class AddRequest(BaseRequest):
         """
         return AddRequest(
             entry=entry,
+            is_system=is_system,
             password=password,
             attributes=[
                 PartialAttribute(type=name, vals=vals)

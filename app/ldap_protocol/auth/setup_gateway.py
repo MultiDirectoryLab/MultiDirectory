@@ -59,6 +59,7 @@ class SetupGateway:
         self,
         *,
         data: list,
+        is_system: bool,
         dn: str = "multifactor.dev",
     ) -> None:
         """Create directories and users for enviroment."""
@@ -68,6 +69,7 @@ class SetupGateway:
             return
 
         domain = Directory(name=dn, object_class="domain")
+        domain.is_system = True
         domain.object_sid = generate_domain_sid()
         domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
         domain.depth = len(domain.path)
@@ -107,8 +109,9 @@ class SetupGateway:
             for unit in data:
                 await self.create_dir(
                     unit,
-                    domain,
-                    domain,
+                    is_system=is_system,
+                    domain=domain,
+                    parent=domain,
                 )
 
         except Exception:
@@ -120,11 +123,13 @@ class SetupGateway:
     async def create_dir(
         self,
         data: dict,
+        is_system: bool,
         domain: Directory,
         parent: Directory | None = None,
     ) -> None:
         """Create data recursively."""
         dir_ = Directory(
+            is_system=is_system,
             object_class=data["object_class"],
             name=data["name"],
             parent=parent,
@@ -221,8 +226,9 @@ class SetupGateway:
             for n_data in data["children"]:
                 await self.create_dir(
                     n_data,
-                    domain,
-                    dir_,
+                    is_system=is_system,
+                    domain=domain,
+                    parent=dir_,
                 )
 
     async def _get_group(self, name: str) -> Group:

@@ -190,6 +190,7 @@ class Directory:
 
     id: int = field(init=False)
     name: str
+    is_system: bool = field(default=False)
     object_sid: str = field(default="")
     object_guid: uuid.UUID = field(default_factory=uuid.uuid4)
     parent_id: int | None = None

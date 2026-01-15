@@ -112,6 +112,7 @@ directory_table = Table(
     "Directory",
     metadata,
     Column("id", Integer, primary_key=True),
+    Column("is_system", Boolean, nullable=False, default=False),
     Column(
         "parentId",
         Integer,
