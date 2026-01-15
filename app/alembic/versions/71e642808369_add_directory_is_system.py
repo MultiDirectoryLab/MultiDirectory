@@ -1,8 +1,8 @@
 """Add directory is_system column.
 
-Revision ID: 818083218568
-Revises: 6c858cc05da7
-Create Date: 2025-12-25 08:58:20.074356
+Revision ID: 71e642808369
+Revises: a99f866a7e3a
+Create Date: 2026-01-15 09:08:12.866533
 
 """
 
@@ -27,8 +27,8 @@ from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
-revision: None | str = "818083218568"
-down_revision: None | str = "6c858cc05da7"
+revision: None | str = "71e642808369"
+down_revision: None | str = "a99f866a7e3a"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
