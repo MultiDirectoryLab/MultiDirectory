@@ -16,10 +16,16 @@ from dishka import (
     provide,
 )
 
-from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
+from api.password_policy.adapter import (
+    PasswordPolicyFastAPIAdapter,
+    UserPasswordHistoryResetFastAPIAdapter,
+)
 from config import Settings
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
+from ldap_protocol.policies.password.use_cases import (
+    UserPasswordHistoryUseCases,
+)
 from tests.conftest import TestProvider
 
 
@@ -35,9 +41,16 @@ class TestLocalProvider(Provider):
     """Test provider for local scope."""
 
     _cached_policy_use_cases: PasswordPolicyUseCases | None = None
+    _cached_user_password_history_use_cases: (
+        UserPasswordHistoryUseCases | None
+    ) = None
 
     password_policies_adapter = provide(
         PasswordPolicyFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    user_password_history_reset_adapter = provide(
+        UserPasswordHistoryResetFastAPIAdapter,
         scope=Scope.REQUEST,
     )
 
@@ -120,6 +133,22 @@ class TestLocalProvider(Provider):
         yield self._cached_policy_use_cases
         self._cached_policy_use_cases = None
 
+    @provide(
+        scope=Scope.REQUEST,
+        provides=UserPasswordHistoryUseCases,
+    )
+    async def get_user_password_history_use_cases(
+        self,
+    ) -> AsyncIterator[UserPasswordHistoryUseCases]:
+        if self._cached_user_password_history_use_cases is None:
+            session = Mock()
+            use_cases = UserPasswordHistoryUseCases(session)
+            use_cases.clear = make_mock("clear")  # type: ignore
+            self._cached_user_password_history_use_cases = use_cases
+
+        yield self._cached_user_password_history_use_cases
+        self._cached_user_password_history_use_cases = None
+
 
 @pytest_asyncio.fixture(scope="session")
 async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
@@ -141,3 +170,12 @@ async def password_use_cases(
     """Get di password_use_cases."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(PasswordPolicyUseCases)
+
+
+@pytest_asyncio.fixture
+async def user_password_history_use_cases(
+    container: AsyncContainer,
+) -> AsyncIterator[UserPasswordHistoryUseCases]:
+    """Get di user_password_history_use_cases."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(UserPasswordHistoryUseCases)
