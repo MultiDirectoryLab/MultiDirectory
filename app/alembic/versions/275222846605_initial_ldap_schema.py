@@ -367,8 +367,9 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
+    async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
