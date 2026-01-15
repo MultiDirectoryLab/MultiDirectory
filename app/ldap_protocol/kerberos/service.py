@@ -32,6 +32,7 @@ from password_utils import PasswordUtils
 from .base import AbstractKadmin
 from .exceptions import (
     KRBAPIAddPrincipalError,
+    KRBAPIConnectionError,
     KRBAPIDeletePrincipalError,
     KRBAPIPrincipalNotFoundError,
     KRBAPIRenamePrincipalError,
@@ -262,6 +263,7 @@ class KerberosService(AbstractService):
             KRBAPISetupStashError,
             KRBAPISetupTreeError,
             KerberosDependencyError,
+            KRBAPIConnectionError,
         ) as err:
             await self._ldap_manager.rollback_kerberos_structure(
                 context.krbadmin,
