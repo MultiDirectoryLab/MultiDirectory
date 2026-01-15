@@ -1,6 +1,6 @@
-"""Test main config.
+"""Test router config.
 
-Copyright (c) 2024 MultiFactor
+Copyright (c) 2026 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
@@ -24,7 +24,7 @@ async def add_system_administrator(
     password_utils: PasswordUtils,
     setup_session: None,  # noqa: ARG001
 ) -> None:
-    """Get session and acquire after completion."""
+    """Create system administrator user for tests that require it."""
     object_class_dao = ObjectClassDAO(session)
     attribute_value_validator = AttributeValueValidator()
     entity_type_dao = EntityTypeDAO(
