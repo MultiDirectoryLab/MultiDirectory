@@ -33,6 +33,7 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosDependencyError,
     KerberosNotFoundError,
     KerberosUnavailableError,
+    KRBAPIConnectionError,
 )
 from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.utils.const import EmailStr
@@ -60,6 +61,10 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     KerberosUnavailableError: rule(
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        translator=translator,
+    ),
+    KRBAPIConnectionError: rule(
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         translator=translator,
     ),
