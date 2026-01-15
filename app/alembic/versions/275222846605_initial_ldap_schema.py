@@ -387,9 +387,8 @@ def upgrade(container: AsyncContainer) -> None:
                 continue
 
             attribute_types = await session.scalars(
-                select(AttributeType).where(
-                    qa(AttributeType.name)
-                    .in_(at_names),
+                select(AttributeType)
+                .where(qa(AttributeType.name).in_(at_names),
                 ),
             )  # fmt: skip
 
