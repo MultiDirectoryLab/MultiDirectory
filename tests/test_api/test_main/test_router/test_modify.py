@@ -257,6 +257,7 @@ async def test_api_modify_non_exist_object(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("add_system_administrator")
 async def test_api_cant_modify_system_directory(
     http_client: AsyncClient,
 ) -> None:

@@ -154,9 +154,9 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from ldap_protocol.utils.queries import get_base_directories, get_user
+from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
-from tests.constants import TEST_DATA, TEST_SYSTEM_ADMIN_DATA
+from tests.constants import TEST_DATA
 
 
 class TestProvider(Provider):
@@ -407,15 +407,16 @@ class TestProvider(Provider):
         self._cached_session = async_session
         self._session_id = uuid.uuid4()
 
-        yield async_session
+        try:
+            yield async_session
+        finally:
+            self._cached_session = None
+            self._session_id = None
 
-        self._cached_session = None
-        self._session_id = None
-
-        async_session.expire_all()
-        await trans.rollback()
-        await async_session.close()
-        await connection.close()
+            async_session.expire_all()
+            await trans.rollback()
+            await async_session.close()
+            await connection.close()
 
     @provide(scope=Scope.SESSION)
     async def get_ldap_session(
@@ -987,14 +988,6 @@ async def setup_session(
         dn="md.test",
         data=TEST_DATA,
         is_system=False,
-    )
-
-    domain = (await get_base_directories(session))[0]
-    await setup_gateway.create_dir(
-        data=TEST_SYSTEM_ADMIN_DATA,
-        is_system=True,
-        domain=domain,
-        parent=domain,
     )
 
     # NOTE: after setup environment we need base DN to be created

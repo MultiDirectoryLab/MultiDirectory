@@ -456,6 +456,7 @@ async def test_api_update_dn_non_exist_superior(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("add_system_administrator")
 async def test_api_cant_update_system_directory(
     http_client: AsyncClient,
 ) -> None:
