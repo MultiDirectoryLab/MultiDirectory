@@ -407,16 +407,15 @@ class TestProvider(Provider):
         self._cached_session = async_session
         self._session_id = uuid.uuid4()
 
-        try:
-            yield async_session
-        finally:
-            self._cached_session = None
-            self._session_id = None
+        yield async_session
 
-            async_session.expire_all()
-            await trans.rollback()
-            await async_session.close()
-            await connection.close()
+        self._cached_session = None
+        self._session_id = None
+
+        async_session.expire_all()
+        await trans.rollback()
+        await async_session.close()
+        await connection.close()
 
     @provide(scope=Scope.SESSION)
     async def get_ldap_session(
