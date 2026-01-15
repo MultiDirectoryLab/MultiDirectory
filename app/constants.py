@@ -8,6 +8,17 @@ from typing import TypedDict
 
 from enums import EntityTypeNames
 
+GROUPS_CONTAINER_NAME = "groups"
+COMPUTERS_CONTAINER_NAME = "computers"
+USERS_CONTAINER_NAME = "users"
+
+READ_ONLY_GROUP_NAME = "read-only"
+
+DOMAIN_ADMIN_GROUP_NAME = "domain admins"
+DOMAIN_USERS_GROUP_NAME = "domain users"
+DOMAIN_COMPUTERS_GROUP_NAME = "domain computers"
+
+
 group_attrs = {
     "objectClass": ["top"],
     "groupType": ["-2147483646"],

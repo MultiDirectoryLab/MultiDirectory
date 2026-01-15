@@ -24,7 +24,8 @@ branch_labels: None = None
 depends_on: None = None
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()

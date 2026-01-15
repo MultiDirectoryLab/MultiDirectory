@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session, selectinload
 from constants import DOMAIN_COMPUTERS_GROUP_NAME
 from entities import Attribute, Directory, EntityType, Group
 from enums import EntityTypeNames
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -37,6 +38,7 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -167,6 +169,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_add_primary_group_id)
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()

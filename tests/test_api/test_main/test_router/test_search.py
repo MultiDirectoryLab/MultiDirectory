@@ -96,6 +96,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
     assert response["resultCode"] == LDAPCodes.SUCCESS
 
     sub_dirs = {
+        "cn=System Administrator,dc=md,dc=test",
         "cn=groups,dc=md,dc=test",
         "cn=users,dc=md,dc=test",
         "ou=testModifyDn1,dc=md,dc=test",
@@ -280,6 +281,7 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     """Test api search."""
     group = "cn=domain admins,cn=groups,dc=md,dc=test"
     members = [
+        "cn=System Administrator,dc=md,dc=test",
         "cn=developers,cn=groups,dc=md,dc=test",
         "cn=user0,cn=users,dc=md,dc=test",
         "cn=user_admin,cn=users,dc=md,dc=test",

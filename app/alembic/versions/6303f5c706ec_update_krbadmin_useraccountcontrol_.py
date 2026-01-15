@@ -26,6 +26,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -92,6 +93,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_change_uid_admin)
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 

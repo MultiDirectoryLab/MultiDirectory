@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import COMPUTERS_CONTAINER_NAME
 from entities import Directory
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -33,6 +34,7 @@ _OU_COMPUTERS_DATA = {
 }
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     from ldap_protocol.auth.setup_gateway import SetupGateway
@@ -81,6 +83,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_ou_computers)
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 

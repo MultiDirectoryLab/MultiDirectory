@@ -22,7 +22,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.add_column("Directory", sa.Column("rdname", sa.String(length=64)))
@@ -57,7 +58,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.alter_column("Directory", "rdname", nullable=False)
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()

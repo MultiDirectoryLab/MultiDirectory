@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DATAS
 from entities import Attribute, Directory, User
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
@@ -29,7 +29,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_entity_type_name
+@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade database schema and data, creating Entity Types."""
     op.create_table(

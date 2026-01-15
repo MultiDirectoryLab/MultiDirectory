@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
+from extra.alembic_utils import temporary_stub_column
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -23,6 +24,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -108,6 +110,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_migrate_ou_to_cn_containers)
 
 
+@temporary_stub_column("is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
