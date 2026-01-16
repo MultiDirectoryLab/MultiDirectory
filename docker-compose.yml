@@ -17,8 +17,6 @@ services:
       - "636:636"
       - "749:749"
       - "464:464"
-      # - "53:53"
-      # - "53:53/udp"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./certs:/certs"
@@ -544,7 +542,7 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
     volumes:
-      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf
+      - ./.package/dnsdist.conf:/etc/dnsdist/dnsdist.conf
       - dnsdist_confd:/etc/dnsdist/conf.d
 
 
@@ -557,8 +555,10 @@ services:
         ipv4_address: 172.20.0.2
     expose:
       - 8083
+      - 53/udp
+      - 53/tcp
     volumes:
-      - ./recursor.conf:/etc/powerdns/recursor.conf
+      - ./.package/recursor.conf:/etc/powerdns/recursor.conf
       - forward_zones:/etc/powerdns/recursor.d/
 
 networks:

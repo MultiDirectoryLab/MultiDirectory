@@ -43,8 +43,6 @@ RUN mkdir /build && \
     make -C modules install DESTDIR=/build &&\ 
     make clean && \
     strip /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so
-
-# ====================================================================================================
     
 FROM alpine:3.20 AS runtime
 
@@ -61,7 +59,7 @@ RUN apk add --no-cache \
 
 RUN mkdir -p /etc/powerdns/pdns.d /var/run/pdns /var/lib/powerdns /etc/powerdns/templates.d /var/lib/pdns-lmdb
 
-COPY ./pdns.conf /etc/powerdns/pdns.conf
+COPY ./.package/pdns.conf /etc/powerdns/pdns.conf
 
 EXPOSE 8082/tcp
 
