@@ -122,7 +122,7 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
         data: DNSServiceForwardZoneRequest,
     ) -> None:
         """Create new DNS forward zone."""
-        await self._service.create_zone(
+        await self._service.create_forward_zone(
             DNSForwardZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
@@ -154,12 +154,12 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
         """Delete DNS forward zones."""
         await self._service.delete_forward_zones(data.zone_ids)
 
-    async def create_zone(
+    async def create_master_zone(
         self,
         data: DNSServiceMasterZoneRequest,
     ) -> None:
         """Create new DNS zone."""
-        await self._service.create_zone(
+        await self._service.create_master_zone(
             DNSMasterZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
@@ -169,11 +169,14 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
 
     async def get_dns_master_zones(self) -> list[DNSMasterZoneDTO]:
         """Get all DNS master zones."""
-        return await self._service.get_zones()
+        return await self._service.get_master_zones()
 
-    async def update_zone(self, data: DNSServiceMasterZoneRequest) -> None:
+    async def update_master_zone(
+        self,
+        data: DNSServiceMasterZoneRequest,
+    ) -> None:
         """Update DNS zone with given params."""
-        await self._service.update_zone(
+        await self._service.update_master_zone(
             DNSMasterZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
@@ -181,9 +184,12 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
             ),
         )
 
-    async def delete_zones(self, data: DNSServiceZoneDeleteRequest) -> None:
+    async def delete_master_zones(
+        self,
+        data: DNSServiceZoneDeleteRequest,
+    ) -> None:
         """Delete DNS zones."""
-        await self._service.delete_zones(data.zone_ids)
+        await self._service.delete_master_zones(data.zone_ids)
 
     async def check_dns_forward_zone(
         self,

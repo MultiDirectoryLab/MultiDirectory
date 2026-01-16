@@ -214,12 +214,12 @@ async def delete_forward_zone(
     warn_on_unmapped=False,
     default_client_error_translator=translator,
 )
-async def create_zone(
+async def create_master_zone(
     data: DNSServiceMasterZoneRequest,
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> None:
     """Create new DNS zone."""
-    await adapter.create_zone(data)
+    await adapter.create_master_zone(data)
 
 
 @dns_router.get("/zone", error_map=error_map)
@@ -231,21 +231,21 @@ async def get_dns_zones(
 
 
 @dns_router.patch("/zone", error_map=error_map)
-async def update_zone(
+async def update_master_zone(
     data: DNSServiceMasterZoneRequest,
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> None:
     """Update DNS zone with given params."""
-    await adapter.update_zone(data)
+    await adapter.update_master_zone(data)
 
 
 @dns_router.delete("/zone", error_map=error_map)
-async def delete_zone(
+async def delete_master_zone(
     data: DNSServiceZoneDeleteRequest,
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> None:
     """Delete DNS zone."""
-    await adapter.delete_zones(data)
+    await adapter.delete_master_zones(data)
 
 
 @dns_router.post("/forward_check", error_map=error_map)

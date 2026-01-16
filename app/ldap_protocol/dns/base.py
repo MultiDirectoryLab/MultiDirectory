@@ -9,14 +9,16 @@ from dataclasses import dataclass
 from enum import StrEnum
 from ipaddress import IPv4Address, IPv6Address
 
+import httpx
 from loguru import logger as loguru_logger
+
+from config import Settings
 
 from .dto import (
     DNSForwardZoneDTO,
     DNSMasterZoneDTO,
     DNSRRSetDTO,
     DNSSettingsDTO,
-    DNSZoneBaseDTO,
 )
 from .enums import DNSForwarderServerStatus
 from ldap_protocol.dns.dto import DNSSettingDTO
@@ -147,18 +149,34 @@ class DNSManagerSettings:
         self.dns_server_ip = dns_server_ip
         self.tsig_key = tsig_key
 
+class AbstractDNSHTTPClient:
+    """Abstract DNS client class."""
+
+    @abstractmethod
+    async def send(
+        self,
+        method: str,
+        url: str,
+        payload: dict | None = None,
+    ) -> httpx.Response:
+        """Send HTTP request."""
+        raise DNSNotImplementedError
 
 class AbstractDNSManager:
     """Abstract DNS manager class."""
 
     _dns_settings: DNSManagerSettings
+    _app_settings: Settings
+    _dns_client: AbstractDNSHTTPClient | None = None
 
     def __init__(
         self,
         settings: DNSManagerSettings,
+        app_settings: Settings,
     ) -> None:
         """Set up DNS manager."""
         self._dns_settings = settings
+        self._app_settings = app_settings
 
     @abstractmethod
     async def setup(
@@ -196,28 +214,42 @@ class AbstractDNSManager:
     ) -> list[DNSRRSetDTO]: ...
 
     @abstractmethod
-    async def get_zones(self) -> list[DNSMasterZoneDTO]: ...
+    async def get_master_zones(self) -> list[DNSMasterZoneDTO]: ...
 
     @abstractmethod
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         raise DNSNotImplementedError
 
     @abstractmethod
-    async def create_zone(
+    async def create_master_zone(
         self,
-        zone: DNSZoneBaseDTO,
+        zone: DNSMasterZoneDTO,
     ) -> None:
         raise DNSNotImplementedError
 
     @abstractmethod
-    async def update_zone(
+    async def create_forward_zone(
         self,
-        zone: DNSZoneBaseDTO,
+        zone: DNSForwardZoneDTO,
     ) -> None:
         raise DNSNotImplementedError
 
     @abstractmethod
-    async def delete_zone(
+    async def update_master_zone(
+        self,
+        zone: DNSMasterZoneDTO,
+    ) -> None:
+        raise DNSNotImplementedError
+
+    @abstractmethod
+    async def update_forward_zone(
+        self,
+        zone: DNSForwardZoneDTO,
+    ) -> None:
+        raise DNSNotImplementedError
+
+    @abstractmethod
+    async def delete_master_zone(
         self,
         zone_id: str,
     ) -> None:

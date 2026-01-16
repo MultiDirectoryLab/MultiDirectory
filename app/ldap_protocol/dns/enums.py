@@ -26,6 +26,8 @@ class PowerDNSZoneType(StrEnum):
 
     MASTER = "Master"
     FORWARDED = "Forwarded"
+    NATIVE = "Native"
+    PRIMARY = "Primary"
 
 
 class PowerDNSRecordChangeType(StrEnum):

@@ -65,7 +65,7 @@ class DNSMasterZoneDTO(DNSZoneBaseDTO):
 
     dnssec: bool = field(default=False)
     nameservers: list[str] = field(default_factory=list)
-    kind: PowerDNSZoneType = PowerDNSZoneType.MASTER
+    kind: PowerDNSZoneType = PowerDNSZoneType.NATIVE
 
 
 @dataclass

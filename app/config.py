@@ -191,7 +191,15 @@ class Settings(BaseModel):
     )
 
     PDNS_AUTH_SERVER_HOST: str = "pdns_auth"
+    PDNS_AUTH_SERVER_IP: str = "172.20.0.4"
+    PDNS_AUTH_SERVER_PORT: int = 8082
     PDNS_RECURSOR_SERVER_HOST: str = "pdns_recursor"
+    PDNS_RECURSOR_SERVER_IP: str = "172.20.0.2"
+    PDNS_RECURSOR_SERVER_PORT: int = 8083
+    PDNS_DIST_HOST: str = "172.20.0.3"
+    PDNS_DIST_PORT: int = 8084
+    PDNS_DIST_CONFIG_PATH: str = "/dnsdist/delta.conf"
+    PDNS_DIST_KEY: str
     PDNS_API_KEY: str
     DEFAULT_NAMESERVER: str
 
