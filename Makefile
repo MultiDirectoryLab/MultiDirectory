@@ -38,12 +38,6 @@ down:  ## shutdown services
 	docker compose down --remove-orphans
 	docker volume prune -f
 
-migrations:  ## generate migration file
-	docker compose run ldap_server alembic revision --autogenerate
-
-migrate:  ## upgrade db
-	docker compose run ldap_server python multidirectory.py --migrate
-
 # server stage/development commands
 
 stage_gen_cert:  ## generate self-signed cert
