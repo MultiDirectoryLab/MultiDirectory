@@ -92,6 +92,9 @@ show_missing = true
 
 [tool.coverage.run]
 concurrency = ["thread", "gevent"]
+omit = [
+    "*/__dishka_factory_*",
+]
 
 # RUFF
 # Ruff is a linter, not a type checker.
