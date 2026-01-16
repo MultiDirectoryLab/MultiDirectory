@@ -26,6 +26,16 @@ from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 
 from .data_logger import DataLogger
 
+log = logger.bind(name="ldap")
+log.add(
+    "logs/ldap_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == "ldap",
+    retention="10 days",
+    rotation="1d",
+    colorize=False,
+    enqueue=True,
+)
+
 infinity = cast("int", math.inf)
 pp_v2 = ProxyProtocolV2()
 
