@@ -17,8 +17,8 @@ services:
       - "636:636"
       - "749:749"
       - "464:464"
-      - "53:53"
-      - "53:53/udp"
+      # - "53:53"
+      # - "53:53/udp"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./certs:/certs"
@@ -171,12 +171,16 @@ services:
   api:
     image: multidirectory
     container_name: multidirectory_api
+    networks:
+      - default
+      - dns_net
     volumes:
       - ./app:/app
       - ./certs:/certs
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
+      - dnsdist_confd:/dnsdist
     env_file: local.env
     command: python multidirectory.py --http
     environment:
@@ -514,30 +518,56 @@ services:
         DOCKER_BUILDKIT: 1
     image: pdns_auth_md
     container_name: pdns_auth
+    networks:
+      default:
+      dns_net:
+        ipv4_address: 172.20.0.4
     expose:
       - 8082
-      - 53
+      - 53/udp
+      - 53/tcp
     volumes:
       - dns_lmdb:/var/lib/pdns-lmdb
       - dns_config:/etc/powerdns
 
 
+  pdnsdist:
+    image: powerdns/dnsdist-19:1.9.11
+    container_name: pdnsdist
+    networks:
+      default:
+      dns_net:
+        ipv4_address: 172.20.0.3
+    expose:
+      - 8084
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf
+      - dnsdist_confd:/etc/dnsdist/conf.d
+
+
   pdns_recursor:
     image: powerdns/pdns-recursor-51:5.1.7
     container_name: pdns_recursor
+    networks:
+      default:
+      dns_net:
+        ipv4_address: 172.20.0.2
     expose:
       - 8083
-    ports:
-      - "53:53/udp"
-      - "53:53/tcp"
     volumes:
       - ./recursor.conf:/etc/powerdns/recursor.conf
       - forward_zones:/etc/powerdns/recursor.d/
-    labels:
-      - traefik.enable=true
-      - traefik.udp.routers.power_dns_recursor_udp.entrypoints=power_dns_recursor_udp
-      - traefik.udp.services.power_dns_recursor_udp.loadbalancer.server.port=53
 
+networks:
+  dns_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
 
 volumes:
   postgres:
@@ -554,3 +584,4 @@ volumes:
   dns_lmdb:
   dns_config:
   forward_zones:
+  dnsdist_confd:
