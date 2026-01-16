@@ -1,8 +1,7 @@
 name: build
 on:
   push:
-    branches:
-      - 'release-*'
+    branches: [dev]
 
 env:
   REPO: ${{ github.repository }}
@@ -24,7 +23,7 @@ jobs:
 
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}_ssh_test:beta
+          TAG: ghcr.io/${{ env.REPO }}_ssh_test:dev
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
@@ -47,7 +46,7 @@ jobs:
 
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}_test:beta
+          TAG: ghcr.io/${{ env.REPO }}_test:dev
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
@@ -90,15 +89,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pull tests
         env:
-          TAG: ghcr.io/${{ env.REPO }}_test:beta
+          TAG: ghcr.io/${{ env.REPO }}_test:dev
         run: docker compose -f docker-compose.remote.test.yml pull
       - name: Run tests
         env:
-          TAG: ghcr.io/${{ env.REPO }}_test:beta
+          TAG: ghcr.io/${{ env.REPO }}_test:dev
         run: docker compose -f docker-compose.remote.test.yml up --no-log-prefix --attach md-test --exit-code-from md-test
       - name: Teardown tests
         env:
-          TAG: ghcr.io/${{ env.REPO }}_test:beta
+          TAG: ghcr.io/${{ env.REPO }}_test:dev
         run: docker compose -f docker-compose.remote.test.yml down
 
   build-app:
@@ -118,7 +117,7 @@ jobs:
 
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}:beta
+          TAG: ghcr.io/${{ env.REPO }}:dev
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
@@ -142,7 +141,7 @@ jobs:
 
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}_kerberos:beta
+          TAG: ghcr.io/${{ env.REPO }}_kerberos:dev
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
@@ -154,7 +153,7 @@ jobs:
             --cache-to type=gha,mode=max \
             --cache-from $TAG \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
-            --build-arg VERSION=beta
+            --build-arg VERSION=dev
 
   build-bind9:
     runs-on: ubuntu-latest
@@ -173,7 +172,7 @@ jobs:
 
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}_bind9:beta
+          TAG: ghcr.io/${{ env.REPO }}_bind9:dev
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
@@ -185,7 +184,7 @@ jobs:
             --cache-to type=gha,mode=max \
             --cache-from $TAG \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
-            --build-arg VERSION=beta
+            --build-arg VERSION=dev
 
   build-keadhcp4:
     runs-on: ubuntu-latest
@@ -204,7 +203,7 @@ jobs:
 
       - name: Build docker image
         env:
-          TAG: ghcr.io/${{ env.REPO }}_dhcp4:beta
+          TAG: ghcr.io/${{ env.REPO }}_dhcp4:dev
           DOCKER_BUILDKIT: '1'
         run: |
           echo $TAG
@@ -216,4 +215,4 @@ jobs:
             --cache-to type=gha,mode=max \
             --cache-from $TAG \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
-            --build-arg VERSION=beta
+            --build-arg VERSION=dev
