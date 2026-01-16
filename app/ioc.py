@@ -266,30 +266,6 @@ class MainProvider(Provider):
             resolve_coro,
         )
 
-    @provide(scope=Scope.APP)
-    async def get_pdns_auth_server_client(
-        self,
-        settings: Settings,
-    ) -> AsyncIterator[PDNSAuthServerClient]:
-        """Get async client for PDNS auth server."""
-        async with httpx.AsyncClient(
-            base_url=f"http://{settings.PDNS_AUTH_SERVER_HOST}:8082/api/v1/servers/localhost",
-            headers={"X-API-Key": settings.PDNS_API_KEY},
-        ) as client:
-            yield PDNSAuthServerClient(client)
-
-    @provide(scope=Scope.APP)
-    async def get_pdns_recursor_server_client(
-        self,
-        settings: Settings,
-    ) -> AsyncIterator[PDNSRecursorServerClient]:
-        """Get async client for PDNS recursor server."""
-        async with httpx.AsyncClient(
-            base_url=f"http://{settings.PDNS_RECURSOR_SERVER_HOST}:8083/api/v1/servers/localhost",
-            headers={"X-API-Key": settings.PDNS_API_KEY},
-        ) as client:
-            yield PDNSRecursorServerClient(client)
-
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr(
         self,

@@ -21,7 +21,6 @@ from ldap_protocol.dns.dto import (
     DNSMasterZoneDTO,
     DNSRRSetDTO,
     DNSSettingsDTO,
-    DNSZoneBaseDTO,
 )
 
 from .enums import DNSManagerState
@@ -76,26 +75,34 @@ class DNSUseCase(AbstractService):
         """Delete DNS record."""
         await self._dns_manager.delete_record(zone_id, record)
 
-    async def create_zone(self, zone: DNSZoneBaseDTO) -> None:
-        """Create DNS zone."""
-        await self._dns_manager.create_zone(zone)
+    async def create_master_zone(self, zone: DNSMasterZoneDTO) -> None:
+        """Create DNS master zone."""
+        await self._dns_manager.create_master_zone(zone)
 
-    async def get_zones(self) -> list[DNSMasterZoneDTO]:
+    async def create_forward_zone(self, zone: DNSForwardZoneDTO) -> None:
+        """Create DNS forward zone."""
+        await self._dns_manager.create_forward_zone(zone)
+
+    async def get_master_zones(self) -> list[DNSMasterZoneDTO]:
         """Get all DNS zones."""
-        return await self._dns_manager.get_zones()
+        return await self._dns_manager.get_master_zones()
 
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Get all forward zones."""
         return await self._dns_manager.get_forward_zones()
 
-    async def update_zone(self, zone: DNSZoneBaseDTO) -> None:
-        """Update DNS zone."""
-        await self._dns_manager.update_zone(zone)
+    async def update_master_zone(self, zone: DNSMasterZoneDTO) -> None:
+        """Update DNS master zone."""
+        await self._dns_manager.update_master_zone(zone)
 
-    async def delete_zones(self, zone_ids: list[str]) -> None:
-        """Delete DNS zones."""
+    async def update_forward_zone(self, zone: DNSForwardZoneDTO) -> None:
+        """Update DNS forward zone."""
+        await self._dns_manager.update_forward_zone(zone)
+
+    async def delete_master_zones(self, zone_ids: list[str]) -> None:
+        """Delete DNS master zones."""
         for zone_id in zone_ids:
-            await self._dns_manager.delete_zone(zone_id)
+            await self._dns_manager.delete_master_zone(zone_id)
 
     async def delete_forward_zones(self, zone_ids: list[str]) -> None:
         """Delete DNS forward zones."""
@@ -146,9 +153,13 @@ class DNSUseCase(AbstractService):
         get_records.__name__: AuthorizationRules.DNS_GET_ALL_RECORDS,
         get_dns_status.__name__: AuthorizationRules.DNS_GET_DNS_STATUS,
         delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
-        get_forward_zones.__name__: AuthorizationRules.DNS_GET_FORWARD_ZONES,
-        create_zone.__name__: AuthorizationRules.DNS_CREATE_ZONE,
-        update_zone.__name__: AuthorizationRules.DNS_UPDATE_ZONE,
-        delete_zones.__name__: AuthorizationRules.DNS_DELETE_ZONE,
+        get_master_zones.__name__: AuthorizationRules.DNS_GET_MASTER_ZONES,
+        get_forward_zones.__name__: AuthorizationRules.DNS_GET_FWD_ZONES,
+        create_master_zone.__name__: AuthorizationRules.DNS_CREATE_MASTER_ZONE,
+        create_forward_zone.__name__: AuthorizationRules.DNS_CREATE_FWD_ZONE,
+        update_master_zone.__name__: AuthorizationRules.DNS_UPDATE_MASTER_ZONE,
+        update_forward_zone.__name__: AuthorizationRules.DNS_UPDATE_FWD_ZONE,
+        delete_master_zones.__name__: AuthorizationRules.DNS_DELETE_MASTER_ZONES, # noqa: E501
+        delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
         check_dns_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
     }

@@ -134,3 +134,7 @@ class DNSValidationError(DNSError):
 
 class DNSNotSupportedError(DNSError):
     """DNS not supported error."""
+
+
+class DNSdistError(DNSError):
+    """DNS dist error."""

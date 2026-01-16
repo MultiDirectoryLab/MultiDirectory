@@ -46,7 +46,7 @@ class StubDNSManager(AbstractDNSManager):
         return []
 
     @logger_wraps(is_stub=True)
-    async def get_zones(self) -> list[DNSMasterZoneDTO]:
+    async def get_master_zones(self) -> list[DNSMasterZoneDTO]:
         return []
 
     @logger_wraps(is_stub=True)
@@ -60,13 +60,13 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def update_zone(
+    async def update_master_zone(
         self,
         zone: DNSZoneBaseDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def delete_zone(
+    async def delete_master_zone(
         self,
         zone_id: str,
     ) -> None: ...
