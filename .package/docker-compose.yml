@@ -356,7 +356,8 @@ services:
         ipv4_address: 172.20.0.4
     expose:
       - 8082
-      - 53
+      - 53/udp
+      - 53/tcp
     volumes:
       - dns_lmdb:/var/lib/pdns-lmdb
       - dns_config:/etc/powerdns
@@ -371,7 +372,8 @@ services:
         ipv4_address: 172.20.0.2
     expose:
       - 8083
-      - 53
+      - 53/udp
+      - 53/tcp
     volumes:
       - ./recursor.conf:/etc/powerdns/recursor.conf
       - forward_zones:/etc/powerdns/recursor.d/
