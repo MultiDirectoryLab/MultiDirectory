@@ -275,9 +275,7 @@ class ModifyRequest(BaseRequest):
                             await self._add(*add_args)
 
                     await ctx.session.flush()
-                    await ctx.session.execute(
-                        update(Directory).filter_by(id=directory.id),
-                    )
+
                 except MODIFY_EXCEPTION_STACK as err:
                     await ctx.session.rollback()
                     result_code, message = self._match_bad_response(err)
@@ -857,17 +855,12 @@ class ModifyRequest(BaseRequest):
 
                     await session.execute(
                         delete(Attribute)
-                        .filter_by(
-                            name="nsAccountLock",
-                            directory=directory,
-                        ),
-                    )  # fmt: skip
-
-                    await session.execute(
-                        delete(Attribute)
-                        .filter_by(
-                            name="shadowExpire",
-                            directory=directory,
+                        .where(
+                            or_(
+                                qa(Attribute.name) == "nsAccountLock",
+                                qa(Attribute.name) == "shadowExpire",
+                            ),
+                            qa(Attribute.directory) == directory,
                         ),
                     )  # fmt: skip
 
@@ -900,18 +893,21 @@ class ModifyRequest(BaseRequest):
 
                     sam_account_name = create_user_name(directory.id)
                     user_principal_name = f"{sam_account_name}@{base_dn.name}"
-                    user = User(
-                        sam_account_name=sam_account_name,
-                        user_principal_name=user_principal_name,
-                        directory_id=directory.id,
-                    )
+                    if directory.object_class in ("user", "person"):
+                        user = User(
+                            sam_account_name=sam_account_name,
+                            user_principal_name=user_principal_name,
+                            directory_id=directory.id,
+                        )
+                        session.add(user)
+
                     uac_attr = Attribute(
                         name="userAccountControl",
                         value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
                         directory_id=directory.id,
                     )
 
-                    session.add_all([user, uac_attr])
+                    session.add(uac_attr)
                     await session.flush()
                     await session.refresh(directory)
 
@@ -924,13 +920,6 @@ class ModifyRequest(BaseRequest):
                     update(User)
                     .filter_by(directory=directory)
                     .values({name: new_value}),
-                )
-
-            elif name in Group.search_fields and directory.group:
-                await session.execute(
-                    update(Group)
-                    .filter_by(directory=directory)
-                    .values({name: value}),
                 )
 
             elif name in ("userpassword", "unicodepwd") and directory.user:
