@@ -33,6 +33,7 @@ log.add(
     retention="10 days",
     rotation="1d",
     colorize=False,
+    enqueue=True,
 )
 
 infinity = cast("int", math.inf)
