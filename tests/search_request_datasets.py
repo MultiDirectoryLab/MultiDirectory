@@ -50,7 +50,6 @@ test_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
         "objects": [
-            "cn=System Administrator,dc=md,dc=test",
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
             "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
@@ -84,7 +83,6 @@ test_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
         "objects": [
-            "cn=System Administrator,dc=md,dc=test",
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
             "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
@@ -106,7 +104,6 @@ test_search_by_rule_bit_or_dataset = [
             + UserAccountControlFlag.NORMAL_ACCOUNT
         })",
         "objects": [
-            "cn=System Administrator,dc=md,dc=test",
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
             "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
@@ -127,7 +124,6 @@ test_search_by_rule_bit_or_dataset = [
     {
         "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
         "objects": [
-            "cn=System Administrator,dc=md,dc=test",
             "cn=user0,cn=users,dc=md,dc=test",
             "cn=user_admin,cn=users,dc=md,dc=test",
             "cn=user_admin_for_roles,cn=users,dc=md,dc=test",

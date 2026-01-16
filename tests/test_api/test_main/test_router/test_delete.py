@@ -31,6 +31,7 @@ async def test_api_correct_delete(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("add_system_administrator")
 async def test_api_cant_delete_system_directory(
     http_client: AsyncClient,
 ) -> None:
