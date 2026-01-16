@@ -14,27 +14,17 @@ from traceback import format_exc
 from typing import Literal, cast, overload
 
 from dishka import AsyncContainer, Scope
-from loguru import logger
 from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
 
 from config import Settings
+from ioc import GlobalCatalogLogger, LDAPLogger
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 
 from .data_logger import DataLogger
-
-log = logger.bind(name="ldap")
-log.add(
-    "logs/ldap_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == "ldap",
-    retention="10 days",
-    rotation="1d",
-    colorize=False,
-    enqueue=True,
-)
 
 infinity = cast("int", math.inf)
 pp_v2 = ProxyProtocolV2()
@@ -53,14 +43,20 @@ class PoolClientHandler:
 
     ssl_context: ssl.SSLContext | None = None
 
-    def __init__(self, settings: Settings, container: AsyncContainer):
+    def __init__(
+        self,
+        settings: Settings,
+        container: AsyncContainer,
+        log: LDAPLogger | GlobalCatalogLogger,
+    ):
         """Set workers number for single client concurrent handling."""
         self.container = container
         self.settings = settings
         self.num_workers = self.settings.COROUTINES_NUM_PER_CLIENT
         self._size = self.settings.TCP_PACKET_SIZE
 
-        self.logger = DataLogger(log, is_full=self.settings.DEBUG)
+        self.log = log
+        self.logger = DataLogger(self.log, is_full=self.settings.DEBUG)
 
         self._load_ssl_context()
 
@@ -79,7 +75,7 @@ class PoolClientHandler:
             )
             ldap_session.ip = addr
 
-            logger.info(f"Connection {addr} opened")
+            self.log.info(f"Connection {addr} opened")
 
             try:
                 async with session_scope(scope=Scope.REQUEST) as r:
@@ -92,7 +88,7 @@ class PoolClientHandler:
                             network_policy_use_case,
                         )
                     except PermissionError:
-                        log.warning(f"Whitelist violation from {addr}")
+                        self.log.warning(f"Whitelist violation from {addr}")
                         return
 
                 async with asyncio.TaskGroup() as tg:
@@ -117,7 +113,9 @@ class PoolClientHandler:
                     )
 
             except* RuntimeError as err:
-                log.error(f"Response handling error {err}: {format_exc()}")
+                self.log.error(
+                    f"Response handling error {err}: {format_exc()}",
+                )
 
             finally:
                 await session_scope.close()
@@ -126,18 +124,18 @@ class PoolClientHandler:
                     writer.close()
                     await writer.wait_closed()
 
-                logger.info(f"Connection {addr} closed")
+                self.log.info(f"Connection {addr} closed")
 
     def _load_ssl_context(self) -> None:
         """Load SSL context for LDAPS."""
         if self.settings.USE_CORE_TLS and self.settings.LDAP_LOAD_SSL_CERT:
             if not self.settings.check_certs_exist():
-                log.critical("Certs not found, exiting...")
+                self.log.critical("Certs not found, exiting...")
                 raise SystemExit(1)
 
             cert_name = self.settings.SSL_CERT
             key_name = self.settings.SSL_KEY
-            log.success("Found existing cert and key, loading...")
+            self.log.success("Found existing cert and key, loading...")
             self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.ssl_context.load_cert_chain(cert_name, key_name)
 
@@ -166,7 +164,7 @@ class PoolClientHandler:
             header_length = int.from_bytes(data[14:16], "big")
             return addr, data[16 + header_length :]
         except (ValueError, ProxyProtocolIncompleteError) as err:
-            log.error(f"Proxy Protocol processing error: {err}")
+            self.log.error(f"Proxy Protocol processing error: {err}")
             return peer_addr, data
 
     @overload
@@ -279,7 +277,7 @@ class PoolClientHandler:
                 request = LDAPRequestMessage.from_bytes(data)
 
             except (ValidationError, IndexError, KeyError, ValueError) as err:
-                log.error(f"Invalid schema {format_exc()}")
+                self.log.error(f"Invalid schema {format_exc()}")
 
                 writer.write(LDAPRequestMessage.from_err(data, err).encode())
                 await writer.drain()
@@ -440,15 +438,15 @@ class PoolClientHandler:
         async with server:
             await server.serve_forever()
 
-    @staticmethod
-    def log_addrs(server: asyncio.base_events.Server) -> None:
+    def log_addrs(self, server: asyncio.base_events.Server) -> None:
+        """Log server addresses."""
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
-        log.info(f"Server on {addrs}")
+        self.log.info(f"Server on {addrs}")
 
     async def start(self) -> None:
         """Run and log tcp server."""
         server = await self._get_server()
-        log.info(
+        self.log.info(
             f"started {'DEBUG' if self.settings.DEBUG else 'PROD'} "
             f"{'LDAPS' if self.settings.USE_CORE_TLS else 'LDAP'} server",
         )

@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import AsyncIterator, NewType
+from typing import TYPE_CHECKING, AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
@@ -154,6 +154,15 @@ KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
 DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 DHCPManagerHTTPClient = NewType("DHCPManagerHTTPClient", httpx.AsyncClient)
+
+if TYPE_CHECKING:
+    from loguru import Logger
+
+    LDAPLogger = Logger
+    GlobalCatalogLogger = Logger
+else:
+    LDAPLogger = NewType("LDAPLogger", type(logger))
+    GlobalCatalogLogger = NewType("GlobalCatalogLogger", type(logger))
 
 
 class MainProvider(Provider):
@@ -720,6 +729,20 @@ class LDAPServerProvider(LDAPContextProvider):
         yield session
         await session.disconnect()
 
+    @provide(scope=Scope.APP, provides=LDAPLogger)
+    def get_ldap_logger(self) -> LDAPLogger:
+        """Get LDAP logger."""
+        log = logger.bind(name="ldap")
+        log.add(
+            "logs/ldap_{time:DD-MM-YYYY}.log",
+            filter=lambda rec: rec["extra"].get("name") == "ldap",
+            retention="10 days",
+            rotation="1d",
+            colorize=False,
+            enqueue=True,
+        )
+        return log
+
 
 class GlobalLDAPServerProvider(Provider):
     """Provider with session scope."""
@@ -759,6 +782,20 @@ class GlobalLDAPServerProvider(Provider):
         NetworkPolicyValidatorUseCase,
         scope=Scope.REQUEST,
     )
+
+    @provide(scope=Scope.APP, provides=GlobalCatalogLogger)
+    def get_global_catalog_logger(self) -> GlobalCatalogLogger:
+        """Get Global Catalog logger."""
+        log = logger.bind(name="global_catalog")
+        log.add(
+            "logs/global_catalog_{time:DD-MM-YYYY}.log",
+            filter=lambda rec: rec["extra"].get("name") == "global_catalog",
+            retention="10 days",
+            rotation="1d",
+            colorize=False,
+            enqueue=True,
+        )
+        return log
 
 
 class MFACredsProvider(Provider):

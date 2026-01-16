@@ -31,6 +31,7 @@ from dishka import (
 )
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
+from loguru import logger
 from multidirectory import _create_basic_app
 from sqlalchemy import schema, text
 from sqlalchemy.ext.asyncio import (
@@ -1079,8 +1080,9 @@ async def handler(
 ) -> AsyncIterator[PoolClientHandler]:
     """Create test handler."""
     settings.set_test_port()
+    test_log = logger.bind(name="ldap_test")
     async with container(scope=Scope.APP) as app_scope:
-        yield PoolClientHandler(settings, app_scope)
+        yield PoolClientHandler(settings, app_scope, test_log)
 
 
 @pytest_asyncio.fixture(scope="function")

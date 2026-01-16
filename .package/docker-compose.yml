@@ -171,6 +171,7 @@ services:
       - SERVICE_NAME=global_ldap_server
     volumes:
       - ./certs:/certs
+      - ./logs:/app/logs
       - ldap_keytab:/LDAP_keytab/
     env_file:
       - .env
