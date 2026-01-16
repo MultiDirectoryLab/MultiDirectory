@@ -7,7 +7,7 @@ Create Date: 2026-01-13 12:00:00.000000
 """
 
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy import and_, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -22,7 +22,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade: Rename 'services' container to 'System'."""
 
     async def _update_descendants(
@@ -63,54 +63,50 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
         await session.flush()
 
-    async def _rename_services_to_system(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
+    async def _rename_services_to_system(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
         await session.begin()
 
-        try:
-            base_directories = await get_base_directories(session)
-            if not base_directories:
-                await session.commit()
-                return
-
-            service_dirs = await session.scalars(
-                select(Directory).where(qa(Directory.name) == "services"),
-            )
-
-            for service_dir in service_dirs:
-                system_exists = await session.scalar(
-                    select(exists(Directory))
-                    .where(
-                        and_(
-                            qa(Directory.name) == "System",
-                            qa(Directory.parent_id) == service_dir.parent_id,
-                        ),
-                    ),
-                )  # fmt: skip
-
-                if system_exists:
-                    continue
-
-                service_dir.name = "System"
-                service_dir.path = [
-                    "ou=System" if p == "ou=services" else p
-                    for p in service_dir.path
-                ]
-
-                await session.flush()
-                await _update_descendants(session, service_dir.id)
-
-            await _update_attributes(session, "ou=services", "ou=System")
+        base_directories = await get_base_directories(session)
+        if not base_directories:
             await session.commit()
+            return
 
-        except Exception:
-            await session.rollback()
-            raise
+        service_dirs = await session.scalars(
+            select(Directory).where(qa(Directory.name) == "services"),
+        )
+
+        for service_dir in service_dirs:
+            system_exists = await session.scalar(
+                select(exists(Directory))
+                .where(
+                    and_(
+                        qa(Directory.name) == "System",
+                        qa(Directory.parent_id) == service_dir.parent_id,
+                    ),
+                ),
+            )  # fmt: skip
+
+            if system_exists:
+                continue
+
+            service_dir.name = "System"
+            service_dir.path = [
+                "ou=System" if p == "ou=services" else p
+                for p in service_dir.path
+            ]
+
+            await session.flush()
+            await _update_descendants(session, service_dir.id)
+
+        await _update_attributes(session, "ou=services", "ou=System")
+        await session.commit()
 
     op.run_async(_rename_services_to_system)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade: Rename 'System' container back to 'services'."""
 
     async def _update_descendants_downgrade(
@@ -151,39 +147,35 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
         await session.flush()
 
-    async def _rename_system_to_services(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
+    async def _rename_system_to_services(connection: AsyncConnection) -> None:  # noqa ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
         await session.begin()
 
-        try:
-            base_directories = await get_base_directories(session)
-            if not base_directories:
-                await session.commit()
-                return
-
-            system_dirs = await session.scalars(
-                select(Directory).where(qa(Directory.name) == "System"),
-            )
-
-            for system_dir in system_dirs:
-                system_dir.name = "services"
-                system_dir.path = [
-                    "ou=services" if p == "ou=System" else p
-                    for p in system_dir.path
-                ]
-
-                await session.flush()
-                await _update_descendants_downgrade(session, system_dir.id)
-
-            await _update_attributes_downgrade(
-                session,
-                "ou=System",
-                "ou=services",
-            )
+        base_directories = await get_base_directories(session)
+        if not base_directories:
             await session.commit()
+            return
 
-        except Exception:
-            await session.rollback()
-            raise
+        system_dirs = await session.scalars(
+            select(Directory).where(qa(Directory.name) == "System"),
+        )
+
+        for system_dir in system_dirs:
+            system_dir.name = "services"
+            system_dir.path = [
+                "ou=services" if p == "ou=System" else p
+                for p in system_dir.path
+            ]
+
+            await session.flush()
+            await _update_descendants_downgrade(session, system_dir.id)
+
+        await _update_attributes_downgrade(
+            session,
+            "ou=System",
+            "ou=services",
+        )
+        await session.commit()
 
     op.run_async(_rename_system_to_services)
