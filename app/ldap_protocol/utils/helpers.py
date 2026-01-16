@@ -130,6 +130,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import asyncio
 import functools
 import hashlib
 import random
@@ -138,18 +139,22 @@ import struct
 import time
 from calendar import timegm
 from datetime import datetime
+from functools import wraps
 from hashlib import blake2b
 from operator import attrgetter
-from typing import Callable
+from typing import Any, Callable, Iterable
 from zoneinfo import ZoneInfo
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm.attributes import instance_state
 from sqlalchemy.sql.compiler import DDLCompiler
 from sqlalchemy.sql.expression import ClauseElement, Executable, Visitable
 
 from entities import Directory
+
+DEFAULT_CACHE_TIME = 5 * 60  # 5 minutes
 
 
 def validate_entry(entry: str) -> bool:
@@ -402,3 +407,72 @@ async def explain_query(
             for row in await session.execute(explain(query, analyze=True))
         ),
     )
+
+
+def has_expired_sqla_objs(obj: Any, max_depth: int = 3) -> bool:
+    def _check(value: Any) -> bool:
+        try:
+            state = instance_state(value)
+            return bool(state.expired_attributes)
+        except AttributeError:
+            return False
+
+    def _walk(value: Any, depth: int = 0) -> bool:
+        if depth > max_depth:
+            return False
+
+        if _check(value):
+            return True
+
+        if isinstance(value, str | bytes | bytearray):
+            return False
+
+        if isinstance(value, dict):
+            return any(_walk(v, depth + 1) for v in value.values())
+
+        if isinstance(value, Iterable):
+            return any(_walk(v, depth + 1) for v in value)
+
+        return False
+
+    return _walk(obj)
+
+
+def async_lru_cache(ttl: int | None = DEFAULT_CACHE_TIME) -> Callable:
+    cache: dict = {}
+    locks: dict = {}
+
+    def _is_value_expired(
+        value: Any,
+        now: float,
+        expires_at: float | None,
+    ) -> bool:
+        return bool(
+            expires_at and expires_at < now or has_expired_sqla_objs(value),
+        )
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args: tuple, **kwargs: dict) -> Any:
+            key = (args, tuple(sorted(kwargs.items())))
+            now = time.monotonic()
+            if key not in locks:
+                locks[key] = asyncio.Lock()
+
+            async with locks[key]:
+                if key in cache:
+                    value, expires_at = cache[key]
+                    if not _is_value_expired(value, now, expires_at):
+                        return value
+                    else:
+                        del cache[key]
+
+                result = await func(*args, **kwargs)
+                expires_at = now + ttl if ttl else None
+                cache[key] = (result, expires_at)
+                del locks[key]
+                return result
+
+        return wrapper
+
+    return decorator

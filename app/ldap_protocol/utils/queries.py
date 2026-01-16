@@ -27,6 +27,7 @@ from repo.pg.tables import (
 
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
+    async_lru_cache,
     create_integer_hash,
     create_object_sid,
     dn_is_base_directory,
@@ -35,6 +36,7 @@ from .helpers import (
 )
 
 
+@async_lru_cache()
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
