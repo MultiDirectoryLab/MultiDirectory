@@ -439,7 +439,6 @@ class PoolClientHandler:
             await server.serve_forever()
 
     def log_addrs(self, server: asyncio.base_events.Server) -> None:
-        """Log server addresses."""
         addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
         self.log.info(f"Server on {addrs}")
 

@@ -161,8 +161,8 @@ if TYPE_CHECKING:
     LDAPLogger = Logger
     GlobalCatalogLogger = Logger
 else:
-    LDAPLogger = NewType("LDAPLogger", type(logger))
-    GlobalCatalogLogger = NewType("GlobalCatalogLogger", type(logger))
+    LDAPLogger = NewType("LDAPLogger", type[logger])  # type: ignore
+    GlobalCatalogLogger = NewType("GlobalCatalogLogger", type[logger])  # type: ignore
 
 
 class MainProvider(Provider):
@@ -702,6 +702,7 @@ class LDAPServerProvider(LDAPContextProvider):
     """Provider with session scope."""
 
     scope = Scope.SESSION
+    _ldap_logger_handler_id: int | None = None
 
     network_policy_validator_gateway = provide(
         NetworkPolicyValidatorGateway,
@@ -733,14 +734,18 @@ class LDAPServerProvider(LDAPContextProvider):
     def get_ldap_logger(self) -> LDAPLogger:
         """Get LDAP logger."""
         log = logger.bind(name="ldap")
-        log.add(
-            "logs/ldap_{time:DD-MM-YYYY}.log",
-            filter=lambda rec: rec["extra"].get("name") == "ldap",
-            retention="10 days",
-            rotation="1d",
-            colorize=False,
-            enqueue=True,
-        )
+
+        # Add handler only once to prevent duplicate log entries
+        if self._ldap_logger_handler_id is None:
+            self._ldap_logger_handler_id = log.add(
+                "logs/ldap_{time:DD-MM-YYYY}.log",
+                filter=lambda rec: rec["extra"].get("name") == "ldap",
+                retention="10 days",
+                rotation="1d",
+                colorize=False,
+                enqueue=True,
+            )
+
         return log
 
 
@@ -748,6 +753,7 @@ class GlobalLDAPServerProvider(Provider):
     """Provider with session scope."""
 
     scope = Scope.SESSION
+    _global_catalog_logger_handler_id: int | None = None
 
     @provide(scope=Scope.SESSION, provides=LDAPSession)
     async def get_session(
@@ -787,14 +793,18 @@ class GlobalLDAPServerProvider(Provider):
     def get_global_catalog_logger(self) -> GlobalCatalogLogger:
         """Get Global Catalog logger."""
         log = logger.bind(name="global_catalog")
-        log.add(
-            "logs/global_catalog_{time:DD-MM-YYYY}.log",
-            filter=lambda rec: rec["extra"].get("name") == "global_catalog",
-            retention="10 days",
-            rotation="1d",
-            colorize=False,
-            enqueue=True,
-        )
+
+        if self._global_catalog_logger_handler_id is None:
+            self._global_catalog_logger_handler_id = log.add(
+                "logs/global_catalog_{time:DD-MM-YYYY}.log",
+                filter=lambda rec: rec["extra"].get("name")
+                == "global_catalog",
+                retention="10 days",
+                rotation="1d",
+                colorize=False,
+                enqueue=True,
+            )
+
         return log
 
 
