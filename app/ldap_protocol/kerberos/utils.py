@@ -133,6 +133,6 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     )
 
 
-def get_services_container_dn(base_dn: str) -> str:
+def get_system_container_dn(base_dn: str) -> str:
     """Get System container DN for services."""
     return f"ou=System,{base_dn}"

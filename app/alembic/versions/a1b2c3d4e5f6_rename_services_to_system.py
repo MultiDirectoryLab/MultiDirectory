@@ -66,7 +66,6 @@ def upgrade(container: AsyncContainer) -> None:
     async def _rename_services_to_system(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-        await session.begin()
 
         base_directories = await get_base_directories(session)
         if not base_directories:
@@ -150,7 +149,6 @@ def downgrade(container: AsyncContainer) -> None:
     async def _rename_system_to_services(connection: AsyncConnection) -> None:  # noqa ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-        await session.begin()
 
         base_directories = await get_base_directories(session)
         if not base_directories:

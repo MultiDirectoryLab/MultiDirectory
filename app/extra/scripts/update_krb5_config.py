@@ -10,7 +10,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.kerberos.utils import get_services_container_dn
+from ldap_protocol.kerberos.utils import get_system_container_dn
 from ldap_protocol.utils.queries import get_base_directories
 
 KRB5_CONF_PATH = Path("/etc/krb5kdc/krb5.conf")
@@ -59,7 +59,7 @@ async def update_krb5_config(
     base_dn = base_dn_list[0].path_dn
     domain = base_dn_list[0].name
     krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
-    services_container = get_services_container_dn(base_dn)
+    services_container = get_system_container_dn(base_dn)
 
     krb5_config = await settings.TEMPLATES.get_template(
         "krb5.conf",

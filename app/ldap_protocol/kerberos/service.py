@@ -47,7 +47,7 @@ from .template_render import KRBTemplateRenderer
 from .utils import (
     KerberosState,
     get_krb_server_state,
-    get_services_container_dn,
+    get_system_container_dn,
     set_state,
 )
 
@@ -146,7 +146,7 @@ class KerberosService(AbstractService):
             dataclass with DN for krbadmin, services_container, krbadmin_group.
         """
         krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
-        services_container = get_services_container_dn(base_dn)
+        services_container = get_system_container_dn(base_dn)
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
         return KerberosAdminDnGroup(
             krbadmin_dn=krbadmin,
@@ -298,7 +298,7 @@ class KerberosService(AbstractService):
         base_dn, domain = await self._get_base_dn()
         krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
-        services_container = get_services_container_dn(base_dn)
+        services_container = get_system_container_dn(base_dn)
         return KDCContext(
             base_dn=base_dn,
             domain=domain,
