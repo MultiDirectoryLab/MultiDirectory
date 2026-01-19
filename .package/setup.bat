@@ -115,3 +115,25 @@ if not exist "certs" (
 ) else (
     echo Directory already exists: certs
 )
+
+:: 9. DNS_API_KEY
+findstr /b /i /c:"PDNS_API_KEY=" .env >nul
+if errorlevel 1 (
+    set "chars=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    set "pdns_key="
+    for /L %%i in (1,1,16) do (
+        set /a "rand=!random! %% 62"
+        for %%j in (!rand!) do set "pdns_key=!pdns_key!!chars:~%%j,1!"
+    )
+    powershell -Command "(gc .\\pdns.conf) -replace supersecretapikey, %pdns_key% | sc .\\pdns.conf -Enc UTF8"
+    powershell -Command "(gc .\\recursor.conf) -replace supersecretapikey, %pdns_key% | sc .\\recursor.conf -Enc UTF8"
+    echo PDNS_API_KEY=!pdns_key!>> .env
+)
+
+:: 10. DNSDIST_API_KEY
+findstr /b /i /c:"PDNS_DIST_KEY=" .env >nul
+if errorlevel 1 (
+    for /f %%i in ('powershell -command "[Convert]::ToBase64String((1..32|%%{[byte](Get-Random -Max 256)}))"') do set "randkey=%%i"
+    powershell -Command "(gc .\\dnsdist.conf) -replace PSAag0AEziPZuBB7kdcfIEkVJOyQInRcBRAhadWDpU0=, %randkey% | sc .\\dnsdist.conf -Enc UTF8"
+    echo PDNS_DIST_KEY=!randkey!>> .env
+)
