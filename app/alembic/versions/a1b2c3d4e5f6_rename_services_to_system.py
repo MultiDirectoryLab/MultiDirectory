@@ -8,7 +8,7 @@ Create Date: 2026-01-13 12:00:00.000000
 
 from alembic import op
 from dishka import AsyncContainer, Scope
-from sqlalchemy import and_, exists, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory
@@ -87,19 +87,6 @@ def upgrade(container: AsyncContainer) -> None:
             return
         ou_to = "ou=System"
         ou_from = "ou=services"
-
-        system_exists = await session.scalar(
-            select(exists(Directory))
-            .where(
-                and_(
-                    qa(Directory.name) == "System",
-                    qa(Directory.parent_id) == service_dir.parent_id,
-                ),
-            ),
-        )  # fmt: skip
-
-        if system_exists:
-            return
 
         service_dir.name = "System"
         service_dir.path = [
