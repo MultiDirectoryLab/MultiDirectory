@@ -34,7 +34,7 @@ async def _update_descendants(
         )  # fmt: skip
 
     for child_dir in child_dirs:
-        child_dir.path = [ou_to if p == ou_from else p for p in child_dir.path]
+        child_dir.path = [ou_from if p == ou_to else p for p in child_dir.path]
         await session.flush()
         await _update_descendants(
             session,
