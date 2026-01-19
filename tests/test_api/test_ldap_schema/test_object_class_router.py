@@ -26,7 +26,10 @@ async def test_get_extended_object_classes(
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert isinstance(data, dict)
-    assert data.get("entity_type_names") == [EntityTypeNames.USER]
+    assert set(data.get("entity_type_names")) == {  # type: ignore
+        EntityTypeNames.CONTACT,
+        EntityTypeNames.USER,
+    }
 
 
 @pytest.mark.parametrize(

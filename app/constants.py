@@ -263,6 +263,16 @@ ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
         ],
     ),
     EntityTypeData(
+        name=EntityTypeNames.CONTACT,
+        object_class_names=[
+            "top",
+            "person",
+            "organizationalPerson",
+            "contact",
+            "mailRecipient",
+        ],
+    ),
+    EntityTypeData(
         name=EntityTypeNames.KRB_CONTAINER,
         object_class_names=["krbContainer"],
     ),
