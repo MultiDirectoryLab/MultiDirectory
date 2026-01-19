@@ -16,7 +16,7 @@ from .test_object_class_router_datasets import (
 
 
 @pytest.mark.asyncio
-async def test_get_one_extended_object_class(
+async def test_get_extended_object_classes(
     http_client: AsyncClient,
 ) -> None:
     """Test getting a single extended object class."""
