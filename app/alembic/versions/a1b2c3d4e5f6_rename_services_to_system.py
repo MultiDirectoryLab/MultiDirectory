@@ -45,24 +45,6 @@ async def _update_descendants(
         )
 
 
-async def _update_descendants_downgrade(
-    session: AsyncSession,
-    parent_id: int,
-) -> None:
-    """Recursively update paths of all descendants."""
-    child_dirs = await session.scalars(
-            select(Directory)
-            .where(qa(Directory.parent_id) == parent_id),
-        )  # fmt: skip
-
-    for child_dir in child_dirs:
-        child_dir.path = [
-            "ou=services" if p == "ou=System" else p for p in child_dir.path
-        ]
-        await session.flush()
-        await _update_descendants_downgrade(session, child_dir.id)
-
-
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade: Rename 'services' container to 'System'."""
 
