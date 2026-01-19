@@ -45,28 +45,29 @@ async def _update_descendants(
         )
 
 
-def upgrade(container: AsyncContainer) -> None:
-    """Upgrade: Rename 'services' container to 'System'."""
-
-    async def _update_attributes(
-        session: AsyncSession,
-        old_value: str,
-        new_value: str,
-    ) -> None:
-        """Update attribute values containing old DN."""
-        result = await session.execute(
+async def _update_attributes(
+    session: AsyncSession,
+    old_value: str,
+    new_value: str,
+) -> None:
+    """Update attribute values during downgrade."""
+    result = await session.execute(
             select(Attribute)
             .where(
                 Attribute.value.ilike(f"%{old_value}%"),  # type: ignore
             ),
         )  # fmt: skip
-        attributes = result.scalars().all()
+    attributes = result.scalars().all()
 
-        for attr in attributes:
-            if attr.value and old_value in attr.value:
-                attr.value = attr.value.replace(old_value, new_value)
+    for attr in attributes:
+        if attr.value and old_value in attr.value:
+            attr.value = attr.value.replace(old_value, new_value)
 
-        await session.flush()
+    await session.flush()
+
+
+def upgrade(container: AsyncContainer) -> None:
+    """Upgrade: Rename 'services' container to 'System'."""
 
     async def _rename_services_to_system(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
@@ -99,8 +100,7 @@ def upgrade(container: AsyncContainer) -> None:
 
             service_dir.name = "System"
             service_dir.path = [
-                "ou=System" if p == "ou=services" else p
-                for p in service_dir.path
+                ou_to if p == ou_from else p for p in service_dir.path
             ]
 
             await session.flush()
@@ -111,7 +111,7 @@ def upgrade(container: AsyncContainer) -> None:
                 ou_to=ou_to,
             )
 
-        await _update_attributes(session, "ou=services", "ou=System")
+        await _update_attributes(session, ou_from, ou_to)
         await session.commit()
 
     op.run_async(_rename_services_to_system)
@@ -119,26 +119,6 @@ def upgrade(container: AsyncContainer) -> None:
 
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade: Rename 'System' container back to 'services'."""
-
-    async def _update_attributes_downgrade(
-        session: AsyncSession,
-        old_value: str,
-        new_value: str,
-    ) -> None:
-        """Update attribute values during downgrade."""
-        result = await session.execute(
-            select(Attribute)
-            .where(
-                Attribute.value.ilike(f"%{old_value}%"),  # type: ignore
-            ),
-        )  # fmt: skip
-        attributes = result.scalars().all()
-
-        for attr in attributes:
-            if attr.value and old_value in attr.value:
-                attr.value = attr.value.replace(old_value, new_value)
-
-        await session.flush()
 
     async def _rename_system_to_services(connection: AsyncConnection) -> None:  # noqa ARG001
         async with container(scope=Scope.REQUEST) as cnt:
@@ -154,11 +134,11 @@ def downgrade(container: AsyncContainer) -> None:
         )
         ou_to = "ou=services"
         ou_from = "ou=System"
+
         for system_dir in system_dirs:
             system_dir.name = "services"
             system_dir.path = [
-                "ou=services" if p == "ou=System" else p
-                for p in system_dir.path
+                ou_to if p == ou_from else p for p in system_dir.path
             ]
 
             await session.flush()
@@ -169,10 +149,10 @@ def downgrade(container: AsyncContainer) -> None:
                 ou_to=ou_to,
             )
 
-        await _update_attributes_downgrade(
+        await _update_attributes(
             session,
-            "ou=System",
-            "ou=services",
+            ou_from,
+            ou_to,
         )
         await session.commit()
 
