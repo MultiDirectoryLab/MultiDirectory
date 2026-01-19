@@ -313,6 +313,7 @@ services:
       - ./certs:/certs
       - ./app:/app
       - ldap_keytab:/LDAP_keytab/
+      - kdc:/etc/krb5kdc/
     env_file:
       local.env
     command: python multidirectory.py --scheduler
