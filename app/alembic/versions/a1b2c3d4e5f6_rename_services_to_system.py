@@ -12,7 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory
-from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -73,10 +72,6 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        base_directories = await get_base_directories(session)
-        if not base_directories:
-            return
-
         service_dir = await session.scalar(
             select(Directory).where(
                 qa(Directory.name) == "services",
@@ -113,10 +108,6 @@ def downgrade(container: AsyncContainer) -> None:
     async def _rename_system_to_services(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-
-        base_directories = await get_base_directories(session)
-        if not base_directories:
-            return
 
         system_dir = await session.scalar(
             select(Directory).where(
