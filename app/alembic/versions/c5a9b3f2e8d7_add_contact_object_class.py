@@ -11,14 +11,11 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from entities import EntityType, ObjectClass
+from entities import EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from ldap_protocol.utils.raw_definition_parser import (
-    RawDefinitionParser as RDParser,
-)
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -30,51 +27,6 @@ depends_on: None | str = None
 
 def upgrade(container: AsyncContainer) -> None:
     """Add Contact objectClass and mailRecipient to LDAP schema."""
-
-    async def _create_object_classes(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
-        """Create Contact and mailRecipient object classes."""
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
-
-        if not await get_base_directories(session):
-            return
-
-        mail_recipient_raw = (
-            "( 1.2.840.113556.1.3.46 NAME 'mailRecipient' "
-            "SUP top AUXILIARY "
-            "MAY (mail $ cn $ displayName $ description) )"
-        )
-
-        mail_recipient_info = RDParser.get_object_class_info(
-            raw_definition=mail_recipient_raw,
-        )
-        mail_recipient = await RDParser.create_object_class_by_info(
-            session=session,
-            object_class_info=mail_recipient_info,
-        )
-        session.add(mail_recipient)
-
-        contact_raw = (
-            "( 1.2.840.113556.1.5.15 NAME 'contact' "
-            "SUP organizationalPerson STRUCTURAL "
-            "MAY (displayName $ description $ telephoneNumber $ "
-            "mail $ mobile $ title $ department $ company $ "
-            "facsimileTelephoneNumber $ homePhone $ street $ "
-            "postalCode $ l $ st $ co $ c) )"
-        )
-
-        contact_info = RDParser.get_object_class_info(
-            raw_definition=contact_raw,
-        )
-        contact = await RDParser.create_object_class_by_info(
-            session=session,
-            object_class_info=contact_info,
-        )
-        session.add(contact)
-
-        await session.commit()
 
     async def _create_entity_type(
         connection: AsyncConnection,  # noqa: ARG001
@@ -103,7 +55,6 @@ def upgrade(container: AsyncContainer) -> None:
 
         await session.commit()
 
-    op.run_async(_create_object_classes)
     op.run_async(_create_entity_type)
 
 
@@ -128,28 +79,4 @@ def downgrade(container: AsyncContainer) -> None:
 
         await session.commit()
 
-    async def _delete_object_classes(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
-        """Delete Contact and mailRecipient object classes."""
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
-
-        if not await get_base_directories(session):
-            return
-
-        await session.execute(
-            delete(ObjectClass).where(
-                qa(ObjectClass.name) == "contact",
-            ),
-        )
-        await session.execute(
-            delete(ObjectClass).where(
-                qa(ObjectClass.name) == "mailRecipient",
-            ),
-        )
-
-        await session.commit()
-
     op.run_async(_delete_entity_type)
-    op.run_async(_delete_object_classes)
