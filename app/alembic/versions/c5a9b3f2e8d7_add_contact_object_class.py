@@ -55,7 +55,6 @@ def upgrade(container: AsyncContainer) -> None:
             object_class_info=mail_recipient_info,
         )
         session.add(mail_recipient)
-        await session.flush()
 
         contact_raw = (
             "( 1.2.840.113556.1.5.15 NAME 'contact' "
@@ -74,7 +73,6 @@ def upgrade(container: AsyncContainer) -> None:
             object_class_info=contact_info,
         )
         session.add(contact)
-        await session.flush()
 
         await session.commit()
 
