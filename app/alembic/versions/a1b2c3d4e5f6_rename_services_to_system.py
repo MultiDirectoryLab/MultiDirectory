@@ -120,7 +120,7 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade: Rename 'System' container back to 'services'."""
 
-    async def _rename_system_to_services(connection: AsyncConnection) -> None:  # noqa ARG001
+    async def _rename_system_to_services(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
