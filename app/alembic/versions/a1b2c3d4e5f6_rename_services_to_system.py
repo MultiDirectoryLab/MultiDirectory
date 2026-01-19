@@ -22,26 +22,49 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:
-    """Upgrade: Rename 'services' container to 'System'."""
-
-    async def _update_descendants(
-        session: AsyncSession,
-        parent_id: int,
-    ) -> None:
-        """Recursively update paths of all descendants."""
-        child_dirs = await session.scalars(
+async def _update_descendants(
+    session: AsyncSession,
+    parent_id: int,
+    ou_from: str,
+    ou_to: str,
+) -> None:
+    """Recursively update paths of all descendants."""
+    child_dirs = await session.scalars(
             select(Directory)
             .where(qa(Directory.parent_id) == parent_id),
         )  # fmt: skip
 
-        for child_dir in child_dirs:
-            child_dir.path = [
-                "ou=System" if p == "ou=services" else p
-                for p in child_dir.path
-            ]
-            await session.flush()
-            await _update_descendants(session, child_dir.id)
+    for child_dir in child_dirs:
+        child_dir.path = [ou_from if p == ou_to else p for p in child_dir.path]
+        await session.flush()
+        await _update_descendants(
+            session,
+            child_dir.id,
+            ou_from=ou_from,
+            ou_to=ou_to,
+        )
+
+
+async def _update_descendants_downgrade(
+    session: AsyncSession,
+    parent_id: int,
+) -> None:
+    """Recursively update paths of all descendants."""
+    child_dirs = await session.scalars(
+            select(Directory)
+            .where(qa(Directory.parent_id) == parent_id),
+        )  # fmt: skip
+
+    for child_dir in child_dirs:
+        child_dir.path = [
+            "ou=services" if p == "ou=System" else p for p in child_dir.path
+        ]
+        await session.flush()
+        await _update_descendants_downgrade(session, child_dir.id)
+
+
+def upgrade(container: AsyncContainer) -> None:
+    """Upgrade: Rename 'services' container to 'System'."""
 
     async def _update_attributes(
         session: AsyncSession,
@@ -75,6 +98,8 @@ def upgrade(container: AsyncContainer) -> None:
         service_dirs = await session.scalars(
             select(Directory).where(qa(Directory.name) == "services"),
         )
+        ou_to = "ou=System"
+        ou_from = "ou=services"
 
         for service_dir in service_dirs:
             system_exists = await session.scalar(
@@ -97,7 +122,12 @@ def upgrade(container: AsyncContainer) -> None:
             ]
 
             await session.flush()
-            await _update_descendants(session, service_dir.id)
+            await _update_descendants(
+                session,
+                service_dir.id,
+                ou_from=ou_from,
+                ou_to=ou_to,
+            )
 
         await _update_attributes(session, "ou=services", "ou=System")
         await session.commit()
@@ -107,24 +137,6 @@ def upgrade(container: AsyncContainer) -> None:
 
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade: Rename 'System' container back to 'services'."""
-
-    async def _update_descendants_downgrade(
-        session: AsyncSession,
-        parent_id: int,
-    ) -> None:
-        """Recursively update paths of all descendants."""
-        child_dirs = await session.scalars(
-            select(Directory)
-            .where(qa(Directory.parent_id) == parent_id),
-        )  # fmt: skip
-
-        for child_dir in child_dirs:
-            child_dir.path = [
-                "ou=services" if p == "ou=System" else p
-                for p in child_dir.path
-            ]
-            await session.flush()
-            await _update_descendants_downgrade(session, child_dir.id)
 
     async def _update_attributes_downgrade(
         session: AsyncSession,
@@ -158,7 +170,8 @@ def downgrade(container: AsyncContainer) -> None:
         system_dirs = await session.scalars(
             select(Directory).where(qa(Directory.name) == "System"),
         )
-
+        ou_to = "ou=services"
+        ou_from = "ou=System"
         for system_dir in system_dirs:
             system_dir.name = "services"
             system_dir.path = [
@@ -167,7 +180,12 @@ def downgrade(container: AsyncContainer) -> None:
             ]
 
             await session.flush()
-            await _update_descendants_downgrade(session, system_dir.id)
+            await _update_descendants(
+                session,
+                system_dir.id,
+                ou_from=ou_from,
+                ou_to=ou_to,
+            )
 
         await _update_attributes_downgrade(
             session,
