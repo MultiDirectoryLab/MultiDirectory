@@ -58,6 +58,7 @@ class EntityTypeNames(StrEnum):
     ORGANIZATIONAL_UNIT = "Organizational Unit"
     GROUP = "Group"
     USER = "User"
+    CONTACT = "Contact"
     KRB_CONTAINER = "KRB Container"
     KRB_PRINCIPAL = "KRB Principal"
     KRB_REALM_CONTAINER = "KRB Realm Container"
