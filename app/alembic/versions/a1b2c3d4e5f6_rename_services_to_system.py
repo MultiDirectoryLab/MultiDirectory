@@ -75,41 +75,44 @@ def upgrade(container: AsyncContainer) -> None:
 
         base_directories = await get_base_directories(session)
         if not base_directories:
-            await session.commit()
             return
 
-        service_dirs = await session.scalars(
-            select(Directory).where(qa(Directory.name) == "services"),
+        service_dir = await session.scalar(
+            select(Directory).where(
+                qa(Directory.name) == "services",
+                qa(Directory.is_system).is_(True),
+            ),
         )
+        if not service_dir:
+            return
         ou_to = "ou=System"
         ou_from = "ou=services"
 
-        for service_dir in service_dirs:
-            system_exists = await session.scalar(
-                select(exists(Directory))
-                .where(
-                    and_(
-                        qa(Directory.name) == "System",
-                        qa(Directory.parent_id) == service_dir.parent_id,
-                    ),
+        system_exists = await session.scalar(
+            select(exists(Directory))
+            .where(
+                and_(
+                    qa(Directory.name) == "System",
+                    qa(Directory.parent_id) == service_dir.parent_id,
                 ),
-            )  # fmt: skip
+            ),
+        )  # fmt: skip
 
-            if system_exists:
-                continue
+        if system_exists:
+            return
 
-            service_dir.name = "System"
-            service_dir.path = [
-                ou_to if p == ou_from else p for p in service_dir.path
-            ]
+        service_dir.name = "System"
+        service_dir.path = [
+            ou_to if p == ou_from else p for p in service_dir.path
+        ]
 
-            await session.flush()
-            await _update_descendants(
-                session,
-                service_dir.id,
-                ou_from=ou_from,
-                ou_to=ou_to,
-            )
+        await session.flush()
+        await _update_descendants(
+            session,
+            service_dir.id,
+            ou_from=ou_from,
+            ou_to=ou_to,
+        )
 
         await _update_attributes(session, ou_from, ou_to)
         await session.commit()
@@ -126,28 +129,31 @@ def downgrade(container: AsyncContainer) -> None:
 
         base_directories = await get_base_directories(session)
         if not base_directories:
-            await session.commit()
             return
 
-        system_dirs = await session.scalars(
-            select(Directory).where(qa(Directory.name) == "System"),
+        system_dir = await session.scalar(
+            select(Directory).where(
+                qa(Directory.name) == "System",
+                qa(Directory.is_system).is_(True),
+            ),
         )
+        if not system_dir:
+            return
         ou_to = "ou=services"
         ou_from = "ou=System"
 
-        for system_dir in system_dirs:
-            system_dir.name = "services"
-            system_dir.path = [
-                ou_to if p == ou_from else p for p in system_dir.path
-            ]
+        system_dir.name = "services"
+        system_dir.path = [
+            ou_to if p == ou_from else p for p in system_dir.path
+        ]
 
-            await session.flush()
-            await _update_descendants(
-                session,
-                system_dir.id,
-                ou_from=ou_from,
-                ou_to=ou_to,
-            )
+        await session.flush()
+        await _update_descendants(
+            session,
+            system_dir.id,
+            ou_from=ou_from,
+            ou_to=ou_to,
+        )
 
         await _update_attributes(
             session,
