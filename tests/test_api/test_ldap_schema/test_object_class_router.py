@@ -26,7 +26,7 @@ async def test_get_one_extended_object_class(
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert isinstance(data, dict)
-    assert set(data.get("entity_type_names")) == {
+    assert set(data.get("entity_type_names")) == {  # type: ignore
         EntityTypeNames.CONTACT,
         EntityTypeNames.USER,
     }
