@@ -17,6 +17,8 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
+    KRBAPIDeletePrincipalError,
+    KRBAPIPrincipalNotFoundError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
@@ -453,13 +455,25 @@ class AddRequest(BaseRequest):
                 # in case server is not available: raise error and rollback
                 # stub cannot raise error
                 if user:
+                    # NOTE: Delete existing principal if any
+                    try:
+                        await ctx.kadmin.get_principal(
+                            user.sam_account_name,
+                        )
+                        await ctx.kadmin.del_principal(
+                            user.sam_account_name,
+                        )
+                    except KRBAPIPrincipalNotFoundError:
+                        pass
+
                     pw = (
                         self.password.get_secret_value()
                         if self.password
                         else None
                     )
                     await ctx.kadmin.add_principal(user.get_upn_prefix(), pw)
-                if is_computer:
+
+                elif is_computer:
                     await ctx.kadmin.add_principal(
                         f"{new_dir.host_principal}.{base_dn.name}",
                         None,
@@ -468,7 +482,11 @@ class AddRequest(BaseRequest):
                         new_dir.host_principal,
                         None,
                     )
-            except (KRBAPIAddPrincipalError, KRBAPIConnectionError):
+            except (
+                KRBAPIDeletePrincipalError,
+                KRBAPIAddPrincipalError,
+                KRBAPIConnectionError,
+            ):
                 await ctx.session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
