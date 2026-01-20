@@ -157,6 +157,10 @@ class SearchRequest(BaseRequest):
     def is_guid_requested(self) -> bool:
         return self.all_attrs or "objectguid" in self.requested_attrs
 
+    @property
+    def is_objectclass_requested(self) -> bool:
+        return self.all_attrs or "objectclass" in self.requested_attrs
+
     @cached_property
     def all_attrs(self) -> bool:
         return "*" in self.requested_attrs or not self.requested_attrs
@@ -357,11 +361,16 @@ class SearchRequest(BaseRequest):
             if attr not in _ATTRS_TO_CLEAN
         }
 
+        cond = or_(
+            func.lower(Attribute.name).in_(attrs),
+            func.lower(Attribute.name) == "objectclass",
+        )
+
         return query.options(
             selectinload(qa(Directory.attributes)),
             with_loader_criteria(
                 Attribute,
-                func.lower(Attribute.name).in_(attrs),
+                cond,
             ),
         )
 
@@ -474,7 +483,7 @@ class SearchRequest(BaseRequest):
         attrs: dict[str, list[str]],
         session: AsyncSession,
     ) -> None:
-        if "distinguishedname" not in self.requested_attrs or self.all_attrs:
+        if "distinguishedname" in self.requested_attrs or self.all_attrs:
             attrs["distinguishedName"].append(distinguished_name)
 
         if "whenCreated" in self.requested_attrs or self.all_attrs:
@@ -511,10 +520,6 @@ class SearchRequest(BaseRequest):
                 attrs["memberOf"].append(group.directory.path_dn)
 
         if self.token_groups and "user" in obj_classes:
-            attrs["tokenGroups"].append(
-                str(string_to_sid(directory.object_sid)),
-            )
-
             group_directories = await get_all_parent_group_directories(
                 directory.groups,
                 session,
@@ -523,7 +528,7 @@ class SearchRequest(BaseRequest):
             if group_directories is not None:
                 async for directory_ in group_directories:
                     attrs["tokenGroups"].append(
-                        str(string_to_sid(directory_.object_sid)),
+                        string_to_sid(directory_.object_sid),  # type: ignore
                     )
 
         if self.member and "group" in obj_classes and directory.group:
@@ -577,6 +582,9 @@ class SearchRequest(BaseRequest):
 
                 if attr.name.lower() == "objectclass":
                     obj_classes.append(value)
+                    if self.is_objectclass_requested:
+                        attrs[attr.name].append(value)
+                    continue
 
                 attrs[attr.name].append(value)
 

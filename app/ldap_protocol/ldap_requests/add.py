@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
@@ -17,6 +18,7 @@ from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
+    KRBAPIDeletePrincipalError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
@@ -444,7 +446,7 @@ class AddRequest(BaseRequest):
                 parent_directory=parent,
                 directory=new_dir,
             )
-            await ctx.session.flush()
+            await ctx.session.commit()
         except IntegrityError:
             await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
@@ -453,13 +455,20 @@ class AddRequest(BaseRequest):
                 # in case server is not available: raise error and rollback
                 # stub cannot raise error
                 if user:
+                    # NOTE: Try to delete existing principal if any
+                    with contextlib.suppress(KRBAPIDeletePrincipalError):
+                        await ctx.kadmin.del_principal(
+                            user.get_upn_prefix(),
+                        )
+
                     pw = (
                         self.password.get_secret_value()
                         if self.password
                         else None
                     )
                     await ctx.kadmin.add_principal(user.get_upn_prefix(), pw)
-                if is_computer:
+
+                elif is_computer:
                     await ctx.kadmin.add_principal(
                         f"{new_dir.host_principal}.{base_dn.name}",
                         None,
