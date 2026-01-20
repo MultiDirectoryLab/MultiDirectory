@@ -257,7 +257,7 @@ class TestProvider(Provider):
                 "recursion_desired": False,
             },
         ]
-        dns_manager.get_zones.return_value = [
+        dns_manager.get_master_zones.return_value = [
             {
                 "id": "zone1",
                 "name": "example.com.",
