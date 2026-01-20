@@ -6,6 +6,7 @@ from starlette import status
 
 from ldap_protocol.dns import AbstractDNSManager
 from ldap_protocol.dns.dto import DNSMasterZoneDTO, DNSRecordDTO, DNSRRSetDTO
+from ldap_protocol.dns.enums import PowerDNSZoneType
 
 
 @pytest.mark.asyncio
@@ -222,9 +223,9 @@ async def test_dns_create_zone(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    dns_manager.create_zone.assert_called()  # type: ignore
+    dns_manager.create_master_zone.assert_called()  # type: ignore
     assert (
-        dns_manager.create_zone.call_args.args  # type: ignore
+        dns_manager.create_master_zone.call_args.args  # type: ignore
     ) == (
         DNSMasterZoneDTO(
             id=zone_name,
@@ -233,7 +234,7 @@ async def test_dns_create_zone(
             dnssec=False,
             type="zone",
             nameservers=[],
-            kind="Master",
+            kind=PowerDNSZoneType.MASTER,
         ),
     )
 
@@ -258,9 +259,9 @@ async def test_dns_update_zone(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    dns_manager.update_zone.assert_called()  # type: ignore
+    dns_manager.update_master_zone.assert_called()  # type: ignore
     assert (
-        dns_manager.update_zone.call_args.args  # type: ignore
+        dns_manager.update_master_zone.call_args.args  # type: ignore
     ) == (
         DNSMasterZoneDTO(
             id=zone_name,
@@ -269,7 +270,7 @@ async def test_dns_update_zone(
             dnssec=False,
             type="zone",
             nameservers=[],
-            kind="Master",
+            kind=PowerDNSZoneType.MASTER,
         ),
     )
 
@@ -291,9 +292,9 @@ async def test_dns_delete_zone(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    dns_manager.delete_zone.assert_called()  # type: ignore
+    dns_manager.delete_master_zone.assert_called()  # type: ignore
     assert (
-        dns_manager.delete_zone.call_args.args  # type: ignore
+        dns_manager.delete_master_zone.call_args.args  # type: ignore
     ) == (zone_ids[0],)
 
 
@@ -308,7 +309,7 @@ async def test_dns_get_all_zones_with_records(
     response = await http_client.get("/dns/zone")
 
     assert response.status_code == status.HTTP_200_OK
-    dns_manager.get_zones.assert_called()  # type: ignore
+    dns_manager.get_master_zones.assert_called()  # type: ignore
 
     data = response.json()
     assert data == [
