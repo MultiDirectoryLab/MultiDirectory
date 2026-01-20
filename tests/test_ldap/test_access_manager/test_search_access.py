@@ -123,11 +123,11 @@ def test_check_search_access(
     expected_result: tuple[bool, set[str], set[str]],
 ) -> None:
     """Test the check_search_access method of AccessManager."""
-    filtered_aces = AccessManager._filter_aces_by_entity_type(
+    filtered_aces = AccessManager._filter_aces_by_entity_type(  # noqa: SLF001
         aces,
         entity_type_id,
     )
-    result = AccessManager._check_search_access(filtered_aces)
+    result = AccessManager._check_search_access(filtered_aces)  # noqa: SLF001
     assert result == expected_result
 
 
