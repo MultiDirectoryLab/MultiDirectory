@@ -11,10 +11,10 @@ from contextlib import suppress
 from io import BytesIO
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from traceback import format_exc
-from typing import Literal, cast, overload
+from typing import Literal, NewType, cast, overload
 
 from dishka import AsyncContainer, Scope
-from loguru import Logger
+from loguru import logger
 from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
@@ -28,6 +28,8 @@ from .data_logger import DataLogger
 
 infinity = cast("int", math.inf)
 pp_v2 = ProxyProtocolV2()
+
+ClientLogger = NewType("ClientLogger", type[logger])  # type: ignore
 
 
 class PoolClientHandler:
@@ -47,7 +49,7 @@ class PoolClientHandler:
         self,
         settings: Settings,
         container: AsyncContainer,
-        log: Logger,
+        log: ClientLogger,
     ):
         """Set workers number for single client concurrent handling."""
         self.container = container
