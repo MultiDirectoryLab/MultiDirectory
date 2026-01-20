@@ -149,6 +149,7 @@ class DNSManagerSettings:
         self.dns_server_ip = dns_server_ip
         self.tsig_key = tsig_key
 
+
 class AbstractDNSHTTPClient:
     """Abstract DNS client class."""
 
@@ -161,6 +162,7 @@ class AbstractDNSHTTPClient:
     ) -> httpx.Response:
         """Send HTTP request."""
         raise DNSNotImplementedError
+
 
 class AbstractDNSManager:
     """Abstract DNS manager class."""
