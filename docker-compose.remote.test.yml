@@ -6,6 +6,7 @@ services:
       DEBUG: 1
       DOMAIN: md.test
       PDNS_API_KEY: testkey123
+      PDNS_DIST_KEY: testkey123
       DEFAULT_NAMESERVER: 127.0.0.1
       HOST_MACHINE_NAME: DC1
       POSTGRES_USER: user1
