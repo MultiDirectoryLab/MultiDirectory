@@ -53,7 +53,7 @@ from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
-from ldap_protocol.server import ClientLogger, PoolClientHandler
+from ldap_protocol.server import PoolClientHandler, ServerLogger
 from ldap_protocol.udp_server import CLDAPUDPServer
 from schedule import scheduler_factory
 
@@ -199,7 +199,7 @@ async def ldap_factory(settings: Settings) -> None:
         )
 
         settings = await container.get(Settings)
-        log: ClientLogger = logger.bind(name="ldap")  # type: ignore
+        log: ServerLogger = logger.bind(name="ldap")  # type: ignore
         log.add(
             "logs/ldap_{time:DD-MM-YYYY}.log",
             filter=lambda rec: rec["extra"].get("name") == "ldap",
@@ -244,7 +244,7 @@ async def global_ldap_server_factory(settings: Settings) -> None:
         )
 
         settings = await container.get(Settings)
-        log: ClientLogger = logger.bind(name="global_catalog")  # type: ignore
+        log: ServerLogger = logger.bind(name="global_catalog")  # type: ignore
         log.add(
             "logs/global_catalog_{time:DD-MM-YYYY}.log",
             filter=lambda rec: rec["extra"].get("name") == "global_catalog",

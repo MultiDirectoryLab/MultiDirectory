@@ -29,7 +29,7 @@ from .data_logger import DataLogger
 infinity = cast("int", math.inf)
 pp_v2 = ProxyProtocolV2()
 
-ClientLogger = NewType("ClientLogger", type[logger])  # type: ignore
+ServerLogger = NewType("ServerLogger", type[logger])  # type: ignore
 
 
 class PoolClientHandler:
@@ -49,7 +49,7 @@ class PoolClientHandler:
         self,
         settings: Settings,
         container: AsyncContainer,
-        log: ClientLogger,
+        log: ServerLogger,
     ):
         """Set workers number for single client concurrent handling."""
         self.container = container
