@@ -455,8 +455,8 @@ class AddRequest(BaseRequest):
                 # in case server is not available: raise error and rollback
                 # stub cannot raise error
                 if user:
-                    # NOTE: Delete existing principal if any
                     try:
+                        # NOTE: Try to delete existing principal if any
                         await ctx.kadmin.get_principal(
                             user.sam_account_name,
                         )
@@ -464,6 +464,7 @@ class AddRequest(BaseRequest):
                             user.sam_account_name,
                         )
                     except KRBAPIPrincipalNotFoundError:
+                        # NOTE: Principal does not exist; nothing to delete.
                         pass
 
                     pw = (
