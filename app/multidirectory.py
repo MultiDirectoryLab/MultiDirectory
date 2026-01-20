@@ -42,10 +42,8 @@ from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
     EventSenderProvider,
-    GlobalCatalogLogger,
     GlobalLDAPServerProvider,
     HTTPProvider,
-    LDAPLogger,
     LDAPServerProvider,
     MainProvider,
     MFACredsProvider,
@@ -201,7 +199,16 @@ async def ldap_factory(settings: Settings) -> None:
         )
 
         settings = await container.get(Settings)
-        log = await container.get(LDAPLogger)
+        log = logger.bind(name="ldap")
+        log.add(
+            "logs/ldap_{time:DD-MM-YYYY}.log",
+            filter=lambda rec: rec["extra"].get("name") == "ldap",
+            retention="10 days",
+            rotation="1d",
+            colorize=False,
+            enqueue=True,
+        )
+
         servers.append(PoolClientHandler(settings, container, log).start())
 
     await asyncio.gather(*servers)
@@ -237,7 +244,16 @@ async def global_ldap_server_factory(settings: Settings) -> None:
         )
 
         settings = await container.get(Settings)
-        log = await container.get(GlobalCatalogLogger)
+        log = logger.bind(name="global_catalog")
+        log.add(
+            "logs/global_catalog_{time:DD-MM-YYYY}.log",
+            filter=lambda rec: rec["extra"].get("name") == "global_catalog",
+            retention="10 days",
+            rotation="1d",
+            colorize=False,
+            enqueue=True,
+        )
+
         servers.append(PoolClientHandler(settings, container, log).start())
 
     await asyncio.gather(*servers)

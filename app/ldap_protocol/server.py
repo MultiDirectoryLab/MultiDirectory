@@ -14,12 +14,12 @@ from traceback import format_exc
 from typing import Literal, cast, overload
 
 from dishka import AsyncContainer, Scope
+from loguru import Logger
 from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
 
 from config import Settings
-from ioc import GlobalCatalogLogger, LDAPLogger
 from ldap_protocol import LDAPRequestMessage, LDAPSession
 from ldap_protocol.ldap_requests.bind_methods import GSSAPISL
 from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
@@ -47,7 +47,7 @@ class PoolClientHandler:
         self,
         settings: Settings,
         container: AsyncContainer,
-        log: LDAPLogger | GlobalCatalogLogger,
+        log: Logger,
     ):
         """Set workers number for single client concurrent handling."""
         self.container = container
