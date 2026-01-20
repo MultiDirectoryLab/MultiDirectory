@@ -371,7 +371,7 @@ async def create_group(
     )
     session.add(dir_)
     await session.flush()
-    await session.refresh(dir_, ["id", "parent_id", "parent"])
+    await session.refresh(dir_, ["id"])
 
     group = Group(directory_id=dir_.id)
     dir_.create_path(parent.path)

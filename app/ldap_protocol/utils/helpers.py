@@ -142,13 +142,12 @@ from datetime import datetime
 from functools import wraps
 from hashlib import blake2b
 from operator import attrgetter
-from typing import Any, Callable, Iterable
+from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.orm.attributes import instance_state
 from sqlalchemy.sql.compiler import DDLCompiler
 from sqlalchemy.sql.expression import ClauseElement, Executable, Visitable
 
@@ -416,47 +415,9 @@ async def explain_query(
     )
 
 
-def has_expired_sqla_objs(obj: Any, max_depth: int = 3) -> bool:
-    def _check(value: Any) -> bool:
-        try:
-            state = instance_state(value)
-            return bool(state.expired_attributes)
-        except AttributeError:
-            return False
-
-    def _walk(value: Any, depth: int = 0) -> bool:
-        if depth > max_depth:
-            return False
-
-        if _check(value):
-            return True
-
-        if isinstance(value, str | bytes | bytearray):
-            return False
-
-        if isinstance(value, dict):
-            return any(_walk(v, depth + 1) for v in value.values())
-
-        if isinstance(value, Iterable):
-            return any(_walk(v, depth + 1) for v in value)
-
-        return False
-
-    return _walk(obj)
-
-
 def async_lru_cache(ttl: int | None = DEFAULT_CACHE_TIME) -> Callable:
     cache: dict = {}
     locks: dict = {}
-
-    def _is_value_expired(
-        value: Any,
-        now: float,
-        expires_at: float | None,
-    ) -> bool:
-        return bool(
-            expires_at and expires_at < now or has_expired_sqla_objs(value),
-        )
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
@@ -469,7 +430,7 @@ def async_lru_cache(ttl: int | None = DEFAULT_CACHE_TIME) -> Callable:
             async with locks[key]:
                 if key in cache:
                     value, expires_at = cache[key]
-                    if not _is_value_expired(value, now, expires_at):
+                    if not expires_at or expires_at > now:
                         return value
                     else:
                         del cache[key]
