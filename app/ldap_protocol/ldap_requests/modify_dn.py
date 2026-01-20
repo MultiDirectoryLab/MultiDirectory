@@ -199,7 +199,7 @@ class ModifyDNRequest(BaseRequest):
                 return
 
             directory.parent = parent_dir
-            directory.create_path(directory.parent, dn=new_dn)
+            directory.create_path(parent_dir.path, dn=new_dn)
 
             try:
                 await ctx.session.flush()

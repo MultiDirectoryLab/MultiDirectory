@@ -11,6 +11,7 @@ from loguru import logger
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from dtos import DirectoryDTO
 from entities import Attribute, Directory, Group, NetworkPolicy, User
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
@@ -124,21 +125,22 @@ class SetupGateway:
         self,
         data: dict,
         is_system: bool,
-        domain: Directory,
-        parent: Directory | None = None,
+        domain: Directory | DirectoryDTO,
+        parent: Directory | DirectoryDTO | None = None,
     ) -> None:
         """Create data recursively."""
         dir_ = Directory(
             is_system=is_system,
             object_class=data["object_class"],
             name=data["name"],
-            parent=parent,
         )
         dir_.groups = []
-        dir_.create_path(parent, dir_.get_dn_prefix())
+        path = parent.path if parent else []
+        dir_.create_path(path, dir_.get_dn_prefix())
 
         self._session.add(dir_)
         await self._session.flush()
+        dir_.parent_id = parent.id if parent else None
         await self._session.refresh(dir_, ["id"])
 
         self._session.add(
