@@ -16,7 +16,7 @@ from .test_object_class_router_datasets import (
 
 
 @pytest.mark.asyncio
-async def test_get_one_extended_object_class(
+async def test_get_extended_object_classes(
     http_client: AsyncClient,
 ) -> None:
     """Test getting a single extended object class."""
@@ -26,7 +26,10 @@ async def test_get_one_extended_object_class(
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert isinstance(data, dict)
-    assert data.get("entity_type_names") == [EntityTypeNames.USER]
+    assert set(data.get("entity_type_names")) == {  # type: ignore
+        EntityTypeNames.CONTACT,
+        EntityTypeNames.USER,
+    }
 
 
 @pytest.mark.parametrize(

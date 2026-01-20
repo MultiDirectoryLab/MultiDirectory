@@ -273,6 +273,7 @@ services:
       - ./certs:/certs
       - psync_queue:/var/spool/krb5-sync
       - ldap_keytab:/LDAP_keytab/
+      - kdc:/etc/krb5kdc/
     env_file:
       .env
     command: python multidirectory.py --scheduler
@@ -317,6 +318,8 @@ services:
         condition: service_healthy
       cert_check:
         condition: service_completed_successfully
+      kdc:
+        condition: service_started
     working_dir: /server
     command: ./entrypoint.sh
   kadmind:
