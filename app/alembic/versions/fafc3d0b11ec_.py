@@ -15,9 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
 from ldap_protocol.utils.queries import (
     create_group,
     get_base_directories,
@@ -42,9 +39,6 @@ def upgrade(container: AsyncContainer) -> None:
     ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            attribute_value_validator = await cnt.get(
-                AttributeValueValidator,
-            )
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
@@ -62,7 +56,6 @@ def upgrade(container: AsyncContainer) -> None:
                 dir_, _ = await create_group(
                     name="readonly domain controllers",
                     sid=521,
-                    attribute_value_validator=attribute_value_validator,
                     session=session,
                 )
 
