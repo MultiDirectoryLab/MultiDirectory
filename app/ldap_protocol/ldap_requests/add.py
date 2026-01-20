@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
@@ -18,7 +19,6 @@ from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
     KRBAPIDeletePrincipalError,
-    KRBAPIPrincipalNotFoundError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
@@ -455,17 +455,11 @@ class AddRequest(BaseRequest):
                 # in case server is not available: raise error and rollback
                 # stub cannot raise error
                 if user:
-                    try:
-                        # NOTE: Try to delete existing principal if any
-                        await ctx.kadmin.get_principal(
-                            user.sam_account_name,
-                        )
+                    # NOTE: Try to delete existing principal if any
+                    with contextlib.suppress(KRBAPIDeletePrincipalError):
                         await ctx.kadmin.del_principal(
-                            user.sam_account_name,
+                            user.get_upn_prefix(),
                         )
-                    except KRBAPIPrincipalNotFoundError:
-                        # NOTE: Principal does not exist; nothing to delete.
-                        pass
 
                     pw = (
                         self.password.get_secret_value()
@@ -483,11 +477,7 @@ class AddRequest(BaseRequest):
                         new_dir.host_principal,
                         None,
                     )
-            except (
-                KRBAPIDeletePrincipalError,
-                KRBAPIAddPrincipalError,
-                KRBAPIConnectionError,
-            ):
+            except (KRBAPIAddPrincipalError, KRBAPIConnectionError):
                 await ctx.session.rollback()
                 yield AddResponse(
                     result_code=LDAPCodes.UNAVAILABLE,
