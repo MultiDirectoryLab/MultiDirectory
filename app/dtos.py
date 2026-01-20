@@ -67,16 +67,6 @@ class DirectoryDTO:
     def path_dn(self) -> str:
         return ",".join(reversed(self.path))
 
-    def create_path(
-        self,
-        parent: Directory | None = None,
-        dn: str = "cn",
-    ) -> None:
-        pre = parent.path if parent else []
-        self.path = pre + [self.get_dn(dn)]
-        self.depth = len(self.path)
-        self.rdname = dn
-
     @property
     def relative_id(self) -> str:
         """Get RID from objectSid.

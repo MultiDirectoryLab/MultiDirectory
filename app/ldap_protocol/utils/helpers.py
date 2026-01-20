@@ -142,7 +142,7 @@ from datetime import datetime
 from functools import wraps
 from hashlib import blake2b
 from operator import attrgetter
-from typing import Any, Callable
+from typing import Any, Callable, Generic, TypeVar
 from zoneinfo import ZoneInfo
 
 from loguru import logger
@@ -153,8 +153,6 @@ from sqlalchemy.sql.expression import ClauseElement, Executable, Visitable
 
 from dtos import DirectoryDTO
 from entities import Directory
-
-DEFAULT_CACHE_TIME = 5 * 60  # 5 minutes
 
 
 def validate_entry(entry: str) -> bool:
@@ -198,7 +196,7 @@ def validate_attribute(attribute: str) -> bool:
 
 
 def is_dn_in_base_directory(
-    base_directory: Directory | DirectoryDTO,
+    base_directory: DirectoryDTO,
     entry: str,
 ) -> bool:
     """Check if an entry in a base dn."""
@@ -206,7 +204,7 @@ def is_dn_in_base_directory(
 
 
 def dn_is_base_directory(
-    base_directory: Directory | DirectoryDTO,
+    base_directory: DirectoryDTO,
     entry: str,
 ) -> bool:
     """Check if an entry is a base dn."""
@@ -415,32 +413,26 @@ async def explain_query(
     )
 
 
-def async_lru_cache(ttl: int | None = DEFAULT_CACHE_TIME) -> Callable:
-    cache: dict = {}
-    locks: dict = {}
+# def async_cache(ttl: int | None = DEFAULT_CACHE_TIME) -> Callable:
+#     """Cache for get_base_directories"""
+#     cache: list[tuple[list[DirectoryDTO], float | None]] = []
 
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        async def wrapper(*args: tuple, **kwargs: dict) -> Any:
-            key = (args, tuple(sorted(kwargs.items())))
-            now = time.monotonic()
-            if key not in locks:
-                locks[key] = asyncio.Lock()
+#     def decorator(func: Callable) -> Callable:
+#         @wraps(func)
+#         async def wrapper(*args: tuple, **kwargs: dict) -> list[DirectoryDTO]:
+#             if cache:
+#                 value, expires_at = cache[0]
+#                 if not expires_at or expires_at > time.monotonic():
+#                     return value
+#                 else:
+#                     cache.clear()
 
-            async with locks[key]:
-                if key in cache:
-                    value, expires_at = cache[key]
-                    if not expires_at or expires_at > now:
-                        return value
-                    else:
-                        del cache[key]
+#             result = await func(*args, **kwargs)
+#             expires_at = time.monotonic() + ttl if ttl else None
+#             cache.append((result, expires_at))
 
-                result = await func(*args, **kwargs)
-                expires_at = now + ttl if ttl else None
-                cache[key] = (result, expires_at)
-                del locks[key]
-                return result
+#             return result
 
-        return wrapper
+#         return wrapper
 
-    return decorator
+#     return decorator
