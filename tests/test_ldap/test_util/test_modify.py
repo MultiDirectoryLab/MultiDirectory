@@ -672,10 +672,10 @@ async def test_ldap_modify_with_ap(
 
     if directory and not directory.user:
         user = User(
-            sam_account_name="users_container",
-            user_principal_name="users_container@md.test",
+            sam_account_name="test",
+            user_principal_name="test@md.test",
             mail="users@md.test",
-            display_name="Users Container",
+            display_name="test",
             directory_id=directory.id,
         )
         session.add(user)
