@@ -20,7 +20,7 @@ test_api_forbidden_chars_in_attr_value = [
     "contains:colon",
     "contains+plus",
     "contains*asterisk",
-    "contains\"doublequotes",  # noqa: Q003
+    'contains"doublequotes',
     "multiple#forbidden=chars<>here",
     "#starts_with_hash",
     "ends_with_semicolon;",
@@ -39,8 +39,8 @@ test_api_forbidden_chars_in_attr_value = [
     ":",
     "+",
     "*",
-    "\"",  # noqa: Q003
-    "#=<>\\;:+*\"",  # noqa: Q003
+    '"',
+    '#=<>\\;:+*"',
     "",
     " ",
     "   ",

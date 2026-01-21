@@ -60,7 +60,7 @@ def _create_test_user_data(
 async def test_tree_creation(
     http_client: AsyncClient,
     ctx_bind: LDAPBindRequestContext,
-    password_utils: PasswordUtils,
+    password_utils: PasswordUtils,  # noqa: ARG001
 ) -> None:
     """Test tree creation."""
     krbadmin_pw = "Password123"

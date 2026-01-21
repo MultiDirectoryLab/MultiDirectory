@@ -8,9 +8,9 @@ from ipaddress import IPv4Address, IPv4Network
 from unittest.mock import Mock
 
 import pytest
-from authorization_provider_protocol import AuthorizationProviderProtocol
 
 from api.dhcp.adapter import DHCPAdapter
+from authorization_provider_protocol import AuthorizationProviderProtocol
 from ldap_protocol.dhcp.dataclasses import (
     DHCPLease,
     DHCPOptionData,

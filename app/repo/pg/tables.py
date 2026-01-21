@@ -148,12 +148,6 @@ directory_table = Table(
     Column("depth", Integer, nullable=True),
     Column("objectSid", String, nullable=True, key="object_sid"),
     Column(
-        "password_policy_id",
-        Integer,
-        ForeignKey("PasswordPolicies.id"),
-        nullable=True,
-    ),
-    Column(
         "objectGUID",
         PG_UUID(as_uuid=True),
         default=uuid.uuid4,
