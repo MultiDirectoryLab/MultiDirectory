@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
-from entities import Directory, Group
+from entities import Directory, Group, User
 from enums import AceType, RoleScope
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -669,6 +669,18 @@ async def test_ldap_modify_with_ap(
     )
 
     directory = await session.scalar(query)
+
+    if directory and not directory.user:
+        user = User(
+            sam_account_name="users_container",
+            user_principal_name="users_container@md.test",
+            mail="users@md.test",
+            display_name="Users Container",
+            directory_id=directory.id,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(directory)
 
     async def try_modify() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
