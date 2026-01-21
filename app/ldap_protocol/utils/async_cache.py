@@ -1,4 +1,5 @@
 """Async cache implementation."""
+
 import time
 from functools import wraps
 from typing import Callable, Generic, TypeVar

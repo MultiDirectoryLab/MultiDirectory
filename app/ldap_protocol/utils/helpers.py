@@ -130,7 +130,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-import asyncio
 import functools
 import hashlib
 import random
@@ -139,10 +138,9 @@ import struct
 import time
 from calendar import timegm
 from datetime import datetime
-from functools import wraps
 from hashlib import blake2b
 from operator import attrgetter
-from typing import Any, Callable, Generic, TypeVar
+from typing import Callable
 from zoneinfo import ZoneInfo
 
 from loguru import logger
@@ -411,28 +409,3 @@ async def explain_query(
             for row in await session.execute(explain(query, analyze=True))
         ),
     )
-
-
-# def async_cache(ttl: int | None = DEFAULT_CACHE_TIME) -> Callable:
-#     """Cache for get_base_directories"""
-#     cache: list[tuple[list[DirectoryDTO], float | None]] = []
-
-#     def decorator(func: Callable) -> Callable:
-#         @wraps(func)
-#         async def wrapper(*args: tuple, **kwargs: dict) -> list[DirectoryDTO]:
-#             if cache:
-#                 value, expires_at = cache[0]
-#                 if not expires_at or expires_at > time.monotonic():
-#                     return value
-#                 else:
-#                     cache.clear()
-
-#             result = await func(*args, **kwargs)
-#             expires_at = time.monotonic() + ttl if ttl else None
-#             cache.append((result, expires_at))
-
-#             return result
-
-#         return wrapper
-
-#     return decorator

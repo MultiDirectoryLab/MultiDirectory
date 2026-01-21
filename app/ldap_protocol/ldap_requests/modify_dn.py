@@ -19,6 +19,7 @@ from ldap_protocol.ldap_responses import (
     ModifyDNResponse,
 )
 from ldap_protocol.objects import ProtocolRequests
+from ldap_protocol.utils.async_cache import base_directories_cache
 from ldap_protocol.utils.queries import get_filter_from_path, validate_entry
 from repo.pg.tables import (
     ace_directory_memberships_table,
@@ -200,6 +201,7 @@ class ModifyDNRequest(BaseRequest):
 
             directory.parent = parent_dir
             directory.create_path(parent_dir.path, dn=new_dn)
+            base_directories_cache.clear()
 
             try:
                 await ctx.session.flush()
