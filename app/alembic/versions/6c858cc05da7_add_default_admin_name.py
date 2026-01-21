@@ -55,4 +55,3 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    # Откатывать не нужно
