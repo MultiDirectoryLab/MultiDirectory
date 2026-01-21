@@ -202,7 +202,6 @@ class Directory:
     )
     updated_at: datetime | None = field(default=None)
     depth: int = field(default=0)
-    password_policy_id: int | None = None
     path: list[str] = field(default_factory=list)
 
     parent: Directory | None = field(default=None, repr=False, compare=False)

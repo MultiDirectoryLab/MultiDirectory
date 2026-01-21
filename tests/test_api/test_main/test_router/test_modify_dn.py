@@ -91,7 +91,7 @@ async def test_api_modify_dn_with_level_down(
     response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",
+            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",  # noqa: E501
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
