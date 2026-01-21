@@ -1082,7 +1082,7 @@ async def handler(
     settings.set_test_port()
     test_log = logger.bind(name="ldap_test")
     async with container(scope=Scope.APP) as app_scope:
-        yield PoolClientHandler(settings, app_scope, test_log)
+        yield PoolClientHandler(settings, app_scope, test_log)  # type: ignore
 
 
 @pytest_asyncio.fixture(scope="function")
