@@ -38,6 +38,12 @@ down:  ## shutdown services
 	docker compose down --remove-orphans
 	docker volume prune -f
 
+migrations:  ## generate migration file
+	docker compose run ldap_server alembic revision --autogenerate
+
+migrate:  ## upgrade db
+	docker compose run ldap_server python multidirectory.py --migrate
+
 # server stage/development commands
 
 stage_gen_cert:  ## generate self-signed cert
@@ -66,9 +72,3 @@ krb_client_build:  ## build krb client service
 
 krb_client:  ## run krb client bash
 	docker run --rm --init -it --name krbclient --network multidirectory_default krbclient:runtime bash
-
-migrations:  ## generate migration file
-	docker compose run ldap_server alembic revision --autogenerate
-
-migrate:  ## upgrade db
-	docker compose run ldap_server alembic upgrade head
