@@ -19,6 +19,7 @@ from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
     KRBAPIDeletePrincipalError,
+    KRBAPIPrincipalNotFoundError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
@@ -456,7 +457,10 @@ class AddRequest(BaseRequest):
                 # stub cannot raise error
                 if user:
                     # NOTE: Try to delete existing principal if any
-                    with contextlib.suppress(KRBAPIDeletePrincipalError):
+                    with contextlib.suppress(
+                        KRBAPIDeletePrincipalError,
+                        KRBAPIPrincipalNotFoundError,
+                    ):
                         await ctx.kadmin.del_principal(
                             user.get_upn_prefix(),
                         )
