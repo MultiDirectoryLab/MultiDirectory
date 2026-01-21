@@ -214,7 +214,7 @@ class AddRequest(BaseRequest):
                 parent=parent,
             )
 
-            new_dir.create_path(parent.path, new_dn)
+            new_dir.create_path(parent, new_dn)
             ctx.session.add(new_dir)
 
             await ctx.session.flush()

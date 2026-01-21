@@ -149,7 +149,6 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.compiler import DDLCompiler
 from sqlalchemy.sql.expression import ClauseElement, Executable, Visitable
 
-from dtos import DirectoryDTO
 from entities import Directory
 
 
@@ -193,18 +192,12 @@ def validate_attribute(attribute: str) -> bool:
     )
 
 
-def is_dn_in_base_directory(
-    base_directory: DirectoryDTO,
-    entry: str,
-) -> bool:
+def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
     """Check if an entry in a base dn."""
     return entry.lower().endswith(base_directory.path_dn.lower())
 
 
-def dn_is_base_directory(
-    base_directory: DirectoryDTO,
-    entry: str,
-) -> bool:
+def dn_is_base_directory(base_directory: Directory, entry: str) -> bool:
     """Check if an entry is a base dn."""
     return base_directory.path_dn.lower() == entry.lower()
 
@@ -309,7 +302,7 @@ def string_to_sid(sid_string: str) -> bytes:
 
 
 def create_object_sid(
-    domain: Directory | DirectoryDTO,
+    domain: Directory,
     rid: int,
     reserved: bool = False,
 ) -> str:

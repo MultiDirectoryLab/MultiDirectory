@@ -43,8 +43,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             return
 
         ro_dir.name = READ_ONLY_GROUP_NAME
-        path = ro_dir.parent.path if ro_dir.parent else []
-        ro_dir.create_path(path, ro_dir.get_dn_prefix())
+        ro_dir.create_path(ro_dir.parent, ro_dir.get_dn_prefix())
 
         session.execute(
             update(Attribute)
@@ -91,9 +90,7 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             return
 
         ro_dir.name = "readonly domain controllers"
-
-        path = ro_dir.parent.path if ro_dir.parent else []
-        ro_dir.create_path(path, ro_dir.get_dn_prefix())
+        ro_dir.create_path(ro_dir.parent, ro_dir.get_dn_prefix())
 
         session.execute(
             update(Attribute)

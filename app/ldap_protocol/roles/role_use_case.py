@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy import and_, insert, literal, or_, select
 
-from dtos import DirectoryDTO
 from entities import AccessControlEntry, AceType, Directory, Role
 from enums import AuthorizationRules, RoleConstants, RoleScope
 from ldap_protocol.kerberos.utils import get_system_container_dn
@@ -42,7 +41,7 @@ class RoleUseCase:
 
     async def inherit_parent_aces(
         self,
-        parent_directory: Directory | DirectoryDTO,
+        parent_directory: Directory,
         directory: Directory,
     ) -> None:
         """Inherit access control entries from the parent directory.

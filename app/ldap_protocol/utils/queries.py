@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from dtos import DirectoryDTO, _directory_sqla_obj_to_dto
 from entities import Attribute, Directory, Group, User
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
@@ -38,15 +37,24 @@ from .helpers import (
 
 
 @base_directories_cache
-async def get_base_directories(session: AsyncSession) -> list[DirectoryDTO]:
+async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
         select(Directory)
         .filter(qa(Directory.parent_id).is_(None)),
     )  # fmt: skip
-    return [
-        _directory_sqla_obj_to_dto(dir_) for dir_ in result.scalars().all()
-    ]
+    res = []
+    for dir_ in result.scalars():
+        new_dir = Directory(
+            **{
+                k: v
+                for k, v in dir_.__dict__.items()
+                if not k.startswith("_") and k != "id"
+            },
+        )
+        new_dir.id = dir_.id
+        res.append(new_dir)
+    return res
 
 
 async def get_user(session: AsyncSession, name: str) -> User | None:
@@ -374,7 +382,7 @@ async def create_group(
     await session.refresh(dir_, ["id"])
 
     group = Group(directory_id=dir_.id)
-    dir_.create_path(parent.path)
+    dir_.create_path(parent)
     session.add(group)
 
     dir_.object_sid = create_object_sid(

@@ -269,10 +269,10 @@ class Directory:
 
     def create_path(
         self,
-        parent_path: list | None = None,
+        parent: Directory | None = None,
         dn: str = "cn",
     ) -> None:
-        pre = parent_path or []
+        pre = parent.path if parent else []
         self.path = pre + [self.get_dn(dn)]
         self.depth = len(self.path)
         self.rdname = dn

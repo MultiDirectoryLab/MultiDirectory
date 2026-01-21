@@ -23,7 +23,6 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from dtos import DirectoryDTO
 from entities import (
     Attribute,
     AttributeType,
@@ -377,7 +376,7 @@ class SearchRequest(BaseRequest):
 
     def _build_query(
         self,
-        base_directories: list[DirectoryDTO],
+        base_directories: list[Directory],
         user: UserSchema,
         access_manager: AccessManager,
     ) -> Select[tuple[Directory]]:

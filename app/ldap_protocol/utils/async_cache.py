@@ -4,7 +4,7 @@ import time
 from functools import wraps
 from typing import Callable, Generic, TypeVar
 
-from dtos import DirectoryDTO
+from entities import Directory
 
 T = TypeVar("T")
 DEFAULT_CACHE_TIME = 5 * 60  # 5 minutes
@@ -40,4 +40,4 @@ class AsyncTTLCache(Generic[T]):
         return wrapper
 
 
-base_directories_cache = AsyncTTLCache[list[DirectoryDTO]]()
+base_directories_cache = AsyncTTLCache[list[Directory]]()
