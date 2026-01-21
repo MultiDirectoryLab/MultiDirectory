@@ -244,7 +244,17 @@ async def global_ldap_server_factory(settings: Settings) -> None:
         )
 
         settings = await container.get(Settings)
-        servers.append(PoolClientHandler(settings, container).start())
+        log: ServerLogger = logger.bind(name="global_catalog")  # type: ignore
+        log.add(
+            "logs/global_catalog_{time:DD-MM-YYYY}.log",
+            filter=lambda rec: rec["extra"].get("name") == "global_catalog",
+            retention="10 days",
+            rotation="1d",
+            colorize=False,
+            enqueue=True,
+        )
+
+        servers.append(PoolClientHandler(settings, container, log).start())
 
     await asyncio.gather(*servers)
 
