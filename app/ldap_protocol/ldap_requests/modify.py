@@ -38,7 +38,6 @@ from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.cte import check_root_group_membership_intersection
 from ldap_protocol.utils.helpers import (
-    create_user_name,
     ft_to_dt,
     is_dn_in_base_directory,
     validate_entry,
@@ -888,20 +887,7 @@ class ModifyRequest(BaseRequest):
                     path_dn = directory.path_dn
                     for base_directory in await get_base_directories(session):
                         if is_dn_in_base_directory(base_directory, path_dn):
-                            base_dn = base_directory
                             break
-
-                    sam_account_name = create_user_name(directory.id)
-                    user_principal_name = f"{sam_account_name}@{base_dn.name}"
-                    user = User(
-                        sam_account_name=sam_account_name,
-                        user_principal_name=user_principal_name,
-                        directory_id=directory.id,
-                    )
-                    session.add(user)
-
-                    await session.flush()
-                    await session.refresh(directory)
 
                 if name == "accountexpires":
                     new_value = ft_to_dt(int(value)) if value != "0" else None
