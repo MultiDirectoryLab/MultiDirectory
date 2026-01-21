@@ -131,3 +131,8 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
         .filter_by(directory_id=subquery, name="krbprincipalexpiration")
         .execution_options(synchronize_session=False),
     )
+
+
+def get_system_container_dn(base_dn: str) -> str:
+    """Get System container DN for services."""
+    return f"ou=System,{base_dn}"

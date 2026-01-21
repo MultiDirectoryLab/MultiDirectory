@@ -67,11 +67,9 @@ async def test_check_ldap_principal(
 async def test_update_krb5_config(
     session: AsyncSession,
     settings: Settings,
-    kadmin: AbstractKadmin,
 ) -> None:
     """Test update_krb5_config."""
     await update_krb5_config(
         session=session,
-        kadmin=kadmin,
         settings=settings,
     )

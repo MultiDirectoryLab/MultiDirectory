@@ -34,12 +34,16 @@ services:
       - "5432"
     logging:
       driver: "none"
+    tmpfs:
+      - /var/lib/postgresql/data
 
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly-test
     expose:
       - "6379"
+    tmpfs:
+      - /data
     deploy:
       resources:
         limits:

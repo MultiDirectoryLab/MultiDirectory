@@ -36,6 +36,7 @@ downgrade:  ## re-run migration
 down:  ## shutdown services
 	docker compose -f docker-compose.test.yml down --remove-orphans
 	docker compose down --remove-orphans
+	docker volume prune -f
 
 # server stage/development commands
 
