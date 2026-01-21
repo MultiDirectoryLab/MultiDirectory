@@ -37,11 +37,17 @@ from ldap_protocol.objects import (
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.cte import check_root_group_membership_intersection
-from ldap_protocol.utils.helpers import ft_to_dt, validate_entry
+from ldap_protocol.utils.helpers import (
+    create_user_name,
+    ft_to_dt,
+    is_dn_in_base_directory,
+    validate_entry,
+)
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
     clear_group_membership,
     extend_group_membership,
+    get_base_directories,
     get_directories,
     get_directory_by_rid,
     get_filter_from_path,
@@ -878,20 +884,35 @@ class ModifyRequest(BaseRequest):
                 )
 
             elif name in User.search_fields:
-                if directory.user:
-                    if name == "accountexpires":
-                        new_value = (
-                            ft_to_dt(int(value)) if value != "0" else None
-                        )
-                    else:
-                        new_value = value  # type: ignore
+                if not directory.user:
+                    path_dn = directory.path_dn
+                    for base_directory in await get_base_directories(session):
+                        if is_dn_in_base_directory(base_directory, path_dn):
+                            base_dn = base_directory
+                            break
 
-                    await session.execute(
-                        update(User)
-                        .filter_by(directory=directory)
-                        .values({name: new_value}),
+                    sam_account_name = create_user_name(directory.id)
+                    user_principal_name = f"{sam_account_name}@{base_dn.name}"
+                    user = User(
+                        sam_account_name=sam_account_name,
+                        user_principal_name=user_principal_name,
+                        directory_id=directory.id,
                     )
+                    session.add(user)
 
+                    await session.flush()
+                    await session.refresh(directory)
+
+                if name == "accountexpires":
+                    new_value = ft_to_dt(int(value)) if value != "0" else None
+                else:
+                    new_value = value  # type: ignore
+
+                await session.execute(
+                    update(User)
+                    .filter_by(directory=directory)
+                    .values({name: new_value}),
+                )
             elif name in ("userpassword", "unicodepwd") and directory.user:
                 if not settings.USE_CORE_TLS:
                     raise PermissionError("TLS required")
