@@ -24,7 +24,6 @@ class DirectoryDTO:
     created_at: datetime | None
     updated_at: datetime | None
     depth: int
-    password_policy_id: int | None
     path: list[str]
 
     search_fields: ClassVar[dict[str, str]] = {
