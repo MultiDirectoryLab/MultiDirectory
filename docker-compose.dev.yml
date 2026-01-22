@@ -143,6 +143,7 @@ services:
     volumes:
       - ./app:/app
       - ./certs:/certs
+      - ./logs:/app/logs
       - ldap_keytab:/LDAP_keytab/
     env_file: local.env
     command: python -OO multidirectory.py --global_ldap_server
