@@ -16,6 +16,7 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.utils.async_cache import base_directories_cache
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
 from password_utils import PasswordUtils
@@ -113,6 +114,7 @@ class SetupGateway:
                     domain=domain,
                     parent=domain,
                 )
+            base_directories_cache.clear()
 
         except Exception:
             import traceback
@@ -132,13 +134,13 @@ class SetupGateway:
             is_system=is_system,
             object_class=data["object_class"],
             name=data["name"],
-            parent=parent,
         )
         dir_.groups = []
         dir_.create_path(parent, dir_.get_dn_prefix())
 
         self._session.add(dir_)
         await self._session.flush()
+        dir_.parent_id = parent.id if parent else None
         await self._session.refresh(dir_, ["id"])
 
         self._session.add(

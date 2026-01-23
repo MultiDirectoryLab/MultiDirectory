@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import time
+from copy import copy
 from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
@@ -25,6 +26,7 @@ from repo.pg.tables import (
     queryable_attr as qa,
 )
 
+from .async_cache import base_directories_cache
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
     create_integer_hash,
@@ -35,13 +37,19 @@ from .helpers import (
 )
 
 
+@base_directories_cache
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
         select(Directory)
         .filter(qa(Directory.parent_id).is_(None)),
     )  # fmt: skip
-    return list(result.scalars().all())
+    res = []
+    for dir_ in result.scalars():
+        new_dir = copy(dir_)
+        session.expunge(new_dir)
+        res.append(new_dir)
+    return res
 
 
 async def get_user(session: AsyncSession, name: str) -> User | None:
@@ -362,7 +370,7 @@ async def create_group(
     dir_ = Directory(
         object_class="",
         name=name,
-        parent=parent,
+        parent_id=parent.id,
     )
     session.add(dir_)
     await session.flush()

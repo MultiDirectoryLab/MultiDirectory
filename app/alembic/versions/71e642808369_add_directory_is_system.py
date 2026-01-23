@@ -56,8 +56,13 @@ def upgrade(container: AsyncContainer) -> None:
         if not base_dn_list:
             return
 
-        for base_dn in base_dn_list:
-            base_dn.is_system = True
+        await session.execute(
+            update(Directory)
+            .where(
+                qa(Directory.parent_id).is_(None),
+            )
+            .values(is_system=True),
+        )
 
         await session.flush()
 
