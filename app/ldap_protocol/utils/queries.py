@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import time
+from copy import copy
 from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
@@ -45,14 +46,8 @@ async def get_base_directories(session: AsyncSession) -> list[Directory]:
     )  # fmt: skip
     res = []
     for dir_ in result.scalars():
-        new_dir = Directory(
-            **{
-                k: v
-                for k, v in dir_.__dict__.items()
-                if not k.startswith("_") and k != "id"
-            },
-        )
-        new_dir.id = dir_.id
+        new_dir = copy(dir_)
+        session.expunge(new_dir)
         res.append(new_dir)
     return res
 
