@@ -248,7 +248,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         ):
             try:
                 await ctx.kadmin.create_or_update_principal_pw(
-                    user.get_upn_prefix(),
+                    user.sam_account_name,
                     new_password,
                 )
             except (

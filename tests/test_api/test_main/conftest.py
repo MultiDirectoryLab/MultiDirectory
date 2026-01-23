@@ -139,6 +139,30 @@ async def adding_test_user(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def adding_test_computer(
+    http_client: AsyncClient,
+) -> None:
+    """Test api correct (name) add."""
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": "cn=mycomputer,dc=md,dc=test",
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["mycomputer name"]},
+                {"type": "cn", "vals": ["mycomputer"]},
+                {"type": "objectClass", "vals": ["computer", "top"]},
+            ],
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+
+@pytest_asyncio.fixture(scope="function")
 async def add_dns_settings(
     session: AsyncSession,
 ) -> None:

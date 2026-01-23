@@ -249,11 +249,7 @@ class AddRequest(BaseRequest):
             # in the attributes
             if (
                 attr_name in Directory.ro_fields
-                or attr_name
-                in (
-                    "userpassword",
-                    "unicodepwd",
-                )
+                or attr_name in ("userpassword", "unicodepwd")
                 or attr_name == new_dir.rdname
             ):
                 continue
@@ -342,11 +338,11 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-            for uattr, value in {
-                "loginShell": "/bin/bash",
-                "uidNumber": str(create_integer_hash(user.sam_account_name)),
-                "homeDirectory": f"/home/{user.sam_account_name}",
-            }.items():
+            for uattr, value in (
+                ("loginShell", "/bin/bash"),
+                ("uidNumber", str(create_integer_hash(user.sam_account_name))),
+                ("homeDirectory", f"/home/{user.sam_account_name}"),
+            ):
                 if uattr in user_attributes:
                     value = user_attributes[uattr]
                     del user_attributes[uattr]
@@ -421,6 +417,15 @@ class AddRequest(BaseRequest):
                 ),
             )
 
+        if is_computer:
+            attributes.append(
+                Attribute(
+                    name="sAMAccountName",
+                    value=f"{new_dir.name}",
+                    directory_id=new_dir.id,
+                ),
+            )
+
         if not ctx.attribute_value_validator.is_directory_attributes_valid(
             entity_type.name if entity_type else "",
             attributes,
@@ -461,16 +466,14 @@ class AddRequest(BaseRequest):
                         KRBAPIDeletePrincipalError,
                         KRBAPIPrincipalNotFoundError,
                     ):
-                        await ctx.kadmin.del_principal(
-                            user.get_upn_prefix(),
-                        )
+                        await ctx.kadmin.del_principal(user.sam_account_name)
 
                     pw = (
                         self.password.get_secret_value()
                         if self.password
                         else None
                     )
-                    await ctx.kadmin.add_principal(user.get_upn_prefix(), pw)
+                    await ctx.kadmin.add_principal(user.sam_account_name, pw)
 
                 elif is_computer:
                     await ctx.kadmin.add_principal(

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from sqlalchemy import Select, and_, delete, or_, select, update
+from sqlalchemy import Select, and_, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -37,11 +37,16 @@ from ldap_protocol.objects import (
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.cte import check_root_group_membership_intersection
-from ldap_protocol.utils.helpers import ft_to_dt, validate_entry
+from ldap_protocol.utils.helpers import (
+    ft_to_dt,
+    is_dn_in_base_directory,
+    validate_entry,
+)
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
     clear_group_membership,
     extend_group_membership,
+    get_base_directories,
     get_directories,
     get_directory_by_rid,
     get_filter_from_path,
@@ -99,6 +104,7 @@ class ModifyRequest(BaseRequest):
 
     object: str
     changes: list[Changes]
+    _old_vals: dict[str, str | None] = {}
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
@@ -222,7 +228,7 @@ class ModifyRequest(BaseRequest):
                     await ctx.session.rollback()
                     yield ModifyResponse(
                         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                        message="Invalid attribute value(s)",
+                        errorMessage="Invalid attribute value(s)",
                     )
                     return
 
@@ -612,6 +618,18 @@ class ModifyRequest(BaseRequest):
         if is_object_class_in_replaced or is_object_class_in_deleted:
             raise ModifyForbiddenError("ObjectClass can't be deleted.")
 
+    def _need_to_cache_old_value(
+        self,
+        change: Changes,
+        directory: Directory,
+    ) -> bool:
+        return bool(
+            directory.entity_type
+            and directory.entity_type.name == EntityTypeNames.COMPUTER
+            and change.get_name() == "samaccountname"
+            and not self._old_vals.get(change.get_name()),
+        )
+
     async def _delete(
         self,
         change: Changes,
@@ -656,10 +674,25 @@ class ModifyRequest(BaseRequest):
 
                     attrs.append(
                         and_(
-                            qa(Attribute.name) == change.modification.type,
+                            func.lower(qa(Attribute.name))
+                            == change.modification.type.lower(),
                             condition,
                         ),
                     )
+
+        if self._need_to_cache_old_value(change, directory):
+            self._old_vals[change.get_name()] = (
+                (
+                    await session.execute(
+                        select(Attribute).filter_by(
+                            directory=directory,
+                            name=change.modification.type,
+                        ),
+                    )
+                )
+                .scalar_one()
+                .value
+            )
 
         if attrs:
             del_query = (
@@ -800,7 +833,7 @@ class ModifyRequest(BaseRequest):
         attrs = []
         name = change.get_name()
 
-        if name in {"memberof", "member", "primarygroupid"}:
+        if name in ("memberof", "member", "primarygroupid"):
             await self._add_group_attrs(change, directory, session)
             return
 
@@ -812,9 +845,7 @@ class ModifyRequest(BaseRequest):
                     continue
 
                 elif (
-                    bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     if directory.path_dn == current_user.dn:
@@ -823,7 +854,7 @@ class ModifyRequest(BaseRequest):
                         )
 
                     await kadmin.lock_principal(
-                        directory.user.get_upn_prefix(),
+                        directory.user.sam_account_name,
                     )
 
                     await add_lock_and_expire_attributes(
@@ -837,9 +868,7 @@ class ModifyRequest(BaseRequest):
                     )
 
                 elif (
-                    not bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    not bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     await unlock_principal(
@@ -860,7 +889,7 @@ class ModifyRequest(BaseRequest):
 
             if name == "pwdlastset" and value == "0" and directory.user:
                 await kadmin.force_princ_pw_change(
-                    directory.user.get_upn_prefix(),
+                    directory.user.sam_account_name,
                 )
 
             if name == directory.rdname:
@@ -883,11 +912,89 @@ class ModifyRequest(BaseRequest):
                 else:
                     new_value = value  # type: ignore
 
+                base_dir = None
+                for base_directory in await get_base_directories(
+                    session,
+                ):
+                    if is_dn_in_base_directory(
+                        base_directory,
+                        directory.path_dn,
+                    ):
+                        base_dir = base_directory
+                        break
+                else:
+                    raise ModifyForbiddenError(
+                        "Base directory for computer not found.",
+                    )
+
+                if (
+                    name == "userprincipalname"
+                    and directory.entity_type
+                    and directory.entity_type.name == EntityTypeNames.USER
+                    and directory.user
+                ):
+                    new_samaccountname = str(new_value).split("@")[0]
+
+                    await kadmin.rename_princ(
+                        directory.user.sam_account_name,
+                        str(new_samaccountname),
+                    )
+
+                    await session.execute(
+                        update(User)
+                        .filter_by(directory=directory)
+                        .values(samaccountname=new_samaccountname),
+                    )
+
+                if (
+                    name == "samaccountname" and directory.entity_type
+                ):  # TODO это поле может быть и у компа, но находится в блоке с юзером
+                    if directory.entity_type.name == EntityTypeNames.COMPUTER:
+                        samaccountname_old_val = self._old_vals.get(
+                            change.get_name(),
+                        )
+
+                        await kadmin.rename_princ(
+                            f"host/{samaccountname_old_val}",
+                            f"host/{str(new_value)}",
+                        )
+                        await kadmin.rename_princ(
+                            f"host/{samaccountname_old_val}.{base_dir.name}",
+                            f"host/{str(new_value)}.{base_dir.name}",
+                        )
+                        attrs.append(
+                            Attribute(
+                                name=change.modification.type,
+                                value=new_value if isinstance(new_value, str) else None,  # noqa: E501
+                                bvalue=new_value if isinstance(new_value, bytes) else None,  # noqa: E501
+                                directory_id=directory.id,
+                            ),
+                        )  # fmt: skip
+
+                    elif (
+                        directory.entity_type.name == EntityTypeNames.USER
+                        and directory.user
+                    ):
+                        await kadmin.rename_princ(
+                            directory.user.sam_account_name,
+                            str(new_value),
+                        )
+
+                        new_userprincipalname = (
+                            f"{str(new_value)}@{base_dir.name}"
+                        )
+                        await session.execute(
+                            update(User)
+                            .filter_by(directory=directory)
+                            .values(userprincipalname=new_userprincipalname),
+                        )
+
                 await session.execute(
                     update(User)
                     .filter_by(directory=directory)
                     .values({name: new_value}),
                 )
+
             elif name in ("userpassword", "unicodepwd") and directory.user:
                 if not settings.USE_CORE_TLS:
                     raise PermissionError("TLS required")
@@ -918,7 +1025,7 @@ class ModifyRequest(BaseRequest):
                     directory.user,
                 )
                 await kadmin.create_or_update_principal_pw(
-                    directory.user.get_upn_prefix(),
+                    directory.user.sam_account_name,
                     value,
                 )
 

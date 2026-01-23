@@ -71,7 +71,7 @@ async def disable_accounts(
     )  # fmt: skip
 
     async for user in users:
-        await kadmin.lock_principal(user.get_upn_prefix())
+        await kadmin.lock_principal(user.sam_account_name)
 
         await add_lock_and_expire_attributes(
             session,
