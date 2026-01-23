@@ -540,3 +540,81 @@ async def test_api_update_dn_invalid_new_superior(
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.INVALID_DN_SYNTAX
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_modify_dn_many(http_client: AsyncClient) -> None:
+    """Test API for bulk modify DN."""
+    entry_dn_1 = "cn=test,dc=md,dc=test"
+    entry_dn_2 = "cn=test2,dc=md,dc=test"
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": entry_dn_2,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["test2"]},
+                {"type": "cn", "vals": ["test2"]},
+                {"type": "objectClass", "vals": ["organization", "top"]},
+            ],
+        },
+    )
+    assert response.json()["resultCode"] == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "/entry/update_many/dn",
+        json=[
+            {
+                "entry": entry_dn_1,
+                "newrdn": "cn=test",
+                "deleteoldrdn": True,
+                "new_superior": "ou=testModifyDn1,dc=md,dc=test",
+            },
+            {
+                "entry": entry_dn_2,
+                "newrdn": "cn=test2",
+                "deleteoldrdn": True,
+                "new_superior": "ou=testModifyDn1,dc=md,dc=test",
+            },
+        ],
+    )
+
+    data = response.json()
+    assert all(
+        result.get("resultCode") == LDAPCodes.SUCCESS for result in data
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_modify_dn_many_with_error(http_client: AsyncClient) -> None:
+    """Test bulk modify DN with one invalid entry."""
+    entry_dn = "cn=test,dc=md,dc=test"
+
+    response = await http_client.post(
+        "/entry/update_many/dn",
+        json=[
+            {
+                "entry": entry_dn,
+                "newrdn": "cn=test",
+                "deleteoldrdn": True,
+                "new_superior": "ou=testModifyDn1,dc=md,dc=test",
+            },
+            {
+                "entry": "cn=nonExistent,dc=md,dc=test",
+                "newrdn": "cn=nonExistent",
+                "deleteoldrdn": True,
+                "new_superior": "dc=md,dc=test",
+            },
+        ],
+    )
+
+    data = response.json()
+    assert data[0].get("resultCode") == LDAPCodes.SUCCESS
+    assert data[1].get("resultCode") == LDAPCodes.NO_SUCH_OBJECT
