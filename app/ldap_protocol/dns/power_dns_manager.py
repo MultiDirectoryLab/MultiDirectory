@@ -79,8 +79,8 @@ class PowerDNSDistClient:
         """Get rule ID from all rules list."""
         rules = self.get_all_rules()
         pattern = rf"^(\d+)\s+.*?\b{re.escape(match_rule)}\b"
-        m = re.search(pattern, rules, re.MULTILINE)
-        return int(m.group(1)) if m else None
+        match = re.search(pattern, rules, re.MULTILINE)
+        return int(match.group(1)) if match else None
 
     def get_all_rules(self) -> str:
         """Get list of all rules."""
@@ -99,9 +99,11 @@ class PowerDNSDistClient:
                 pool = "{pool}"
             }})
         """
-        o = self._send_command(command)
-        if len(o) > 1:
-            raise DNSdistError(f"Failed to add server to dnsdist: {len(o)}")
+        output = self._send_command(command)
+        if len(output) > 1:
+            raise DNSdistError(
+                f"Failed to add server to dnsdist: {len(output)}",
+            )
 
         self._persist_config()
 
@@ -121,9 +123,9 @@ class PowerDNSDistClient:
                 PoolAction("recursor")
             )
         """
-        o = self._send_command(command)
-        if len(o) > 1:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {o}")
+        output = self._send_command(command)
+        if len(output) > 1:
+            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
 
     def add_zone_rule(self, domain: str) -> None:
         """Add rule to redirect master zone DNS requests to auth server."""
@@ -133,9 +135,9 @@ class PowerDNSDistClient:
                 PoolAction("master")
             )
         """
-        o = self._send_command(command)
-        if len(o) > 1:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {o}")
+        output = self._send_command(command)
+        if len(output) > 1:
+            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
 
         command = f"""
             addAction(
@@ -143,9 +145,9 @@ class PowerDNSDistClient:
                 PoolAction("master")
             )
         """
-        o = self._send_command(command)
-        if o:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {o}")
+        output = self._send_command(command)
+        if output:
+            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
 
         self._deprioritize_all_match_rule()
 
@@ -167,9 +169,9 @@ class PowerDNSDistClient:
 
         for rule_id in rule_ids:
             command = f"rmRule({rule_id})"
-            o = self._send_command(command)
-            if len(o) > 1:
-                raise DNSdistError(f"Failed to add rule to dnsdist: {o}")
+            output = self._send_command(command)
+            if len(output) > 1:
+                raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
 
         self._persist_config()
 
