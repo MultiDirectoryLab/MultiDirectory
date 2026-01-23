@@ -111,6 +111,18 @@ async def modify_dn(
     return await request.handle_api(req.state.dishka_container)
 
 
+@entry_router.post("/update/dn_many", error_map=error_map)
+async def modify_dn_many(
+    requests: list[ModifyDNRequest],
+    req: Request,
+) -> list[LDAPResult]:
+    """LDAP MODIFY entry DN request."""
+    results = []
+    for request in requests:
+        results.append(await request.handle_api(req.state.dishka_container))
+    return results
+
+
 @entry_router.delete("/delete", error_map=error_map)
 async def delete(
     request: DeleteRequest,
