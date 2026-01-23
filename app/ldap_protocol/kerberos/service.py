@@ -145,9 +145,9 @@ class KerberosService(AbstractService):
         :return KerberosAdminDnGroup:
             dataclass with DN for krbadmin, services_container, krbadmin_group.
         """
-        krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
+        krbadmin = f"cn=krbadmin,cn=Users,{base_dn}"
         services_container = get_system_container_dn(base_dn)
-        krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
+        krbgroup = f"cn=krbadmin,cn=Groups,{base_dn}"
         return KerberosAdminDnGroup(
             krbadmin_dn=krbadmin,
             services_container_dn=services_container,

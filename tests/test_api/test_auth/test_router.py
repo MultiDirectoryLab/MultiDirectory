@@ -24,7 +24,7 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import get_search_path
+from ldap_protocol.utils.queries import get_filter_from_path
 from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
@@ -123,8 +123,8 @@ async def test_first_setup_and_oauth(
             .selectinload(qa(Group.roles))
             .selectinload(qa(Role.access_control_entries)),
         )
-        .filter_by(
-            path=get_search_path(
+        .filter(
+            get_filter_from_path(
                 "cn=read-only,cn=Groups,dc=md,dc=test-localhost",
             ),
         ),
