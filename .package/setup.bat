@@ -134,7 +134,7 @@ if errorlevel 1 (
 findstr /b /i /c:"PDNS_DIST_KEY=" .env >nul
 if errorlevel 1 (
     for /f %%i in ('powershell -command "[Convert]::ToBase64String((1..32|%%{[byte](Get-Random -Max 256)}))"') do set "randkey=%%i"
-    powershell -Command "(gc .\\dnsdist.conf) -replace PSAag0AEziPZuBB7kdcfIEkVJOyQInRcBRAhadWDpU0=, %randkey% | sc .\\dnsdist.conf -Enc UTF8"
+    powershell -Command "(gc .\\dnsdist.conf) -replace supersecretapikey, %randkey% | sc .\\dnsdist.conf -Enc UTF8"
     echo PDNS_DIST_KEY=!randkey!>> .env
 )
 

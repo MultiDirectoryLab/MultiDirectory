@@ -91,7 +91,7 @@ fi
 # DNSDIST_API_KEY
 if ! get_env_var "PDNS_DIST_KEY"; then
     dnsdist_key=$(openssl rand -base64 32)
-    sed -i "s|PSAag0AEziPZuBB7kdcfIEkVJOyQInRcBRAhadWDpU0=|${dnsdist_key}|g" dnsdist.conf
+    sed -i "s|supersecretapikey|${dnsdist_key}|g" dnsdist.conf
     add_env_var "PDNS_DIST_KEY" "$dnsdist_key"
 fi
 
