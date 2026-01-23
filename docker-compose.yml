@@ -544,7 +544,7 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
     volumes:
-      - ./.package/dnsdist.conf:/etc/dnsdist/dnsdist.conf
+      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf
       - dnsdist_confd:/etc/dnsdist/conf.d
 
 

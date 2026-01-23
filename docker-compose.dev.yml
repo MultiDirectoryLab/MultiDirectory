@@ -261,6 +261,9 @@ services:
       USE_CORE_TLS: 1
       SERVICE_NAME: multidirectory_api
       KRB5_LDAP_URI: ldap://ldap_server
+    networks:
+      default:
+      dns_net:
     hostname: api_server
     env_file:
       local.env
@@ -434,30 +437,66 @@ services:
           cpus: '0.25'
           memory: 0.5GiB
 
-  bind_dns:
+  pdns_auth:
     build:
       context: .
-      dockerfile: ./.docker/bind9.Dockerfile
-    image: bind9md
-    container_name: bind9
-    hostname: bind9
-    restart: unless-stopped
-    environment:
-      - DEFAULT_NAMESERVER=192.168.69.241
-      - USE_CONFIG_FILE_LOGGING=true
+      dockerfile: ./.docker/pdns_auth.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    image: pdns_auth_md
+    container_name: pdns_auth
+    networks:
+      default:
+      dns_net:
+        ipv4_address: 172.20.0.4
+    expose:
+      - 8082
+      - 53/udp
+      - 53/tcp
     volumes:
-      - dns_server_file:/opt/
-      - dns_server_config:/etc/bind/
-      - .dns/:/server/
-    tty: true
-    depends_on:
-      ldap_server:
-        condition: service_healthy
-        restart: true
-    labels:
-      - traefik.enable=true
-      - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
-      - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
+      - dns_lmdb:/var/lib/pdns-lmdb
+      - dns_config:/etc/powerdns
+
+
+  pdnsdist:
+    image: powerdns/dnsdist-19:1.9.11
+    container_name: pdnsdist
+    networks:
+      default:
+      dns_net:
+        ipv4_address: 172.20.0.3
+    expose:
+      - 8084
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf
+      - dnsdist_confd:/etc/dnsdist/conf.d
+
+
+  pdns_recursor:
+    image: powerdns/pdns-recursor-51:5.1.7
+    container_name: pdns_recursor
+    networks:
+      default:
+      dns_net:
+        ipv4_address: 172.20.0.2
+    expose:
+      - 8083
+      - 53/udp
+      - 53/tcp
+    volumes:
+      - ./.package/recursor.conf:/etc/powerdns/recursor.conf
+      - forward_zones:/etc/powerdns/recursor.d/
+
+networks:
+  dns_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
 
   event_handler:
     image: multidirectory
