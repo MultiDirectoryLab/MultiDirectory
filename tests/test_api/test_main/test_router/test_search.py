@@ -96,8 +96,8 @@ async def test_api_search(http_client: AsyncClient) -> None:
     assert response["resultCode"] == LDAPCodes.SUCCESS
 
     sub_dirs = {
-        "cn=groups,dc=md,dc=test",
-        "cn=users,dc=md,dc=test",
+        "cn=Groups,dc=md,dc=test",
+        "cn=Users,dc=md,dc=test",
         "ou=testModifyDn1,dc=md,dc=test",
         "ou=testModifyDn3,dc=md,dc=test",
         "ou=test_bit_rules,dc=md,dc=test",
@@ -111,7 +111,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_api_search_filter_memberof(http_client: AsyncClient) -> None:
     """Test api search."""
-    member = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    member = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     raw_response = await http_client.post(
         "entry/search",
         json={
@@ -121,7 +121,7 @@ async def test_api_search_filter_memberof(http_client: AsyncClient) -> None:
             "size_limit": 1000,
             "time_limit": 10,
             "types_only": True,
-            "filter": "(memberOf=cn=developers,cn=groups,dc=md,dc=test)",
+            "filter": "(memberOf=cn=developers,cn=Groups,dc=md,dc=test)",
             "attributes": [],
             "page_number": 1,
         },
@@ -137,8 +137,8 @@ async def test_api_search_filter_memberof(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_api_search_filter_member(http_client: AsyncClient) -> None:
     """Test api search."""
-    member = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
-    group = "cn=developers,cn=groups,dc=md,dc=test"
+    member = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
+    group = "cn=developers,cn=Groups,dc=md,dc=test"
     raw_response = await http_client.post(
         "entry/search",
         json={
@@ -241,11 +241,11 @@ async def test_api_search_filter_account_expires(
 @pytest.mark.usefixtures("session")
 async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
     """Test api search."""
-    user = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    user = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     raw_response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "cn=users,dc=md,dc=test",
+            "base_object": "cn=Users,dc=md,dc=test",
             "scope": 2,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -278,12 +278,12 @@ async def test_api_search_complex_filter(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     """Test api search."""
-    group = "cn=domain admins,cn=groups,dc=md,dc=test"
+    group = "cn=domain admins,cn=Groups,dc=md,dc=test"
     members = [
-        "cn=developers,cn=groups,dc=md,dc=test",
-        "cn=user0,cn=users,dc=md,dc=test",
-        "cn=user_admin,cn=users,dc=md,dc=test",
-        "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+        "cn=developers,cn=Groups,dc=md,dc=test",
+        "cn=user0,cn=Users,dc=md,dc=test",
+        "cn=user_admin,cn=Users,dc=md,dc=test",
+        "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
     ]
     response = await http_client.post(
         "entry/search",
@@ -406,7 +406,7 @@ async def test_api_bytes_to_hex(http_client: AsyncClient) -> None:
     raw_response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "cn=user0,cn=users,dc=md,dc=test",
+            "base_object": "cn=user0,cn=Users,dc=md,dc=test",
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,

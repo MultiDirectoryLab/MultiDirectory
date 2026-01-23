@@ -12,7 +12,6 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from constants import COMPUTERS_CONTAINER_NAME
 from entities import Directory
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -26,6 +25,7 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
+COMPUTERS_CONTAINER_NAME = "computers"
 _OU_COMPUTERS_DATA = {
     "name": COMPUTERS_CONTAINER_NAME,
     "object_class": "organizationalUnit",

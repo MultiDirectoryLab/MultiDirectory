@@ -78,7 +78,7 @@ async def test_check_policy_group(
     assert await network_policy_validator.is_user_group_valid(user, policy)
 
     group = await get_group(
-        dn="cn=domain admins,cn=groups,dc=md,dc=test",
+        dn="cn=domain admins,cn=Groups,dc=md,dc=test",
         session=session,
     )
 

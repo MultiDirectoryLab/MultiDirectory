@@ -46,7 +46,7 @@ async def test_ldap_root_add(
                 "cn: test\n"
                 "objectClass: organization\n"
                 "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -97,7 +97,7 @@ async def test_ldap_user_add_with_group(
     """Test ldapadd on server."""
     user_dn = "cn=test,dc=md,dc=test"
     user_search_path = get_search_path(user_dn)
-    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
@@ -163,9 +163,9 @@ async def test_ldap_user_add_group_with_group(
     user: dict,
 ) -> None:
     """Test ldapadd on server."""
-    child_group_dn = "cn=twisted,cn=groups,dc=md,dc=test"
+    child_group_dn = "cn=twisted,cn=Groups,dc=md,dc=test"
     child_group_search_path = get_search_path(child_group_dn)
-    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
@@ -287,7 +287,7 @@ async def test_ldap_add_access_control(
             name="Add Role",
             creator_upn=None,
             is_system=False,
-            groups=["cn=domain users,cn=groups," + base_dn],
+            groups=["cn=domain users,cn=Groups," + base_dn],
         ),
     )
 
@@ -355,7 +355,7 @@ async def test_ldap_user_add_with_duplicate_groups(
 ) -> None:
     """Duplicate memberOf yields single membership."""
     user_dn = "cn=dup,dc=md,dc=test"
-    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         ldif = [

@@ -8,9 +8,9 @@ from typing import TypedDict
 
 from enums import EntityTypeNames
 
-GROUPS_CONTAINER_NAME = "groups"
-COMPUTERS_CONTAINER_NAME = "computers"
-USERS_CONTAINER_NAME = "users"
+GROUPS_CONTAINER_NAME = "Groups"
+COMPUTERS_CONTAINER_NAME = "Computers"
+USERS_CONTAINER_NAME = "Users"
 
 READ_ONLY_GROUP_NAME = "read-only"
 

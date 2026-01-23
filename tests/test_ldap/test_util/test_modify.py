@@ -38,7 +38,7 @@ async def test_ldap_base_modify(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(
@@ -139,7 +139,7 @@ async def test_ldap_membersip_user_delete(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_admin,cn=users,dc=md,dc=test"
+    dn = "cn=user_admin,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
@@ -187,7 +187,7 @@ async def test_ldap_membersip_self_delete_admin_domain(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
@@ -201,7 +201,7 @@ async def test_ldap_membersip_self_delete_admin_domain(
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
             f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n"
-            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n",
+            "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -250,7 +250,7 @@ async def test_self_disable(
     response = await http_client.patch(
         "entry/update",
         json={
-            "object": "cn=user0,cn=users,dc=md,dc=test",
+            "object": "cn=user0,cn=Users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -288,7 +288,7 @@ async def test_ldap_membersip_user_add(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_non_admin,cn=users,dc=md,dc=test"
+    dn = "cn=user_non_admin,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(
@@ -312,7 +312,7 @@ async def test_ldap_membersip_user_add(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "add: memberOf\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )
@@ -351,7 +351,7 @@ async def test_ldap_membersip_user_replace(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_admin,cn=users,dc=md,dc=test"
+    dn = "cn=user_admin,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
@@ -361,7 +361,7 @@ async def test_ldap_membersip_user_replace(
 
     assert directory.groups
 
-    new_group_dn = "cn=twisted,cn=groups,dc=md,dc=test\n"
+    new_group_dn = "cn=twisted,cn=Groups,dc=md,dc=test\n"
 
     # add new group
     with tempfile.NamedTemporaryFile("w") as file:
@@ -372,7 +372,7 @@ async def test_ldap_membersip_user_replace(
                 "cn: twisted\n"
                 "objectClass: group\n"
                 "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -403,7 +403,7 @@ async def test_ldap_membersip_user_replace(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "replace: memberOf\n"
-                "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=twisted,cn=Groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )
@@ -442,7 +442,7 @@ async def test_ldap_membersip_grp_replace(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+    dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     query = (
         select(Directory)
@@ -463,7 +463,7 @@ async def test_ldap_membersip_grp_replace(
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
             (
-                "dn: cn=twisted1,cn=groups,dc=md,dc=test\n"
+                "dn: cn=twisted1,cn=Groups,dc=md,dc=test\n"
                 "name: twisted\n"
                 "cn: twisted\n"
                 "objectClass: group\n"
@@ -498,7 +498,7 @@ async def test_ldap_membersip_grp_replace(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "replace: memberOf\n"
-                "memberOf: cn=twisted1,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=twisted1,cn=Groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )
@@ -537,7 +537,7 @@ async def test_ldap_modify_dn(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
@@ -546,7 +546,7 @@ async def test_ldap_modify_dn(
                 "changetype: modrdn\n"
                 "newrdn: cn=user2\n"
                 "deleteoldrdn: 1\n"
-                "newsuperior: cn=users,dc=md,dc=test\n"
+                "newsuperior: cn=Users,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -588,7 +588,7 @@ async def test_ldap_modify_password_change(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
     new_password = "Password12345"  # noqa
 
     with tempfile.NamedTemporaryFile("w") as file:
@@ -655,7 +655,7 @@ async def test_ldap_modify_with_ap(
     access_control_entry_dao: AccessControlEntryDAO,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=users,dc=md,dc=test"
+    dn = "cn=Users,dc=md,dc=test"
     base_dn = "dc=md,dc=test"
     search_path = get_search_path(dn)
 
@@ -719,7 +719,7 @@ async def test_ldap_modify_with_ap(
             name="Modify Role",
             creator_upn=None,
             is_system=False,
-            groups=["cn=domain users,cn=groups," + base_dn],
+            groups=["cn=domain users,cn=Groups," + base_dn],
         ),
     )
 
@@ -843,25 +843,25 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     [
         (
             "add",
-            "cn=developers,cn=groups,dc=md,dc=test",
+            "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             True,
         ),
         (
             "add",
-            "cn=domain admins,cn=groups,dc=md,dc=test",
+            "cn=domain admins,cn=Groups,dc=md,dc=test",
             {"domain admins"},
             True,
         ),
         (
             "delete",
-            "cn=developers,cn=groups,dc=md,dc=test",
+            "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             False,
         ),
         (
             "replace",
-            "cn=developers,cn=groups,dc=md,dc=test",
+            "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             True,
         ),
@@ -877,7 +877,7 @@ async def test_ldap_modify_primary_group_id_scenarios(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify request with primaryGroupID for various scenarios."""
-    user_dn = "cn=user_admin,cn=users,dc=md,dc=test"
+    user_dn = "cn=user_admin,cn=Users,dc=md,dc=test"
     user_dir = await fetch_directory_by_dn(session, user_dn)
 
     group_dir = await fetch_directory_by_dn(session, group_dn)
@@ -932,22 +932,22 @@ async def test_ldap_modify_primary_group_id_scenarios(
     ("values", "include_dev_group", "expected_result", "expected_groups"),
     [
         (
-            ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             True,
             1,
             {"domain admins", "developers"},
         ),
         (
-            ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             False,
             0,
             {"domain admins"},
         ),
         (
             [
-                "cn=domain admins,cn=groups,dc=md,dc=test",
-                "cn=developers,cn=groups,dc=md,dc=test",
-                "cn=domain computers,cn=groups,dc=md,dc=test",
+                "cn=domain admins,cn=Groups,dc=md,dc=test",
+                "cn=developers,cn=Groups,dc=md,dc=test",
+                "cn=domain computers,cn=Groups,dc=md,dc=test",
             ],
             True,
             0,
@@ -965,8 +965,8 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify request replace memberOf attribute."""
-    user_dn = "cn=user_admin,cn=users,dc=md,dc=test"
-    dev_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
+    user_dn = "cn=user_admin,cn=Users,dc=md,dc=test"
+    dev_group_dn = "cn=developers,cn=Groups,dc=md,dc=test"
 
     user_dir = await fetch_directory_by_dn(session, user_dn)
     dev_group_dir = await fetch_directory_by_dn(session, dev_group_dn)

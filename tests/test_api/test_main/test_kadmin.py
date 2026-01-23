@@ -95,7 +95,7 @@ async def test_tree_creation(
 
     bind = MutePolicyBindRequest(
         version=0,
-        name="cn=krbadmin,cn=users,dc=md,dc=test",
+        name="cn=krbadmin,cn=Users,dc=md,dc=test",
         AuthenticationChoice=SimpleAuthentication(password=krbadmin_pw),
     )
 
@@ -162,9 +162,9 @@ async def test_setup_call(
 
     assert kadmin.setup.call_args.kwargs == {
         "domain": "md.test",
-        "admin_dn": "cn=user0,cn=users,dc=md,dc=test",
+        "admin_dn": "cn=user0,cn=Users,dc=md,dc=test",
         "services_dn": "ou=System,dc=md,dc=test",
-        "krbadmin_dn": "cn=krbadmin,cn=users,dc=md,dc=test",
+        "krbadmin_dn": "cn=krbadmin,cn=Users,dc=md,dc=test",
         "krbadmin_password": "Password123",
         "ldap_keytab_path": "/LDAP_keytab/ldap.keytab",
         "admin_password": creds.pw,
@@ -362,7 +362,7 @@ async def test_extended_pw_change_call(
     kadmin: AbstractKadmin,
 ) -> None:
     """Test anonymous pwd change."""
-    user_dn = "cn=user0,cn=users,dc=md,dc=test"
+    user_dn = "cn=user0,cn=Users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await anonymous_ldap_client.bind(user_dn, password)

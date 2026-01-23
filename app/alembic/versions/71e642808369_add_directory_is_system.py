@@ -14,13 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from constants import (
-    COMPUTERS_CONTAINER_NAME,
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_COMPUTERS_GROUP_NAME,
     DOMAIN_USERS_GROUP_NAME,
-    GROUPS_CONTAINER_NAME,
     READ_ONLY_GROUP_NAME,
-    USERS_CONTAINER_NAME,
 )
 from entities import Directory
 from ldap_protocol.utils.queries import get_base_directories
@@ -72,13 +69,13 @@ def upgrade(container: AsyncContainer) -> None:
                 qa(Directory.is_system).is_(False),
                 qa(Directory.name).in_(
                     (
-                        GROUPS_CONTAINER_NAME,
+                        "groups",
                         DOMAIN_ADMIN_GROUP_NAME,
                         DOMAIN_USERS_GROUP_NAME,
                         READ_ONLY_GROUP_NAME,
                         DOMAIN_COMPUTERS_GROUP_NAME,
-                        COMPUTERS_CONTAINER_NAME,
-                        USERS_CONTAINER_NAME,
+                        "computers",
+                        "users",
                         "services",
                         "krbadmin",
                         "kerberos",
