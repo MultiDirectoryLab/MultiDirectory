@@ -566,7 +566,7 @@ async def test_api_modify_dn_many(http_client: AsyncClient) -> None:
     assert response.json()["resultCode"] == LDAPCodes.SUCCESS
 
     response = await http_client.post(
-        "/entry/update/dn_many",
+        "/entry/update_many/dn",
         json=[
             {
                 "entry": entry_dn_1,
@@ -598,7 +598,7 @@ async def test_api_modify_dn_many_with_error(http_client: AsyncClient) -> None:
     entry_dn = "cn=test,dc=md,dc=test"
 
     response = await http_client.post(
-        "/entry/update/dn_many",
+        "/entry/update_many/dn",
         json=[
             {
                 "entry": entry_dn,

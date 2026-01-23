@@ -111,7 +111,7 @@ async def modify_dn(
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.post("/update/dn_many", error_map=error_map)
+@entry_router.post("/update_many/dn", error_map=error_map)
 async def modify_dn_many(
     requests: list[ModifyDNRequest],
     req: Request,
