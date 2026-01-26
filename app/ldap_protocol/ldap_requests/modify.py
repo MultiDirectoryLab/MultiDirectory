@@ -681,18 +681,14 @@ class ModifyRequest(BaseRequest):
                     )
 
         if self._need_to_cache_old_value(change, directory):
-            self._old_vals[change.get_name()] = (
-                (
-                    await session.execute(
-                        select(Attribute).filter_by(
-                            directory=directory,
-                            name=change.modification.type,
-                        ),
-                    )
-                )
-                .scalar_one()
-                .value
-            )
+            result = await session.execute(
+                select(Attribute)
+                .filter_by(
+                    directory=directory,
+                    name=change.modification.type,
+                ),
+            )  # fmt: skip
+            self._old_vals[change.get_name()] = result.scalar_one().value
 
         if attrs:
             del_query = (
@@ -837,6 +833,21 @@ class ModifyRequest(BaseRequest):
             await self._add_group_attrs(change, directory, session)
             return
 
+        base_dir = None
+        for base_directory in await get_base_directories(
+            session,
+        ):
+            if is_dn_in_base_directory(
+                base_directory,
+                directory.path_dn,
+            ):
+                base_dir = base_directory
+                break
+        else:
+            raise ModifyForbiddenError(
+                "Base directory for computer not found.",
+            )
+
         for value in change.modification.vals:
             if name == "useraccountcontrol":
                 uac_val = int(value)
@@ -906,38 +917,23 @@ class ModifyRequest(BaseRequest):
                     .values({name: value}),
                 )
 
-            elif name in User.search_fields:
+            elif (
+                name in User.search_fields
+                and directory.entity_type
+                and directory.entity_type.name == EntityTypeNames.USER
+                and directory.user
+            ):
                 if name == "accountexpires":
                     new_value = ft_to_dt(int(value)) if value != "0" else None
                 else:
                     new_value = value  # type: ignore
 
-                base_dir = None
-                for base_directory in await get_base_directories(
-                    session,
-                ):
-                    if is_dn_in_base_directory(
-                        base_directory,
-                        directory.path_dn,
-                    ):
-                        base_dir = base_directory
-                        break
-                else:
-                    raise ModifyForbiddenError(
-                        "Base directory for computer not found.",
-                    )
-
-                if (
-                    name == "userprincipalname"
-                    and directory.entity_type
-                    and directory.entity_type.name == EntityTypeNames.USER
-                    and directory.user
-                ):
+                if name == "userprincipalname":
                     new_samaccountname = str(new_value).split("@")[0]
 
                     await kadmin.rename_princ(
                         directory.user.sam_account_name,
-                        str(new_samaccountname),
+                        new_samaccountname,
                     )
 
                     await session.execute(
@@ -946,54 +942,51 @@ class ModifyRequest(BaseRequest):
                         .values(samaccountname=new_samaccountname),
                     )
 
-                if (
-                    name == "samaccountname" and directory.entity_type
-                ):  # TODO это поле может быть и у компа, но находится в блоке с юзером
-                    if directory.entity_type.name == EntityTypeNames.COMPUTER:
-                        samaccountname_old_val = self._old_vals.get(
-                            change.get_name(),
-                        )
+                elif name == "samaccountname":
+                    new_userprincipalname = f"{str(new_value)}@{base_dir.name}"
 
-                        await kadmin.rename_princ(
-                            f"host/{samaccountname_old_val}",
-                            f"host/{str(new_value)}",
-                        )
-                        await kadmin.rename_princ(
-                            f"host/{samaccountname_old_val}.{base_dir.name}",
-                            f"host/{str(new_value)}.{base_dir.name}",
-                        )
-                        attrs.append(
-                            Attribute(
-                                name=change.modification.type,
-                                value=new_value if isinstance(new_value, str) else None,  # noqa: E501
-                                bvalue=new_value if isinstance(new_value, bytes) else None,  # noqa: E501
-                                directory_id=directory.id,
-                            ),
-                        )  # fmt: skip
+                    await kadmin.rename_princ(
+                        directory.user.sam_account_name,
+                        str(new_value),
+                    )
 
-                    elif (
-                        directory.entity_type.name == EntityTypeNames.USER
-                        and directory.user
-                    ):
-                        await kadmin.rename_princ(
-                            directory.user.sam_account_name,
-                            str(new_value),
-                        )
-
-                        new_userprincipalname = (
-                            f"{str(new_value)}@{base_dir.name}"
-                        )
-                        await session.execute(
-                            update(User)
-                            .filter_by(directory=directory)
-                            .values(userprincipalname=new_userprincipalname),
-                        )
+                    await session.execute(
+                        update(User)
+                        .filter_by(directory=directory)
+                        .values(userprincipalname=new_userprincipalname),
+                    )
 
                 await session.execute(
                     update(User)
                     .filter_by(directory=directory)
                     .values({name: new_value}),
                 )
+
+            elif (
+                name == "samaccountname"
+                and directory.entity_type
+                and directory.entity_type.name == EntityTypeNames.COMPUTER
+            ):
+                samaccountname_old_val = self._old_vals.get(
+                    change.get_name(),
+                )
+
+                await kadmin.rename_princ(
+                    f"host/{samaccountname_old_val}",
+                    f"host/{str(value)}",
+                )
+                await kadmin.rename_princ(
+                    f"host/{samaccountname_old_val}.{base_dir.name}",
+                    f"host/{str(value)}.{base_dir.name}",
+                )
+                attrs.append(
+                    Attribute(
+                        name=change.modification.type,
+                        value=value if isinstance(value, str) else None,
+                        bvalue=value if isinstance(value, bytes) else None,
+                        directory_id=directory.id,
+                    ),
+                )  # fmt: skip
 
             elif name in ("userpassword", "unicodepwd") and directory.user:
                 if not settings.USE_CORE_TLS:
