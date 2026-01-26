@@ -153,7 +153,9 @@ class NetworkPolicyUseCase(AbstractService):
         await self._apply_netmask_updates(policy, dto)
         await self._apply_group_updates(policy, dto)
 
-        await self._validate_policy_uniqueness(policy)
+        if await self._network_policy_gateway.check_policy_exists(policy):
+            raise NetworkPolicyAlreadyExistsError("Entry already exists")
+
         await self._session.commit()
 
         return _convert_model_to_dto(policy)
@@ -198,11 +200,6 @@ class NetworkPolicyUseCase(AbstractService):
                 if dto.mfa_groups
                 else []
             )
-
-    async def _validate_policy_uniqueness(self, policy: NetworkPolicy) -> None:
-        """Validate policy uniqueness."""
-        if await self._network_policy_gateway.check_policy_exists(policy):
-            raise NetworkPolicyAlreadyExistsError("Entry already exists")
 
     async def swap_priorities(self, id1: int, id2: int) -> SwapPrioritiesDTO:
         """Swap priorities for network policies."""
