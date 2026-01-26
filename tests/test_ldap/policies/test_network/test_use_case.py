@@ -17,7 +17,6 @@ from ldap_protocol.policies.network.dto import (
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("setup_session")
 async def test_create_policy(
     network_policy_use_case: NetworkPolicyUseCase,
 ) -> None:
