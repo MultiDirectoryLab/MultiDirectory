@@ -32,16 +32,26 @@ from entities import (
 )
 from ldap_protocol.utils.helpers import ft_to_dt
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
-from repo.pg.tables import groups_table, queryable_attr as qa, users_table
+from repo.pg.tables import (
+    directory_table,
+    groups_table,
+    queryable_attr as qa,
+    users_table,
+)
 
 from .asn1parser import ASN1Row, TagNumbers
 from .objects import LDAPMatchingRule
-from .utils.cte import find_members_recursive_cte, get_filter_from_path
+from .utils.cte import (
+    find_members_recursive_cte,
+    find_root_group_recursive_cte,
+    get_filter_from_path,
+)
 
 _MEMBERS_ATTRS = {
     "member",
     "memberof",
     f"memberof:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:",
+    f"member:{LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL}:",
 }
 
 _RULE_POS = 0
@@ -289,6 +299,8 @@ class FilterInterpreterProtocol(Protocol):
                 return self._recursive_filter_memberof
             return self._filter_memberof
         elif attribute == "member":
+            if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_TRANSITIVE_EVAL:
+                return self._recursive_filter_member
             return self._filter_member
         else:
             raise ValueError("Incorrect attribute specified")
@@ -315,6 +327,27 @@ class FilterInterpreterProtocol(Protocol):
                 .where(groups_table.c.id == group_id_subquery)
                 .distinct(qa(Directory.id))
             ),
+        )  # type: ignore
+
+    def _recursive_filter_member(self, dn: str) -> UnaryExpression:
+        """Retrieve query conditions with the member attribute (recursive)."""
+        cte = find_root_group_recursive_cte([dn])
+
+        source_directory_id = (
+            select(directory_table.c.id)
+            .where(get_filter_from_path(dn))
+            .scalar_subquery()
+        )
+
+        return qa(Directory.id).in_(
+            select(cte.c.directory_id)
+            .where(
+                and_(
+                    cte.c.group_id.isnot(None),
+                    cte.c.directory_id != source_directory_id,
+                ),
+            )
+            .distinct(),
         )  # type: ignore
 
     def _filter_member(self, dn: str) -> UnaryExpression:

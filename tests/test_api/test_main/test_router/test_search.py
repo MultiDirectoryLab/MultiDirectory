@@ -9,6 +9,7 @@ from httpx import AsyncClient
 
 from enums import EntityTypeNames
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_requests.modify import Operation
 from tests.search_request_datasets import (
     test_search_by_rule_anr_dataset,
     test_search_by_rule_bit_and_dataset,
@@ -302,6 +303,177 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
     data = response.json()
     assert len(data["search_result"]) == len(members)
     assert all(obj["object_name"] in members for obj in data["search_result"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_api_search_recursive_member_user0(
+    http_client: AsyncClient,
+) -> None:
+    """Test recursive member search for user0."""
+    user = "cn=user0,cn=users,dc=md,dc=test"
+    # user0 находится напрямую в domain admins (не в developers)
+    expected_groups = [
+        "cn=domain admins,cn=groups,dc=md,dc=test",
+    ]
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": f"(member:1.2.840.113556.1.4.1941:={user})",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    dns = {obj["object_name"] for obj in data["search_result"]}
+    for group in expected_groups:
+        assert group in dns, f"Group {group} not found in search results"
+    assert len(data["search_result"]) >= 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_api_search_recursive_member_user1(
+    http_client: AsyncClient,
+) -> None:
+    """Test recursive member search with nested groups chain."""
+    group1_dn = "cn=recursive_test_group1,cn=groups,dc=md,dc=test"
+    group2_dn = "cn=recursive_test_group2,cn=groups,dc=md,dc=test"
+    group3_dn = "cn=recursive_test_group3,cn=groups,dc=md,dc=test"
+    user = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": group3_dn,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["recursive_test_group3"]},
+                {"type": "cn", "vals": ["recursive_test_group3"]},
+                {
+                    "type": "objectClass",
+                    "vals": ["top", "posixGroup", "group"],
+                },
+            ],
+        },
+    )
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": group2_dn,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["recursive_test_group2"]},
+                {"type": "cn", "vals": ["recursive_test_group2"]},
+                {
+                    "type": "objectClass",
+                    "vals": ["top", "posixGroup", "group"],
+                },
+            ],
+        },
+    )
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "/entry/add",
+        json={
+            "entry": group1_dn,
+            "password": None,
+            "attributes": [
+                {"type": "name", "vals": ["recursive_test_group1"]},
+                {"type": "cn", "vals": ["recursive_test_group1"]},
+                {
+                    "type": "objectClass",
+                    "vals": ["top", "posixGroup", "group"],
+                },
+            ],
+        },
+    )
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": group3_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "member",
+                        "vals": [user],
+                    },
+                },
+            ],
+        },
+    )
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": group2_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "member",
+                        "vals": [group3_dn],
+                    },
+                },
+            ],
+        },
+    )
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": group1_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "member",
+                        "vals": [group2_dn],
+                    },
+                },
+            ],
+        },
+    )
+    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "dc=md,dc=test",
+            "scope": 2,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": f"(member:1.2.840.113556.1.4.1941:={user})",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    dns = {obj["object_name"] for obj in data["search_result"]}
+
+    expected_groups = [group1_dn, group2_dn, group3_dn]
+    for group in expected_groups:
+        assert group in dns, (
+            f"Group {group} not found in search results. Found groups: {dns}"
+        )
 
 
 @pytest.mark.asyncio
