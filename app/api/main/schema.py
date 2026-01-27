@@ -18,8 +18,17 @@ from ldap_protocol.filter_interpreter import (
     FilterInterpreterProtocol,
     StringFilterInterpreter,
 )
-from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
-from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
+from ldap_protocol.ldap_requests import (
+    ModifyDNRequest as LDAPModifyDNRequest,
+    ModifyRequest as LDAPModifyRequest,
+    SearchRequest as LDAPSearchRequest,
+)
+from ldap_protocol.ldap_responses import (
+    LDAPResult,
+    SearchResultDone,
+    SearchResultEntry,
+)
+from ldap_protocol.objects import Changes
 from ldap_protocol.utils.const import GRANT_DN_STRING
 
 
@@ -153,3 +162,35 @@ class PrimaryGroupRequest(BaseModel):
 
     directory_dn: GRANT_DN_STRING
     group_dn: GRANT_DN_STRING
+
+
+class RenameRequest(BaseModel):
+    """Rename request schema.
+
+    Combines ModifyDN and Modify operations.
+    """
+
+    object: str
+    newrdn: str
+    changes: list[Changes]
+
+    async def handle_api(self, container: AsyncContainer) -> LDAPResult:
+        """Handle rename request by executing ModifyDN then Modify."""
+        modify_request = LDAPModifyRequest(
+            object=self.object,
+            changes=self.changes,
+        )
+        result = await modify_request.handle_api(container)
+
+        if not result or result.result_code != 0:
+            return result
+
+        modify_dn_request = LDAPModifyDNRequest(
+            entry=self.object,
+            newrdn=self.newrdn,
+            deleteoldrdn=True,
+            new_superior=None,
+        )
+        result = await modify_dn_request.handle_api(container)
+
+        return result

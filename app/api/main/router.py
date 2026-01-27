@@ -29,6 +29,7 @@ from ldap_protocol.utils.queries import set_or_update_primary_group
 
 from .schema import (
     PrimaryGroupRequest,
+    RenameRequest,
     SearchRequest,
     SearchResponse,
     SearchResultDone,
@@ -121,6 +122,15 @@ async def modify_dn_many(
     for request in requests:
         results.append(await request.handle_api(req.state.dishka_container))
     return results
+
+
+@entry_router.put("/rename", error_map=error_map)
+async def rename(
+    request: RenameRequest,
+    req: Request,
+) -> LDAPResult:
+    """LDAP rename entry request."""
+    return await request.handle_api(req.state.dishka_container)
 
 
 @entry_router.delete("/delete", error_map=error_map)
