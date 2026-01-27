@@ -833,7 +833,7 @@ class ModifyRequest(BaseRequest):
             await self._add_group_attrs(change, directory, session)
             return
 
-        base_dir = await self._new_method(directory, session)
+        base_dir = await self._get_base_dir(directory, session)
 
         for value in change.modification.vals:
             if name == "useraccountcontrol":
@@ -1021,7 +1021,7 @@ class ModifyRequest(BaseRequest):
 
         session.add_all(attrs)
 
-    async def _new_method(
+    async def _get_base_dir(
         self,
         directory: Directory,
         session: AsyncSession,
