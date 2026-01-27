@@ -919,31 +919,22 @@ class ModifyRequest(BaseRequest):
                     new_value = value  # type: ignore
 
                 if change.l_type == "userprincipalname":
-                    new_samaccountname = str(new_value).split("@")[0]
-
-                    await kadmin.rename_princ(
-                        directory.user.sam_account_name,
-                        new_samaccountname,
-                    )
-
-                    await session.execute(
-                        update(User)
-                        .filter_by(directory=directory)
-                        .values(samaccountname=new_samaccountname),
+                    await self._modify_user_userprincipalname(
+                        directory,
+                        directory.user,
+                        session,
+                        kadmin,
+                        new_value,
                     )
 
                 elif change.l_type == "samaccountname":
-                    new_userprincipalname = f"{str(new_value)}@{base_dir.name}"
-
-                    await kadmin.rename_princ(
-                        directory.user.sam_account_name,
-                        str(new_value),
-                    )
-
-                    await session.execute(
-                        update(User)
-                        .filter_by(directory=directory)
-                        .values(userprincipalname=new_userprincipalname),
+                    await self._modify_user_samaccountname(
+                        directory,
+                        directory.user,
+                        session,
+                        kadmin,
+                        base_dir,
+                        new_value,
                     )
 
                 await session.execute(
@@ -957,15 +948,11 @@ class ModifyRequest(BaseRequest):
                 and directory.entity_type
                 and directory.entity_type.name == EntityTypeNames.COMPUTER
             ):
-                samaccountname_old_val = self._old_vals.get(change.modification.type)  # noqa: E501  # fmt: skip
-
-                await kadmin.rename_princ(
-                    f"host/{samaccountname_old_val}",
-                    f"host/{str(value)}",
-                )
-                await kadmin.rename_princ(
-                    f"host/{samaccountname_old_val}.{base_dir.name}",
-                    f"host/{str(value)}.{base_dir.name}",
+                await self._modify_computer_samaccountname(
+                    change,
+                    kadmin,
+                    base_dir,
+                    value,
                 )
                 attrs.append(
                     Attribute(
@@ -1026,6 +1013,70 @@ class ModifyRequest(BaseRequest):
                 )
 
         session.add_all(attrs)
+
+    async def _modify_computer_samaccountname(
+        self,
+        change: Changes,
+        kadmin: AbstractKadmin,
+        base_dir: Directory,
+        value: bytes | str,
+    ) -> None:
+        samaccountname_old_val = self._old_vals.get(change.modification.type)
+
+        if not samaccountname_old_val:
+            raise ModifyForbiddenError("Old sAMAccountName value not found.")
+
+        if samaccountname_old_val != str(value):
+            await kadmin.rename_princ(
+                f"host/{samaccountname_old_val}",
+                f"host/{str(value)}",
+            )
+            await kadmin.rename_princ(
+                f"host/{samaccountname_old_val}.{base_dir.name}",
+                f"host/{str(value)}.{base_dir.name}",
+            )
+
+    async def _modify_user_samaccountname(
+        self,
+        directory: Directory,
+        user: User,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
+        base_dir: Directory,
+        new_value: datetime | bytes | str | None,
+    ) -> None:
+        new_userprincipalname = f"{str(new_value)}@{base_dir.name}"
+
+        if user.sam_account_name != str(new_value):
+            await kadmin.rename_princ(user.sam_account_name, str(new_value))
+
+            await session.execute(
+                update(User)
+                .filter_by(directory=directory)
+                .values(userprincipalname=new_userprincipalname),
+            )
+
+    async def _modify_user_userprincipalname(
+        self,
+        directory: Directory,
+        user: User,
+        session: AsyncSession,
+        kadmin: AbstractKadmin,
+        new_value: datetime | bytes | str | None,
+    ) -> None:
+        new_samaccountname = str(new_value).split("@")[0]
+
+        if user.user_principal_name != str(new_value):
+            await kadmin.rename_princ(
+                user.sam_account_name,
+                new_samaccountname,
+            )
+
+            await session.execute(
+                update(User)
+                .filter_by(directory=directory)
+                .values(samaccountname=new_samaccountname),
+            )
 
     async def _get_base_dir(
         self,

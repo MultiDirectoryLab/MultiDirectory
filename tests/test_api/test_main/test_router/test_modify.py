@@ -193,7 +193,7 @@ async def test_api_correct_modify_user_userprincipalname(
 @pytest.mark.usefixtures("adding_test_computer")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify_computer_samaccountname(
+async def test_api_correct_modify_computer_samaccountname_replace(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
 ) -> None:
@@ -255,6 +255,37 @@ async def test_api_correct_modify_computer_samaccountname(
             break
     else:
         raise Exception("Computer without sAMAccountName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_computer")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_incorrect_modify_computer_samaccountname_add(
+    http_client: AsyncClient,
+) -> None:
+    """Test API for modify computer sAMAccountName."""
+    entry_dn = "cn=mycomputer,dc=md,dc=test"
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["maincomputer"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR
 
 
 @pytest.mark.asyncio
