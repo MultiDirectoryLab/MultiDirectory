@@ -25,6 +25,7 @@ from ldap_protocol.kerberos.exceptions import (
     KRBAPIForcePasswordChangeError,
     KRBAPILockPrincipalError,
     KRBAPIPrincipalNotFoundError,
+    KRBAPIRenamePrincipalError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
@@ -76,6 +77,7 @@ MODIFY_EXCEPTION_STACK = (
     PermissionError,
     ModifyForbiddenError,
     KRBAPIPrincipalNotFoundError,
+    KRBAPIRenamePrincipalError,
     KRBAPILockPrincipalError,
     KRBAPIForcePasswordChangeError,
 )
