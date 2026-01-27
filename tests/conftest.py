@@ -1065,6 +1065,15 @@ async def network_policy_gateway(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def network_policy_use_case(
+    container: AsyncContainer,
+) -> AsyncIterator[NetworkPolicyUseCase]:
+    """Get network policy gateway."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(NetworkPolicyUseCase)
+
+
+@pytest_asyncio.fixture(scope="function")
 async def network_policy_validator(
     container: AsyncContainer,
 ) -> AsyncIterator[NetworkPolicyValidatorUseCase]:
