@@ -307,12 +307,11 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_search_recursive_member_user0(
+async def test_search_recursive_member(
     http_client: AsyncClient,
 ) -> None:
     """Test recursive member search for user0."""
     user = "cn=user0,cn=users,dc=md,dc=test"
-    # user0 находится напрямую в domain admins (не в developers)
     expected_groups = [
         "cn=domain admins,cn=groups,dc=md,dc=test",
     ]
@@ -340,7 +339,7 @@ async def test_api_search_recursive_member_user0(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_search_recursive_member_user1(
+async def test_search_recursive_member_for_many_roots(
     http_client: AsyncClient,
 ) -> None:
     """Test recursive member search with nested groups chain."""
