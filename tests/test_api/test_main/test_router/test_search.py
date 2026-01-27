@@ -313,7 +313,7 @@ async def test_search_recursive_member(
     """Test recursive member search for user0."""
     user = "cn=user0,cn=users,dc=md,dc=test"
     expected_groups = [
-        "cn=domain admins,cn=groups,dc=md,dc=test",
+        "cn=domain admins,cn=Groups,dc=md,dc=test",
     ]
     response = await http_client.post(
         "entry/search",
