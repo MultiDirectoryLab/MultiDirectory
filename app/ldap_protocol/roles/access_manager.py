@@ -123,17 +123,16 @@ class AccessManager:
             return False
 
         for change in changes:
-            attr_name = change.get_name()
             if change.operation == Operation.DELETE:
                 if not cls._check_modify_access(
-                    attr_name,
+                    change.l_type,
                     filtered_aces,
                     AceType.DELETE,
                 ):
                     return False
             elif change.operation == Operation.ADD:
                 if not cls._check_modify_access(
-                    attr_name,
+                    change.l_type,
                     filtered_aces,
                     AceType.WRITE,
                 ):
@@ -141,12 +140,12 @@ class AccessManager:
             else:
                 if not (
                     cls._check_modify_access(
-                        attr_name,
+                        change.l_type,
                         filtered_aces,
                         AceType.WRITE,
                     )
                     and cls._check_modify_access(
-                        attr_name,
+                        change.l_type,
                         filtered_aces,
                         AceType.DELETE,
                     )

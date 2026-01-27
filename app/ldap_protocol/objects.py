@@ -82,8 +82,9 @@ class Changes(BaseModel):
     operation: Operation
     modification: PartialAttribute
 
-    def get_name(self) -> str:
-        """Get mod name."""
+    @property
+    def l_type(self) -> str:
+        """Get modification type (it's attribute name) in lower case."""
         return self.modification.type.lower()
 
 

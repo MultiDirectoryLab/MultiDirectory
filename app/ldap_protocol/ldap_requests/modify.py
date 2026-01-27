@@ -196,7 +196,7 @@ class ModifyRequest(BaseRequest):
             entity_type_id=directory.entity_type_id,
         )
 
-        names = {change.get_name() for change in self.changes}
+        names = {change.l_type for change in self.changes}
 
         password_change_requested = self._is_password_change_requested(names)
         self_modify = directory.id == ctx.ldap_session.user.directory_id
@@ -224,7 +224,7 @@ class ModifyRequest(BaseRequest):
                 return
 
             for change in self.changes:
-                if change.modification.type.lower() in Directory.ro_fields:
+                if change.l_type in Directory.ro_fields:
                     continue
 
                 if not ctx.attribute_value_validator.is_partial_attribute_valid(  # noqa: E501
@@ -645,9 +645,8 @@ class ModifyRequest(BaseRequest):
         name_only: bool = False,
     ) -> None:
         attrs = []
-        name = change.modification.type.lower()
 
-        if name == "memberof":
+        if change.l_type == "memberof":
             await self._delete_memberof(
                 change=change,
                 directory=directory,
@@ -656,7 +655,7 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        if name == "member":
+        if change.l_type == "member":
             await self._delete_member(
                 change=change,
                 directory=directory,
@@ -665,14 +664,16 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        if name == "objectclass":
+        if change.l_type == "objectclass":
             await self._validate_object_class_modification(change, directory)
 
         if name_only or not change.modification.vals:
             attrs.append(qa(Attribute.name) == change.modification.type)
         else:
             for value in change.modification.vals:
-                if name not in (Directory.search_fields | User.search_fields):
+                if change.l_type not in (
+                    Directory.search_fields | User.search_fields
+                ):
                     if isinstance(value, str):
                         condition = qa(Attribute.value) == value
                     elif isinstance(value, bytes):
@@ -680,7 +681,7 @@ class ModifyRequest(BaseRequest):
 
                     attrs.append(
                         and_(
-                            func.lower(qa(Attribute.name)) == change.modification.type.lower(),  # noqa: E501
+                            func.lower(qa(Attribute.name)) == change.l_type,
                             condition,
                         ),
                     )  # fmt: skip
@@ -802,16 +803,15 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         session: AsyncSession,
     ) -> None:
-        name = change.get_name()
-        if name == "primarygroupid":
+        if change.l_type == "primarygroupid":
             await self._add_primary_group_attribute(
                 change,
                 directory,
                 session,
             )
-        elif name == "memberof":
+        elif change.l_type == "memberof":
             await self._add_memberof(change, directory, session)
-        elif name == "member":
+        elif change.l_type == "member":
             await self._add_member(change, directory, session)
 
     async def _add(  # noqa: C901
@@ -827,16 +827,15 @@ class ModifyRequest(BaseRequest):
         password_utils: PasswordUtils,
     ) -> None:
         attrs = []
-        name = change.get_name()
 
-        if name in ("memberof", "member", "primarygroupid"):
+        if change.l_type in ("memberof", "member", "primarygroupid"):
             await self._add_group_attrs(change, directory, session)
             return
 
         base_dir = await self._get_base_dir(directory, session)
 
         for value in change.modification.vals:
-            if name == "useraccountcontrol":
+            if change.l_type == "useraccountcontrol":
                 uac_val = int(value)
 
                 if not UserAccountControlFlag.is_value_valid(uac_val):
@@ -885,37 +884,41 @@ class ModifyRequest(BaseRequest):
                         ),
                     )  # fmt: skip
 
-            if name == "pwdlastset" and value == "0" and directory.user:
+            if (
+                change.l_type == "pwdlastset"
+                and value == "0"
+                and directory.user
+            ):
                 await kadmin.force_princ_pw_change(
                     directory.user.sam_account_name,
                 )
 
-            if name == directory.rdname:
+            if change.l_type == directory.rdname:
                 await session.execute(
                     update(Directory)
                     .filter(directory_table.c.id == directory.id)
                     .values(name=value),
                 )
 
-            if name in Directory.search_fields:
+            if change.l_type in Directory.search_fields:
                 await session.execute(
                     update(Directory)
                     .filter(directory_table.c.id == directory.id)
-                    .values({name: value}),
+                    .values({change.l_type: value}),
                 )
 
             elif (
-                name in User.search_fields
+                change.l_type in User.search_fields
                 and directory.entity_type
                 and directory.entity_type.name == EntityTypeNames.USER
                 and directory.user
             ):
-                if name == "accountexpires":
+                if change.l_type == "accountexpires":
                     new_value = ft_to_dt(int(value)) if value != "0" else None
                 else:
                     new_value = value  # type: ignore
 
-                if name == "userprincipalname":
+                if change.l_type == "userprincipalname":
                     new_samaccountname = str(new_value).split("@")[0]
 
                     await kadmin.rename_princ(
@@ -929,7 +932,7 @@ class ModifyRequest(BaseRequest):
                         .values(samaccountname=new_samaccountname),
                     )
 
-                elif name == "samaccountname":
+                elif change.l_type == "samaccountname":
                     new_userprincipalname = f"{str(new_value)}@{base_dir.name}"
 
                     await kadmin.rename_princ(
@@ -946,11 +949,11 @@ class ModifyRequest(BaseRequest):
                 await session.execute(
                     update(User)
                     .filter_by(directory=directory)
-                    .values({name: new_value}),
+                    .values({change.l_type: new_value}),
                 )
 
             elif (
-                name == "samaccountname"
+                change.l_type == "samaccountname"
                 and directory.entity_type
                 and directory.entity_type.name == EntityTypeNames.COMPUTER
             ):
@@ -973,7 +976,10 @@ class ModifyRequest(BaseRequest):
                     ),
                 )  # fmt: skip
 
-            elif name in ("userpassword", "unicodepwd") and directory.user:
+            elif (
+                change.l_type in ("userpassword", "unicodepwd")
+                and directory.user
+            ):
                 if not settings.USE_CORE_TLS:
                     raise PermissionError("TLS required")
 
