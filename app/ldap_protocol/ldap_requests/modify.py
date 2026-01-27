@@ -831,18 +831,7 @@ class ModifyRequest(BaseRequest):
             await self._add_group_attrs(change, directory, session)
             return
 
-        base_dir = None
-        for base_directory in await get_base_directories(session):
-            if is_dn_in_base_directory(
-                base_directory,
-                directory.path_dn,
-            ):
-                base_dir = base_directory
-                break
-        else:
-            raise ModifyForbiddenError(
-                "Base directory for computer not found.",
-            )
+        base_dir = await self._new_method(directory, session)
 
         for value in change.modification.vals:
             if name == "useraccountcontrol":
@@ -1029,3 +1018,24 @@ class ModifyRequest(BaseRequest):
                 )
 
         session.add_all(attrs)
+
+    async def _new_method(
+        self,
+        directory: Directory,
+        session: AsyncSession,
+    ) -> Directory:
+        base_dir = None
+
+        for base_directory in await get_base_directories(session):
+            if is_dn_in_base_directory(
+                base_directory,
+                directory.path_dn,
+            ):
+                base_dir = base_directory
+                break
+        else:
+            raise ModifyForbiddenError(
+                "Base directory for computer not found.",
+            )
+
+        return base_dir
