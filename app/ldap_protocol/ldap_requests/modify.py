@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from sqlalchemy import Select, and_, delete, or_, select, update
+from sqlalchemy import Select, and_, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -680,10 +680,10 @@ class ModifyRequest(BaseRequest):
 
                     attrs.append(
                         and_(
-                            qa(Attribute.name) == change.modification.type,
+                            func.lower(qa(Attribute.name)) == change.modification.type.lower(),  # noqa: E501
                             condition,
                         ),
-                    )
+                    )  # fmt: skip
 
         if self._need_to_cache_samaccountname_old_value(change, directory):
             vals = directory.attributes_dict.get(change.modification.type)
