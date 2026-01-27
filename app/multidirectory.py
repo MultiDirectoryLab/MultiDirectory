@@ -13,6 +13,7 @@ from typing import AsyncIterator, Callable, Coroutine
 import uvicorn
 import uvloop
 from alembic.config import Config, command
+from database import engines
 from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
@@ -118,7 +119,7 @@ def _create_shadow_app(settings: Settings) -> FastAPI:
     return app
 
 
-def _add_app_sqlalchemy_debugger(app: FastAPI, settings: Settings) -> None:
+def _add_app_sqlalchemy_debugger(app: FastAPI) -> None:
     try:
         import json
         from dataclasses import asdict
@@ -138,7 +139,7 @@ def _add_app_sqlalchemy_debugger(app: FastAPI, settings: Settings) -> None:
 
         app.add_middleware(
             SQLAlchemyMonitor,
-            engine=settings.engine,
+            engine=engines["master"],
             actions=[JsonPrintStatistics()],
         )
 
@@ -149,6 +150,7 @@ def create_prod_app(
 ) -> FastAPI:
     """Create production app with container."""
     settings = settings or Settings.from_os()
+
     app = factory(settings)
     container = make_async_container(
         MainProvider(),
@@ -159,7 +161,7 @@ def create_prod_app(
     )
 
     if settings.ENABLE_SQLALCHEMY_LOGGING:
-        _add_app_sqlalchemy_debugger(app, settings)
+        _add_app_sqlalchemy_debugger(app)
 
     setup_dishka(container, app)
     return app

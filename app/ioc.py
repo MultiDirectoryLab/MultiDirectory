@@ -8,12 +8,12 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
+from database import RoutingSession, engines
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
 )
@@ -163,17 +163,21 @@ class MainProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.APP)
 
     @provide(scope=Scope.APP)
-    def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine."""
-        return settings.engine
-
-    @provide(scope=Scope.APP)
     def get_session_factory(
         self,
-        engine: AsyncEngine,
+        settings: Settings,
     ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
-        return async_sessionmaker(engine, expire_on_commit=False)
+        if settings.POSTGRES_RW_MODE == "single":
+            return async_sessionmaker(
+                bind=engines["master"],
+                expire_on_commit=False,
+            )
+
+        return async_sessionmaker(
+            sync_session_class=RoutingSession,
+            expire_on_commit=False,
+        )
 
     @provide(scope=Scope.REQUEST)
     async def create_session(
@@ -895,8 +899,8 @@ class MigrationProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_conn_factory(
         self,
-        engine: AsyncEngine,
     ) -> AsyncIterator[AsyncConnection]:
         """Create session factory."""
+        engine = engines["master"]
         async with engine.connect() as connection:
             yield connection

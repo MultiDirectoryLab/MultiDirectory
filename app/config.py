@@ -22,7 +22,6 @@ from pydantic import (
     computed_field,
     field_validator,
 )
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 
 def _get_vendor_version() -> str:
@@ -49,12 +48,20 @@ class Settings(BaseModel):
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
 
+    POSTGRES_RW_MODE: Literal["single", "master_replica"] = "single"
     POSTGRES_SCHEMA: ClassVar[str] = "postgresql+psycopg"
-    POSTGRES_DB: str = "postgres"
 
+    POSTGRES_REPLICA_DB: str = ""
+    POSTGRES_REPLICA_HOST: str = ""
+    POSTGRES_REPLICA_USER: str = ""
+    POSTGRES_REPLICA_PASSWORD: str = ""
+    POSTGRES_REPLICA_CONNECT_TIMEOUT: int = 4
+
+    POSTGRES_DB: str = "postgres"
     POSTGRES_HOST: str = "postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+    POSTGRES_CONNECT_TIMEOUT: int = 4
 
     SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/1")
     SESSION_KEY_LENGTH: int = 16
@@ -97,6 +104,18 @@ class Settings(BaseModel):
             f"{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}/"
             f"{self.POSTGRES_DB}",
+        )
+
+    @computed_field  # type: ignore
+    @cached_property
+    def REPLICA_POSTGRES_URI(self) -> PostgresDsn:  # noqa
+        """Build replica postgres DSN."""
+        return PostgresDsn(
+            f"{self.POSTGRES_SCHEMA}://"
+            f"{self.POSTGRES_REPLICA_USER}:"
+            f"{self.POSTGRES_REPLICA_PASSWORD}@"
+            f"{self.POSTGRES_REPLICA_HOST}/"
+            f"{self.POSTGRES_REPLICA_DB}",
         )
 
     VENDOR_NAME: ClassVar[str] = "MultiFactor"
@@ -219,20 +238,6 @@ class Settings(BaseModel):
     def check_certs_exist(self) -> bool:
         """Check if certs exist."""
         return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)
-
-    @cached_property
-    def engine(self) -> AsyncEngine:
-        """Get engine."""
-        return create_async_engine(
-            str(self.POSTGRES_URI),
-            pool_size=self.INSTANCE_DB_POOL_SIZE,
-            max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
-            pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
-            pool_recycle=self.INSTANCE_DB_POOL_RECYCLE,
-            pool_pre_ping=False,
-            future=True,
-            echo=False,
-        )
 
     @classmethod
     def from_os(cls) -> "Settings":
