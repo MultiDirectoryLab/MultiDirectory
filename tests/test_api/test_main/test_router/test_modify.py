@@ -17,13 +17,13 @@ from ldap_protocol.ldap_requests.modify import Operation
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify_user(
+async def test_api_correct_modify_user_accountexpires(
     http_client: AsyncClient,
-    kadmin: AbstractKadmin,
 ) -> None:
     """Test API for modify object attribute."""
     entry_dn = "cn=test,dc=md,dc=test"
     new_value = "133632677730000000"
+
     response = await http_client.patch(
         "/entry/update",
         json={
@@ -36,6 +36,57 @@ async def test_api_correct_modify_user(
                         "vals": [new_value],
                     },
                 },
+            ],
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "accountExpires":
+            assert attr["vals"][0] == new_value
+            break
+    else:
+        raise Exception("User without accountExpires")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_user_samaccountname(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify object attribute."""
+    entry_dn = "cn=test,dc=md,dc=test"
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
                 {
                     "operation": Operation.REPLACE,
                     "modification": {
@@ -48,7 +99,6 @@ async def test_api_correct_modify_user(
     )
 
     data = response.json()
-
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert kadmin.rename_princ.call_args.args == ("new_user", "NEW user name")  # type: ignore
@@ -69,16 +119,8 @@ async def test_api_correct_modify_user(
     )
 
     data = response.json()
-
     assert data["resultCode"] == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == entry_dn
-
-    for attr in data["search_result"][0]["partial_attributes"]:
-        if attr["type"] == "accountExpires":
-            assert attr["vals"][0] == new_value
-            break
-    else:
-        raise Exception("User without accountExpires")
 
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "sAMAccountName":
@@ -89,10 +131,69 @@ async def test_api_correct_modify_user(
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_user_userprincipalname(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify object attribute."""
+    entry_dn = "cn=test,dc=md,dc=test"
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userPrincipalName",
+                        "vals": ["newbiguser@md.test"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert kadmin.rename_princ.call_args.args == ("new_user", "newbiguser")  # type: ignore
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "userPrincipalName":
+            assert attr["vals"][0] == "newbiguser@md.test"
+            break
+    else:
+        raise Exception("User without userPrincipalName")
+
+
+@pytest.mark.asyncio
 @pytest.mark.usefixtures("adding_test_computer")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify_computer(
+async def test_api_correct_modify_computer_samaccountname(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
 ) -> None:

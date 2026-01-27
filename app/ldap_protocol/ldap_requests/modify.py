@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from sqlalchemy import Select, and_, delete, func, or_, select, update
+from sqlalchemy import Select, and_, delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -104,6 +104,10 @@ class ModifyRequest(BaseRequest):
 
     object: str
     changes: list[Changes]
+
+    # NOTE: If the old value was changed (for example, in _delete)
+    # in one method, then you need to have access to the old value
+    # from other methods (for example, from _add)
     _old_vals: dict[str, str | None] = {}
 
     @classmethod
@@ -228,7 +232,7 @@ class ModifyRequest(BaseRequest):
                     await ctx.session.rollback()
                     yield ModifyResponse(
                         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                        errorMessage="Invalid attribute value(s)",
+                        error_message="Invalid attribute value(s)",
                     )
                     return
 
@@ -618,7 +622,7 @@ class ModifyRequest(BaseRequest):
         if is_object_class_in_replaced or is_object_class_in_deleted:
             raise ModifyForbiddenError("ObjectClass can't be deleted.")
 
-    def _need_to_cache_old_value(
+    def _need_to_cache_samaccountname_old_value(
         self,
         change: Changes,
         directory: Directory,
@@ -626,8 +630,8 @@ class ModifyRequest(BaseRequest):
         return bool(
             directory.entity_type
             and directory.entity_type.name == EntityTypeNames.COMPUTER
-            and change.get_name() == "samaccountname"
-            and not self._old_vals.get(change.get_name()),
+            and change.modification.type == "sAMAccountName"
+            and not self._old_vals.get(change.modification.type),
         )
 
     async def _delete(
@@ -674,21 +678,15 @@ class ModifyRequest(BaseRequest):
 
                     attrs.append(
                         and_(
-                            func.lower(qa(Attribute.name))
-                            == change.modification.type.lower(),
+                            qa(Attribute.name) == change.modification.type,
                             condition,
                         ),
                     )
 
-        if self._need_to_cache_old_value(change, directory):
-            result = await session.execute(
-                select(Attribute)
-                .filter_by(
-                    directory=directory,
-                    name=change.modification.type,
-                ),
-            )  # fmt: skip
-            self._old_vals[change.get_name()] = result.scalar_one().value
+        if self._need_to_cache_samaccountname_old_value(change, directory):
+            vals = directory.attributes_dict.get(change.modification.type)
+            if vals:
+                self._old_vals[change.modification.type] = vals[0]
 
         if attrs:
             del_query = (
@@ -834,9 +832,7 @@ class ModifyRequest(BaseRequest):
             return
 
         base_dir = None
-        for base_directory in await get_base_directories(
-            session,
-        ):
+        for base_directory in await get_base_directories(session):
             if is_dn_in_base_directory(
                 base_directory,
                 directory.path_dn,
@@ -967,9 +963,7 @@ class ModifyRequest(BaseRequest):
                 and directory.entity_type
                 and directory.entity_type.name == EntityTypeNames.COMPUTER
             ):
-                samaccountname_old_val = self._old_vals.get(
-                    change.get_name(),
-                )
+                samaccountname_old_val = self._old_vals.get(change.modification.type)  # noqa: E501  # fmt: skip
 
                 await kadmin.rename_princ(
                     f"host/{samaccountname_old_val}",
