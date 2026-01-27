@@ -148,38 +148,58 @@ class NetworkPolicyUseCase(AbstractService):
     ) -> NetworkPolicyDTO:
         """Update network policy."""
         policy = await self._network_policy_gateway.get_with_for_update(dto.id)
+
+        await self._apply_field_updates(policy, dto)
+        await self._apply_netmask_updates(policy, dto)
+        await self._apply_group_updates(policy, dto)
+
+        if await self._network_policy_gateway.check_policy_exists(policy):
+            raise NetworkPolicyAlreadyExistsError("Entry already exists")
+
+        await self._session.commit()
+
+        return _convert_model_to_dto(policy)
+
+    async def _apply_field_updates(
+        self,
+        policy: NetworkPolicy,
+        dto: NetworkPolicyUpdateDTO,
+    ) -> None:
+        """Apply regular field updates."""
         for field in dto.fields_to_update:
             value = getattr(dto, field)
             if value is not None:
                 setattr(policy, field, value)
 
+    async def _apply_netmask_updates(
+        self,
+        policy: NetworkPolicy,
+        dto: NetworkPolicyUpdateDTO,
+    ) -> None:
+        """Apply netmask updates."""
         if dto.netmasks and dto.raw:
             policy.netmasks = dto.netmasks
             policy.raw = dto.raw
 
-        if (
-            dto.groups is not None
-            and len(dto.groups) > 0
-            and len(dto.groups) != 0
-        ):
-            policy.groups = await self._network_policy_gateway.get_groups(
-                dto.groups,
+    async def _apply_group_updates(
+        self,
+        policy: NetworkPolicy,
+        dto: NetworkPolicyUpdateDTO,
+    ) -> None:
+        """Apply group updates."""
+        if dto.groups is not None:
+            policy.groups = (
+                await self._network_policy_gateway.get_groups(dto.groups)
+                if dto.groups
+                else []
             )
 
-        if (
-            dto.mfa_groups is not None
-            and len(dto.mfa_groups) > 0
-            and len(dto.mfa_groups) != 0
-        ):
-            policy.mfa_groups = await self._network_policy_gateway.get_groups(
-                dto.mfa_groups,
+        if dto.mfa_groups is not None:
+            policy.mfa_groups = (
+                await self._network_policy_gateway.get_groups(dto.mfa_groups)
+                if dto.mfa_groups
+                else []
             )
-        if await self._network_policy_gateway.check_policy_exists(policy):
-            raise NetworkPolicyAlreadyExistsError(
-                "Entry already exists",
-            )
-        await self._session.commit()
-        return _convert_model_to_dto(policy)
 
     async def swap_priorities(self, id1: int, id2: int) -> SwapPrioritiesDTO:
         """Swap priorities for network policies."""
