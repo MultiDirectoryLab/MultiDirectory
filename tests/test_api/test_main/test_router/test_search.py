@@ -343,112 +343,52 @@ async def test_search_recursive_member_for_many_roots(
     http_client: AsyncClient,
 ) -> None:
     """Test recursive member search with nested groups chain."""
+
+    async def _create_group(dn: str, name: str) -> None:
+        response = await http_client.post(
+            "/entry/add",
+            json={
+                "entry": dn,
+                "password": None,
+                "attributes": [
+                    {"type": "name", "vals": [name]},
+                    {"type": "cn", "vals": [name]},
+                    {
+                        "type": "objectClass",
+                        "vals": ["top", "posixGroup", "group"],
+                    },
+                ],
+            },
+        )
+        assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
+    async def _add_member(dn: str, member: str) -> None:
+        response = await http_client.patch(
+            "/entry/update",
+            json={
+                "object": dn,
+                "changes": [
+                    {
+                        "operation": Operation.ADD,
+                        "modification": {"type": "member", "vals": [member]},
+                    },
+                ],
+            },
+        )
+        assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+
     group1_dn = "cn=recursive_test_group1,cn=groups,dc=md,dc=test"
     group2_dn = "cn=recursive_test_group2,cn=groups,dc=md,dc=test"
     group3_dn = "cn=recursive_test_group3,cn=groups,dc=md,dc=test"
     user = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
 
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": group3_dn,
-            "password": None,
-            "attributes": [
-                {"type": "name", "vals": ["recursive_test_group3"]},
-                {"type": "cn", "vals": ["recursive_test_group3"]},
-                {
-                    "type": "objectClass",
-                    "vals": ["top", "posixGroup", "group"],
-                },
-            ],
-        },
-    )
-    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+    await _create_group(group3_dn, "recursive_test_group3")
+    await _create_group(group2_dn, "recursive_test_group2")
+    await _create_group(group1_dn, "recursive_test_group1")
 
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": group2_dn,
-            "password": None,
-            "attributes": [
-                {"type": "name", "vals": ["recursive_test_group2"]},
-                {"type": "cn", "vals": ["recursive_test_group2"]},
-                {
-                    "type": "objectClass",
-                    "vals": ["top", "posixGroup", "group"],
-                },
-            ],
-        },
-    )
-    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": group1_dn,
-            "password": None,
-            "attributes": [
-                {"type": "name", "vals": ["recursive_test_group1"]},
-                {"type": "cn", "vals": ["recursive_test_group1"]},
-                {
-                    "type": "objectClass",
-                    "vals": ["top", "posixGroup", "group"],
-                },
-            ],
-        },
-    )
-    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.patch(
-        "/entry/update",
-        json={
-            "object": group3_dn,
-            "changes": [
-                {
-                    "operation": Operation.ADD,
-                    "modification": {
-                        "type": "member",
-                        "vals": [user],
-                    },
-                },
-            ],
-        },
-    )
-    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.patch(
-        "/entry/update",
-        json={
-            "object": group2_dn,
-            "changes": [
-                {
-                    "operation": Operation.ADD,
-                    "modification": {
-                        "type": "member",
-                        "vals": [group3_dn],
-                    },
-                },
-            ],
-        },
-    )
-    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.patch(
-        "/entry/update",
-        json={
-            "object": group1_dn,
-            "changes": [
-                {
-                    "operation": Operation.ADD,
-                    "modification": {
-                        "type": "member",
-                        "vals": [group2_dn],
-                    },
-                },
-            ],
-        },
-    )
-    assert response.json().get("resultCode") == LDAPCodes.SUCCESS
+    await _add_member(group1_dn, user)
+    await _add_member(group2_dn, group1_dn)
+    await _add_member(group3_dn, group2_dn)
 
     response = await http_client.post(
         "entry/search",
@@ -470,9 +410,8 @@ async def test_search_recursive_member_for_many_roots(
 
     expected_groups = [group1_dn, group2_dn, group3_dn]
     for group in expected_groups:
-        assert group in dns, (
-            f"Group {group} not found in search results. Found groups: {dns}"
-        )
+        assert group in dns
+    assert "cn=domain admins,cn=groups,dc=md,dc=test" in dns
 
 
 @pytest.mark.asyncio
