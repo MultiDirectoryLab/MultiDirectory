@@ -343,8 +343,9 @@ class FilterInterpreterProtocol(Protocol):
             select(cte.c.directory_id)
             .where(
                 cte.c.directory_id != source_directory_id,
-            ),
-        )  # type: ignore # fmt: skip
+            )
+            .distinct(),
+        )  # type: ignore
 
     def _filter_member(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the member attribute."""
