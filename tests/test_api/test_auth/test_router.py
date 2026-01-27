@@ -24,7 +24,7 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import get_search_path
+from ldap_protocol.utils.queries import get_filter_from_path
 from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
@@ -114,7 +114,7 @@ async def test_first_setup_and_oauth(
     assert result["user_principal_name"] == "test"
     assert result["mail"] == "test@md.example-345.ru"
     assert result["display_name"] == "test"
-    assert result["dn"] == "cn=test,cn=users,dc=md,dc=test-localhost"
+    assert result["dn"] == "cn=test,cn=Users,dc=md,dc=test-localhost"
 
     result = await session.scalars(
         select(Directory)
@@ -123,9 +123,9 @@ async def test_first_setup_and_oauth(
             .selectinload(qa(Group.roles))
             .selectinload(qa(Role.access_control_entries)),
         )
-        .filter_by(
-            path=get_search_path(
-                "cn=read-only,cn=groups,dc=md,dc=test-localhost",
+        .filter(
+            get_filter_from_path(
+                "cn=read-only,cn=Groups,dc=md,dc=test-localhost",
             ),
         ),
     )
@@ -222,7 +222,7 @@ async def test_first_setup_with_invalid_domain(
 @pytest.mark.usefixtures("session")
 async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
     """Update password and check userAccountControl attr."""
-    user_dn = "cn=user0,cn=users,dc=md,dc=test"
+    user_dn = "cn=user0,cn=Users,dc=md,dc=test"
 
     response = await http_client.patch(
         "entry/update",
@@ -468,7 +468,7 @@ async def test_auth_disabled_user(
     response = await http_client.patch(
         "entry/update",
         json={
-            "object": "cn=user_admin,cn=users,dc=md,dc=test",
+            "object": "cn=user_admin,cn=Users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -507,7 +507,7 @@ async def test_lock_and_unlock_user(
     storage: SessionStorage,
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
-    user_dn = "cn=user_non_admin,cn=users,dc=md,dc=test"
+    user_dn = "cn=user_non_admin,cn=Users,dc=md,dc=test"
     dir_ = await session.scalar(
         select(Directory)
         .options(joinedload(qa(Directory.user)))

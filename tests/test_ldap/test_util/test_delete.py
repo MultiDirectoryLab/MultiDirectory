@@ -39,7 +39,7 @@ async def test_ldap_delete(
                 "cn: test\n"
                 "objectClass: organization\n"
                 "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -94,7 +94,7 @@ async def test_ldap_delete(
         "-x",
         "-w",
         user["password"],
-        "cn=user0,cn=users,dc=md,dc=test",
+        "cn=user0,cn=Users,dc=md,dc=test",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -171,7 +171,7 @@ async def test_ldap_delete_w_access_control(
             name="Delete Role",
             creator_upn=None,
             is_system=False,
-            groups=["cn=domain users,cn=groups," + base_dn],
+            groups=["cn=domain users,cn=Groups," + base_dn],
         ),
     )
 
@@ -223,7 +223,7 @@ async def test_ldap_delete_primary_object_classes(
     user: dict,
 ) -> None:
     """Test deleting primary object class."""
-    entry_dn = "cn=user0,cn=users,dc=md,dc=test"
+    entry_dn = "cn=user0,cn=Users,dc=md,dc=test"
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
             (

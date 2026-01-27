@@ -105,9 +105,9 @@ class RoleConstants(StrEnum):
     READ_ONLY_ROLE_NAME = "Read Only Role"
     KERBEROS_ROLE_NAME = "Kerberos Role"
 
-    DOMAIN_ADMINS_GROUP_CN = "cn=domain admins,cn=groups,"
-    READONLY_GROUP_CN = "cn=read-only,cn=groups,"
-    KERBEROS_GROUP_CN = "cn=krbadmin,cn=groups,"
+    DOMAIN_ADMINS_GROUP_CN = "cn=domain admins,cn=Groups,"
+    READONLY_GROUP_CN = "cn=read-only,cn=Groups,"
+    KERBEROS_GROUP_CN = "cn=krbadmin,cn=Groups,"
 
 
 @verify(UNIQUE)

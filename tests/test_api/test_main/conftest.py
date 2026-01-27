@@ -106,7 +106,7 @@ async def adding_test_user(
                     "operation": Operation.ADD,
                     "modification": {
                         "type": "memberOf",
-                        "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                        "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
                     },
                 },
                 {

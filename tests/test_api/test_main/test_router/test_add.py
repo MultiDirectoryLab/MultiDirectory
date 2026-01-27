@@ -28,7 +28,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
                 {"type": "objectClass", "vals": ["organization", "top"]},
                 {
                     "type": "memberOf",
-                    "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                    "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
                 },
             ],
         },
@@ -59,7 +59,7 @@ async def test_api_add_incorrect_computer_name(
                 {"type": "objectClass", "vals": ["computer", "top"]},
                 {
                     "type": "memberOf",
-                    "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                    "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
                 },
             ],
         },
@@ -186,7 +186,7 @@ async def test_api_correct_add_double_member_of(
     user = "cn=test0,dc=md,dc=test"
     un = "test0"
     groups = [
-        "cn=domain admins,cn=groups,dc=md,dc=test",
+        "cn=domain admins,cn=Groups,dc=md,dc=test",
         new_group,
     ]
 
@@ -307,7 +307,7 @@ async def test_api_correct_add_double_member_of(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user
 
-    created_groups = groups + ["cn=domain users,cn=groups,dc=md,dc=test"]
+    created_groups = groups + ["cn=domain users,cn=Groups,dc=md,dc=test"]
 
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "memberOf":
@@ -528,7 +528,7 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                        "cn=domain admins,cn=Groups,dc=md,dc=test",
                     ],
                 },
             ],
@@ -568,7 +568,7 @@ async def test_api_add_double_case_insensetive(
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                        "cn=domain admins,cn=Groups,dc=md,dc=test",
                     ],
                 },
             ],
@@ -597,7 +597,7 @@ async def test_api_add_double_case_insensetive(
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                        "cn=domain admins,cn=Groups,dc=md,dc=test",
                     ],
                 },
             ],

@@ -63,7 +63,7 @@ def find_members_recursive_cte(
         FROM "Directory"
         JOIN "Groups" ON "Directory".id = "Groups"."directoryId"
         WHERE "Directory"."path" =
-                '{dc=test,dc=md,cn=groups,"cn=domain admins"}'
+                '{dc=test,dc=md,cn=Groups,"cn=domain admins"}'
 
         UNION ALL
 
@@ -129,7 +129,7 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
         FROM "Directory"
         LEFT OUTER JOIN "Groups" ON "Directory".id = "Groups"."directoryId"
         WHERE "Directory"."path" =
-                '{dc=test,dc=md,cn=groups,"cn=domain admins"}'
+                '{dc=test,dc=md,cn=Groups,"cn=domain admins"}'
 
         UNION ALL
 

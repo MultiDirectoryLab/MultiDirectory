@@ -77,7 +77,7 @@ async def test_get_password_policy_by_dir_path_dn_with_error(
     password_use_cases: Mock,
 ) -> None:
     """Test get one Password Policy endpoint."""
-    path = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    path = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     response = await http_client_with_login_perm.get(
         f"/password-policy/by_dir_path_dn/{path}",
     )
@@ -94,7 +94,7 @@ async def test_get_password_policy_by_dir_path_dn(
     password_use_cases: Mock,
 ) -> None:
     """Test get Password Policy by directory path endpoint."""
-    path = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    path = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     response = await http_client.get(
         f"/password-policy/by_dir_path_dn/{path}",
     )
