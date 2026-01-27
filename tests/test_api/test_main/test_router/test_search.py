@@ -377,9 +377,9 @@ async def test_search_recursive_member_for_many_roots(
         )
         assert response.json().get("resultCode") == LDAPCodes.SUCCESS
 
-    group1_dn = "cn=recursive_test_group1,cn=groups,dc=md,dc=test"
-    group2_dn = "cn=recursive_test_group2,cn=groups,dc=md,dc=test"
-    group3_dn = "cn=recursive_test_group3,cn=groups,dc=md,dc=test"
+    group1_dn = "cn=recursive_test_group1,cn=Groups,dc=md,dc=test"
+    group2_dn = "cn=recursive_test_group2,cn=Groups,dc=md,dc=test"
+    group3_dn = "cn=recursive_test_group3,cn=Groups,dc=md,dc=test"
     user = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
 
     await _create_group(group3_dn, "recursive_test_group3")
@@ -411,7 +411,7 @@ async def test_search_recursive_member_for_many_roots(
     expected_groups = [group1_dn, group2_dn, group3_dn]
     for group in expected_groups:
         assert group in dns
-    assert "cn=domain admins,cn=groups,dc=md,dc=test" in dns
+    assert "cn=domain admins,cn=Groups,dc=md,dc=test" in dns
 
 
 @pytest.mark.asyncio
