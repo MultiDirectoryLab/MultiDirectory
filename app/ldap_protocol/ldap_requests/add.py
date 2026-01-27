@@ -64,6 +64,7 @@ class AddRequest(BaseRequest):
     ```
     """
 
+    RESPONSE_TYPE: ClassVar[type] = AddResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
     CONTEXT_TYPE: ClassVar[type] = LDAPAddRequestContext
 

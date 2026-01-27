@@ -42,6 +42,7 @@ class DeleteRequest(BaseRequest):
     DelRequest ::= [APPLICATION 10] LDAPDN
     """
 
+    RESPONSE_TYPE: ClassVar[type] = DeleteResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.DELETE
     CONTEXT_TYPE: ClassVar[type] = LDAPDeleteRequestContext
 

@@ -307,6 +307,7 @@ class ExtendedRequest(BaseRequest):
         requestValue     [1] OCTET STRING OPTIONAL }
     """
 
+    RESPONSE_TYPE: ClassVar[type] = ExtendedResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.EXTENDED
     CONTEXT_TYPE: ClassVar[type] = LDAPExtendedRequestContext
     request_name: LDAPOID

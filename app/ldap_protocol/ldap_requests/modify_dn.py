@@ -67,6 +67,7 @@ class ModifyDNRequest(BaseRequest):
         >>> cn = main2, cn = Users, dc = multifactor, dc = dev
     """
 
+    RESPONSE_TYPE: ClassVar[type] = ModifyDNResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY_DN
     CONTEXT_TYPE: ClassVar[type] = LDAPModifyDNRequestContext
 
