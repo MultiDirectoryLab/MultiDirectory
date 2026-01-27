@@ -15,6 +15,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
+from api.utils import check_master_db
 from enums import DomainCodes
 from ldap_protocol.policies.audit.exception import (
     AuditAlreadyExistsError,
@@ -59,7 +60,11 @@ async def get_audit_policies(
     return await audit_adapter.get_policies()
 
 
-@audit_router.put("/policy/{policy_id}", error_map=error_map)
+@audit_router.put(
+    "/policy/{policy_id}",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def update_audit_policy(
     policy_id: int,
     policy_data: AuditPolicySchemaRequest,
@@ -69,7 +74,11 @@ async def update_audit_policy(
     return await audit_adapter.update_policy(policy_id, policy_data)
 
 
-@audit_router.get("/destinations", error_map=error_map)
+@audit_router.get(
+    "/destinations",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def get_audit_destinations(
     audit_adapter: FromDishka[AuditPoliciesAdapter],
 ) -> list[AuditDestinationResponse]:
@@ -81,6 +90,7 @@ async def get_audit_destinations(
     "/destination",
     status_code=status.HTTP_201_CREATED,
     error_map=error_map,
+    dependencies=[Depends(check_master_db)],
 )
 async def create_audit_destination(
     destination_data: AuditDestinationSchemaRequest,
@@ -90,7 +100,11 @@ async def create_audit_destination(
     return await audit_adapter.create_destination(destination_data)
 
 
-@audit_router.delete("/destination/{destination_id}", error_map=error_map)
+@audit_router.delete(
+    "/destination/{destination_id}",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def delete_audit_destination(
     destination_id: int,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
@@ -99,7 +113,11 @@ async def delete_audit_destination(
     await audit_adapter.delete_destination(destination_id)
 
 
-@audit_router.put("/destination/{destination_id}", error_map=error_map)
+@audit_router.put(
+    "/destination/{destination_id}",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def update_audit_destination(
     destination_id: int,
     destination_data: AuditDestinationSchemaRequest,

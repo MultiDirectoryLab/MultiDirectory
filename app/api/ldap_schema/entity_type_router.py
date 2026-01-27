@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import Annotated
 
 from dishka.integrations.fastapi import FromDishka
-from fastapi import Query, status
+from fastapi import Depends, Query, status
 
 from api.ldap_schema import LimitedListType, error_map
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
@@ -17,6 +17,7 @@ from api.ldap_schema.schema import (
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
+from api.utils import check_master_db
 from ldap_protocol.utils.pagination import PaginationParams
 
 
@@ -24,6 +25,7 @@ from ldap_protocol.utils.pagination import PaginationParams
     "/entity_type",
     status_code=status.HTTP_201_CREATED,
     error_map=error_map,
+    dependencies=[Depends(check_master_db)],
 )
 async def create_one_entity_type(
     request_data: EntityTypeSchema[None],
@@ -66,6 +68,7 @@ async def get_entity_type_attributes(
 @ldap_schema_router.patch(
     "/entity_type/{entity_type_name}",
     error_map=error_map,
+    dependencies=[Depends(check_master_db)],
 )
 async def modify_one_entity_type(
     entity_type_name: str,
@@ -76,7 +79,11 @@ async def modify_one_entity_type(
     await adapter.update(name=entity_type_name, data=request_data)
 
 
-@ldap_schema_router.post("/entity_type/delete", error_map=error_map)
+@ldap_schema_router.post(
+    "/entity_type/delete",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def delete_bulk_entity_types(
     entity_type_names: LimitedListType,
     adapter: FromDishka[LDAPEntityTypeFastAPIAdapter],

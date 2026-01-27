@@ -16,6 +16,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
+from api.utils import check_master_db
 from enums import DomainCodes
 from ldap_protocol.custom_requests.rename import RenameRequest
 from ldap_protocol.identity.exceptions import UnauthorizedError
@@ -69,19 +70,31 @@ async def search(request: SearchRequest, req: Request) -> SearchResponse:
     )
 
 
-@entry_router.post("/add", error_map=error_map)
+@entry_router.post(
+    "/add",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def add(request: AddRequest, req: Request) -> LDAPResult:
     """LDAP ADD entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.patch("/update", error_map=error_map)
+@entry_router.patch(
+    "/update",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def modify(request: ModifyRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.patch("/update_many", error_map=error_map)
+@entry_router.patch(
+    "/update_many",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def modify_many(
     requests: list[ModifyRequest],
     req: Request,
@@ -93,13 +106,21 @@ async def modify_many(
     return results
 
 
-@entry_router.put("/update/dn", error_map=error_map)
+@entry_router.put(
+    "/update/dn",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def modify_dn(request: ModifyDNRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.post("/update_many/dn", error_map=error_map)
+@entry_router.post(
+    "/update_many/dn",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def modify_dn_many(
     requests: list[ModifyDNRequest],
     req: Request,
@@ -116,14 +137,21 @@ async def rename(request: RenameRequest, req: Request) -> LDAPResult:
     """LDAP rename entry request."""
     return await request.handle_api(req.state.dishka_container)
 
-
-@entry_router.delete("/delete", error_map=error_map)
+@entry_router.delete(
+    "/delete",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def delete(request: DeleteRequest, req: Request) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.post("/delete_many", error_map=error_map)
+@entry_router.post(
+    "/delete_many",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def delete_many(
     requests: list[DeleteRequest],
     req: Request,
@@ -135,7 +163,10 @@ async def delete_many(
     return results
 
 
-@entry_router.post("/set_primary_group")
+@entry_router.post(
+    "/set_primary_group",
+    dependencies=[Depends(check_master_db)],
+)
 async def set_primary_group(
     request: PrimaryGroupRequest,
     session: FromDishka[AsyncSession],

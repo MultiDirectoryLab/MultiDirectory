@@ -24,6 +24,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
+from api.utils import check_master_db
 from enums import DomainCodes
 from ldap_protocol.auth.exceptions.mfa import (
     ForbiddenError,
@@ -81,7 +82,7 @@ mfa_router = ErrorAwareRouter(
 @mfa_router.post(
     "/setup",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(check_master_db)],
     error_map=error_map,
 )
 async def setup_mfa(
@@ -100,7 +101,7 @@ async def setup_mfa(
 
 @mfa_router.delete(
     "/keys",
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(check_master_db)],
     error_map=error_map,
 )
 async def remove_mfa(
@@ -113,7 +114,7 @@ async def remove_mfa(
 
 @mfa_router.post(
     "/get",
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(check_master_db)],
     error_map=error_map,
 )
 async def get_mfa(
@@ -134,6 +135,7 @@ async def get_mfa(
     name="callback_mfa",
     include_in_schema=True,
     error_map=error_map,
+    dependencies=[Depends(check_master_db)],
 )
 async def callback_mfa(
     access_token: Annotated[

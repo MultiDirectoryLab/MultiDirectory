@@ -18,6 +18,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.password_policy.adapter import UserPasswordHistoryResetFastAPIAdapter
+from api.utils import check_master_db
 from enums import DomainCodes
 from ldap_protocol.identity.exceptions import (
     AuthorizationError,
@@ -39,7 +40,7 @@ error_map: ERROR_MAP_TYPE = {
 
 user_password_history_router = ErrorAwareRouter(
     prefix="/user/password_history",
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(check_master_db)],
     tags=["User Password history"],
     route_class=DishkaErrorAwareRoute,
 )
