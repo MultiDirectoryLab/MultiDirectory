@@ -11,7 +11,7 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
         PasswordPolicyDTO[None, int](
             id=None,
             priority=1,
-            group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
+            group_paths=["cn=developers,cn=Groups,dc=md,dc=test"],
             name="Test Password Policy",
             language="Latin",
             is_exact_match=True,
@@ -36,7 +36,7 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
         PasswordPolicyDTO[None, int](
             id=None,
             priority=1,
-            group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
+            group_paths=["cn=developers,cn=Groups,dc=md,dc=test"],
             name="Test Password Policy2",
             language="Latin",
             is_exact_match=True,
@@ -61,7 +61,7 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
         PasswordPolicyDTO[None, int](
             id=None,
             priority=1,
-            group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
+            group_paths=["cn=developers,cn=Groups,dc=md,dc=test"],
             name="Test Password Policy3",
             language="Latin",
             is_exact_match=True,

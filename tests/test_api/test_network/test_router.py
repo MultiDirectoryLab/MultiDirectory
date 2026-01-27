@@ -68,7 +68,7 @@ async def test_add_policy(http_client: AsyncClient) -> None:
             "name": "local seriveses",
             "netmasks": raw_netmasks,
             "priority": 2,
-            "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            "groups": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             "is_http": True,
             "is_ldap": True,
             "is_kerberos": True,
@@ -108,7 +108,7 @@ async def test_add_policy(http_client: AsyncClient) -> None:
             "name": "local seriveses",
             "netmasks": compare_netmasks,
             "raw": raw_netmasks,
-            "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            "groups": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             "priority": 2,
             "mfa_groups": [],
             "mfa_status": 0,
@@ -153,7 +153,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
         "/policy",
         json={
             "id": pol_id,
-            "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            "groups": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             "name": "Default open policy 2",
         },
     )
@@ -168,7 +168,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
         "name": "Default open policy 2",
         "netmasks": ["0.0.0.0/0"],
         "raw": ["0.0.0.0/0"],
-        "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+        "groups": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
         "mfa_groups": [],
         "mfa_status": 0,
         "priority": 1,
@@ -194,7 +194,7 @@ async def test_update_policy(http_client: AsyncClient) -> None:
             "mfa_groups": [],
             "mfa_status": 0,
             "priority": 1,
-            "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            "groups": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             "is_http": True,
             "is_ldap": True,
             "is_kerberos": True,
@@ -363,7 +363,7 @@ async def test_swap(http_client: AsyncClient) -> None:
                 "172.8.4.0/24",
             ],
             "priority": 2,
-            "groups": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            "groups": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             "is_http": True,
             "is_ldap": True,
             "is_kerberos": True,
@@ -399,7 +399,7 @@ async def test_swap(http_client: AsyncClient) -> None:
 
     assert response[0]["priority"] == 1
     assert response[0]["groups"] == [
-        "cn=domain admins,cn=groups,dc=md,dc=test",
+        "cn=domain admins,cn=Groups,dc=md,dc=test",
     ]
     assert response[1]["priority"] == 2
     assert response[1]["name"] == "Default open policy"

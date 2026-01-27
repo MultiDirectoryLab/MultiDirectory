@@ -328,7 +328,7 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     """Get dn by id.
 
     >>> await get_dn_by_id(0, session)
-    >>> "cn=groups,dc=example,dc=com"
+    >>> "cn=Groups,dc=example,dc=com"
     """
     query = select(Directory).filter_by(id=id_)
     retval = (await session.scalars(query)).one()
@@ -353,7 +353,7 @@ async def create_group(
 ) -> tuple[Directory, Group]:
     """Create group in default groups path.
 
-    cn=name,cn=groups,dc=domain,dc=com
+    cn=name,cn=Groups,dc=domain,dc=com
 
     :param str name: group name
     :param int sid: objectSid
@@ -362,7 +362,7 @@ async def create_group(
     base_dn_list = await get_base_directories(session)
 
     query = select(Directory).filter(
-        get_filter_from_path("cn=groups," + base_dn_list[0].path_dn),
+        get_filter_from_path("cn=Groups," + base_dn_list[0].path_dn),
     )
 
     parent = (await session.scalars(query)).one()

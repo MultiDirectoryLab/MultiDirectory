@@ -1003,7 +1003,7 @@ async def setup_session(
             name="TEST ONLY LOGIN ROLE",
             creator_upn=None,
             is_system=True,
-            groups=["cn=admin login only,cn=groups,dc=md,dc=test"],
+            groups=["cn=admin login only,cn=Groups,dc=md,dc=test"],
             permissions=AuthorizationRules.AUTH_LOGIN,
         ),
     )

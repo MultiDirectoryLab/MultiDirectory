@@ -50,7 +50,7 @@ async def adding_mfa_user_and_group(
     response = await http_client.post(
         "/entry/add",
         json={
-            "entry": "cn=mfa_group,cn=groups,dc=md,dc=test",
+            "entry": "cn=mfa_group,cn=Groups,dc=md,dc=test",
             "password": None,
             "attributes": [
                 {
@@ -111,8 +111,8 @@ async def adding_mfa_user_and_group(
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=mfa_group,cn=groups,dc=md,dc=test",
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                        "cn=mfa_group,cn=Groups,dc=md,dc=test",
+                        "cn=domain admins,cn=Groups,dc=md,dc=test",
                     ],
                 },
                 {

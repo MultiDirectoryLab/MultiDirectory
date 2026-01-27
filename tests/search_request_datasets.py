@@ -17,28 +17,28 @@ test_search_filter_account_expires_dataset = [
 
 test_search_by_rule_anr_dataset = [
     # with split by space
-    {"filter": "(anr=Joh Lenno)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=Lennon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=John Lennon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=john lennon)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr==Lennon John)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=Joh Lenno)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=Lennon John)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=John Lennon)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=john lennon)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr==Lennon John)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
     # without split by space
-    {"filter": "(anr=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr>=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr<=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr~=user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr==user0)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=users,dc=md,dc=test"]},
-    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=groups,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr=user0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr>=user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr<=user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr~=user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr==user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},  # noqa: E501
     {"filter": "(anr=user_admin_3@mail.com)", "objects": ["cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test"]},  # noqa: E501
     {
         "filter": "(anr=user_admin_*)",
         "objects": [
-            "cn=user_admin,cn=users,dc=md,dc=test",
-            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
+            "cn=user_admin,cn=Users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=Users,dc=md,dc=test",
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
@@ -50,11 +50,11 @@ test_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
         "objects": [
-            "cn=user0,cn=users,dc=md,dc=test",
-            "cn=user_admin,cn=users,dc=md,dc=test",
-            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
-            "cn=user_non_admin,cn=users,dc=md,dc=test",
-            "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+            "cn=user0,cn=Users,dc=md,dc=test",
+            "cn=user_admin,cn=Users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=Users,dc=md,dc=test",
+            "cn=user_non_admin,cn=Users,dc=md,dc=test",
+            "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
         ],
@@ -83,11 +83,11 @@ test_search_by_rule_bit_and_dataset = [
     {
         "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
         "objects": [
-            "cn=user0,cn=users,dc=md,dc=test",
-            "cn=user_admin,cn=users,dc=md,dc=test",
-            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
-            "cn=user_non_admin,cn=users,dc=md,dc=test",
-            "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+            "cn=user0,cn=Users,dc=md,dc=test",
+            "cn=user_admin,cn=Users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=Users,dc=md,dc=test",
+            "cn=user_non_admin,cn=Users,dc=md,dc=test",
+            "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
         ],
     },
@@ -104,14 +104,14 @@ test_search_by_rule_bit_or_dataset = [
             + UserAccountControlFlag.NORMAL_ACCOUNT
         })",
         "objects": [
-            "cn=user0,cn=users,dc=md,dc=test",
-            "cn=user_admin,cn=users,dc=md,dc=test",
-            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
+            "cn=user0,cn=Users,dc=md,dc=test",
+            "cn=user_admin,cn=Users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=Users,dc=md,dc=test",
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
-            "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
-            "cn=user_non_admin,cn=users,dc=md,dc=test",
+            "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
+            "cn=user_non_admin,cn=Users,dc=md,dc=test",
         ],
     },
     {
@@ -124,11 +124,11 @@ test_search_by_rule_bit_or_dataset = [
     {
         "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
         "objects": [
-            "cn=user0,cn=users,dc=md,dc=test",
-            "cn=user_admin,cn=users,dc=md,dc=test",
-            "cn=user_admin_for_roles,cn=users,dc=md,dc=test",
-            "cn=user_non_admin,cn=users,dc=md,dc=test",
-            "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+            "cn=user0,cn=Users,dc=md,dc=test",
+            "cn=user_admin,cn=Users,dc=md,dc=test",
+            "cn=user_admin_for_roles,cn=Users,dc=md,dc=test",
+            "cn=user_non_admin,cn=Users,dc=md,dc=test",
+            "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
         ],
     },

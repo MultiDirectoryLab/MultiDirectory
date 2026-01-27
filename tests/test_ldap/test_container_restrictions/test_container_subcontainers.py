@@ -20,31 +20,31 @@ from tests.conftest import TestCreds
     ("dn", "rdn_attr", "rdn_value", "object_classes"),
     [
         (
-            "cn=testcontainer,cn=users,dc=md,dc=test",
+            "cn=testcontainer,cn=Users,dc=md,dc=test",
             "cn",
             "testcontainer",
             ["container"],
         ),
         (
-            "ou=testou,cn=users,dc=md,dc=test",
+            "ou=testou,cn=Users,dc=md,dc=test",
             "ou",
             "testou",
             ["organizationalUnit"],
         ),
         (
-            "cn=testuser,cn=users,dc=md,dc=test",
+            "cn=testuser,cn=Users,dc=md,dc=test",
             "cn",
             "testuser",
             ["user", "organizationalPerson"],
         ),
         (
-            "cn=testgroup,cn=groups,dc=md,dc=test",
+            "cn=testgroup,cn=Groups,dc=md,dc=test",
             "cn",
             "testgroup",
             ["group", "posixGroup"],
         ),
         (
-            "cn=testcomputer,cn=computers,dc=md,dc=test",
+            "cn=testcomputer,cn=Computers,dc=md,dc=test",
             "cn",
             "testcomputer",
             ["computer", "organizationalPerson"],

@@ -18,7 +18,7 @@ from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
-from ldap_protocol.utils.queries import get_search_path
+from ldap_protocol.utils.queries import get_filter_from_path
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
@@ -56,7 +56,7 @@ async def test_multiple_access(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
-            base_dn="cn=russia,cn=users,dc=md,dc=test",
+            base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
             attribute_type_id=user_account_control_attr.id,
             is_allow=True,
@@ -65,7 +65,7 @@ async def test_multiple_access(
             role_id=custom_role.get_id(),
             ace_type=AceType.READ,
             scope=RoleScope.WHOLE_SUBTREE,
-            base_dn="cn=russia,cn=users,dc=md,dc=test",
+            base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
             attribute_type_id=user_principal_name.id,
             is_allow=True,
@@ -74,7 +74,7 @@ async def test_multiple_access(
             role_id=custom_role.get_id(),
             ace_type=AceType.WRITE,
             scope=RoleScope.WHOLE_SUBTREE,
-            base_dn="cn=russia,cn=users,dc=md,dc=test",
+            base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
             attribute_type_id=posix_email_attr.id,
             is_allow=True,
@@ -83,7 +83,7 @@ async def test_multiple_access(
             role_id=custom_role.get_id(),
             ace_type=AceType.DELETE,
             scope=RoleScope.WHOLE_SUBTREE,
-            base_dn="cn=russia,cn=users,dc=md,dc=test",
+            base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
             attribute_type_id=posix_email_attr.id,
             is_allow=True,
@@ -95,9 +95,9 @@ async def test_multiple_access(
     await perform_ldap_search_and_validate(
         settings=settings,
         creds=creds,
-        search_base="cn=russia,cn=users,dc=md,dc=test",
+        search_base="cn=russia,cn=Users,dc=md,dc=test",
         expected_dn=[
-            "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
+            "dn: cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
         ],
         expected_attrs_present=[
             "userAccountControl: 512",
@@ -106,7 +106,7 @@ async def test_multiple_access(
         expected_attrs_absent=["posixEmail: user1@mail.com"],
     )
 
-    user_dn = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    user_dn = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
 
     query = (
         select(Directory)
@@ -114,7 +114,7 @@ async def test_multiple_access(
             subqueryload(qa(Directory.attributes)),
             joinedload(qa(Directory.user)),
         )
-        .filter_by(path=get_search_path(user_dn))
+        .filter(get_filter_from_path(user_dn))
     )
 
     directory = (await session.scalars(query)).one()

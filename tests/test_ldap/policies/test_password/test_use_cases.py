@@ -48,7 +48,7 @@ async def test_get_password_policy_by_dir_path_dn(
     dto = PasswordPolicyDTO[None, int](
         id=None,
         priority=1,
-        group_paths=["cn=developers,cn=groups,dc=md,dc=test"],
+        group_paths=["cn=developers,cn=Groups,dc=md,dc=test"],
         name="Test Password Policy",
         language="Latin",
         is_exact_match=True,
@@ -75,7 +75,7 @@ async def test_get_password_policy_by_dir_path_dn(
     policies = await password_use_cases.get_all()
     assert any(policy.name == "Test Password Policy" for policy in policies)
 
-    path_dn = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    path_dn = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     policy = await password_use_cases.get_password_policy_by_dir_path_dn(
         path_dn,
     )
@@ -100,7 +100,7 @@ async def test_get_password_policy_by_dir_path_dn_extended(
     policies = await password_use_cases.get_all()
     assert any(policy.name == "Test Password Policy" for policy in policies)
 
-    path_dn = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
+    path_dn = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     policy = await password_use_cases.get_password_policy_by_dir_path_dn(
         path_dn,
     )
