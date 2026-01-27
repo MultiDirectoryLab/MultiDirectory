@@ -21,6 +21,7 @@ import redis.asyncio as redis
 import uvloop
 from alembic import command
 from alembic.config import Config as AlembicConfig
+from database import engines
 from dishka import (
     AsyncContainer,
     Provider,
@@ -362,9 +363,9 @@ class TestProvider(Provider):
     )
 
     @provide(scope=scope, provides=AsyncEngine)
-    def get_engine(self, settings: Settings) -> AsyncEngine:
+    def get_engine(self) -> AsyncEngine:
         """Get async engine."""
-        return settings.engine
+        return engines["master"]
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
     def get_session_factory(
