@@ -74,11 +74,7 @@ async def update_audit_policy(
     return await audit_adapter.update_policy(policy_id, policy_data)
 
 
-@audit_router.get(
-    "/destinations",
-    error_map=error_map,
-    dependencies=[Depends(check_master_db)],
-)
+@audit_router.get("/destinations", error_map=error_map)
 async def get_audit_destinations(
     audit_adapter: FromDishka[AuditPoliciesAdapter],
 ) -> list[AuditDestinationResponse]:

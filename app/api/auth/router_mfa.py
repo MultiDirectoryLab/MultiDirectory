@@ -135,7 +135,6 @@ async def get_mfa(
     name="callback_mfa",
     include_in_schema=True,
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
 )
 async def callback_mfa(
     access_token: Annotated[
