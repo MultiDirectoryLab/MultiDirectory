@@ -9,6 +9,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import HTTPException, status
 from loguru import logger
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -25,11 +26,11 @@ async def check_master_db(
     try:
         session.sync_session.set_force_master(True)  # type: ignore
         await session.execute(text("SELECT 1"))
-    except Exception as e:
+    except OperationalError as e:
         logger.error(f"Master DB check failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Master DB is not available",
         )
     else:
-        session.sync_session.set_force_master(False) # type: ignore
+        session.sync_session.set_force_master(False)  # type: ignore
