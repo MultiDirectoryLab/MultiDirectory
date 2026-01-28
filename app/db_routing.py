@@ -53,6 +53,7 @@ class RoutingSession(Session):
 
     def get_bind(self, mapper=None, clause=None) -> Engine:  # type: ignore  # noqa: ARG002
         if isinstance(clause, Update | Insert | Delete):
+            self._force_master = True
             return self.engine_registry.get_sync_master_engine()
 
         if self._force_master or self._flushing:
