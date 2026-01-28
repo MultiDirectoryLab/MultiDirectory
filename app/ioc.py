@@ -8,7 +8,7 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
-from database import EngineRegistry, RoutingSession
+from db_routing import EngineRegistry, RoutingSession
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger

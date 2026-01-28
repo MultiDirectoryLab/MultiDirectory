@@ -1,4 +1,4 @@
-"""Database configuration and routing session.
+"""Engine registry and routing session.
 
 Copyright (c) 2026 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
