@@ -30,7 +30,7 @@ engines = {
         connect_args={"connect_timeout": settings.POSTGRES_CONNECT_TIMEOUT},
     ),
 }
-if settings.POSTGRES_RW_MODE == "master_replica":
+if settings.POSTGRES_RW_MODE == "replication":
     engines["replica"] = create_async_engine(
         str(settings.REPLICA_POSTGRES_URI),
         pool_size=settings.INSTANCE_DB_POOL_SIZE,

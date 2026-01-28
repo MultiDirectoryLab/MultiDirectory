@@ -48,7 +48,7 @@ class Settings(BaseModel):
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
 
-    POSTGRES_RW_MODE: Literal["single", "master_replica"] = "single"
+    POSTGRES_RW_MODE: Literal["single", "replication"] = "single"
     POSTGRES_SCHEMA: ClassVar[str] = "postgresql+psycopg"
 
     POSTGRES_REPLICA_DB: str = ""
