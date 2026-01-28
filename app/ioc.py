@@ -8,7 +8,7 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
-from database import RoutingSession, engines
+from database import EngineRegistry, RoutingSession
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
@@ -163,20 +163,29 @@ class MainProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.APP)
 
     @provide(scope=Scope.APP)
+    def get_engine_registry(self, settings: Settings) -> EngineRegistry:
+        return EngineRegistry(
+            master_engine=settings.engine,
+            replica_engine=settings.replica_engine,
+        )
+
+    @provide(scope=Scope.APP)
     def get_session_factory(
         self,
         settings: Settings,
+        engine_registry: EngineRegistry,
     ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
         if settings.POSTGRES_RW_MODE == "single":
             return async_sessionmaker(
-                bind=engines["master"],
+                bind=engine_registry.get_master_engine(),
                 expire_on_commit=False,
             )
 
         return async_sessionmaker(
             sync_session_class=RoutingSession,
             expire_on_commit=False,
+            info={"engine_registry": engine_registry},
         )
 
     @provide(scope=Scope.REQUEST)
@@ -899,8 +908,9 @@ class MigrationProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_conn_factory(
         self,
+        engine_registry: EngineRegistry,
     ) -> AsyncIterator[AsyncConnection]:
         """Create session factory."""
-        engine = engines["master"]
+        engine = engine_registry.get_master_engine()
         async with engine.connect() as connection:
             yield connection

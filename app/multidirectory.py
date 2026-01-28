@@ -13,7 +13,6 @@ from typing import AsyncIterator, Callable, Coroutine
 import uvicorn
 import uvloop
 from alembic.config import Config, command
-from database import engines
 from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
@@ -139,7 +138,7 @@ def _add_app_sqlalchemy_debugger(app: FastAPI) -> None:
 
         app.add_middleware(
             SQLAlchemyMonitor,
-            engine=engines["master"],
+            engine=settings.engine,
             actions=[JsonPrintStatistics()],
         )
 

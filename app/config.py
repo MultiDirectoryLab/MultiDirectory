@@ -22,6 +22,7 @@ from pydantic import (
     computed_field,
     field_validator,
 )
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 
 def _get_vendor_version() -> str:
@@ -116,6 +117,42 @@ class Settings(BaseModel):
             f"{self.POSTGRES_REPLICA_PASSWORD}@"
             f"{self.POSTGRES_REPLICA_HOST}/"
             f"{self.POSTGRES_REPLICA_DB}",
+        )
+
+    @cached_property
+    def engine(self) -> AsyncEngine:
+        """Get engine."""
+        return create_async_engine(
+            str(self.POSTGRES_URI),
+            pool_size=self.INSTANCE_DB_POOL_SIZE,
+            max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
+            pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
+            pool_recycle=self.INSTANCE_DB_POOL_RECYCLE,
+            pool_pre_ping=False,
+            future=True,
+            echo=False,
+            logging_name="master",
+            connect_args={"connect_timeout": self.POSTGRES_CONNECT_TIMEOUT},
+        )
+
+    @cached_property
+    def replica_engine(self) -> AsyncEngine | None:
+        if self.POSTGRES_RW_MODE != "replication":
+            return None
+
+        return create_async_engine(
+            str(self.REPLICA_POSTGRES_URI),
+            pool_size=self.INSTANCE_DB_POOL_SIZE,
+            max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
+            pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
+            pool_recycle=self.INSTANCE_DB_POOL_RECYCLE,
+            pool_pre_ping=False,
+            future=True,
+            echo=False,
+            logging_name="replica",
+            connect_args={
+                "connect_timeout": self.POSTGRES_REPLICA_CONNECT_TIMEOUT,
+            },
         )
 
     VENDOR_NAME: ClassVar[str] = "MultiFactor"
