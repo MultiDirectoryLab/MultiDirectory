@@ -17,7 +17,6 @@ from .base import BaseRequest
 class AbandonRequest(BaseRequest):
     """Abandon protocol."""
 
-    RESPONSE_TYPE: ClassVar[type] = type(None)
     CONTEXT_TYPE: ClassVar[type] = LDAPAbandonRequestContext
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ABANDON
     message_id: int
