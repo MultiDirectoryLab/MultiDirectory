@@ -149,7 +149,6 @@ def create_prod_app(
 ) -> FastAPI:
     """Create production app with container."""
     settings = settings or Settings.from_os()
-
     app = factory(settings)
     container = make_async_container(
         MainProvider(),
