@@ -118,7 +118,7 @@ def _create_shadow_app(settings: Settings) -> FastAPI:
     return app
 
 
-def _add_app_sqlalchemy_debugger(app: FastAPI) -> None:
+def _add_app_sqlalchemy_debugger(app: FastAPI, settings: Settings) -> None:
     try:
         import json
         from dataclasses import asdict
@@ -160,7 +160,7 @@ def create_prod_app(
     )
 
     if settings.ENABLE_SQLALCHEMY_LOGGING:
-        _add_app_sqlalchemy_debugger(app)
+        _add_app_sqlalchemy_debugger(app, settings)
 
     setup_dishka(container, app)
     return app
