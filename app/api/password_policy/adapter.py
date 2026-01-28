@@ -7,26 +7,19 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import io
 
 from adaptix.conversion import get_converter
-from fastapi import UploadFile, status
+from fastapi import UploadFile
 from fastapi.responses import StreamingResponse
 
 from api.base_adapter import BaseAdapter
 from api.password_policy.schemas import PasswordPolicySchema, PriorityT
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
 from ldap_protocol.policies.password.exceptions import (
-    PasswordBanWordFileHasDuplicatesError,
     PasswordBanWordWrongFileExtensionError,
-    PasswordPolicyAgeDaysError,
-    PasswordPolicyAlreadyExistsError,
-    PasswordPolicyBaseDnNotFoundError,
-    PasswordPolicyCantChangeDefaultDomainError,
-    PasswordPolicyDirIsNotUserError,
-    PasswordPolicyNotFoundError,
-    PasswordPolicyPriorityError,
 )
 from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     PasswordPolicyUseCases,
+    UserPasswordHistoryUseCases,
 )
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
@@ -36,18 +29,17 @@ _convert_dto_to_schema = get_converter(
 )
 
 
+class UserPasswordHistoryResetFastAPIAdapter(
+    BaseAdapter[UserPasswordHistoryUseCases],
+):
+    """Adapter for clearing user password history."""
+
+    async def clear(self, identity: str) -> None:
+        await self._service.clear(identity)
+
+
 class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
     """Adapter for password policies."""
-
-    _exceptions_map: dict[type[Exception], int] = {
-        PasswordPolicyBaseDnNotFoundError: status.HTTP_404_NOT_FOUND,
-        PasswordPolicyNotFoundError: status.HTTP_404_NOT_FOUND,
-        PasswordPolicyDirIsNotUserError: status.HTTP_404_NOT_FOUND,
-        PasswordPolicyAlreadyExistsError: status.HTTP_409_CONFLICT,
-        PasswordPolicyCantChangeDefaultDomainError: status.HTTP_400_BAD_REQUEST,  # noqa: E501
-        PasswordPolicyPriorityError: status.HTTP_400_BAD_REQUEST,
-        PasswordPolicyAgeDaysError: status.HTTP_400_BAD_REQUEST,
-    }
 
     async def get_all(self) -> list[PasswordPolicySchema[int]]:
         """Get all Password Policies."""
@@ -64,9 +56,7 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         path_dn: str,
     ) -> PasswordPolicySchema[int]:
         """Get one Password Policy for one Directory by its path."""
-        dto = await self._service.get_password_policy_by_dir_path_dn(
-            path_dn,
-        )
+        dto = await self._service.get_password_policy_by_dir_path_dn(path_dn)
         return _convert_dto_to_schema(dto)
 
     async def update(
@@ -85,11 +75,6 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
 
 class PasswordBanWordsFastAPIAdapter(BaseAdapter[PasswordBanWordUseCases]):
     """Adapter for password ban words."""
-
-    _exceptions_map: dict[type[Exception], int] = {
-        PasswordBanWordWrongFileExtensionError: status.HTTP_400_BAD_REQUEST,
-        PasswordBanWordFileHasDuplicatesError: status.HTTP_409_CONFLICT,
-    }
 
     async def upload_ban_words_txt(self, file: UploadFile) -> None:
         if (

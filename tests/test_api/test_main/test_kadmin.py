@@ -60,7 +60,7 @@ def _create_test_user_data(
 async def test_tree_creation(
     http_client: AsyncClient,
     ctx_bind: LDAPBindRequestContext,
-    password_utils: PasswordUtils,
+    password_utils: PasswordUtils,  # noqa: ARG001
 ) -> None:
     """Test tree creation."""
     krbadmin_pw = "Password123"
@@ -77,7 +77,7 @@ async def test_tree_creation(
     response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "ou=services,dc=md,dc=test",
+            "base_object": "ou=System,dc=md,dc=test",
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -90,7 +90,7 @@ async def test_tree_creation(
     )
     assert (
         response.json()["search_result"][0]["object_name"]
-        == "ou=services,dc=md,dc=test"
+        == "ou=System,dc=md,dc=test"
     )
 
     bind = MutePolicyBindRequest(
@@ -125,7 +125,7 @@ async def test_tree_collision(http_client: AsyncClient) -> None:
         },
     )
 
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -157,13 +157,13 @@ async def test_setup_call(
     kdc_doc = kadmin.setup.call_args.kwargs.pop("kdc_config").encode()
 
     # NOTE: Asserting documents integrity, tests template rendering
-    assert blake2b(krb_doc, digest_size=8).hexdigest() == "f433bbc7df5a236b"
+    assert blake2b(krb_doc, digest_size=8).hexdigest() == "0567ec28b8ccca51"
     assert blake2b(kdc_doc, digest_size=8).hexdigest() == "79e43649d34fe577"
 
     assert kadmin.setup.call_args.kwargs == {
         "domain": "md.test",
         "admin_dn": "cn=user0,cn=users,dc=md,dc=test",
-        "services_dn": "ou=services,dc=md,dc=test",
+        "services_dn": "ou=System,dc=md,dc=test",
         "krbadmin_dn": "cn=krbadmin,cn=users,dc=md,dc=test",
         "krbadmin_password": "Password123",
         "ldap_keytab_path": "/LDAP_keytab/ldap.keytab",
@@ -228,21 +228,21 @@ async def test_ktadd(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_ktadd_404(
+async def test_ktadd_400(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
 ) -> None:
     """Test ktadd failure.
 
-    :param AsyncClient http_client: http cl
-    :param LDAPSession ldap_session: ldap
+    :param AsyncClient http_client: http client
+    :param AbstractKadmin kadmin: kadmin
     """
     kadmin.ktadd.side_effect = KRBAPIPrincipalNotFoundError()  # type: ignore
 
     names = ["test1", "test2"]
     response = await http_client.post("/kerberos/ktadd", json=names)
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -528,4 +528,4 @@ async def test_update_password(
             "old_password": "password",
         },
     )
-    assert response.status_code == status.HTTP_424_FAILED_DEPENDENCY
+    assert response.status_code == status.HTTP_400_BAD_REQUEST

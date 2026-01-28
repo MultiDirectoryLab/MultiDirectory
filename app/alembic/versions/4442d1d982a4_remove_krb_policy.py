@@ -6,12 +6,14 @@ Create Date: 2025-02-28 12:01:56.745334
 
 """
 
+import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from entities import Attribute, Directory
-from extra.alembic_utils import temporary_stub_entity_type_name
+from extra.alembic_utils import temporary_stub_column
 
 # revision identifiers, used by Alembic.
 revision = "4442d1d982a4"
@@ -20,8 +22,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_entity_type_name
-def upgrade() -> None:
+@temporary_stub_column("entity_type_id", sa.Integer())
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -29,5 +31,5 @@ def upgrade() -> None:
     session.execute(delete(Attribute).filter_by(name="krbpwdpolicyreference"))
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""

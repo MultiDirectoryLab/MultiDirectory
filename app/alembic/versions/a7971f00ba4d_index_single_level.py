@@ -8,6 +8,7 @@ Create Date: 2025-07-22 11:13:48.397808
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 
 # revision identifiers, used by Alembic.
 revision = "a7971f00ba4d"
@@ -16,7 +17,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Create index for Directory depth field."""
     op.execute(
         sa.text(
@@ -89,7 +90,7 @@ def upgrade() -> None:
     )
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Remove indexes for Directory depth field and Attributes table."""
     op.drop_index("idx_User_san_gin", "Users")
     op.drop_index("idx_User_upn_gin", "Users")

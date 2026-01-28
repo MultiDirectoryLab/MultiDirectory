@@ -7,6 +7,7 @@ Create Date: 2025-11-20 12:11:32.785993
 """
 
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import Column, select, text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -21,17 +22,19 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_api_permissions(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _add_api_permissions(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+
         query = (
             select(Role)
             .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         )  # fmt: skip
-        role = (await session.scalars(query)).first()
+        role = await session.scalar(query)
+
         if role:
             role.permissions = AuthorizationRules.get_all()
             await session.commit()
@@ -48,6 +51,6 @@ def upgrade() -> None:
     op.run_async(_add_api_permissions)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_column("Roles", "permissions")

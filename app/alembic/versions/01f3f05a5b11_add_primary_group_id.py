@@ -1,22 +1,27 @@
 """Add primaryGroupId attribute and domain computers group.
 
 Revision ID: 01f3f05a5b11
-Revises: 8164b4a9e1f1
+Revises: c007129b7973
 Create Date: 2025-09-26 12:36:05.974255
 
 """
 
+import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
+from constants import DOMAIN_COMPUTERS_GROUP_NAME
 from entities import Attribute, Directory, EntityType, Group
+from enums import EntityTypeNames
+from extra.alembic_utils import temporary_stub_column
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
     create_group,
@@ -33,30 +38,24 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
-def upgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_domain_computers_group(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _add_domain_computers_group(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            entity_type_dao = await cnt.get(EntityTypeDAO)
+            role_use_case = await cnt.get(RoleUseCase)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
 
-        object_class_dao = ObjectClassDAO(session)
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao=object_class_dao,
-        )
-        role_dao = RoleDAO(session)
-        ace_dao = AccessControlEntryDAO(session)
-        role_use_case = RoleUseCase(role_dao, ace_dao)
-
         try:
             group_dir_query = select(
                 exists(Directory)
-                .where(qa(Directory.name) == "domain computers"),
+                .where(qa(Directory.name) == DOMAIN_COMPUTERS_GROUP_NAME),
             )  # fmt: skip
             group_dir = (await session.scalars(group_dir_query)).one()
 
@@ -64,14 +63,17 @@ def upgrade() -> None:
                 return
 
             dir_, group_ = await create_group(
-                name="domain computers",
+                name=DOMAIN_COMPUTERS_GROUP_NAME,
                 sid=515,
+                attribute_value_validator=AttributeValueValidator(),
                 session=session,
             )
 
             await session.flush()
 
-            computer_entity_type = await entity_type_dao.get("Computer")
+            computer_entity_type = await entity_type_dao.get(
+                EntityTypeNames.COMPUTER,
+            )
             computer_dirs = await session.scalars(
                 select(Directory)
                 .where(
@@ -116,9 +118,9 @@ def upgrade() -> None:
 
     op.run_async(_add_domain_computers_group)
 
-    async def _add_primary_group_id(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _add_primary_group_id(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
@@ -126,7 +128,11 @@ def upgrade() -> None:
 
         entity_type = await session.scalars(
             select(qa(EntityType.id))
-            .where(qa(EntityType.name).in_(["User", "Computer"])),
+            .where(
+                qa(EntityType.name).in_(
+                    [EntityTypeNames.USER, EntityTypeNames.COMPUTER],
+                ),
+            ),
         )  # fmt: skip
 
         entity_type_ids = list(entity_type.all())
@@ -160,21 +166,20 @@ def upgrade() -> None:
         except (IntegrityError, DBAPIError):
             pass
 
-        await session.close()
-
     op.run_async(_add_primary_group_id)
 
 
-def downgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
 
     async def _delete_domain_computers_group(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:

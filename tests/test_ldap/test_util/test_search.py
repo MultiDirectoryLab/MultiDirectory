@@ -14,13 +14,13 @@ from sqlalchemy.orm import selectinload
 
 from config import Settings
 from entities import User
-from enums import AceType, RoleScope
+from enums import AceType, ProtocolType, RoleScope
 from ldap_protocol.asn1parser import ASN1Row, TagNumbers
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.ldap_requests import SearchRequest
 from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
 from ldap_protocol.ldap_responses import SearchResultEntry
-from ldap_protocol.policies.network_policy import is_user_group_valid
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -307,10 +307,13 @@ async def test_bind_policy(
     session: AsyncSession,
     settings: Settings,
     creds: TestCreds,
-    ldap_session: LDAPSession,
+    network_policy_validator: NetworkPolicyValidatorUseCase,
 ) -> None:
     """Bind with policy."""
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)  # noqa: SLF001
+    policy = await network_policy_validator.get_by_protocol(
+        IPv4Address("127.0.0.1"),
+        ProtocolType.LDAP,
+    )
     assert policy
 
     group = await get_group(
@@ -345,12 +348,15 @@ async def test_bind_policy(
 @pytest.mark.usefixtures("setup_session")
 async def test_bind_policy_missing_group(
     session: AsyncSession,
-    ldap_session: LDAPSession,
     settings: Settings,
     creds: TestCreds,
+    network_policy_validator: NetworkPolicyValidatorUseCase,
 ) -> None:
     """Bind policy fail."""
-    policy = await ldap_session._get_policy(IPv4Address("127.0.0.1"), session)  # noqa: SLF001
+    policy = await network_policy_validator.get_by_protocol(
+        IPv4Address("127.0.0.1"),
+        ProtocolType.LDAP,
+    )
 
     assert policy
 
@@ -368,7 +374,7 @@ async def test_bind_policy_missing_group(
     user.groups.clear()
     await session.commit()
 
-    assert not await is_user_group_valid(user, policy, session)
+    assert not await network_policy_validator.is_user_group_valid(user, policy)
 
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",

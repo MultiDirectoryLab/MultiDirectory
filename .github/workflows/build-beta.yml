@@ -1,7 +1,8 @@
 name: build
 on:
   push:
-    branches: [main]
+    branches:
+      - 'release-*'
 
 env:
   REPO: ${{ github.repository }}

@@ -43,6 +43,7 @@ class DeleteRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.DELETE
+    CONTEXT_TYPE: ClassVar[type] = LDAPDeleteRequestContext
 
     entry: str
 
@@ -95,6 +96,12 @@ class DeleteRequest(BaseRequest):
 
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if directory.is_system:
+            yield DeleteResponse(
+                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
+            )
             return
 
         self.set_event_data(

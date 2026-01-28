@@ -11,8 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.multifactor import LDAPMultiFactorAPI
+from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -33,6 +37,7 @@ class LDAPAddRequestContext:
     password_utils: PasswordUtils
     access_manager: AccessManager
     role_use_case: RoleUseCase
+    attribute_value_validator: AttributeValueValidator
 
 
 @dataclass
@@ -48,6 +53,7 @@ class LDAPModifyRequestContext:
     access_manager: AccessManager
     password_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
+    attribute_value_validator: AttributeValueValidator
 
 
 @dataclass
@@ -61,6 +67,7 @@ class LDAPBindRequestContext:
     password_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
     mfa: LDAPMultiFactorAPI
+    network_policy_validator: NetworkPolicyValidatorUseCase
 
 
 @dataclass
@@ -115,3 +122,8 @@ class LDAPModifyDNRequestContext:
     entity_type_dao: EntityTypeDAO
     access_manager: AccessManager
     role_use_case: RoleUseCase
+    attribute_value_validator: AttributeValueValidator
+
+
+@dataclass
+class LDAPAbandonRequestContext: ...

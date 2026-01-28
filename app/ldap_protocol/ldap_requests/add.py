@@ -4,18 +4,22 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory, Group, User
-from enums import AceType
+from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
+    KRBAPIDeletePrincipalError,
+    KRBAPIPrincipalNotFoundError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
@@ -23,10 +27,6 @@ from ldap_protocol.objects import (
     PartialAttribute,
     ProtocolRequests,
     UserAccountControlFlag,
-)
-from ldap_protocol.utils.const import (
-    DOMAIN_COMPUTERS_GROUP_NAME,
-    DOMAIN_USERS_GROUP_NAME,
 )
 from ldap_protocol.utils.helpers import (
     create_integer_hash,
@@ -65,8 +65,14 @@ class AddRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
+    CONTEXT_TYPE: ClassVar[type] = LDAPAddRequestContext
 
     entry: str = Field(..., description="Any `DistinguishedName`")
+    is_system: bool = Field(
+        False,
+        description="Mark as system directory (cannot be modified)",
+    )
+
     attributes: list[PartialAttribute]
 
     password: SecretStr | None = Field(None, examples=["password"])
@@ -158,8 +164,23 @@ class AddRequest(BaseRequest):
                 object_class_names=self.object_class_names,
             )
         )
-        if entity_type and entity_type.name == "Container":
+        if entity_type and entity_type.name == EntityTypeNames.CONTAINER:
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
+            return
+
+        if not ctx.attribute_value_validator.is_value_valid(
+            entity_type.name if entity_type else "",
+            "name",
+            name,
+        ) or not ctx.attribute_value_validator.is_value_valid(
+            entity_type.name if entity_type else "",
+            new_dn,
+            name,
+        ):
+            yield AddResponse(
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                errorMessage="Invalid attribute value(s)",
+            )
             return
 
         can_add = ctx.access_manager.check_entity_level_access(
@@ -189,6 +210,7 @@ class AddRequest(BaseRequest):
             new_dir = Directory(
                 object_class="",
                 name=name,
+                is_system=self.is_system or bool(name == "kerberos"),
                 parent=parent,
             )
 
@@ -399,10 +421,22 @@ class AddRequest(BaseRequest):
                 ),
             )
 
+        if not ctx.attribute_value_validator.is_directory_attributes_valid(
+            entity_type.name if entity_type else "",
+            attributes,
+        ) or (user and not ctx.attribute_value_validator.is_user_valid(user)):
+            await ctx.session.rollback()
+            yield AddResponse(
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                errorMessage="Invalid attribute value(s)",
+            )
+            return
+
         try:
             items_to_add.extend(attributes)
             ctx.session.add_all(items_to_add)
             await ctx.session.flush()
+
             await ctx.entity_type_dao.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
@@ -413,7 +447,7 @@ class AddRequest(BaseRequest):
                 parent_directory=parent,
                 directory=new_dir,
             )
-            await ctx.session.flush()
+            await ctx.session.commit()
         except IntegrityError:
             await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
@@ -422,13 +456,23 @@ class AddRequest(BaseRequest):
                 # in case server is not available: raise error and rollback
                 # stub cannot raise error
                 if user:
+                    # NOTE: Try to delete existing principal if any
+                    with contextlib.suppress(
+                        KRBAPIDeletePrincipalError,
+                        KRBAPIPrincipalNotFoundError,
+                    ):
+                        await ctx.kadmin.del_principal(
+                            user.get_upn_prefix(),
+                        )
+
                     pw = (
                         self.password.get_secret_value()
                         if self.password
                         else None
                     )
                     await ctx.kadmin.add_principal(user.get_upn_prefix(), pw)
-                if is_computer:
+
+                elif is_computer:
                     await ctx.kadmin.add_principal(
                         f"{new_dir.host_principal}.{base_dn.name}",
                         None,
@@ -453,6 +497,7 @@ class AddRequest(BaseRequest):
         entry: str,
         attributes: dict[str, list[str]],
         password: str | None = None,
+        is_system: bool = False,
     ) -> "AddRequest":
         """Create AddRequest from dict.
 
@@ -462,6 +507,7 @@ class AddRequest(BaseRequest):
         """
         return AddRequest(
             entry=entry,
+            is_system=is_system,
             password=password,
             attributes=[
                 PartialAttribute(type=name, vals=vals)

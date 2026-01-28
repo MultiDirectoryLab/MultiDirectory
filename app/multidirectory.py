@@ -15,7 +15,6 @@ import uvloop
 from alembic.config import Config, command
 from dishka import Scope, make_async_container
 from dishka.integrations.fastapi import setup_dishka
-from dns.exception import DNSException
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -35,18 +34,15 @@ from api import (
     password_policy_router,
     session_router,
     shadow_router,
+    user_password_history_router,
 )
-from api.exception_handlers import (
-    handle_db_connect_error,
-    handle_dns_api_error,
-    handle_dns_error,
-    handle_not_implemented_error,
-)
+from api.exception_handlers import handle_auth_error, handle_db_connect_error
 from api.middlewares import proc_time_header_middleware, set_key_middleware
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
     EventSenderProvider,
+    GlobalLDAPServerProvider,
     HTTPProvider,
     LDAPServerProvider,
     MainProvider,
@@ -54,14 +50,10 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.dns import (
-    DNSConnectionError,
-    DNSError,
-    DNSNotImplementedError,
-)
+from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
-from ldap_protocol.server import PoolClientHandler
+from ldap_protocol.server import PoolClientHandler, ServerLogger
 from ldap_protocol.udp_server import CLDAPUDPServer
 from schedule import scheduler_factory
 
@@ -92,6 +84,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(password_policy_router)
     app.include_router(krb5_router)
     app.include_router(dns_router)
+    app.include_router(user_password_history_router)
     app.include_router(session_router)
     app.include_router(ldap_schema_router)
     app.include_router(dhcp_router)
@@ -108,14 +101,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.middleware("http")(set_key_middleware)
     app.add_exception_handler(sa_exc.TimeoutError, handle_db_connect_error)
     app.add_exception_handler(sa_exc.InterfaceError, handle_db_connect_error)
-    app.add_exception_handler(DNSException, handle_dns_error)
-    app.add_exception_handler(DNSConnectionError, handle_dns_error)
-    app.add_exception_handler(DNSError, handle_dns_api_error)
-    app.add_exception_handler(
-        DNSNotImplementedError,
-        handle_not_implemented_error,
-    )
-
+    app.add_exception_handler(UnauthorizedError, handle_auth_error)
     return app
 
 
@@ -213,7 +199,17 @@ async def ldap_factory(settings: Settings) -> None:
         )
 
         settings = await container.get(Settings)
-        servers.append(PoolClientHandler(settings, container).start())
+        log: ServerLogger = logger.bind(name="ldap")  # type: ignore
+        log.add(
+            "logs/ldap_{time:DD-MM-YYYY}.log",
+            filter=lambda rec: rec["extra"].get("name") == "ldap",
+            retention="10 days",
+            rotation="1d",
+            colorize=False,
+            enqueue=True,
+        )
+
+        servers.append(PoolClientHandler(settings, container, log).start())
 
     await asyncio.gather(*servers)
 
@@ -229,6 +225,38 @@ async def cldap_factory(settings: Settings) -> None:
     )
 
     await CLDAPUDPServer(settings, container).start()
+
+
+async def global_ldap_server_factory(settings: Settings) -> None:
+    """Run global_ldap_server_factory."""
+    servers = []
+
+    for setting in (
+        settings.get_copy_4_global(),
+        settings.get_copy_4_global_tls(),
+    ):
+        container = make_async_container(
+            GlobalLDAPServerProvider(),
+            MainProvider(),
+            MFAProvider(),
+            MFACredsProvider(),
+            context={Settings: setting},
+        )
+
+        settings = await container.get(Settings)
+        log: ServerLogger = logger.bind(name="global_catalog")  # type: ignore
+        log.add(
+            "logs/global_catalog_{time:DD-MM-YYYY}.log",
+            filter=lambda rec: rec["extra"].get("name") == "global_catalog",
+            retention="10 days",
+            rotation="1d",
+            colorize=False,
+            enqueue=True,
+        )
+
+        servers.append(PoolClientHandler(settings, container, log).start())
+
+    await asyncio.gather(*servers)
 
 
 async def event_handler_factory(settings: Settings) -> None:
@@ -261,6 +289,10 @@ async def event_sender_factory(settings: Settings) -> None:
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
 cldap = partial(run_entrypoint, factory=cldap_factory)
+global_ldap_server = partial(
+    run_entrypoint,
+    factory=global_ldap_server_factory,
+)
 scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 event_handler = partial(run_entrypoint, factory=event_handler_factory)
@@ -274,6 +306,11 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--ldap", action="store_true", help="Run ldap")
     group.add_argument("--cldap", action="store_true", help="Run cldap")
+    group.add_argument(
+        "--global_ldap_server",
+        action="store_true",
+        help="Run global_ldap_server",
+    )
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
@@ -303,8 +340,11 @@ if __name__ == "__main__":
     if args.ldap:
         ldap(settings=settings)
 
-    if args.cldap:
+    elif args.cldap:
         cldap(settings=settings)
+
+    elif args.global_ldap_server:
+        global_ldap_server(settings=settings)
 
     elif args.event_sender:
         event_sender(settings=settings)

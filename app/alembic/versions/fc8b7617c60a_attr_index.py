@@ -7,6 +7,7 @@ Create Date: 2025-06-25 13:54:23.300032
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 
 # revision identifiers, used by Alembic.
 revision = "fc8b7617c60a"
@@ -15,7 +16,7 @@ branch_labels: str | None = None
 depends_on: str | None = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Create index for Attribute name field."""
     op.execute(
         sa.text(
@@ -31,7 +32,7 @@ def upgrade() -> None:
     )
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Drop index for Attribute name field."""
     op.execute(sa.text("DROP INDEX idx_attributes_lw_name_btree"))
     op.execute(sa.text("DROP INDEX idx_attributes_name_gin_trgm"))

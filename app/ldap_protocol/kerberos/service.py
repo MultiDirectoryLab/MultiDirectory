@@ -32,6 +32,7 @@ from password_utils import PasswordUtils
 from .base import AbstractKadmin
 from .exceptions import (
     KRBAPIAddPrincipalError,
+    KRBAPIConnectionError,
     KRBAPIDeletePrincipalError,
     KRBAPIPrincipalNotFoundError,
     KRBAPIRenamePrincipalError,
@@ -43,7 +44,12 @@ from .exceptions import (
 from .ldap_structure import KRBLDAPStructureManager
 from .schemas import AddRequests, KDCContext, KerberosAdminDnGroup, TaskStruct
 from .template_render import KRBTemplateRenderer
-from .utils import KerberosState, get_krb_server_state, set_state
+from .utils import (
+    KerberosState,
+    get_krb_server_state,
+    get_system_container_dn,
+    set_state,
+)
 
 
 class KerberosService(AbstractService):
@@ -140,7 +146,7 @@ class KerberosService(AbstractService):
             dataclass with DN for krbadmin, services_container, krbadmin_group.
         """
         krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
-        services_container = f"ou=services,{base_dn}"
+        services_container = get_system_container_dn(base_dn)
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
         return KerberosAdminDnGroup(
             krbadmin_dn=krbadmin,
@@ -172,10 +178,12 @@ class KerberosService(AbstractService):
                 "description": ["Kerberos administrator's group."],
                 "gidNumber": ["800"],
             },
+            is_system=True,
         )
         services = AddRequest.from_dict(
             dns.services_container_dn,
             {"objectClass": ["organizationalUnit", "top", "container"]},
+            is_system=True,
         )
         krb_user = AddRequest.from_dict(
             dns.krbadmin_dn,
@@ -209,6 +217,7 @@ class KerberosService(AbstractService):
                     ),
                 ],
             },
+            is_system=True,
         )
         return AddRequests(
             group=group,
@@ -262,6 +271,7 @@ class KerberosService(AbstractService):
             KRBAPISetupStashError,
             KRBAPISetupTreeError,
             KerberosDependencyError,
+            KRBAPIConnectionError,
         ) as err:
             await self._ldap_manager.rollback_kerberos_structure(
                 context.krbadmin,
@@ -288,7 +298,7 @@ class KerberosService(AbstractService):
         base_dn, domain = await self._get_base_dn()
         krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
-        services_container = f"ou=services,{base_dn}"
+        services_container = get_system_container_dn(base_dn)
         return KDCContext(
             base_dn=base_dn,
             domain=domain,

@@ -11,7 +11,6 @@ from ldap_protocol.ldap_codes import LDAPCodes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_dn_without_level_change(
@@ -80,7 +79,6 @@ async def test_api_modify_dn_without_level_change(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_dn_with_level_down(
@@ -93,7 +91,7 @@ async def test_api_modify_dn_with_level_down(
     response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",
+            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",  # noqa: E501
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -149,7 +147,6 @@ async def test_api_modify_dn_with_level_down(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_modify_dn_with_level_up(
@@ -218,7 +215,6 @@ async def test_api_modify_dn_with_level_up(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
@@ -338,7 +334,6 @@ async def test_api_correct_update_dn(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_with_parent(http_client: AsyncClient) -> None:
@@ -436,7 +431,6 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_non_exist_superior(
@@ -460,7 +454,30 @@ async def test_api_update_dn_non_exist_superior(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("add_system_administrator")
+async def test_api_cant_update_system_directory(
+    http_client: AsyncClient,
+) -> None:
+    """Test API for update DN of system directory."""
+    response = await http_client.put(
+        "/entry/update/dn",
+        json={
+            "entry": "cn=System Administrator,dc=md,dc=test",
+            "newrdn": "cn=New System Administrator",
+            "deleteoldrdn": True,
+            "new_superior": "dc=non-exist,dc=test",
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.UNWILLING_TO_PERFORM
+
+
+@pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_non_exist_entry(http_client: AsyncClient) -> None:
@@ -482,7 +499,6 @@ async def test_api_update_dn_non_exist_entry(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
@@ -504,7 +520,6 @@ async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_update_dn_invalid_new_superior(

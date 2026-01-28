@@ -13,7 +13,6 @@ import pytest_asyncio
 from fastapi import status
 from httpx import AsyncClient
 from jose import jwt
-from password_utils import PasswordUtils
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -26,6 +25,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.queries import get_search_path
+from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
@@ -495,7 +495,7 @@ async def test_auth_disabled_user(
         },
     )
 
-    assert response.status_code == 403
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio

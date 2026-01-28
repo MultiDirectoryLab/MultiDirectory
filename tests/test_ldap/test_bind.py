@@ -79,12 +79,12 @@ async def test_gssapi_bind_in_progress(
         session: AsyncSession,  # noqa: ARG001
         settings: Settings,  # noqa: ARG001
     ) -> None:
-        auth_choice._ldap_session.gssapi_security_context = (
+        auth_choice._ldap_session.gssapi_security_context = (  # noqa: SLF001
             mock_security_context
         )
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"ticket")
-    auth_choice._init_security_context = mock_init_security_context  # type: ignore
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore  # noqa: SLF001
 
     bind = BindRequest(
         version=0,
@@ -150,12 +150,12 @@ async def test_gssapi_bind_ok(
         session: AsyncSession,  # noqa: ARG001
         settings: Settings,  # noqa: ARG001
     ) -> None:
-        auth_choice._ldap_session.gssapi_security_context = (
+        auth_choice._ldap_session.gssapi_security_context = (  # noqa: SLF001
             mock_security_context
         )
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"client_ticket")
-    auth_choice._init_security_context = mock_init_security_context  # type: ignore
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore  # noqa: SLF001
 
     first_bind = BindRequest(
         version=0,
@@ -218,12 +218,12 @@ async def test_spnego_bind_ok(
         session: AsyncSession,  # noqa: ARG001
         settings: Settings,  # noqa: ARG001
     ) -> None:
-        auth_choice._ldap_session.gssapi_security_context = (
+        auth_choice._ldap_session.gssapi_security_context = (  # noqa: SLF001
             mock_security_context
         )
 
     auth_choice = SaslSPNEGOAuthentication(ticket=b"client_ticket")
-    auth_choice._init_security_context = mock_init_security_context  # type: ignore
+    auth_choice._init_security_context = mock_init_security_context  # type: ignore  # noqa: SLF001
 
     first_bind = BindRequest(
         version=0,

@@ -155,7 +155,7 @@ async def test_session_api_get(
         assert storage_data[k]["sign"] == data["sign"]
 
     response = await http_client.get(f"sessions/{creds.un}123")
-    assert response.status_code == 404
+    assert response.status_code == 400
     assert response.json()["detail"] == "User not found."
 
 
@@ -175,7 +175,7 @@ async def test_session_api_delete(
     assert len(storage_data) == 1
 
     response = await http_client.delete(f"sessions/{creds.un}123")
-    assert response.status_code == 404
+    assert response.status_code == 400
 
     response = await http_client.delete(f"sessions/{creds.un}")
     assert response.status_code == 204
