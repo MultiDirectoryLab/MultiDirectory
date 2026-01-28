@@ -41,6 +41,98 @@ async def test_api_correct_rename(http_client: AsyncClient) -> None:
     )
 
     data = response.json()
-
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "cn=admin2,dc=md,dc=test",
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": ["*"],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == "cn=admin2,dc=md,dc=test"
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "sAMAccountName":
+            assert attr["vals"][0] == "admin2"
+            break
+    else:
+        raise Exception("User without sAMAccountName")
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "displayName":
+            assert attr["vals"][0] == "Administrator"
+            break
+    else:
+        raise Exception("User without displayName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_computer")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_rename_computer(http_client: AsyncClient) -> None:
+    response = await http_client.put(
+        "/entry/rename",
+        json={
+            "object": "cn=mycomputer,dc=md,dc=test",
+            "newrdn": "cn=maincomputer",
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["main computer"],
+                    },
+                },
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "displayName",
+                        "vals": ["main computer"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "cn=mycomputer,dc=md,dc=test",
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": ["*"],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == "cn=mycomputer,dc=md,dc=test"  # noqa: E501  # fmt: skip
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "name":
+            assert attr["vals"][0] == "mycomputer name"
+            break
+    else:
+        raise Exception("Computer without name")
