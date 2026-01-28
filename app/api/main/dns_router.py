@@ -29,7 +29,7 @@ from api.main.schema import (
     DNSServiceZoneDeleteRequest,
     DNSServiceZoneUpdateRequest,
 )
-from api.utils import check_master_db
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.dns import (
     DNSForwardServerStatus,
@@ -143,7 +143,7 @@ async def get_dns_status(
 @dns_router.post(
     "/setup",
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def setup_dns(
     data: DNSServiceSetupRequest,

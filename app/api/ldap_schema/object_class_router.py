@@ -17,7 +17,7 @@ from api.ldap_schema.schema import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from api.utils import check_master_db
+from api.utils import require_master_db
 from ldap_protocol.utils.pagination import PaginationParams
 
 
@@ -25,7 +25,7 @@ from ldap_protocol.utils.pagination import PaginationParams
     "/object_class",
     status_code=status.HTTP_201_CREATED,
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def create_one_object_class(
     request_data: ObjectClassSchema[None],
@@ -59,7 +59,7 @@ async def get_list_object_classes_with_pagination(
 @ldap_schema_router.patch(
     "/object_class/{object_class_name}",
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def modify_one_object_class(
     object_class_name: str,
@@ -73,7 +73,7 @@ async def modify_one_object_class(
 @ldap_schema_router.post(
     "/object_class/delete",
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def delete_bulk_object_classes(
     object_classes_names: LimitedListType,

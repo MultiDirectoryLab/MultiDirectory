@@ -16,7 +16,7 @@ from config import Settings
 
 
 @inject
-async def check_master_db(
+async def require_master_db(
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
 ) -> None:

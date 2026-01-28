@@ -17,7 +17,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from api.utils import check_master_db
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
@@ -71,7 +71,7 @@ async def proxy_request(
 @shadow_router.post(
     "/sync/password",
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def change_password(
     principal: Annotated[str, Body(embed=True)],

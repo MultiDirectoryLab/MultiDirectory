@@ -24,7 +24,7 @@ from api.error_routing import (
 )
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
-from api.utils import check_master_db
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import KerberosState
@@ -83,7 +83,7 @@ KERBEROS_POLICY_NAME = "Kerberos Access Policy"
     "/setup/tree",
     response_class=Response,
     error_map=error_map,
-    dependencies=[Depends(verify_auth), Depends(check_master_db)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
 )
 async def setup_krb_catalogue(
     mail: Annotated[EmailStr, Body()],
@@ -111,7 +111,7 @@ async def setup_krb_catalogue(
     "/setup",
     response_class=Response,
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def setup_kdc(
     data: KerberosSetupRequest,
@@ -179,7 +179,7 @@ async def get_krb_status(
 
 @krb5_router.post(
     "/principal/add",
-    dependencies=[Depends(verify_auth), Depends(check_master_db)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def add_principal(
@@ -199,7 +199,7 @@ async def add_principal(
 
 @krb5_router.patch(
     "/principal/rename",
-    dependencies=[Depends(verify_auth), Depends(check_master_db)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def rename_principal(
@@ -223,7 +223,7 @@ async def rename_principal(
 
 @krb5_router.patch(
     "/principal/reset",
-    dependencies=[Depends(verify_auth), Depends(check_master_db)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def reset_principal_pw(
@@ -244,7 +244,7 @@ async def reset_principal_pw(
 
 @krb5_router.delete(
     "/principal/delete",
-    dependencies=[Depends(verify_auth), Depends(check_master_db)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def delete_principal(

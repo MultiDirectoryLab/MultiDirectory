@@ -16,7 +16,7 @@ from api.ldap_schema.schema import (
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from api.utils import check_master_db
+from api.utils import require_master_db
 from ldap_protocol.utils.pagination import PaginationParams
 
 
@@ -24,7 +24,7 @@ from ldap_protocol.utils.pagination import PaginationParams
     "/attribute_type",
     status_code=status.HTTP_201_CREATED,
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def create_one_attribute_type(
     request_data: AttributeTypeSchema[None],
@@ -61,7 +61,7 @@ async def get_list_attribute_types_with_pagination(
 @ldap_schema_router.patch(
     "/attribute_type/{attribute_type_name}",
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def modify_one_attribute_type(
     attribute_type_name: str,
@@ -75,7 +75,7 @@ async def modify_one_attribute_type(
 @ldap_schema_router.post(
     "/attribute_types/delete",
     error_map=error_map,
-    dependencies=[Depends(check_master_db)],
+    dependencies=[Depends(require_master_db)],
 )
 async def delete_bulk_attribute_types(
     attribute_types_names: LimitedListType,
