@@ -132,7 +132,12 @@ async def modify_dn_many(
     return results
 
 
-@entry_router.put("/rename", error_map=error_map)
+
+@entry_router.put(
+    "/rename",
+    error_map=error_map,
+    dependencies=[Depends(check_master_db)],
+)
 async def rename(request: RenameRequest, req: Request) -> LDAPResult:
     """LDAP rename entry request."""
     return await request.handle_api(req.state.dishka_container)

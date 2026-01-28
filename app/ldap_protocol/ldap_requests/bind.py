@@ -219,7 +219,9 @@ class BindRequest(BaseRequest):
         await ctx.ldap_session.set_user(user)
         with contextlib.suppress(OperationalError):
             await set_user_logon_attrs(
-                user, ctx.session, ctx.settings.TIMEZONE,
+                user,
+                ctx.session,
+                ctx.settings.TIMEZONE,
             )
 
         server_sasl_creds = None

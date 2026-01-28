@@ -91,7 +91,9 @@ class SessionRepository(AbstractService):
         )
         with contextlib.suppress(OperationalError):
             await set_user_logon_attrs(
-                user, self.session, self.settings.TIMEZONE,
+                user,
+                self.session,
+                self.settings.TIMEZONE,
             )
 
         return key
