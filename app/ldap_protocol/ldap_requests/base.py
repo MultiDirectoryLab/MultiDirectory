@@ -186,15 +186,14 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         try:
             responses = [response async for response in self.handle(ctx=ctx)]
         except OperationalError:
+            responses = []
             if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
-                responses = [
+                responses.append(
                     self.RESPONSE_TYPE(
                         result_code=LDAPCodes.UNAVAILABLE,
                         errorMessage="Master DB is not available",
                     ),
-                ]
-            else:
-                responses = []
+                )
 
         if settings.DEBUG:
             for response in responses:
