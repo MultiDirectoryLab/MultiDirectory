@@ -8,6 +8,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 
@@ -16,10 +17,13 @@ from ldap_protocol.ldap_requests.modify import Operation
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify(http_client: AsyncClient) -> None:
+async def test_api_correct_modify_user_accountexpires(
+    http_client: AsyncClient,
+) -> None:
     """Test API for modify object attribute."""
     entry_dn = "cn=test,dc=md,dc=test"
     new_value = "133632677730000000"
+
     response = await http_client.patch(
         "/entry/update",
         json={
@@ -37,9 +41,193 @@ async def test_api_correct_modify(http_client: AsyncClient) -> None:
     )
 
     data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "accountExpires":
+            assert attr["vals"][0] == new_value
+            break
+    else:
+        raise Exception("User without accountExpires")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_user_samaccountname(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify object attribute."""
+    entry_dn = "cn=test,dc=md,dc=test"
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["NEW user name"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert kadmin.rename_princ.call_args.args == ("new_user", "NEW user name")  # type: ignore
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "sAMAccountName":
+            assert attr["vals"][0] == "NEW user name"
+            break
+    else:
+        raise Exception("User without sAMAccountName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_user_userprincipalname(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify object attribute."""
+    entry_dn = "cn=test,dc=md,dc=test"
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userPrincipalName",
+                        "vals": ["newbiguser@md.test"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert kadmin.rename_princ.call_args.args == ("new_user", "newbiguser")  # type: ignore
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "userPrincipalName":
+            assert attr["vals"][0] == "newbiguser@md.test"
+            break
+    else:
+        raise Exception("User without userPrincipalName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_computer")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_computer_samaccountname_replace(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify computer sAMAccountName."""
+    entry_dn = "cn=mycomputer,dc=md,dc=test"
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["maincomputer"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert kadmin.rename_princ.call_count == 2  # type: ignore
+    assert kadmin.rename_princ.call_args_list[0].args == (  # type: ignore
+        "host/mycomputer",
+        "host/maincomputer",
+    )
+    assert kadmin.rename_princ.call_args_list[1].args == (  # type: ignore
+        "host/mycomputer.md.test",
+        "host/maincomputer.md.test",
+    )
 
     response = await http_client.post(
         "entry/search",
@@ -62,8 +250,42 @@ async def test_api_correct_modify(http_client: AsyncClient) -> None:
     assert data["search_result"][0]["object_name"] == entry_dn
 
     for attr in data["search_result"][0]["partial_attributes"]:
-        if attr["type"] == "accountExpires":
-            assert attr["vals"][0] == new_value
+        if attr["type"] == "sAMAccountName":
+            assert attr["vals"][0] == "maincomputer"
+            break
+    else:
+        raise Exception("Computer without sAMAccountName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_computer")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_incorrect_modify_computer_samaccountname_add(
+    http_client: AsyncClient,
+) -> None:
+    """Test API for modify computer sAMAccountName."""
+    entry_dn = "cn=mycomputer,dc=md,dc=test"
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.ADD,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["maincomputer"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR
 
 
 @pytest.mark.asyncio

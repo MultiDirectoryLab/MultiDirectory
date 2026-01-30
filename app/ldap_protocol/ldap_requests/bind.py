@@ -209,7 +209,7 @@ class BindRequest(BaseRequest):
             KRBAPIConnectionError,
         ):
             await ctx.kadmin.add_principal(
-                user.get_upn_prefix(),
+                user.sam_account_name,
                 self.authentication_choice.password.get_secret_value(),
                 0.1,
             )

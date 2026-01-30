@@ -232,7 +232,7 @@ class AuthManager(AbstractService):
 
         if include_krb:
             await self._kadmin.create_or_update_principal_pw(
-                user.get_upn_prefix(),
+                user.sam_account_name,
                 new_password,
             )
 
