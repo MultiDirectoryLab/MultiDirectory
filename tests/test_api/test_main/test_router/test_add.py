@@ -8,6 +8,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+from enums import SamAccountType
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import UserAccountControlFlag
 from tests.api_datasets import test_api_forbidden_chars_in_attr_value
@@ -177,6 +178,50 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
             break
     else:
         raise Exception("Computer without sAMAccountName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_add_user_samaccounttype(
+    http_client: AsyncClient,
+) -> None:
+    """Add user without sAMAccountType: server sets SAM_USER_OBJECT."""
+    entry = "cn=samuser,dc=md,dc=test"
+    await http_client.post(
+        "/entry/add",
+        json={
+            "entry": entry,
+            "password": "P@ssw0rd",
+            "attributes": [
+                {"type": "name", "vals": ["samuser"]},
+                {"type": "cn", "vals": ["samuser"]},
+                {"type": "objectClass", "vals": ["user", "top"]},
+                {"type": "sAMAccountName", "vals": ["samuser"]},
+                {"type": "userPrincipalName", "vals": ["samuser@md.test"]},
+            ],
+        },
+    )
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": ["sAMAccountType"],
+            "page_number": 1,
+        },
+    )
+    data = response.json()
+    attrs = {
+        a["type"]: a for a in data["search_result"][0]["partial_attributes"]
+    }
+    assert attrs["sAMAccountType"]["vals"][0] == str(
+        SamAccountType.SAM_USER_OBJECT,
+    )
 
 
 @pytest.mark.asyncio

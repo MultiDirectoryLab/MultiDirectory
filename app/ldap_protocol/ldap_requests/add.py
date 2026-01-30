@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory, Group, User
-from enums import AceType, EntityTypeNames
+from enums import AceType, EntityTypeNames, SamAccountType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -425,6 +425,32 @@ class AddRequest(BaseRequest):
                     directory_id=new_dir.id,
                 ),
             )
+
+        if "samaccounttype" not in self.l_attrs_dict:
+            if is_user:
+                attributes.append(
+                    Attribute(
+                        name="sAMAccountType",
+                        value=str(SamAccountType.SAM_USER_OBJECT),
+                        directory_id=new_dir.id,
+                    ),
+                )
+            elif is_group:
+                attributes.append(
+                    Attribute(
+                        name="sAMAccountType",
+                        value=str(SamAccountType.SAM_GROUP_OBJECT),
+                        directory_id=new_dir.id,
+                    ),
+                )
+            elif is_computer:
+                attributes.append(
+                    Attribute(
+                        name="sAMAccountType",
+                        value=str(SamAccountType.SAM_MACHINE_ACCOUNT),
+                        directory_id=new_dir.id,
+                    ),
+                )
 
         if not ctx.attribute_value_validator.is_directory_attributes_valid(
             entity_type.name if entity_type else "",

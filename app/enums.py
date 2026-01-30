@@ -254,3 +254,23 @@ class DomainCodes(IntEnum):
     DHCP = 12
     LDAP_SCHEMA = 13
     SHADOW = 14
+
+
+class SamAccountType(IntEnum):
+    """SAM Account Type values."""
+
+    SAM_DOMAIN_OBJECT = 0
+    SAM_GROUP_OBJECT = 268435456
+    SAM_NON_SECURITY_GROUP_OBJECT = 268435457
+    SAM_ALIAS_OBJECT = 536870912
+    SAM_NON_SECURITY_ALIAS_OBJECT = 536870913
+    SAM_USER_OBJECT = 805306368
+    SAM_MACHINE_ACCOUNT = 805306369
+    SAM_TRUST_ACCOUNT = 805306370
+    SAM_APP_BASIC_GROUP = 1073741824
+    SAM_APP_QUERY_GROUP = 1073741825
+
+    @staticmethod
+    def to_hex(value: int) -> str:
+        """Convert decimal value to hex string."""
+        return hex(value)
