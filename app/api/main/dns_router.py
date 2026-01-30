@@ -43,7 +43,7 @@ translator = DomainErrorTranslator(DomainCodes.DNS)
 
 error_map: ERROR_MAP_TYPE = {
     dns_exc.DNSSetupError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     dns_exc.DNSRecordCreateError: rule(
