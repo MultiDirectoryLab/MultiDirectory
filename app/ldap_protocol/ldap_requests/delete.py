@@ -154,7 +154,7 @@ class DeleteRequest(BaseRequest):
                 await ctx.session_storage.clear_user_sessions(
                     directory.user.id,
                 )
-                await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
+                await ctx.kadmin.del_principal(directory.user.sam_account_name)
 
             if await is_computer(directory.id, ctx.session):
                 await ctx.kadmin.del_principal(directory.host_principal)

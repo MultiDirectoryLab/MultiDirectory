@@ -171,6 +171,13 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
     else:
         raise Exception("Computer without userAccountControl")
 
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "sAMAccountName":
+            assert attr["vals"][0] == "PC"
+            break
+    else:
+        raise Exception("Computer without sAMAccountName")
+
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")

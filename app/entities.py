@@ -372,9 +372,6 @@ class User:
         "homedirectory": "homeDirectory",
     }
 
-    def get_upn_prefix(self) -> str:
-        return self.user_principal_name.split("@")[0]
-
     def is_expired(self) -> bool:
         if self.account_exp is None:
             return False
