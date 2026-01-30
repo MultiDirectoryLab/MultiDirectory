@@ -309,7 +309,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_ADMIN_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value)
+                        str(SamAccountType.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["512"],
                 },
@@ -324,7 +324,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_USERS_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value)
+                        str(SamAccountType.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["513"],
                 },
@@ -339,7 +339,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [READ_ONLY_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value)
+                        str(SamAccountType.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["521"],
                 },
@@ -354,7 +354,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_COMPUTERS_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value)
+                        str(SamAccountType.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["515"],
                 },
