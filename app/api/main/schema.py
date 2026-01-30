@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
@@ -176,11 +175,11 @@ class RenameRequest(BaseModel):
     newrdn: str
     changes: list[Changes]
 
-    @cached_property
+    @property
     def _new_object(self) -> str:
         return f"{self.newrdn},{','.join(self.object.split(',')[1:])}"
 
-    @cached_property
+    @property
     def _oldrdn(self) -> str:
         return self.object.split(",")[0]
 
@@ -198,7 +197,7 @@ class RenameRequest(BaseModel):
         )
         return await modify_dn_request.handle_api(container)
 
-    async def _clear_session_cache(self, container: AsyncContainer) -> None:
+    async def _expire_session_objects(self, container: AsyncContainer) -> None:
         session = await container.get(AsyncSession)
         session.expire_all()
 
@@ -222,7 +221,7 @@ class RenameRequest(BaseModel):
         if not modify_dn_response or modify_dn_response.result_code != 0:
             return modify_dn_response
 
-        await self._clear_session_cache(container)
+        await self._expire_session_objects(container)
 
         modify_response = await self._modify_request(container)
         if not modify_response or modify_response.result_code != 0:

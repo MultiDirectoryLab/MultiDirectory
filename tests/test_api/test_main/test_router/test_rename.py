@@ -15,7 +15,7 @@ from ldap_protocol.ldap_requests.modify import Operation
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_rename(http_client: AsyncClient) -> None:
+async def test_api_correct_rename_user(http_client: AsyncClient) -> None:
     response = await http_client.put(
         "/entry/rename",
         json={
@@ -93,14 +93,14 @@ async def test_api_correct_rename_computer(http_client: AsyncClient) -> None:
                     "operation": Operation.REPLACE,
                     "modification": {
                         "type": "sAMAccountName",
-                        "vals": ["main computer"],
+                        "vals": ["__invalid name for error__"],
                     },
                 },
                 {
                     "operation": Operation.REPLACE,
                     "modification": {
                         "type": "displayName",
-                        "vals": ["main computer"],
+                        "vals": ["Main Computer"],
                     },
                 },
             ],
