@@ -23,13 +23,13 @@ from ldap_protocol.ldap_requests import (
     DeleteRequest,
     ModifyDNRequest,
     ModifyRequest,
+    RenameRequest,
 )
 from ldap_protocol.ldap_responses import LDAPResult
 from ldap_protocol.utils.queries import set_or_update_primary_group
 
 from .schema import (
     PrimaryGroupRequest,
-    RenameRequest,
     SearchRequest,
     SearchResponse,
     SearchResultDone,
