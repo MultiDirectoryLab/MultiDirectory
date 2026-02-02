@@ -34,7 +34,7 @@ jobs:
     needs: build_linter_image
     steps:
       - name: Download linter image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linter-image
           path: /tmp
@@ -48,7 +48,7 @@ jobs:
     needs: build_linter_image
     steps:
       - name: Download linter image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linter-image
           path: /tmp
@@ -62,7 +62,7 @@ jobs:
     needs: build_linter_image
     steps:
       - name: Download linter image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linter-image
           path: /tmp
@@ -104,7 +104,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Download test image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: test-image
           path: /tmp
