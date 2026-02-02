@@ -23,7 +23,7 @@ jobs:
           outputs: type=docker,dest=/tmp/linter_image.tar
           tags: linter:latest
       - name: Upload linter image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linter-image
           path: /tmp/linter_image.tar
@@ -89,7 +89,7 @@ jobs:
           outputs: type=docker,dest=/tmp/test_image.tar
           tags: test:latest
       - name: Upload test image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-image
           path: /tmp/test_image.tar
