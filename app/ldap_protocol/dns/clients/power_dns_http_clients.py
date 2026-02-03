@@ -19,8 +19,8 @@ base_retort = Retort()
 class PowerDNSAuthHTTPClient(AbstractDNSHTTPClient):
     """HTTP client for PowerDNS Auth server."""
 
-    async def create_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
-        """Send request to create DNS record."""
+    async def record_action(self, zone_id: str, record: DNSRRSetDTO) -> None:
+        """Send request to perform action on DNS record in given zone."""
         response = await self._http_client.patch(
             f"/zones/{zone_id}",
             json={"rrsets": [base_retort.dump(record)]},
@@ -35,22 +35,6 @@ class PowerDNSAuthHTTPClient(AbstractDNSHTTPClient):
 
         zone = base_retort.load(response.json(), DNSMasterZoneDTO)
         return zone.rrsets
-
-    async def update_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
-        """Send request to update record in given zone."""
-        response = await self._http_client.patch(
-            f"/zones/{zone_id}",
-            json={"rrsets": [base_retort.dump(record)]},
-        )
-        await self._validate_response(response)
-
-    async def delete_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
-        """Send request to delete record in given zone."""
-        response = await self._http_client.patch(
-            f"/zones/{zone_id}",
-            json={"rrsets": [base_retort.dump(record)]},
-        )
-        await self._validate_response(response)
 
     async def create_master_zone(self, zone: DNSMasterZoneDTO) -> None:
         """Send request to create new master zone."""
