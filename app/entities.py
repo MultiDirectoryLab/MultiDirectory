@@ -260,10 +260,6 @@ class Directory:
         return not self.parent_id and self.object_class == "domain"
 
     @property
-    def host_principal(self) -> str:
-        return f"host/{self.name}"
-
-    @property
     def path_dn(self) -> str:
         return ",".join(reversed(self.path))
 
