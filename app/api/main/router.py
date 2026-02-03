@@ -17,6 +17,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DomainCodes
+from ldap_protocol.custom_requests.rename import RenameRequest
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.ldap_requests import (
     AddRequest,
@@ -37,7 +38,6 @@ from .utils import get_ldap_session
 
 translator = DomainErrorTranslator(DomainCodes.LDAP)
 
-
 error_map: ERROR_MAP_TYPE = {
     UnauthorizedError: rule(
         status=status.HTTP_401_UNAUTHORIZED,
@@ -54,10 +54,7 @@ entry_router = ErrorAwareRouter(
 
 
 @entry_router.post("/search", error_map=error_map)
-async def search(
-    request: SearchRequest,
-    req: Request,
-) -> SearchResponse:
+async def search(request: SearchRequest, req: Request) -> SearchResponse:
     """LDAP SEARCH entry request."""
     responses = await request.handle_api(req.state.dishka_container)
     metadata: SearchResultDone = responses.pop(-1)  # type: ignore
@@ -73,19 +70,13 @@ async def search(
 
 
 @entry_router.post("/add", error_map=error_map)
-async def add(
-    request: AddRequest,
-    req: Request,
-) -> LDAPResult:
+async def add(request: AddRequest, req: Request) -> LDAPResult:
     """LDAP ADD entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
 @entry_router.patch("/update", error_map=error_map)
-async def modify(
-    request: ModifyRequest,
-    req: Request,
-) -> LDAPResult:
+async def modify(request: ModifyRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry request."""
     return await request.handle_api(req.state.dishka_container)
 
@@ -103,10 +94,7 @@ async def modify_many(
 
 
 @entry_router.put("/update/dn", error_map=error_map)
-async def modify_dn(
-    request: ModifyDNRequest,
-    req: Request,
-) -> LDAPResult:
+async def modify_dn(request: ModifyDNRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
     return await request.handle_api(req.state.dishka_container)
 
@@ -123,11 +111,14 @@ async def modify_dn_many(
     return results
 
 
+@entry_router.put("/rename", error_map=error_map)
+async def rename(request: RenameRequest, req: Request) -> LDAPResult:
+    """LDAP rename entry request."""
+    return await request.handle_api(req.state.dishka_container)
+
+
 @entry_router.delete("/delete", error_map=error_map)
-async def delete(
-    request: DeleteRequest,
-    req: Request,
-) -> LDAPResult:
+async def delete(request: DeleteRequest, req: Request) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(req.state.dishka_container)
 
