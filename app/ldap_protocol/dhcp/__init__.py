@@ -8,7 +8,7 @@ from .exceptions import (
     DHCPEntryNotFoundError,
     DHCPEntryUpdateError,
     DHCPOperationError,
-    DHCPValidatonError,
+    DHCPValidationError,
 )
 from .kea_dhcp_manager import KeaDHCPManager
 from .kea_dhcp_repository import KeaDHCPAPIRepository
@@ -54,7 +54,7 @@ __all__ = [
     "DHCPEntryDeleteError",
     "DHCPEntryAddError",
     "DHCPEntryUpdateError",
-    "DHCPValidatonError",
+    "DHCPValidationError",
     "DHCPOperationError",
     "DHCPAPIError",
     "DHCPSubnetSchemaRequest",

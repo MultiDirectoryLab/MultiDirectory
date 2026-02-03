@@ -14,7 +14,7 @@ from loguru import logger as loguru_logger
 
 from ldap_protocol.dns.dto import DNSSettingDTO
 
-from .exceptions import DNSSetupError
+from .exceptions import DNSNotImplementedError, DNSSetupError
 
 DNS_MANAGER_STATE_NAME = "DNSManagerState"
 DNS_MANAGER_ZONE_NAME = "DNSManagerZoneName"
@@ -44,10 +44,6 @@ class DNSForwarderServerStatus(StrEnum):
     VALIDATED = "validated"
     NOT_VALIDATED = "not validated"
     NOT_FOUND = "not found"
-
-
-class DNSNotImplementedError(NotImplementedError):
-    """API Not Implemented Error."""
 
 
 class DNSRecordType(StrEnum):

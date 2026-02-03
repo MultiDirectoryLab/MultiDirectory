@@ -211,7 +211,7 @@ async def test_first_setup_with_invalid_domain(
         "/auth/setup",
         json=test_case,
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
@@ -384,7 +384,7 @@ async def test_update_password_with_empty_old_password(
         },
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     new_auth = await http_client.post(
         "auth/",
