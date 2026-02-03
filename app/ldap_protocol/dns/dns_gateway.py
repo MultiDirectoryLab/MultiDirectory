@@ -143,12 +143,15 @@ class DNSStateGateway:
 
         if await self.get_state() == DNSManagerState.HOSTED:
             settings_from_db = await self.get_settings_from_db()
-            dns_settings.domain = settings_from_db.get(DNS_MANAGER_ZONE_NAME)
+            dns_settings.domain = settings_from_db.get(
+                DNS_MANAGER_ZONE_NAME,
+                "",
+            )
             dns_settings.dns_server_ip = IPv4Address(
                 settings_from_db.get(DNS_MANAGER_IP_ADDRESS_NAME),
             )
-            dns_settings.tsig_key = (
-                settings_from_db.get(DNS_MANAGER_TSIG_KEY_NAME),
+            dns_settings.tsig_key = settings_from_db.get(
+                DNS_MANAGER_TSIG_KEY_NAME,
             )
 
         return dns_settings

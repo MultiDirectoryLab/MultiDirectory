@@ -295,7 +295,7 @@ class MainProvider(Provider):
         return PowerDNSDistClient(
             dnsdist_host=settings.PDNS_DIST_HOST,
             dnsdist_port=settings.PDNS_DIST_PORT,
-            dnsdist_key=settings.PDNS_API_KEY,
+            dnsdist_key=settings.PDNS_DIST_KEY,
             config_path=settings.PDNS_DIST_CONFIG_PATH,
         )
 
@@ -303,9 +303,13 @@ class MainProvider(Provider):
     async def get_dns_mngr_settings(
         self,
         dns_state_gateway: DNSStateGateway,
-    ) -> DNSSettingsDTO:
+        settings: Settings,
+    ) -> AsyncIterator[DNSSettingsDTO]:
         """Get DNS manager's settings."""
-        return await dns_state_gateway.get_dns_manager_settings()
+        dns_settings = await dns_state_gateway.get_dns_manager_settings(
+            settings,
+        )
+        yield dns_settings
 
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr(
@@ -523,8 +527,6 @@ class MainProvider(Provider):
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
-    power_dns_manager = provide(PowerDNSManager, scope=Scope.APP)
-    remote_dns_manager = provide(RemoteDNSManager, scope=Scope.APP)
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)

@@ -42,7 +42,7 @@ class PowerDNSDistClient:
         return int(match.group(1)) if match else None
 
     # TODO: тоже присобачить нормальный тип возвращаемого значения
-    def get_all_rules(self) -> str:
+    def _get_all_rules(self) -> str:
         """Get list of all rules."""
         command = "showRules()"
         return self._send_command(command)
