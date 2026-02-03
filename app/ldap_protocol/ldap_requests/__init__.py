@@ -12,7 +12,6 @@ from .delete import DeleteRequest
 from .extended import ExtendedRequest
 from .modify import ModifyRequest
 from .modify_dn import ModifyDNRequest
-from .rename import RenameRequest
 from .search import SearchRequest
 
 requests: list[type[BaseRequest]] = [
@@ -33,4 +32,4 @@ protocol_id_map: dict[int, type[BaseRequest]] = {
 }
 
 
-__all__ = ["protocol_id_map", "BaseRequest", "RenameRequest"]
+__all__ = ["protocol_id_map", "BaseRequest"]

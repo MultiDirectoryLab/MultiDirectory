@@ -1,6 +1,6 @@
-"""Schemas for main router.
+"""RenameRequest for main router.
 
-Copyright (c) 2024 MultiFactor
+Copyright (c) 2026 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
@@ -17,7 +17,7 @@ from ldap_protocol.objects import Changes
 
 
 class RenameRequest(BaseModel):
-    """Rename request schema.
+    """Rename Request. It's not RFC 4511.
 
     Combines ModifyDN and Modify operations.
     """
