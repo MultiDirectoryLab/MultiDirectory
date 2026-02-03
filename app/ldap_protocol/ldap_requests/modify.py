@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from pydantic import Field
+from pydantic import PrivateAttr
 from sqlalchemy import Select, and_, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -111,7 +111,7 @@ class ModifyRequest(BaseRequest):
     # NOTE: If the old value was changed (for example, in _delete)
     # in one method, then you need to have access to the old value
     # from other methods (for example, from _add)
-    old_vals: dict[str, str | None] = Field(default_factory=dict)
+    _old_vals: dict[str, str | None] = PrivateAttr(default_factory=dict)
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
@@ -637,7 +637,7 @@ class ModifyRequest(BaseRequest):
             directory.entity_type
             and directory.entity_type.name == EntityTypeNames.COMPUTER
             and change.l_type == "samaccountname"
-            and not self.old_vals.get(change.modification.type),
+            and not self._old_vals.get(change.modification.type),
         )
 
     async def _delete(
@@ -693,7 +693,7 @@ class ModifyRequest(BaseRequest):
         if self._need_to_cache_samaccountname_old_value(change, directory):
             vals = directory.attributes_dict.get(change.modification.type)
             if vals:
-                self.old_vals[change.modification.type] = vals[0]
+                self._old_vals[change.modification.type] = vals[0]
 
         if attrs:
             del_query = (
@@ -1035,7 +1035,7 @@ class ModifyRequest(BaseRequest):
         base_dir: Directory,
         new_sam_account_name: bytes | str,
     ) -> None:
-        old_sam_account_name = self.old_vals.get(change.modification.type)
+        old_sam_account_name = self._old_vals.get(change.modification.type)
         new_sam_account_name = str(new_sam_account_name)
 
         if not old_sam_account_name:
@@ -1066,8 +1066,6 @@ class ModifyRequest(BaseRequest):
                 base_dir = base_directory
                 break
         else:
-            raise ModifyForbiddenError(
-                "Base directory for computer not found.",
-            )
+            raise ModifyForbiddenError("Base directory not found.")
 
         return base_dir

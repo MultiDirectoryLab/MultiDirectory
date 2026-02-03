@@ -96,6 +96,12 @@ class PaginationResult[S, P]:
     items: Sequence[P]
 
     @classmethod
+    def _validate_query(cls, query: Select[tuple[S]]) -> bool:
+        return not (
+            query._order_by_clause is None or len(query._order_by_clause) == 0  # noqa SLF001
+        )
+
+    @classmethod
     async def get(
         cls,
         query: Select[tuple[S]],
@@ -104,7 +110,7 @@ class PaginationResult[S, P]:
         session: AsyncSession,
     ) -> Self:
         """Get paginator."""
-        if query._order_by_clause is None or len(query._order_by_clause) == 0:  # noqa: SLF001
+        if not cls._validate_query(query):
             raise ValueError("Select query must have an order_by clause.")
 
         metadata = PaginationMetadata(
