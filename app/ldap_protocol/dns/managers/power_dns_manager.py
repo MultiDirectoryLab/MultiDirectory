@@ -5,349 +5,87 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import asyncio
-import re
 from ipaddress import IPv4Address, IPv6Address
 
 import dns.asyncresolver
-import httpx
 from adaptix import Retort
-from dnsdist_console import Console
-from fastapi import status
 
-from config import Settings
-
-from .base import (
-    AbstractDNSHTTPClient,
-    AbstractDNSManager,
-    DNSForwarderServerStatus,
-    DNSForwardServerStatus,
-    DNSManagerSettings,
+from ldap_protocol.dns.clients import (
+    PowerDNSAuthHTTPClient,
+    PowerDNSDistClient,
+    PowerDNSRecursorHTTPClient,
 )
-from .constants import DNS_FIRST_SETUP_RECORDS
-from .dto import (
+from ldap_protocol.dns.constants import DNS_FIRST_SETUP_RECORDS
+from ldap_protocol.dns.dto import (
+    DNSForwardServerStatus,
     DNSForwardZoneDTO,
     DNSMasterZoneDTO,
     DNSRecordDTO,
     DNSRRSetDTO,
     DNSSettingsDTO,
 )
-from .enums import DNSRecordType, PowerDNSRecordChangeType
-from .exceptions import (
-    DNSdistError,
-    DNSEntryNotFoundError,
+from ldap_protocol.dns.enums import (
+    DNSForwarderServerStatus,
+    DNSRecordType,
+    PowerDNSRecordChangeType,
+)
+from ldap_protocol.dns.exceptions import (
     DNSError,
-    DNSNotSupportedError,
     DNSRecordCreateError,
     DNSRecordDeleteError,
     DNSRecordGetError,
     DNSRecordUpdateError,
     DNSSetupError,
-    DNSUnavailableError,
-    DNSValidationError,
     DNSZoneCreateError,
     DNSZoneDeleteError,
     DNSZoneGetError,
     DNSZoneUpdateError,
 )
-from .utils import create_initial_zone_records
+from ldap_protocol.dns.managers.abstract_dns_manager import AbstractDNSManager
+from ldap_protocol.dns.utils import create_initial_zone_records
 
 base_retort = Retort()
-
-
-class PowerDNSDistClient:
-    """Client for dnsdist."""
-
-    def __init__(
-        self,
-        dnsdist_host: str,
-        dnsdist_port: int,
-        dnsdist_key: str,
-        config_path: str,
-    ) -> None:
-        self._console = Console(
-            host=dnsdist_host,
-            port=dnsdist_port,
-            key=dnsdist_key,
-        )
-        self._config_path = config_path
-
-    def _send_command(self, command: str) -> str:
-        """Send command to dnsdist console."""
-        return self._console.send_command(command)
-
-    def _get_rule_id(self, match_rule: str) -> int | None:
-        """Get rule ID from all rules list."""
-        rules = self.get_all_rules()
-        pattern = rf"^(\d+)\s+.*?\b{re.escape(match_rule)}\b"
-        match = re.search(pattern, rules, re.MULTILINE)
-        return int(match.group(1)) if match else None
-
-    def get_all_rules(self) -> str:
-        """Get list of all rules."""
-        command = "showRules()"
-        return self._send_command(command)
-
-    def add_server(
-        self,
-        server_host: str | IPv4Address,
-        pool: str,
-    ) -> None:
-        """Add server to dnsdist config."""
-        command = f"""
-            newServer({{
-                address = "{server_host}:53",
-                pool = "{pool}"
-            }})
-        """
-        output = self._send_command(command)
-        if len(output) > 1:
-            raise DNSdistError(
-                f"Failed to add server to dnsdist: {len(output)}",
-            )
-
-        self._persist_config()
-
-    def setup_dnsdist(self, recursor_ip: str) -> None:
-        """Set up dnsdist with initial configuration."""
-        command = f"""
-            newServer({{
-                address = "{recursor_ip}:53",
-                pool = "recursor"
-            }})
-        """
-        self._send_command(command)
-
-        command = """
-            addAction(
-                AllRule(),
-                PoolAction("recursor")
-            )
-        """
-        output = self._send_command(command)
-        if len(output) > 1:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
-
-    def add_zone_rule(self, domain: str) -> None:
-        """Add rule to redirect master zone DNS requests to auth server."""
-        command = f"""
-            addAction(
-                QNameRule("*.{domain}"),
-                PoolAction("master")
-            )
-        """
-        output = self._send_command(command)
-        if len(output) > 1:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
-
-        command = f"""
-            addAction(
-                QNameRule("{domain}"),
-                PoolAction("master")
-            )
-        """
-        output = self._send_command(command)
-        if output:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
-
-        self._deprioritize_all_match_rule()
-
-        self._persist_config()
-
-    def remove_zone_rule(self, domain: str) -> None:
-        """Remove redirect rule from dnsdist."""
-        rule_matches = [
-            f"qname=={domain}",
-            f"qname==*.{domain}",
-        ]
-        rule_ids = [
-            self._get_rule_id(rule_match) for rule_match in rule_matches
-        ]
-        if not rule_ids:
-            DNSdistError(
-                "Failed to delete existing rule in dnsdist: Not Found",
-            )
-
-        for rule_id in rule_ids:
-            command = f"rmRule({rule_id})"
-            output = self._send_command(command)
-            if len(output) > 1:
-                raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
-
-        self._persist_config()
-
-    def _deprioritize_all_match_rule(self) -> None:
-        """Remove and add all matching rule to depriortitize it."""
-        rule_id = self._get_rule_id("All")
-        if rule_id is None:
-            return
-
-        command = f"rmRule({rule_id})"
-        self._send_command(command)
-
-        command = """
-            addAction(
-                AllRule(),
-                PoolAction("recursor")
-            )
-        """
-        self._send_command(command)
-
-        self._persist_config()
-
-    def _get_commands_delta(self) -> list[str]:
-        """Get list of commands that have not been persisted yet."""
-        command = "delta()"
-        output = self._send_command(command)
-        commands = output.strip().split("\n") if output else []
-        return commands
-
-    def _save_commands_delta(self, commands: list[str]) -> None:
-        """Save commands delta to dnsdist config file."""
-        with open(self._config_path, "a+", encoding="utf-8") as config_file:
-            for command in commands:
-                config_file.write(f"{command}\n")
-
-    def _clear_console_history(self) -> None:
-        """Clear console history to delete written delta."""
-        command = "clearConsoleHistory()"
-        self._send_command(command)
-
-    def _persist_config(self) -> None:
-        """Persist dnsdist config to file."""
-        commands_delta = self._get_commands_delta()
-        if commands_delta:
-            self._save_commands_delta(commands_delta)
-
-        self._clear_console_history()
-
-
-class PowerDNSHTTPClient(AbstractDNSHTTPClient):
-    """HTTTP client for PowerDNS."""
-
-    _http_client: httpx.AsyncClient
-
-    def __init__(
-        self,
-        server_host: str,
-        server_port: int,
-        api_key: str,
-    ) -> None:
-        """Initialize the PowerDNS HTTP client."""
-        self._http_client = httpx.AsyncClient(
-            base_url=f"http://{server_host}:{server_port}/api/v1/servers/localhost",
-            headers={"X-API-Key": api_key},
-        )
-
-    async def _validate_response(self, response: httpx.Response) -> None:
-        """Validate the API response."""
-        match response.status_code:
-            case status.HTTP_400_BAD_REQUEST:
-                raise DNSNotSupportedError(response.text or "Bad Request")
-            case status.HTTP_404_NOT_FOUND:
-                raise DNSEntryNotFoundError(response.text or "Not Found")
-            case status.HTTP_422_UNPROCESSABLE_ENTITY:
-                raise DNSValidationError(
-                    response.text or "Unprocessable Entity",
-                )
-            case status.HTTP_500_INTERNAL_SERVER_ERROR:
-                raise DNSUnavailableError(
-                    response.text or "Internal Server Error",
-                )
-
-    async def send(
-        self,
-        method: str,
-        url: str,
-        payload: dict | None = None,
-    ) -> httpx.Response:
-        """Get the recursor DNS HTTP client."""
-        response = await self._http_client.request(
-            method=method,
-            url=url,
-            json=payload,
-        )
-
-        await self._validate_response(response)
-
-        return response
 
 
 class PowerDNSManager(AbstractDNSManager):
     """Manager for interacting with the PowerDNS API."""
 
-    _power_dns_auth_client: AbstractDNSHTTPClient
-    _power_dns_recursor_client: AbstractDNSHTTPClient
+    _power_dns_auth_client: PowerDNSAuthHTTPClient
+    _power_dns_recursor_client: PowerDNSRecursorHTTPClient
     _dnsdist_client: PowerDNSDistClient
 
     def __init__(
         self,
-        settings: DNSManagerSettings,
-        app_settings: Settings,
+        settings: DNSSettingsDTO,
+        power_dns_auth_client: PowerDNSAuthHTTPClient,
+        power_dns_recursor_client: PowerDNSRecursorHTTPClient,
+        dnsdist_client: PowerDNSDistClient,
     ) -> None:
         """Initialize the PowerDNS API repository."""
-        super().__init__(settings, app_settings)
-        self._power_dns_auth_client = self._setup_client(
-            self._app_settings.PDNS_AUTH_SERVER_HOST,
-            self._app_settings.PDNS_AUTH_SERVER_PORT,
-            self._app_settings.PDNS_API_KEY,
-        )
-        self._power_dns_recursor_client = self._setup_client(
-            self._app_settings.PDNS_RECURSOR_SERVER_HOST,
-            self._app_settings.PDNS_RECURSOR_SERVER_PORT,
-            self._app_settings.PDNS_API_KEY,
-        )
-        self._dnsdist_client = self._setup_dnsdist(
-            self._app_settings.PDNS_DIST_HOST,
-            self._app_settings.PDNS_DIST_PORT,
-            self._app_settings.PDNS_DIST_KEY,
-            self._app_settings.PDNS_DIST_CONFIG_PATH,
-        )
-
-    def _setup_dnsdist(
-        self,
-        dnsdist_host: str,
-        dnsdist_port: int,
-        dnsdist_key: str,
-        config_path: str,
-    ) -> PowerDNSDistClient:
-        """Set up dnsdist controller."""
-        return PowerDNSDistClient(
-            dnsdist_host=dnsdist_host,
-            dnsdist_port=dnsdist_port,
-            dnsdist_key=dnsdist_key,
-            config_path=config_path,
-        )
-
-    def _setup_client(
-        self,
-        server_host: str,
-        server_port: int,
-        api_key: str,
-    ) -> AbstractDNSHTTPClient:
-        """Set up HTTP clients for PowerDNS."""
-        return PowerDNSHTTPClient(
-            server_host=server_host,
-            server_port=server_port,
-            api_key=api_key,
-        )
+        super().__init__(settings)
+        self._power_dns_auth_client = power_dns_auth_client
+        self._power_dns_recursor_client = power_dns_recursor_client
+        self._dnsdist_client = dnsdist_client
 
     @staticmethod
     def _normalize_dns_name(name: str) -> str:
         """Normalize DNS name by ensuring it ends with a dot."""
         return name if name.endswith(".") else f"{name}."
 
-    async def setup(self, dns_server_settings: DNSSettingsDTO) -> None:
+    async def setup(self, dns_settings: DNSSettingsDTO) -> None:
         """Set up DNS server and DNS manager."""
         records = []
+        if dns_settings.power_dns_settings is None:
+            raise DNSError("PowerDNS settings is not set.")
 
         for record in DNS_FIRST_SETUP_RECORDS:
             records.append(
                 DNSRRSetDTO(
-                    name=f"{record['name']}{dns_server_settings.domain}.",
+                    name=f"{record['name']}{self._dns_settings.domain}.",
                     type=DNSRecordType(record["type"]),
                     records=[
                         DNSRecordDTO(
-                            content=f"{record['value']}{dns_server_settings.domain}.",
+                            content=f"{record['value']}{self._dns_settings.domain}.",
                             disabled=False,
                             modified_at=None,
                         ),
@@ -360,17 +98,17 @@ class PowerDNSManager(AbstractDNSManager):
         try:
             await self.create_master_zone(
                 DNSMasterZoneDTO(
-                    id=dns_server_settings.domain,
-                    name=dns_server_settings.domain,
+                    id=self._dns_settings.domain,
+                    name=self._dns_settings.domain,
                     dnssec=False,
                     rrsets=records,
                 ),
             )
             self._dnsdist_client.setup_dnsdist(
-                self._app_settings.PDNS_RECURSOR_SERVER_IP,
+                dns_settings.power_dns_settings.recursor_server_ip,
             )
             self._dnsdist_client.add_server(
-                self._app_settings.PDNS_AUTH_SERVER_IP,
+                dns_settings.power_dns_settings.auth_server_ip,
                 "master",
             )
         except DNSZoneCreateError as e:
@@ -443,7 +181,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         records = await create_initial_zone_records(
             zone.name,
-            self._app_settings.DEFAULT_NAMESERVER,
+            self._dns_settings.default_nameserver,
         )
         zone.rrsets.extend(records)
 

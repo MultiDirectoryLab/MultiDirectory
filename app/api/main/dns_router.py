@@ -31,8 +31,8 @@ from api.main.schema import (
 )
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.dns import DNSForwardServerStatus
-from ldap_protocol.dns.dto import (
+from ldap_protocol.dns import (
+    DNSForwardServerStatus,
     DNSForwardZoneDTO,
     DNSMasterZoneDTO,
     DNSRRSetDTO,
@@ -157,8 +157,8 @@ async def get_dns_status(
     dependencies=[Depends(require_master_db)],
 )
 async def setup_dns(
-    data: DNSServiceSetupRequest,
     adapter: FromDishka[DNSFastAPIAdapter],
+    data: DNSServiceSetupRequest | None = None,
 ) -> None:
     """Set up DNS service."""
     await adapter.setup_dns(data)

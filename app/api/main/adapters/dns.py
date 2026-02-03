@@ -16,8 +16,8 @@ from api.main.schema import (
     DNSServiceSetupRequest,
     DNSServiceZoneDeleteRequest,
 )
-from ldap_protocol.dns.base import DNSForwardServerStatus
 from ldap_protocol.dns.dto import (
+    DNSForwardServerStatus,
     DNSForwardZoneDTO,
     DNSMasterZoneDTO,
     DNSRecordDTO,
@@ -108,13 +108,16 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
         """Set DNS manager state."""
         await self._service.set_state(data.state)
 
-    async def setup_dns(self, data: DNSServiceSetupRequest) -> None:
+    async def setup_dns(self, data: DNSServiceSetupRequest | None) -> None:
         await self._service.setup_dns(
             DNSSettingsDTO(
                 dns_server_ip=data.dns_ip_address,
                 tsig_key=data.tsig_key,
                 domain=data.domain,
-            ),
+                default_nameserver=str(data.dns_ip_address),
+            )
+            if data is not None
+            else data,
         )
 
     async def create_forward_zone(

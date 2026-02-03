@@ -8,11 +8,21 @@ import functools
 from typing import Any, Callable
 
 from dns.asyncresolver import Resolver as AsyncResolver
+from loguru import logger
 
-from .base import log
-from .dto import DNSRecordDTO, DNSRRSetDTO
-from .enums import DNSRecordType, PowerDNSRecordChangeType
-from .exceptions import DNSConnectionError
+from ldap_protocol.dns.dto import DNSRecordDTO, DNSRRSetDTO
+from ldap_protocol.dns.enums import DNSRecordType, PowerDNSRecordChangeType
+from ldap_protocol.dns.exceptions import DNSConnectionError, DNSError
+
+log = logger.bind(name="DNSManager")
+
+log.add(
+    "logs/dnsmanager_{time:DD-MM-YYYY}.log",
+    filter=lambda rec: rec["extra"].get("name") == "dnsmanager",
+    retention="10 days",
+    rotation="1d",
+    colorize=False,
+)
 
 
 def logger_wraps(is_stub: bool = False) -> Callable:
@@ -29,7 +39,7 @@ def logger_wraps(is_stub: bool = False) -> Callable:
             logger.info(f"Calling{bus_type}'{name}'")
             try:
                 result = await func(*args, **kwargs)
-            except DNSConnectionError as err:
+            except DNSError as err:
                 logger.error(f"{name} call raised: {err}")
                 raise
 
