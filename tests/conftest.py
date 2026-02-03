@@ -7,10 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import os
 import uuid
-import weakref
 from contextlib import suppress
 from dataclasses import dataclass
-from ipaddress import IPv4Address
 from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
@@ -75,11 +73,10 @@ from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
-    DNSManagerSettings,
+    DNSSettingsDTO,
     StubDNSManager,
 )
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
-from ldap_protocol.dns.dto import DNSSettingsDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
@@ -210,7 +207,7 @@ class TestProvider(Provider):
 
         self._cached_kadmin = None
 
-    @provide(scope=Scope.REQUEST, provides=AbstractDHCPManager)
+    @provide(scope=Scope.APP, provides=AbstractDHCPManager)
     async def get_dhcp_mngr(self) -> AsyncIterator[AsyncMock]:
         """Get mock DHCP manager."""
         dhcp_manager = AsyncMock(spec=StubDHCPManager)
@@ -222,16 +219,11 @@ class TestProvider(Provider):
 
         self._cached_dhcp_manager = None
 
-    @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
+    @provide(scope=Scope.APP, provides=AbstractDNSManager)
     async def get_dns_mngr(self) -> AsyncIterator[AsyncMock]:
         """Get mock DNS manager."""
         dns_manager = AsyncMock(spec=StubDNSManager)
 
-        dns_manager.setup.return_value = DNSSettingsDTO(
-            domain="example.com",
-            dns_server_ip=IPv4Address("127.0.0.1"),
-            tsig_key=None,
-        )
         dns_manager.get_records.return_value = [
             {
                 "name": "example.com",
@@ -289,19 +281,14 @@ class TestProvider(Provider):
 
         self._cached_dns_manager = None
 
-    @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
+    @provide(scope=Scope.REQUEST, provides=DNSSettingsDTO, cache=False)
     async def get_dns_mngr_settings(
         self,
         dns_state_gateway: DNSStateGateway,
-    ) -> AsyncIterator["DNSManagerSettings"]:
+        settings: Settings,
+    ) -> AsyncIterator["DNSSettingsDTO"]:
         """Get DNS manager's settings."""
-
-        async def resolve() -> str:
-            return "127.0.0.1"
-
-        resolver = resolve()
-        yield await dns_state_gateway.get_dns_manager_settings(resolver)
-        weakref.finalize(resolver, resolver.close)
+        yield await dns_state_gateway.get_dns_manager_settings(settings)
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)

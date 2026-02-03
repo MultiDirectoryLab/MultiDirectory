@@ -6,7 +6,7 @@ from starlette import status
 
 from ldap_protocol.dns import AbstractDNSManager
 from ldap_protocol.dns.dto import DNSMasterZoneDTO, DNSRecordDTO, DNSRRSetDTO
-from ldap_protocol.dns.enums import PowerDNSZoneType
+from ldap_protocol.dns.enums import DNSRecordType, PowerDNSZoneType
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,7 @@ async def test_dns_create_record(
     zone_name = "hello.zone"
     hostname = "hello"
     ip = "127.0.0.1"
-    record_type = "A"
+    record_type = DNSRecordType.A
     ttl = 3600
     response = await http_client.post(
         f"/dns/record/{zone_name}",
@@ -62,7 +62,7 @@ async def test_dns_delete_record(
     zone_name = "hello.zone"
     hostname = "hello"
     ip = "127.0.0.1"
-    record_type = "A"
+    record_type = DNSRecordType.A
     response = await http_client.request(
         "DELETE",
         f"/dns/record/{zone_name}",
@@ -103,7 +103,7 @@ async def test_dns_update_record(
     zone_name = "hello.zone"
     hostname = "hello"
     ip = "127.0.0.1"
-    record_type = "A"
+    record_type = DNSRecordType.A
     ttl = 3600
     response = await http_client.request(
         "PATCH",
@@ -171,16 +171,12 @@ async def test_dns_setup_selfhosted(
     dns_manager: AbstractDNSManager,
 ) -> None:
     """DNS Manager setup test."""
-    domain = "example.com"
-    tsig_key = None
-    dns_ip_address = "127.0.0.1"
+    response = await http_client.post("/dns/state", json={"state": "1"})
+
+    assert response.status_code == status.HTTP_200_OK
+
     response = await http_client.post(
         "/dns/setup",
-        json={
-            "domain": domain,
-            "dns_ip_address": dns_ip_address,
-            "tsig_key": tsig_key,
-        },
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -198,7 +194,7 @@ async def test_dns_get_status(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "dns_status": "2",
-        "zone_name": "example.com.",
+        "zone_name": "example.com",
         "dns_server_ip": "127.0.0.1",
     }
 
