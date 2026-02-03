@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from abc import abstractmethod
 from ipaddress import IPv4Address, IPv6Address
 
-from ldap_protocol.dns.clients.abstract import (
+from ldap_protocol.dns.clients.abstract_client import (
     AbstractDNSForwardHTTPClient,
     AbstractDNSMasterHTTPClient,
 )

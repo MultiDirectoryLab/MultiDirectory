@@ -1,4 +1,4 @@
-from ldap_protocol.dns.clients.abstract import (
+from ldap_protocol.dns.clients.abstract_client import (
     AbstractDNSForwardHTTPClient,
     AbstractDNSMasterHTTPClient,
 )

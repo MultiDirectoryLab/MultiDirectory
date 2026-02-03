@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import httpx
 
-from ldap_protocol.dns.clients.abstract import AbstractDNSHTTPClient
+from ldap_protocol.dns.clients.abstract_client import AbstractDNSHTTPClient
 
 
 # TODO: сделать для каждой операции свою ручку
