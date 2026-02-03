@@ -98,7 +98,7 @@ class PaginationResult[S, P]:
     @classmethod
     def _validate_query(cls, query: Select[tuple[S]]) -> bool:
         return not (
-            query._order_by_clause is None or len(query._order_by_clause) == 0  # noqa SLF001
+            query._order_by_clause is None or len(query._order_by_clause) == 0  # noqa: SLF001
         )
 
     @classmethod
