@@ -300,11 +300,7 @@ class KAdminLocalManager(AbstractKRBManager):
             new_name,
         )
 
-    async def ktadd(
-        self,
-        names: list[str],
-        fn: str,
-    ) -> None:
+    async def ktadd(self, names: list[str], fn: str) -> None:
         """Create or write to keytab.
 
         :param str name: principal
@@ -506,10 +502,7 @@ async def add_princ(
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
 
     """
-    await kadmin.add_princ(
-        name,
-        password,
-    )
+    await kadmin.add_princ(name, password)
 
 
 @principal_router.get("")
