@@ -8,7 +8,6 @@ import asyncio
 from ipaddress import IPv4Address, IPv6Address
 
 import dns.asyncresolver
-from adaptix import Retort
 
 from ldap_protocol.dns.clients import (
     PowerDNSAuthHTTPClient,
@@ -43,8 +42,6 @@ from ldap_protocol.dns.exceptions import (
 )
 from ldap_protocol.dns.managers.abstract_dns_manager import AbstractDNSManager
 from ldap_protocol.dns.utils import create_initial_zone_records
-
-base_retort = Retort()
 
 
 class PowerDNSManager(AbstractDNSManager):
@@ -121,27 +118,16 @@ class PowerDNSManager(AbstractDNSManager):
         record.changetype = PowerDNSRecordChangeType.REPLACE
 
         try:
-            await self._power_dns_auth_client.send(
-                method="PATCH",
-                url=f"/zones/{zone_id}",
-                payload={"rrsets": [base_retort.dump(record)]},
-            )
+            await self._power_dns_auth_client.create_record(zone_id, record)
         except DNSError as e:
             raise DNSRecordCreateError(f"Failed to create DNS record: {e}")
 
     async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Retrieve all DNS records for the specified zone."""
         try:
-            response = await self._power_dns_auth_client.send(
-                method="GET",
-                url=f"/zones/{zone_id}",
-            )
+            return await self._power_dns_auth_client.get_records(zone_id)
         except DNSError as e:
             raise DNSRecordGetError(f"Failed to get DNS records: {e}")
-
-        zone = base_retort.load(response.json(), DNSMasterZoneDTO)
-
-        return zone.rrsets
 
     async def update_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Update a DNS record in the specified zone."""
@@ -150,11 +136,7 @@ class PowerDNSManager(AbstractDNSManager):
         record.changetype = PowerDNSRecordChangeType.REPLACE
 
         try:
-            await self._power_dns_auth_client.send(
-                method="PATCH",
-                url=f"/zones/{zone_id}",
-                payload={"rrsets": [base_retort.dump(record)]},
-            )
+            await self._power_dns_auth_client.update_record(zone_id, record)
         except DNSError as e:
             raise DNSRecordUpdateError(f"Failed to update DNS record: {e}")
 
@@ -165,11 +147,7 @@ class PowerDNSManager(AbstractDNSManager):
         record.changetype = PowerDNSRecordChangeType.DELETE
 
         try:
-            await self._power_dns_auth_client.send(
-                method="PATCH",
-                url=f"/zones/{zone_id}",
-                payload={"rrsets": [base_retort.dump(record)]},
-            )
+            await self._power_dns_auth_client.delete_record(zone_id, record)
         except DNSError as e:
             raise DNSRecordDeleteError(f"Failed to delete DNS record: {e}")
 
@@ -186,11 +164,7 @@ class PowerDNSManager(AbstractDNSManager):
         zone.rrsets.extend(records)
 
         try:
-            await self._power_dns_auth_client.send(
-                method="POST",
-                url="/zones",
-                payload=base_retort.dump(zone),
-            )
+            await self._power_dns_auth_client.create_master_zone(zone)
             self._dnsdist_client.add_zone_rule(
                 zone.name if not zone.name.endswith(".") else zone.name[:-1],
             )
@@ -202,25 +176,17 @@ class PowerDNSManager(AbstractDNSManager):
         zone.name = self._normalize_dns_name(zone.name)
 
         try:
-            await self._power_dns_recursor_client.send(
-                method="POST",
-                url="/zones",
-                payload=base_retort.dump(zone),
-            )
+            await self._power_dns_recursor_client.create_forward_zone(zone)
         except DNSError as e:
             raise DNSZoneCreateError(f"Failed to create DNS zone: {e}")
 
     async def get_master_zones(self) -> list[DNSMasterZoneDTO]:
         """Retrieve all DNS zones."""
         try:
-            response = await self._power_dns_auth_client.send(
-                method="GET",
-                url="/zones",
-            )
+            zones = await self._power_dns_auth_client.get_master_zones()
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
-        zones = base_retort.load(response.json(), list[DNSMasterZoneDTO])
         for zone in zones:
             zone.rrsets = await self.get_records(zone.id)
 
@@ -229,38 +195,24 @@ class PowerDNSManager(AbstractDNSManager):
     async def get_master_zone_by_id(self, zone_id: str) -> DNSMasterZoneDTO:
         """Get master DNS zone by ID."""
         try:
-            response = await self._power_dns_auth_client.send(
-                method="GET",
-                url=f"/zones/{zone_id}",
+            return await self._power_dns_auth_client.get_master_zone_by_id(
+                zone_id,
             )
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
-
-        return base_retort.load(response.json(), DNSMasterZoneDTO)
 
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Retrieve all forward DNS zones."""
         try:
-            response = await self._power_dns_recursor_client.send(
-                method="GET",
-                url="/zones",
-            )
+            return await self._power_dns_recursor_client.get_forward_zones()
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
-
-        zones = base_retort.load(response.json(), list[DNSForwardZoneDTO])
-
-        return zones
 
     async def update_master_zone(self, zone: DNSMasterZoneDTO) -> None:
         """Update a master DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
         try:
-            await self._power_dns_auth_client.send(
-                method="PUT",
-                url=f"/zones/{zone.id}",
-                payload=base_retort.dump(zone),
-            )
+            await self._power_dns_auth_client.update_master_zone(zone.id, zone)
         except DNSError as e:
             raise DNSZoneUpdateError(f"Failed to update DNS zone: {e}")
 
@@ -269,10 +221,9 @@ class PowerDNSManager(AbstractDNSManager):
         zone.name = self._normalize_dns_name(zone.name)
 
         try:
-            await self._power_dns_recursor_client.send(
-                method="PUT",
-                url=f"/zones/{zone.id}",
-                payload=base_retort.dump(zone),
+            await self._power_dns_recursor_client.update_forward_zone(
+                zone.id,
+                zone,
             )
         except DNSError as e:
             raise DNSZoneUpdateError(f"Failed to update DNS zone: {e}")
@@ -282,10 +233,7 @@ class PowerDNSManager(AbstractDNSManager):
         zone = await self.get_master_zone_by_id(zone_id)
 
         try:
-            await self._power_dns_auth_client.send(
-                method="DELETE",
-                url=f"/zones/{zone_id}",
-            )
+            await self._power_dns_auth_client.delete_master_zone(zone_id)
             self._dnsdist_client.remove_zone_rule(zone.name)
         except DNSError as e:
             raise DNSZoneDeleteError(f"Failed to delete DNS zone: {e}")
@@ -293,10 +241,7 @@ class PowerDNSManager(AbstractDNSManager):
     async def delete_forward_zone(self, zone_id: str) -> None:
         """Delete a DNS forward zone."""
         try:
-            await self._power_dns_recursor_client.send(
-                method="DELETE",
-                url=f"/zones/{zone_id}",
-            )
+            await self._power_dns_recursor_client.delete_forward_zone(zone_id)
         except DNSError as e:
             raise DNSZoneDeleteError(f"Failed to delete DNS zone: {e}")
 
