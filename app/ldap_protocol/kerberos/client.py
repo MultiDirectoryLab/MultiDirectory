@@ -20,8 +20,8 @@ class KerberosMDAPIClient(AbstractKadmin):
         self,
         name: str,
         password: str | None,
-        algorithms: list[str] | None,
-        timeout: int = 1,
+        algorithms: list[str] | None = None,
+        timeout: int | float = 1,
     ) -> None:
         """Add request."""
         response = await self.client.post(

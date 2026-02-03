@@ -61,21 +61,6 @@ class ConfigSchema(BaseModel):
     stash_password: str
 
 
-class PrincipalCreateSchema(BaseModel):
-    """Schema for principal creation."""
-
-    name: str
-    password: str | None = None
-    algorithms: list[str] | None = None
-
-
-class KtaddSchema(BaseModel):
-    """Schema for ktadd request."""
-
-    names: list[str]
-    is_rand_key: bool = False
-
-
 class Principal(BaseModel):
     """Principal kadmin object."""
 
@@ -319,7 +304,6 @@ class KAdminLocalManager(AbstractKRBManager):
         self,
         names: list[str],
         fn: str,
-        is_rand_key: bool = False,  # noqa: ARG002
     ) -> None:
         """Create or write to keytab.
 
@@ -514,17 +498,17 @@ async def reset_setup() -> None:
 @principal_router.post("", response_class=Response, status_code=201)
 async def add_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
-    schema: PrincipalCreateSchema,
+    name: Annotated[str, Body()],
+    password: Annotated[str | None, Body(embed=True)] = None,
 ) -> None:
     """Add principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param PrincipalCreateSchema schema: principal data
+
     """
     await kadmin.add_princ(
-        schema.name,
-        schema.password,
-        algorithms=schema.algorithms or {},
+        name,
+        password,
     )
 
 
@@ -613,7 +597,7 @@ async def rename_princ(
 @principal_router.post("/ktadd")
 async def ktadd(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
-    schema: KtaddSchema,
+    names: Annotated[list[str], Body()],
 ) -> FileResponse:
     """Ktadd principal.
 
@@ -621,7 +605,7 @@ async def ktadd(
     :param KtaddSchema schema: ktadd request data
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
-    await kadmin.ktadd(schema.names, filename, is_rand_key=schema.is_rand_key)
+    await kadmin.ktadd(names, filename)
 
     return FileResponse(
         filename,
