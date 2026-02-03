@@ -41,7 +41,7 @@ from ldap_protocol.dns.exceptions import (
     DNSZoneUpdateError,
 )
 from ldap_protocol.dns.managers.abstract_dns_manager import AbstractDNSManager
-from ldap_protocol.dns.utils import create_initial_zone_records
+from ldap_protocol.dns.utils import create_initial_zone_records, logger_wraps
 
 
 class PowerDNSManager(AbstractDNSManager):
@@ -69,6 +69,7 @@ class PowerDNSManager(AbstractDNSManager):
         """Normalize DNS name by ensuring it ends with a dot."""
         return name if name.endswith(".") else f"{name}."
 
+    @logger_wraps()
     async def setup(self, dns_settings: DNSSettingsDTO) -> None:
         """Set up DNS server and DNS manager."""
         records = []
@@ -111,6 +112,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSZoneCreateError as e:
             raise DNSSetupError(f"Failed to set up DNS: {e}")
 
+    @logger_wraps()
     async def create_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Create a DNS record in the specified zone."""
         record.name = self._normalize_dns_name(record.name)
@@ -122,6 +124,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSRecordCreateError(f"Failed to create DNS record: {e}")
 
+    @logger_wraps()
     async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Retrieve all DNS records for the specified zone."""
         try:
@@ -129,6 +132,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSRecordGetError(f"Failed to get DNS records: {e}")
 
+    @logger_wraps()
     async def update_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Update a DNS record in the specified zone."""
         record.name = self._normalize_dns_name(record.name)
@@ -140,6 +144,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSRecordUpdateError(f"Failed to update DNS record: {e}")
 
+    @logger_wraps()
     async def delete_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Delete a DNS record from the specified zone."""
         record.name = self._normalize_dns_name(record.name)
@@ -151,6 +156,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSRecordDeleteError(f"Failed to delete DNS record: {e}")
 
+    @logger_wraps()
     async def create_master_zone(self, zone: DNSMasterZoneDTO) -> None:
         """Create a master DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
@@ -171,6 +177,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneCreateError(f"Failed to create DNS zone: {e}")
 
+    @logger_wraps()
     async def create_forward_zone(self, zone: DNSForwardZoneDTO) -> None:
         """Create a forward DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
@@ -180,6 +187,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneCreateError(f"Failed to create DNS zone: {e}")
 
+    @logger_wraps()
     async def get_master_zones(self) -> list[DNSMasterZoneDTO]:
         """Retrieve all DNS zones."""
         try:
@@ -192,6 +200,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         return zones
 
+    @logger_wraps()
     async def get_master_zone_by_id(self, zone_id: str) -> DNSMasterZoneDTO:
         """Get master DNS zone by ID."""
         try:
@@ -201,6 +210,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
+    @logger_wraps()
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Retrieve all forward DNS zones."""
         try:
@@ -208,6 +218,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
+    @logger_wraps()
     async def update_master_zone(self, zone: DNSMasterZoneDTO) -> None:
         """Update a master DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
@@ -216,6 +227,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneUpdateError(f"Failed to update DNS zone: {e}")
 
+    @logger_wraps()
     async def update_forward_zone(self, zone: DNSForwardZoneDTO) -> None:
         """Update a forward DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
@@ -228,6 +240,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneUpdateError(f"Failed to update DNS zone: {e}")
 
+    @logger_wraps()
     async def delete_master_zone(self, zone_id: str) -> None:
         """Delete a DNS zone."""
         zone = await self.get_master_zone_by_id(zone_id)
@@ -238,6 +251,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneDeleteError(f"Failed to delete DNS zone: {e}")
 
+    @logger_wraps()
     async def delete_forward_zone(self, zone_id: str) -> None:
         """Delete a DNS forward zone."""
         try:
@@ -245,6 +259,7 @@ class PowerDNSManager(AbstractDNSManager):
         except DNSError as e:
             raise DNSZoneDeleteError(f"Failed to delete DNS zone: {e}")
 
+    @logger_wraps()
     async def find_forward_dns_fqdn(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
@@ -282,6 +297,7 @@ class PowerDNSManager(AbstractDNSManager):
         fqdn_list.sort(key=lambda x: x[0])
         return fqdn_list[0][1] if fqdn_list else None
 
+    @logger_wraps()
     async def check_forward_dns_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,

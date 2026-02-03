@@ -43,9 +43,6 @@ def logger_wraps(is_stub: bool = False) -> Callable:
                 logger.error(f"{name} call raised: {err}")
                 raise
 
-            else:
-                if not is_stub:
-                    logger.success(f"Executed {name}")
             return result
 
         return wrapped
