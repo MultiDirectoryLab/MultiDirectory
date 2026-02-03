@@ -25,7 +25,7 @@ from ldap_protocol.dhcp.exceptions import (
     DHCPEntryNotFoundError,
     DHCPEntryUpdateError,
     DHCPOperationError,
-    DHCPValidatonError,
+    DHCPValidationError,
 )
 from ldap_protocol.dhcp.schemas import (
     DHCPChangeStateSchemaRequest,
@@ -65,8 +65,8 @@ error_map: ERROR_MAP_TYPE = {
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
-    DHCPValidatonError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    DHCPValidationError: rule(
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     DHCPOperationError: rule(

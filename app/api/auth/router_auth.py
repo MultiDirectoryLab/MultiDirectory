@@ -67,7 +67,7 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     PasswordPolicyError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     UserNotFoundError: rule(
@@ -75,7 +75,7 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     AuthValidationError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     MFARequiredError: rule(

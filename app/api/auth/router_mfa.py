@@ -62,7 +62,7 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     InvalidCredentialsError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     NotFoundError: rule(
