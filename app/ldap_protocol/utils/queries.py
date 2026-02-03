@@ -16,6 +16,7 @@ from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
 from entities import Attribute, Directory, Group, User
+from enums import SamAccountTypeCodes
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -394,7 +395,7 @@ async def create_group(
         "instanceType": ["4"],
         "sAMAccountName": [dir_.name],
         dir_.rdname: [dir_.name],
-        "sAMAccountType": ["268435456"],
+        "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
         "gidNumber": [str(create_integer_hash(dir_.name))],
     }
 
