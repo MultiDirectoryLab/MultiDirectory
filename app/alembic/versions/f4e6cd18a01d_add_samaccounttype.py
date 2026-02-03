@@ -10,10 +10,10 @@ from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory, EntityType
-from enums import EntityTypeNames, SamAccountType
+from enums import EntityTypeNames, SamAccountTypeCodes
 from repo.pg.tables import queryable_attr as qa
 
 revision: None | str = "f4e6cd18a01d"
@@ -27,10 +27,10 @@ _SECURITY_PRINCIPAL_TYPES = (
     EntityTypeNames.GROUP,
     EntityTypeNames.COMPUTER,
 )
-_ENTITY_TO_SAM: dict[str, SamAccountType] = {
-    EntityTypeNames.USER: SamAccountType.SAM_USER_OBJECT,
-    EntityTypeNames.GROUP: SamAccountType.SAM_GROUP_OBJECT,
-    EntityTypeNames.COMPUTER: SamAccountType.SAM_MACHINE_ACCOUNT,
+_ENTITY_TO_SAM: dict[str, SamAccountTypeCodes] = {
+    EntityTypeNames.USER: SamAccountTypeCodes.SAM_USER_OBJECT,
+    EntityTypeNames.GROUP: SamAccountTypeCodes.SAM_GROUP_OBJECT,
+    EntityTypeNames.COMPUTER: SamAccountTypeCodes.SAM_MACHINE_ACCOUNT,
 }
 
 
@@ -42,15 +42,16 @@ def upgrade(container: AsyncContainer) -> None:
             session = await cnt.get(AsyncSession)
 
         entity_types = await session.scalars(
-            select(EntityType).where(
-                qa(EntityType.name).in_(_SECURITY_PRINCIPAL_TYPES),
-            ),
-        )
+            select(EntityType)
+            .where(qa(EntityType.name).in_(_SECURITY_PRINCIPAL_TYPES)),
+        )  # fmt: skip
         entity_type_ids = [et.id for et in entity_types]
         if not entity_type_ids:
             return
 
-        has_sam = select(qa(Attribute.directory_id)).where(
+        has_sam = select(
+            qa(Attribute.directory_id),
+        ).where(
             qa(Attribute.name).ilike(_SAM_ACCOUNT_TYPE_ATTR.lower()),
         )
         dirs_without_sam = await session.scalars(
@@ -59,13 +60,15 @@ def upgrade(container: AsyncContainer) -> None:
                 qa(Directory.entity_type_id).in_(entity_type_ids),
                 ~qa(Directory.id).in_(has_sam),
             )
-            .options(selectinload(qa(Directory.entity_type))),
+            .options(joinedload(qa(Directory.entity_type))),
         )
 
         for directory in dirs_without_sam:
-            if not directory.entity_type:
-                continue
-            sam_value = _ENTITY_TO_SAM.get(directory.entity_type.name)
+            sam_value = (
+                _ENTITY_TO_SAM.get(directory.entity_type.name)
+                if directory.entity_type
+                else None
+            )
             if sam_value is None:
                 continue
 

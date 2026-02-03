@@ -11,7 +11,7 @@ from constants import (
     GROUPS_CONTAINER_NAME,
     USERS_CONTAINER_NAME,
 )
-from enums import SamAccountType
+from enums import SamAccountTypeCodes
 from ldap_protocol.objects import UserAccountControlFlag
 
 TEST_DATA = [
@@ -32,7 +32,7 @@ TEST_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_ADMIN_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
             },
@@ -46,7 +46,7 @@ TEST_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": ["developers"],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
             },
@@ -59,7 +59,7 @@ TEST_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": ["admin login only"],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
             },
@@ -72,7 +72,7 @@ TEST_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_USERS_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
             },
@@ -85,7 +85,7 @@ TEST_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_COMPUTERS_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
             },
@@ -380,7 +380,9 @@ TEST_DATA = [
                             "instanceType": ["4"],
                             "sAMAccountName": ["testGroup1"],
                             "sAMAccountType": [
-                                str(SamAccountType.SAM_GROUP_OBJECT.value),
+                                str(
+                                    SamAccountTypeCodes.SAM_GROUP_OBJECT.value
+                                ),
                             ],
                         },
                     },
@@ -395,7 +397,7 @@ TEST_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": ["testGroup2"],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
             },
@@ -418,7 +420,7 @@ TEST_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": ["testGroup3"],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
             },

@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory, Group, User
-from enums import AceType, EntityTypeNames, SamAccountType
+from enums import AceType, EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -431,7 +431,7 @@ class AddRequest(BaseRequest):
                 attributes.append(
                     Attribute(
                         name="sAMAccountType",
-                        value=str(SamAccountType.SAM_USER_OBJECT),
+                        value=str(SamAccountTypeCodes.SAM_USER_OBJECT),
                         directory_id=new_dir.id,
                     ),
                 )
@@ -439,7 +439,7 @@ class AddRequest(BaseRequest):
                 attributes.append(
                     Attribute(
                         name="sAMAccountType",
-                        value=str(SamAccountType.SAM_GROUP_OBJECT),
+                        value=str(SamAccountTypeCodes.SAM_GROUP_OBJECT),
                         directory_id=new_dir.id,
                     ),
                 )
@@ -447,7 +447,7 @@ class AddRequest(BaseRequest):
                 attributes.append(
                     Attribute(
                         name="sAMAccountType",
-                        value=str(SamAccountType.SAM_MACHINE_ACCOUNT),
+                        value=str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
                         directory_id=new_dir.id,
                     ),
                 )

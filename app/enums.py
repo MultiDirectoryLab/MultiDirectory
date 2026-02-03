@@ -256,7 +256,7 @@ class DomainCodes(IntEnum):
     SHADOW = 14
 
 
-class SamAccountType(IntEnum):
+class SamAccountTypeCodes(IntEnum):
     """SAM Account Type values."""
 
     SAM_DOMAIN_OBJECT = 0

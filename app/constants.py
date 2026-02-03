@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import TypedDict
 
-from enums import EntityTypeNames, SamAccountType
+from enums import EntityTypeNames, SamAccountTypeCodes
 
 GROUPS_CONTAINER_NAME = "Groups"
 COMPUTERS_CONTAINER_NAME = "Computers"
@@ -24,7 +24,7 @@ group_attrs = {
     "groupType": ["-2147483646"],
     "instanceType": ["4"],
     "sAMAccountName": ["groups"],
-    "sAMAccountType": [str(SamAccountType.SAM_GROUP_OBJECT.value)],
+    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
 }
 
 
@@ -309,7 +309,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_ADMIN_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["512"],
                 },
@@ -324,7 +324,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_USERS_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["513"],
                 },
@@ -339,7 +339,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [READ_ONLY_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["521"],
                 },
@@ -354,7 +354,7 @@ FIRST_SETUP_DATA = [
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_COMPUTERS_GROUP_NAME],
                     "sAMAccountType": [
-                        str(SamAccountType.SAM_GROUP_OBJECT.value),
+                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                     "gidNumber": ["515"],
                 },

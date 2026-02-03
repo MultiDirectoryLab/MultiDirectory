@@ -8,7 +8,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from enums import SamAccountType
+from enums import SamAccountTypeCodes
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import UserAccountControlFlag
 from tests.api_datasets import test_api_forbidden_chars_in_attr_value
@@ -220,7 +220,7 @@ async def test_add_user_samaccounttype(
         a["type"]: a for a in data["search_result"][0]["partial_attributes"]
     }
     assert attrs["sAMAccountType"]["vals"][0] == str(
-        SamAccountType.SAM_USER_OBJECT,
+        SamAccountTypeCodes.SAM_USER_OBJECT,
     )
 
 

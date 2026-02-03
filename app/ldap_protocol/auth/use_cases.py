@@ -14,7 +14,7 @@ from constants import (
     FIRST_SETUP_DATA,
     USERS_CONTAINER_NAME,
 )
-from enums import SamAccountType
+from enums import SamAccountTypeCodes
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.identity.exceptions import (
@@ -116,7 +116,7 @@ class SetupUseCase:
                         "primaryGroupID": ["512"],
                         "givenName": [dto.username],
                         "sAMAccountType": [
-                            str(SamAccountType.SAM_USER_OBJECT)
+                            str(SamAccountTypeCodes.SAM_USER_OBJECT),
                         ],
                     },
                     "objectSid": 500,
