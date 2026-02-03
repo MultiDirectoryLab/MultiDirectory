@@ -381,7 +381,7 @@ TEST_DATA = [
                             "sAMAccountName": ["testGroup1"],
                             "sAMAccountType": [
                                 str(
-                                    SamAccountTypeCodes.SAM_GROUP_OBJECT.value
+                                    SamAccountTypeCodes.SAM_GROUP_OBJECT.value,
                                 ),
                             ],
                         },
