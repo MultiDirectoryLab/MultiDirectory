@@ -4,18 +4,24 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .base import AbstractDNSManager
-from .dto import (
+from ldap_protocol.dns.dto import (
     DNSForwardZoneDTO,
     DNSMasterZoneDTO,
     DNSRRSetDTO,
-    DNSZoneBaseDTO,
+    DNSSettingsDTO,
 )
-from .utils import logger_wraps
+from ldap_protocol.dns.managers.abstract_dns_manager import AbstractDNSManager
+from ldap_protocol.dns.utils import logger_wraps
 
 
 class StubDNSManager(AbstractDNSManager):
     """Stub client."""
+
+    @logger_wraps(is_stub=True)
+    async def setup(
+        self,
+        dns_settings: DNSSettingsDTO,
+    ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def create_record(
@@ -54,15 +60,27 @@ class StubDNSManager(AbstractDNSManager):
         return []
 
     @logger_wraps(is_stub=True)
-    async def create_zone(
+    async def create_master_zone(
         self,
-        zone: DNSZoneBaseDTO,
+        zone: DNSMasterZoneDTO,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def create_forward_zone(
+        self,
+        zone: DNSForwardZoneDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def update_master_zone(
         self,
-        zone: DNSZoneBaseDTO,
+        zone: DNSMasterZoneDTO,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def update_forward_zone(
+        self,
+        zone: DNSForwardZoneDTO,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -72,13 +90,13 @@ class StubDNSManager(AbstractDNSManager):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def check_forward_dns_server(
-        self,
-        dns_server_ip: str,
-    ) -> None: ...
-
-    @logger_wraps(is_stub=True)
     async def delete_forward_zone(
         self,
         zone_id: str,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def check_forward_dns_server(
+        self,
+        dns_server_ip: str,
     ) -> None: ...

@@ -7,7 +7,20 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass, field
 from ipaddress import IPv4Address, IPv6Address
 
-from .enums import DNSRecordType, PowerDNSRecordChangeType, PowerDNSZoneType
+from ldap_protocol.dns.enums import (
+    DNSForwarderServerStatus,
+    DNSRecordType,
+    PowerDNSRecordChangeType,
+    PowerDNSZoneType,
+)
+
+
+@dataclass
+class PowerDNSSettingsDTO:
+    """PowerDNS related settings."""
+
+    auth_server_ip: str
+    recursor_server_ip: str
 
 
 @dataclass
@@ -17,16 +30,8 @@ class DNSSettingsDTO:
     domain: str
     dns_server_ip: IPv4Address | IPv6Address | None
     tsig_key: str | None
-
-
-@dataclass
-class DNSServerDTO:
-    """DNS server DTO."""
-
-    id: str
-    daemon_type: str
-    version: str
-    type: str = "server"
+    default_nameserver: str
+    power_dns_settings: PowerDNSSettingsDTO | None = field(default=None)
 
 
 @dataclass
@@ -75,3 +80,12 @@ class DNSForwardZoneDTO(DNSZoneBaseDTO):
     servers: list[str] = field(default_factory=list)
     recursion_desired: bool = field(default=False)
     kind: PowerDNSZoneType = PowerDNSZoneType.FORWARDED
+
+
+@dataclass
+class DNSForwardServerStatus:
+    """Forward DNS server status."""
+
+    ip: str
+    status: DNSForwarderServerStatus
+    FQDN: str | None

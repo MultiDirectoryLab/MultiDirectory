@@ -4,7 +4,12 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .enums import DNSRecordType
+from ldap_protocol.dns.enums import DNSRecordType
+
+DNS_MANAGER_STATE_NAME = "DNSManagerState"
+DNS_MANAGER_ZONE_NAME = "DNSManagerZoneName"
+DNS_MANAGER_IP_ADDRESS_NAME = "DNSManagerIpAddress"
+DNS_MANAGER_TSIG_KEY_NAME = "DNSManagerTSIGKey"
 
 DNS_FIRST_SETUP_RECORDS: list[dict[str, str]] = [
     {"name": "_ldap._tcp.", "value": "0 0 389 ", "type": DNSRecordType.SRV},

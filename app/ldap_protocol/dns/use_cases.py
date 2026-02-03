@@ -10,20 +10,17 @@ from typing import ClassVar
 from abstract_service import AbstractService
 from config import Settings
 from enums import AuthorizationRules
-from ldap_protocol.dns.base import (
-    AbstractDNSManager,
-    DNSForwardServerStatus,
-    DNSManagerSettings,
-)
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.dto import (
+    DNSForwardServerStatus,
     DNSForwardZoneDTO,
     DNSMasterZoneDTO,
     DNSRRSetDTO,
     DNSSettingsDTO,
 )
-
-from .enums import DNSManagerState
+from ldap_protocol.dns.enums import DNSManagerState
+from ldap_protocol.dns.exceptions import DNSSetupError
+from ldap_protocol.dns.managers.abstract_dns_manager import AbstractDNSManager
 
 
 class DNSUseCase(AbstractService):
@@ -33,7 +30,7 @@ class DNSUseCase(AbstractService):
         self,
         dns_manager: AbstractDNSManager,
         dns_gateway: DNSStateGateway,
-        dns_settings: DNSManagerSettings,
+        dns_settings: DNSSettingsDTO,
         settings: Settings,
     ) -> None:
         """Initialize DNS use case."""
@@ -44,16 +41,24 @@ class DNSUseCase(AbstractService):
 
     async def setup_dns(
         self,
-        dns_server_settings: DNSSettingsDTO,
+        dns_settings: DNSSettingsDTO | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        await self._dns_manager.setup(
-            dns_server_settings,
-        )
-        if self._dns_settings.domain is not None:
-            await self._dns_gateway.update_settings(dns_server_settings)
+        state = await self._dns_gateway.get_state()
+
+        if state == DNSManagerState.SELFHOSTED:
+            await self._dns_manager.setup(
+                self._dns_settings,
+            )
+        elif state == DNSManagerState.HOSTED:
+            if dns_settings is None:
+                raise DNSSetupError()
+            if self._dns_settings.dns_server_ip is None:
+                await self._dns_gateway.create_settings(dns_settings)
+            else:
+                await self._dns_gateway.update_settings(dns_settings)
         else:
-            await self._dns_gateway.create_settings(dns_server_settings)
+            raise DNSSetupError()
 
     async def create_record(
         self,
@@ -123,7 +128,7 @@ class DNSUseCase(AbstractService):
     async def get_dns_status(self) -> dict[str, str | None]:
         """Get DNS status."""
         return {
-            "dns_status": await self._dns_gateway.get_dns_state(),
+            "dns_status": await self._dns_gateway.get_state(),
             "zone_name": self._dns_settings.domain,
             "dns_server_ip": str(self._dns_settings.dns_server_ip),
         }

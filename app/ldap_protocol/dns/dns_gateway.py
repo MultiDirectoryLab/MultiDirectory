@@ -4,23 +4,22 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Awaitable
+from ipaddress import IPv4Address
 
 from sqlalchemy import case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from entities import CatalogueSetting
-from ldap_protocol.dns.base import (
+from ldap_protocol.dns.constants import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
     DNS_MANAGER_TSIG_KEY_NAME,
     DNS_MANAGER_ZONE_NAME,
-    DNSManagerSettings,
 )
-from ldap_protocol.dns.dto import DNSSettingsDTO
+from ldap_protocol.dns.dto import DNSSettingsDTO, PowerDNSSettingsDTO
+from ldap_protocol.dns.enums import DNSManagerState
 from repo.pg.tables import queryable_attr as qa
-
-from .enums import DNSManagerState
 
 
 class DNSStateGateway:
@@ -42,7 +41,7 @@ class DNSStateGateway:
         self._session.add(data)
         await self._session.commit()
 
-    async def get_dns_settings(self) -> dict[str, str]:
+    async def get_settings_from_db(self) -> dict[str, str]:
         """Get DNS managers."""
         settings = await self._session.scalars(
             select(CatalogueSetting)
@@ -127,22 +126,34 @@ class DNSStateGateway:
 
     async def get_dns_manager_settings(
         self,
-        resolve_coro: Awaitable[str],
-    ) -> DNSManagerSettings:
+        app_settings: Settings,
+    ) -> DNSSettingsDTO:
         """Get DNS manager settings."""
-        settings = await self.get_dns_settings()
-        dns_server_ip = settings.get(DNS_MANAGER_IP_ADDRESS_NAME)
-
-        if await self.get_dns_state() == DNSManagerState.SELFHOSTED:
-            dns_server_ip = await resolve_coro
-
-        return DNSManagerSettings(
-            zone_name=settings.get(DNS_MANAGER_ZONE_NAME),
-            dns_server_ip=dns_server_ip,
-            tsig_key=settings.get(DNS_MANAGER_TSIG_KEY_NAME),
+        power_dns_settings = PowerDNSSettingsDTO(
+            auth_server_ip=app_settings.PDNS_AUTH_SERVER_IP,
+            recursor_server_ip=app_settings.PDNS_RECURSOR_SERVER_IP,
+        )
+        dns_settings = DNSSettingsDTO(
+            domain=app_settings.DOMAIN,
+            dns_server_ip=None,
+            tsig_key=None,
+            default_nameserver=app_settings.DEFAULT_NAMESERVER,
+            power_dns_settings=power_dns_settings,
         )
 
-    async def get_dns_state(self) -> DNSManagerState:
+        if await self.get_state() == DNSManagerState.HOSTED:
+            settings_from_db = await self.get_settings_from_db()
+            dns_settings.domain = settings_from_db.get(DNS_MANAGER_ZONE_NAME)
+            dns_settings.dns_server_ip = IPv4Address(
+                settings_from_db.get(DNS_MANAGER_IP_ADDRESS_NAME),
+            )
+            dns_settings.tsig_key = (
+                settings_from_db.get(DNS_MANAGER_TSIG_KEY_NAME),
+            )
+
+        return dns_settings
+
+    async def get_state(self) -> DNSManagerState:
         """Get DNS state."""
         state = await self.get(DNS_MANAGER_STATE_NAME)
         if state is None:
@@ -174,10 +185,3 @@ class DNSStateGateway:
                 .values({"value": state})
                 .filter_by(name=DNS_MANAGER_STATE_NAME),
             )
-
-    async def get_state(self) -> DNSManagerState:
-        """Get DNS state."""
-        state = await self.get(DNS_MANAGER_STATE_NAME)
-        if state is None:
-            return DNSManagerState.NOT_CONFIGURED
-        return DNSManagerState(state.value)
