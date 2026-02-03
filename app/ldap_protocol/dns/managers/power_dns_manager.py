@@ -118,7 +118,7 @@ class PowerDNSManager(AbstractDNSManager):
         record.changetype = PowerDNSRecordChangeType.REPLACE
 
         try:
-            await self._power_dns_auth_client.create_record(zone_id, record)
+            await self._power_dns_auth_client.record_action(zone_id, record)
         except DNSError as e:
             raise DNSRecordCreateError(f"Failed to create DNS record: {e}")
 
@@ -136,7 +136,7 @@ class PowerDNSManager(AbstractDNSManager):
         record.changetype = PowerDNSRecordChangeType.REPLACE
 
         try:
-            await self._power_dns_auth_client.update_record(zone_id, record)
+            await self._power_dns_auth_client.record_action(zone_id, record)
         except DNSError as e:
             raise DNSRecordUpdateError(f"Failed to update DNS record: {e}")
 
@@ -147,7 +147,7 @@ class PowerDNSManager(AbstractDNSManager):
         record.changetype = PowerDNSRecordChangeType.DELETE
 
         try:
-            await self._power_dns_auth_client.delete_record(zone_id, record)
+            await self._power_dns_auth_client.record_action(zone_id, record)
         except DNSError as e:
             raise DNSRecordDeleteError(f"Failed to delete DNS record: {e}")
 
