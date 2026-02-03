@@ -37,7 +37,7 @@ class DHCPAPIError(DHCPError):
     code = ErrorCodes.DHCP_API_ERROR
 
 
-class DHCPValidatonError(DHCPError):
+class DHCPValidationError(DHCPError):
     """DHCP validation error."""
 
     code = ErrorCodes.DHCP_VALIDATION_ERROR

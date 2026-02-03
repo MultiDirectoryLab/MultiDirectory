@@ -78,7 +78,7 @@ async def test_create_one_entity_type_value_422(
             "is_system": False,
         },
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.parametrize(

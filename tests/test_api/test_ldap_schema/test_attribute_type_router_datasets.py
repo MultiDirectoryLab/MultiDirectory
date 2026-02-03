@@ -115,6 +115,6 @@ test_delete_bulk_attribute_types_dataset = [
     {
         "attribute_type_schemas": [],
         "attribute_types_deleted": [],
-        "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
+        "status_code": status.HTTP_422_UNPROCESSABLE_CONTENT,
     },
 ]

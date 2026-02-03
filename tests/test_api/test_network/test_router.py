@@ -260,7 +260,7 @@ async def test_delete_policy(
     assert response[0]["priority"] == 1
 
     response = await http_client.delete(f"/policy/{pol_id2}")
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert response.json()["detail"] == "At least one policy should be active"
 
 
@@ -314,7 +314,7 @@ async def test_switch_policy(
     assert response.json()[0]["enabled"] is False
 
     response = await http_client.patch(f"/policy/{pol_id2}")
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert response.json()["detail"] == "At least one policy should be active"
 
 
