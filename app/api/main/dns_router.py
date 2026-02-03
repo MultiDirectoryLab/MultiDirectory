@@ -148,7 +148,7 @@ async def get_dns_status(
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> dict[str, str | None]:
     """Get DNS service status."""
-    return await adapter.get_dns_status()
+    return await adapter.get_status()
 
 
 @dns_router.post(
@@ -161,7 +161,7 @@ async def setup_dns(
     data: DNSServiceSetupRequest | None = None,
 ) -> None:
     """Set up DNS service."""
-    await adapter.setup_dns(data)
+    await adapter.setup(data)
 
 
 @dns_router.post("/state", error_map=error_map)
@@ -170,7 +170,7 @@ async def set_dns_state(
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> None:
     """Set DNS manager state."""
-    await adapter.set_dns_state(data)
+    await adapter.set_state(data)
 
 
 @dns_router.post("/zone/forward", error_map=error_map)
@@ -187,7 +187,7 @@ async def get_forward_dns_zones(
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> list[DNSForwardZoneDTO]:
     """Get list of DNS forward zones with forwarders."""
-    return await adapter.get_dns_forward_zones()
+    return await adapter.get_forward_zones()
 
 
 @dns_router.patch("/zone/forward", error_map=error_map)
@@ -227,7 +227,7 @@ async def get_dns_zones(
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> list[DNSMasterZoneDTO]:
     """Get all DNS records of all zones."""
-    return await adapter.get_dns_master_zones()
+    return await adapter.get_master_zones()
 
 
 @dns_router.patch("/zone", error_map=error_map)
@@ -254,4 +254,4 @@ async def check_dns_forward_zone(
     adapter: FromDishka[DNSFastAPIAdapter],
 ) -> list[DNSForwardServerStatus]:
     """Check given DNS forward zone for availability."""
-    return await adapter.check_dns_forward_zone(data)
+    return await adapter.check_forward_zone(data)

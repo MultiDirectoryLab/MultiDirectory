@@ -97,19 +97,19 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
         """Get all DNS records of current zone."""
         return await self._service.get_records(zone_id)
 
-    async def get_dns_status(self) -> dict[str, str | None]:
+    async def get_status(self) -> dict[str, str | None]:
         """Get DNS service status."""
-        return await self._service.get_dns_status()
+        return await self._service.get_status()
 
-    async def set_dns_state(
+    async def set_state(
         self,
         data: DNSServiceSetStateRequest,
     ) -> None:
         """Set DNS manager state."""
         await self._service.set_state(data.state)
 
-    async def setup_dns(self, data: DNSServiceSetupRequest | None) -> None:
-        await self._service.setup_dns(
+    async def setup(self, data: DNSServiceSetupRequest | None) -> None:
+        await self._service.setup(
             DNSSettingsDTO(
                 dns_server_ip=data.dns_ip_address,
                 tsig_key=data.tsig_key,
@@ -133,7 +133,7 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
             ),
         )
 
-    async def get_dns_forward_zones(self) -> list[DNSForwardZoneDTO]:
+    async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Get list of DNS forward zones with forwarders."""
         return await self._service.get_forward_zones()
 
@@ -170,7 +170,7 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
             ),
         )
 
-    async def get_dns_master_zones(self) -> list[DNSMasterZoneDTO]:
+    async def get_master_zones(self) -> list[DNSMasterZoneDTO]:
         """Get all DNS master zones."""
         return await self._service.get_master_zones()
 
@@ -194,9 +194,9 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
         """Delete DNS zones."""
         await self._service.delete_master_zones(data.zone_ids)
 
-    async def check_dns_forward_zone(
+    async def check_forward_zone(
         self,
         data: DNSServiceForwardZoneCheckRequest,
     ) -> list[DNSForwardServerStatus]:
         """Check DNS forward zone for availability."""
-        return await self._service.check_dns_forward_zone(data.dns_server_ips)
+        return await self._service.check_forward_zone(data.dns_server_ips)

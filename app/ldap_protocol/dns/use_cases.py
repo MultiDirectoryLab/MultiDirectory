@@ -39,7 +39,7 @@ class DNSUseCase(AbstractService):
         self._dns_settings = dns_settings
         self._dns_gateway = dns_gateway
 
-    async def setup_dns(
+    async def setup(
         self,
         dns_settings: DNSSettingsDTO | None,
     ) -> None:
@@ -114,7 +114,7 @@ class DNSUseCase(AbstractService):
         for zone_id in zone_ids:
             await self._dns_manager.delete_forward_zone(zone_id)
 
-    async def check_forward_dns_server(
+    async def check_forward_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
         host_dns_servers: list[str],
@@ -125,7 +125,7 @@ class DNSUseCase(AbstractService):
             host_dns_servers,
         )
 
-    async def get_dns_status(self) -> dict[str, str | None]:
+    async def get_status(self) -> dict[str, str | None]:
         """Get DNS status."""
         return {
             "dns_status": await self._dns_gateway.get_state(),
@@ -137,13 +137,13 @@ class DNSUseCase(AbstractService):
         """Set DNS manager state."""
         await self._dns_gateway.set_state(state)
 
-    async def check_dns_forward_zone(
+    async def check_forward_zone(
         self,
         data: list[IPv4Address | IPv6Address],
     ) -> list[DNSForwardServerStatus]:
         """Check DNS forward zone for availability."""
         return [
-            await self.check_forward_dns_server(
+            await self.check_forward_server(
                 dns_server_ip,
                 self._settings.HOST_DNS_SERVERS,
             )
@@ -151,12 +151,12 @@ class DNSUseCase(AbstractService):
         ]
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
-        setup_dns.__name__: AuthorizationRules.DNS_SETUP_DNS,
+        setup.__name__: AuthorizationRules.DNS_SETUP_DNS,
         create_record.__name__: AuthorizationRules.DNS_CREATE_RECORD,
         delete_record.__name__: AuthorizationRules.DNS_DELETE_RECORD,
         update_record.__name__: AuthorizationRules.DNS_UPDATE_RECORD,
         get_records.__name__: AuthorizationRules.DNS_GET_ALL_RECORDS,
-        get_dns_status.__name__: AuthorizationRules.DNS_GET_DNS_STATUS,
+        get_status.__name__: AuthorizationRules.DNS_GET_DNS_STATUS,
         delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
         get_master_zones.__name__: AuthorizationRules.DNS_GET_MASTER_ZONES,
         get_forward_zones.__name__: AuthorizationRules.DNS_GET_FWD_ZONES,
@@ -166,5 +166,5 @@ class DNSUseCase(AbstractService):
         update_forward_zone.__name__: AuthorizationRules.DNS_UPDATE_FWD_ZONE,
         delete_master_zones.__name__: AuthorizationRules.DNS_DELETE_MASTER_ZONES,  # noqa: E501
         delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
-        check_dns_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
+        check_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
     }
