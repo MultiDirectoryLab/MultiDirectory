@@ -12,7 +12,12 @@ from pydantic import SecretStr
 from starlette.background import BackgroundTask
 
 from api.base_adapter import BaseAdapter
-from api.main.schema import KerberosSetupRequest
+from api.main.schema import (
+    KerberosSetupRequest,
+    KtaddRequest,
+    PrincipalAddRequest,
+    PrincipalPutRequest,
+)
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
 from ldap_protocol.kerberos.service import KerberosService
@@ -66,31 +71,29 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
         )
         return Response(background=task)
 
-    async def add_principal(
-        self,
-        primary: str,
-        instance: str,
-    ) -> None:
+    async def add_principal(self, request: PrincipalAddRequest) -> None:
         """Create principal in Kerberos with given name.
 
         :raises HTTPException: on Kerberos errors
         :return: None
         """
-        return await self._service.add_principal(primary, instance)
+        return await self._service.add_principal(
+            request.principal_name,
+            password=request.password,
+            algorithms=request.algorithms,
+        )
 
-    async def rename_principal(
-        self,
-        principal_name: str,
-        principal_new_name: str,
-    ) -> None:
-        """Rename principal in Kerberos.
+    async def rename_principal(self, request: PrincipalPutRequest) -> None:
+        """Modify principal (rename, password, algorithms).
 
         :raises HTTPException: on Kerberos errors
         :return: None
         """
         return await self._service.rename_principal(
-            principal_name,
-            principal_new_name,
+            principal_name=request.principal_name,
+            principal_new_name=request.new_principal_name,
+            algorithms=request.algorithms,
+            password=request.password,
         )
 
     async def reset_principal_pw(
@@ -121,14 +124,17 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
 
     async def ktadd(
         self,
-        names: list[str],
+        data: KtaddRequest,
     ) -> StreamingResponse:
         """Generate keytab and return as streaming response.
 
         :raises HTTPException: on Kerberos errors
         :return: StreamingResponse
         """
-        aiter_bytes, task_struct = await self._service.ktadd(names)
+        aiter_bytes, task_struct = await self._service.ktadd(
+            data.names,
+            is_rand_key=data.is_rand_key,
+        )
         task = BackgroundTask(
             task_struct.func,
             *task_struct.args,

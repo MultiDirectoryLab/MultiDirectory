@@ -61,6 +61,21 @@ class ConfigSchema(BaseModel):
     stash_password: str
 
 
+class PrincipalCreateSchema(BaseModel):
+    """Schema for principal creation."""
+
+    name: str
+    password: str | None = None
+    algorithms: list[str] | None = None
+
+
+class KtaddSchema(BaseModel):
+    """Schema for ktadd request."""
+
+    names: list[str]
+    is_rand_key: bool = False
+
+
 class Principal(BaseModel):
     """Principal kadmin object."""
 
@@ -300,7 +315,12 @@ class KAdminLocalManager(AbstractKRBManager):
             new_name,
         )
 
-    async def ktadd(self, names: list[str], fn: str) -> None:
+    async def ktadd(
+        self,
+        names: list[str],
+        fn: str,
+        is_rand_key: bool = False,  # noqa: ARG002
+    ) -> None:
         """Create or write to keytab.
 
         :param str name: principal
@@ -494,16 +514,18 @@ async def reset_setup() -> None:
 @principal_router.post("", response_class=Response, status_code=201)
 async def add_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
-    name: Annotated[str, Body()],
-    password: Annotated[str | None, Body(embed=True)] = None,
+    schema: PrincipalCreateSchema,
 ) -> None:
     """Add principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    :param PrincipalCreateSchema schema: principal data
     """
-    await kadmin.add_princ(name, password)
+    await kadmin.add_princ(
+        schema.name,
+        schema.password,
+        algorithms=schema.algorithms or {},
+    )
 
 
 @principal_router.get("")
@@ -591,16 +613,15 @@ async def rename_princ(
 @principal_router.post("/ktadd")
 async def ktadd(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
-    names: Annotated[list[str], Body()],
+    schema: KtaddSchema,
 ) -> FileResponse:
     """Ktadd principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    :param KtaddSchema schema: ktadd request data
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
-    await kadmin.ktadd(names, filename)
+    await kadmin.ktadd(schema.names, filename, is_rand_key=schema.is_rand_key)
 
     return FileResponse(
         filename,

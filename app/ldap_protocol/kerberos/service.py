@@ -358,7 +358,12 @@ class KerberosService(AbstractService):
         )
         return TaskStruct(func=func, args=args)
 
-    async def add_principal(self, primary: str, instance: str) -> None:
+    async def add_principal(
+        self,
+        principal_name: str,
+        password: str | None,
+        algorithms: list[str] | None,
+    ) -> None:
         """Create principal in Kerberos with given name.
 
         :param str primary: Principal primary name.
@@ -367,8 +372,11 @@ class KerberosService(AbstractService):
         :return None: None.
         """
         try:
-            principal_name = f"{primary}/{instance}"
-            await self._kadmin.add_principal(principal_name, None)
+            await self._kadmin.add_principal(
+                principal_name,
+                password,
+                algorithms,
+            )
         except KRBAPIAddPrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error adding principal: {exc}",
@@ -378,16 +386,25 @@ class KerberosService(AbstractService):
         self,
         principal_name: str,
         principal_new_name: str,
+        algorithms: list[str] | None,
+        password: str | None,
     ) -> None:
         """Rename principal in Kerberos with given name.
 
         :param str principal_name: Current principal name.
         :param str principal_new_name: New principal name.
+        :param list[str] | None algorithms: Algorithms.
+        :param str | None password: Password.
         :raises KerberosDependencyError: On failed kadmin request.
         :return None: None.
         """
         try:
-            await self._kadmin.rename_princ(principal_name, principal_new_name)
+            await self._kadmin.rename_princ(
+                principal_name,
+                principal_new_name,
+                algorithms,
+                password,
+            )
         except KRBAPIRenamePrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error renaming principal: {exc}",
@@ -432,15 +449,17 @@ class KerberosService(AbstractService):
     async def ktadd(
         self,
         names: list[str],
+        is_rand_key: bool,
     ) -> tuple[AsyncIterator[bytes], TaskStruct]:
         """Generate keytab and return (aiter_bytes, TaskStruct).
 
         :param list[str] names: List of principal names.
+        :param bool is_rand_key: If True, generate random key.
         :raises KerberosNotFoundError: If principal not found.
         :return tuple: (aiter_bytes, (func, args, kwargs)).
         """
         try:
-            response = await self._kadmin.ktadd(names)
+            response = await self._kadmin.ktadd(names, is_rand_key)
         except KRBAPIPrincipalNotFoundError:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
