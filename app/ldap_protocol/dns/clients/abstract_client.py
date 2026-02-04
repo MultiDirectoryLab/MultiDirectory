@@ -89,6 +89,7 @@ class AbstractDNSMasterHTTPClient(AbstractDNSHTTPClient):
     async def delete_master_zone(self, zone_id: str) -> None:
         raise DNSNotImplementedError
 
+
 class AbstractDNSForwardHTTPClient(AbstractDNSHTTPClient):
     """Abstract DNS slient for forward server."""
 
