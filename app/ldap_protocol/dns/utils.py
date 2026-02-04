@@ -35,12 +35,10 @@ def logger_wraps(is_stub: bool = False) -> Callable:
         @functools.wraps(func)
         async def wrapped(*args: str, **kwargs: str) -> Any:
             logger = log.opt(depth=1)
-
-            logger.info(f"Calling{bus_type}'{name}'")
             try:
                 result = await func(*args, **kwargs)
             except DNSError as err:
-                logger.error(f"{name} call raised: {err}")
+                logger.error(f"{name} call in {bus_type} raised: {err}")
                 raise
 
             return result
