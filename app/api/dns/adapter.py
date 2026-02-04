@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from api.base_adapter import BaseAdapter
-from api.main.schema import (
+from api.dns.schema import (
     DNSServiceForwardZoneCheckRequest,
     DNSServiceForwardZoneRequest,
     DNSServiceMasterZoneRequest,

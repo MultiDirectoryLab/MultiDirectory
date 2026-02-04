@@ -49,10 +49,10 @@ from api.auth.adapters import (
 )
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
+from api.dns.adapter import DNSFastAPIAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
-from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import (
