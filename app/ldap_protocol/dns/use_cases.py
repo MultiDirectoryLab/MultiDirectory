@@ -19,7 +19,7 @@ from ldap_protocol.dns.dto import (
     DNSSettingsDTO,
 )
 from ldap_protocol.dns.enums import DNSManagerState
-from ldap_protocol.dns.exceptions import DNSSetupError
+from ldap_protocol.dns.exceptions import DNSError, DNSSetupError
 from ldap_protocol.dns.managers.abstract_dns_manager import AbstractDNSManager
 
 
@@ -106,13 +106,25 @@ class DNSUseCase(AbstractService):
 
     async def delete_master_zones(self, zone_ids: list[str]) -> None:
         """Delete DNS master zones."""
-        for zone_id in zone_ids:
-            await self._dns_manager.delete_master_zone(zone_id)
+        last_error = None
+        try:
+            for zone_id in zone_ids:
+                await self._dns_manager.delete_master_zone(zone_id)
+        except DNSError as e:
+            last_error = e
+        if last_error:
+            raise last_error
 
     async def delete_forward_zones(self, zone_ids: list[str]) -> None:
         """Delete DNS forward zones."""
-        for zone_id in zone_ids:
-            await self._dns_manager.delete_forward_zone(zone_id)
+        last_error = None
+        try:
+            for zone_id in zone_ids:
+                await self._dns_manager.delete_forward_zone(zone_id)
+        except DNSError as e:
+            last_error = e
+        if last_error:
+            raise last_error
 
     async def check_forward_server(
         self,
