@@ -16,6 +16,36 @@ from ldap_protocol.dns.enums import (
 
 
 @dataclass
+class CommandResponse:
+    success: bool = True
+    message: str = " "
+
+
+@dataclass
+class RuleEntry:
+    id: int
+    match: str
+    action: str
+
+
+@dataclass
+class DNSdistRulesTable:
+    rules: list[RuleEntry]
+    count: int
+
+
+@dataclass
+class DNSdistCommand:
+    command: str
+
+
+@dataclass
+class DNSdistCommandsDelta:
+    delta: list[DNSdistCommand]
+    count: int
+
+
+@dataclass
 class PowerDNSSettingsDTO:
     """PowerDNS related settings."""
 

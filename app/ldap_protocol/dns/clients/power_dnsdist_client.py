@@ -6,9 +6,18 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import re
 from ipaddress import IPv4Address
+from typing import Literal, overload
 
 from dnsdist_console import Console
 
+from ldap_protocol.dns.dto import (
+    CommandResponse,
+    DNSdistCommand,
+    DNSdistCommandsDelta,
+    DNSdistRulesTable,
+    RuleEntry,
+)
+from ldap_protocol.dns.enums import DNSdistCommandType
 from ldap_protocol.dns.exceptions import DNSdistError
 
 
@@ -29,23 +38,82 @@ class PowerDNSDistClient:
         )
         self._config_path = config_path
 
-    # TODO: присобачить нормальный тип возвращаемого значения
-    def _send_command(self, command: str) -> str:
+    @overload
+    def _send_command(
+        self,
+        command: str,
+        *,
+        expected: Literal[DNSdistCommandType.GENERIC],
+    ) -> CommandResponse: ...
+
+    @overload
+    def _send_command(
+        self,
+        command: str,
+        *,
+        expected: Literal[DNSdistCommandType.SHOW_RULES],
+    ) -> DNSdistRulesTable: ...
+
+    @overload
+    def _send_command(
+        self,
+        command: str,
+        *,
+        expected: Literal[DNSdistCommandType.COMMANDS_DELTA],
+    ) -> DNSdistCommandsDelta: ...
+
+    def _send_command(
+        self,
+        command: str,
+        *,
+        expected: DNSdistCommandType = DNSdistCommandType.GENERIC,
+    ) -> CommandResponse | DNSdistRulesTable | DNSdistCommandsDelta:
         """Send command to dnsdist console."""
-        return self._console.send_command(command)
+        raw: str = self._console.send_command(command)
 
-    def _get_rule_id(self, match_rule: str) -> int | None:
-        """Get rule ID from all rules list."""
-        rules = self.get_all_rules()
-        pattern = rf"^(\d+)\s+.*?\b{re.escape(match_rule)}\b"
-        match = re.search(pattern, rules, re.MULTILINE)
-        return int(match.group(1)) if match else None
+        if expected is DNSdistCommandType.GENERIC:
+            if "error" in raw.lower() or "fail" in raw.lower():
+                raise DNSdistError(f"dnsdist command error: {raw.strip()}")
+            return CommandResponse(message=raw.strip() or "OK")
 
-    # TODO: тоже присобачить нормальный тип возвращаемого значения
-    def _get_all_rules(self) -> str:
+        if expected is DNSdistCommandType.SHOW_RULES:
+            rules = []
+            pattern = re.compile(r"^(\d+)\s+\d+\s+(.+?)\s{2,}(to .+)$")
+            for line in raw.strip().split("\n"):
+                if "to pool" in line:
+                    matches = pattern.match(line)
+                    if matches:
+                        rules.append(
+                            RuleEntry(
+                                id=int(matches.group(1)),
+                                match=matches.group(2).strip(),
+                                action=matches.group(3).strip(),
+                            ),
+                        )
+            return DNSdistRulesTable(rules=rules, count=len(rules))
+
+        if expected is DNSdistCommandType.COMMANDS_DELTA:
+            commands = []
+            for command in raw.split("\n"):
+                commands.append(DNSdistCommand(command=command))
+            return DNSdistCommandsDelta(delta=commands, count=len(commands))
+
+    def _get_all_rules(self) -> DNSdistRulesTable:
         """Get list of all rules."""
         command = "showRules()"
-        return self._send_command(command)
+        return self._send_command(
+            command,
+            expected=DNSdistCommandType.SHOW_RULES,
+        )
+
+    def get_rule_by_match(self, match: str) -> RuleEntry | None:
+        """Get rule by rule match."""
+        rules = self._get_all_rules()
+        for rule in rules.rules:
+            if rule.match == match:
+                return rule
+
+        return None
 
     def add_server(
         self,
@@ -59,11 +127,10 @@ class PowerDNSDistClient:
                 pool = "{pool}"
             }})
         """
-        output = self._send_command(command)
-        if len(output) > 1:
-            raise DNSdistError(
-                f"Failed to add server to dnsdist: {len(output)}",
-            )
+        self._send_command(
+            command,
+            expected=DNSdistCommandType.GENERIC,
+        )
 
         self._persist_config()
 
@@ -75,7 +142,10 @@ class PowerDNSDistClient:
                 pool = "recursor"
             }})
         """
-        self._send_command(command)
+        self._send_command(
+            command,
+            expected=DNSdistCommandType.GENERIC,
+        )
 
         command = """
             addAction(
@@ -83,9 +153,10 @@ class PowerDNSDistClient:
                 PoolAction("recursor")
             )
         """
-        output = self._send_command(command)
-        if len(output) > 1:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
+        self._send_command(
+            command,
+            expected=DNSdistCommandType.GENERIC,
+        )
 
     def add_zone_rule(self, domain: str) -> None:
         """Add rule to redirect master zone DNS requests to auth server."""
@@ -95,9 +166,10 @@ class PowerDNSDistClient:
                 PoolAction("master")
             )
         """
-        output = self._send_command(command)
-        if len(output) > 1:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
+        self._send_command(
+            command,
+            expected=DNSdistCommandType.GENERIC,
+        )
 
         command = f"""
             addAction(
@@ -105,9 +177,10 @@ class PowerDNSDistClient:
                 PoolAction("master")
             )
         """
-        output = self._send_command(command)
-        if len(output) > 1:
-            raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
+        self._send_command(
+            command,
+            expected=DNSdistCommandType.GENERIC,
+        )
 
         self._deprioritize_all_match_rule()
 
@@ -119,30 +192,32 @@ class PowerDNSDistClient:
             f"qname=={domain}",
             f"qname==*.{domain}",
         ]
-        rule_ids = [
-            self._get_rule_id(rule_match) for rule_match in rule_matches
-        ]
-        if not rule_ids:
-            DNSdistError(
-                "Failed to delete existing rule in dnsdist: Not Found",
-            )
+        for rule_match in rule_matches:
+            rules = self._get_all_rules()
+            if not rules.count:
+                DNSdistError(
+                    "Failed to delete existing rule in dnsdist: Not Found",
+                )
 
-        for rule_id in rule_ids:
-            command = f"rmRule({rule_id})"
-            output = self._send_command(command)
-            if len(output) > 1:
-                raise DNSdistError(f"Failed to add rule to dnsdist: {output}")
+            for rule in rules.rules:
+                if rule.match == rule_match:
+                    command = f"rmRule({rule.id})"
+                    self._send_command(
+                        command,
+                        expected=DNSdistCommandType.GENERIC,
+                    )
 
         self._persist_config()
 
     def _deprioritize_all_match_rule(self) -> None:
         """Remove and add all matching rule to depriortitize it."""
-        rule_id = self._get_rule_id("All")
-        if rule_id is None:
-            return
-
-        command = f"rmRule({rule_id})"
-        self._send_command(command)
+        rule = self.get_rule_by_match("All")
+        if rule is not None:
+            command = f"rmRule({rule.id})"
+            self._send_command(
+                command,
+                expected=DNSdistCommandType.GENERIC,
+            )
 
         command = """
             addAction(
@@ -150,31 +225,42 @@ class PowerDNSDistClient:
                 PoolAction("recursor")
             )
         """
-        self._send_command(command)
+        self._send_command(
+            command,
+            expected=DNSdistCommandType.GENERIC,
+        )
 
         self._persist_config()
 
-    def _get_commands_delta(self) -> list[str]:
+    def _get_commands_delta(self) -> DNSdistCommandsDelta:
         """Get list of commands that have not been persisted yet."""
         command = "delta()"
-        output = self._send_command(command)
-        commands = output.strip().split("\n") if output else []
-        return commands
+        return self._send_command(
+            command,
+            expected=DNSdistCommandType.COMMANDS_DELTA,
+        )
 
-    def _save_commands_delta(self, commands: list[str]) -> None:
+    def _save_commands_delta(
+        self,
+        commands_delta: DNSdistCommandsDelta,
+    ) -> None:
         """Save commands delta to dnsdist config file."""
         with open(self._config_path, "a+", encoding="utf-8") as config_file:
-            for command in commands:
-                config_file.write(f"{command}\n")
+            for command in commands_delta.delta:
+                config_file.write(f"{command.command}\n")
 
     def _clear_console_history(self) -> None:
         """Clear console history to delete written delta."""
         command = "clearConsoleHistory()"
-        self._send_command(command)
+        self._send_command(
+            command,
+            expected=DNSdistCommandType.GENERIC,
+        )
 
     def _persist_config(self) -> None:
         """Persist dnsdist config to file."""
-        if commands_delta := self._get_commands_delta():
+        commands_delta = self._get_commands_delta()
+        if commands_delta.count:
             self._save_commands_delta(commands_delta)
 
         self._clear_console_history()

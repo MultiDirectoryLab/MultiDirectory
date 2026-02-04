@@ -94,6 +94,13 @@ class PowerDNSManager(AbstractDNSManager):
             )
 
         try:
+            self._dnsdist_client.setup_dnsdist(
+                dns_settings.power_dns_settings.recursor_server_ip,
+            )
+            self._dnsdist_client.add_server(
+                dns_settings.power_dns_settings.auth_server_ip,
+                "master",
+            )
             await self.create_master_zone(
                 DNSMasterZoneDTO(
                     id=self._dns_settings.domain,
@@ -101,13 +108,6 @@ class PowerDNSManager(AbstractDNSManager):
                     dnssec=False,
                     rrsets=records,
                 ),
-            )
-            self._dnsdist_client.setup_dnsdist(
-                dns_settings.power_dns_settings.recursor_server_ip,
-            )
-            self._dnsdist_client.add_server(
-                dns_settings.power_dns_settings.auth_server_ip,
-                "master",
             )
         except DNSZoneCreateError as e:
             raise DNSSetupError(f"Failed to set up DNS: {e}")

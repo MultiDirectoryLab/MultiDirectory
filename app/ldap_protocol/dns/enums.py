@@ -4,7 +4,15 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enum import StrEnum
+from enum import Enum, StrEnum
+
+
+class DNSdistCommandType(Enum):
+    """PDNSdist command types."""
+
+    GENERIC = "generic"
+    SHOW_RULES = "show_rules"
+    COMMANDS_DELTA = "commands_delta"
 
 
 class DNSRecordType(StrEnum):
