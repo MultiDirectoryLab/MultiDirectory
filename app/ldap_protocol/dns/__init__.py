@@ -17,7 +17,11 @@ from ldap_protocol.dns.dto import (
     DNSSettingsDTO,
     PowerDNSSettingsDTO,
 )
-from ldap_protocol.dns.enums import DNSManagerState, PowerDNSZoneType
+from ldap_protocol.dns.enums import (
+    DNSManagerState,
+    DNSRecordType,
+    PowerDNSZoneType,
+)
 from ldap_protocol.dns.exceptions import (
     DNSConnectionError,
     DNSError,
@@ -49,6 +53,7 @@ __all__ = [
     "DNSRRSetDTO",
     "DNSMasterZoneDTO",
     "PowerDNSZoneType",
+    "DNSRecordType",
     "DNSManagerState",
     "DNS_MANAGER_IP_ADDRESS_NAME",
     "DNS_MANAGER_ZONE_NAME",

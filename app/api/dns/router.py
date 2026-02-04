@@ -12,13 +12,8 @@ from fastapi_error_map.routing import ErrorAwareRouter
 
 import ldap_protocol.dns.exceptions as dns_exc
 from api.auth.utils import verify_auth
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
-from api.main.adapters.dns import DNSFastAPIAdapter
-from api.main.schema import (
+from api.dns.adapter import DNSFastAPIAdapter
+from api.dns.schema import (
     DNSServiceForwardZoneCheckRequest,
     DNSServiceForwardZoneRequest,
     DNSServiceMasterZoneRequest,
@@ -28,6 +23,11 @@ from api.main.schema import (
     DNSServiceSetStateRequest,
     DNSServiceSetupRequest,
     DNSServiceZoneDeleteRequest,
+)
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
 )
 from enums import DomainCodes
 from ldap_protocol.dns import (
