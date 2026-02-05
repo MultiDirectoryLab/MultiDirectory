@@ -439,7 +439,8 @@ class MainProvider(Provider):
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
-        AttributeTypeSystemFlagsUseCase, scope=Scope.REQUEST
+        AttributeTypeSystemFlagsUseCase,
+        scope=Scope.REQUEST,
     )
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
