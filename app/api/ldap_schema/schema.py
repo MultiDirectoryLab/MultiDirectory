@@ -28,6 +28,7 @@ class AttributeTypeSchema(BaseModel, Generic[_IdT]):
     single_value: bool
     no_user_modification: bool
     is_system: bool
+    system_flags: int = 0
     is_included_anr: bool = False
     object_class_names: list[str] = Field(default_factory=list)
 

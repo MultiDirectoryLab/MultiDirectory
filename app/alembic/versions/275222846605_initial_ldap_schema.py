@@ -50,12 +50,11 @@ def upgrade(container: AsyncContainer) -> None:
         sa.Column("single_value", sa.Boolean(), nullable=False),
         sa.Column("no_user_modification", sa.Boolean(), nullable=False),
         sa.Column("is_system", sa.Boolean(), nullable=False),
-        sa.Column(
-            "is_included_anr",
-            sa.Boolean(),
-            nullable=True,
-        ),  # NOTE: added in f24ed0e49df2_add_filter_anr.py
         sa.PrimaryKeyConstraint("id"),
+        # NOTE: added in 2dadf40c026a_.py
+        sa.Column("system_flags", sa.Integer(), nullable=False),
+        # NOTE: added in f24ed0e49df2_add_filter_anr.py  # noqa: ERA001
+        sa.Column("is_included_anr", sa.Boolean(), nullable=True),
     )
     op.create_index(
         op.f("ix_AttributeTypes_oid"),
@@ -359,6 +358,7 @@ def upgrade(container: AsyncContainer) -> None:
                     single_value=True,
                     no_user_modification=False,
                     is_system=True,
+                    system_flags=0,
                     is_included_anr=False,
                 ),
             )
@@ -400,6 +400,9 @@ def upgrade(container: AsyncContainer) -> None:
 
     # NOTE: it added in f24ed0e49df2_add_filter_anr.py
     op.drop_column("AttributeTypes", "is_included_anr")
+    # NOTE: added in 2dadf40c026a_.py
+    op.drop_column("AttributeTypes", "system_flags")
+
     session.commit()
 
 

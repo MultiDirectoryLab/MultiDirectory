@@ -5,6 +5,9 @@ from fastapi import status
 from httpx import AsyncClient
 
 from api.ldap_schema.schema import AttributeTypeSchema
+from ldap_protocol.ldap_schema.attribute_type_system_flags import (
+    AttributeTypeSystemFlags,
+)
 
 from .test_attribute_type_router_datasets import (
     test_delete_bulk_attribute_types_dataset,
@@ -177,3 +180,32 @@ async def test_delete_bulk_attribute_types(
                 f"/schema/attribute_type/{attribute_type_name}",
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.asyncio
+async def test_attribute_type_system_flags_is_replicated(
+    http_client: AsyncClient,
+) -> None:
+    """Test attribute_type system_flags."""
+    schema = AttributeTypeSchema[None](
+        oid="1.2.3.5",
+        name="testAttributeNonReplicated",
+        syntax="1.3.6.1.4.1.1466.115.121.1.15",
+        single_value=True,
+        no_user_modification=False,
+        is_system=False,
+        system_flags=int(AttributeTypeSystemFlags.ATTR_NOT_REPLICATED),
+        is_included_anr=False,
+    )
+    response = await http_client.post(
+        "/schema/attribute_type",
+        json=schema.model_dump(),
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.get(f"/schema/attribute_type/{schema.name}")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data.get("system_flags") == int(
+        AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
+    )

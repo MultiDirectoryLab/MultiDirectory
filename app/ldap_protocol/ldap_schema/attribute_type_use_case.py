@@ -7,8 +7,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import ClassVar
 
 from abstract_service import AbstractService
+from entities import AttributeType
 from enums import AuthorizationRules
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_system_flags import (
+    AttributeTypeSystemFlagsUseCase,
+)
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
@@ -20,10 +24,14 @@ class AttributeTypeUseCase(AbstractService):
     def __init__(
         self,
         attribute_type_dao: AttributeTypeDAO,
+        attribute_type_system_flags_use_case: AttributeTypeSystemFlagsUseCase,
         object_class_dao: ObjectClassDAO,
     ) -> None:
         """Init AttributeTypeUseCase."""
         self._attribute_type_dao = attribute_type_dao
+        self._attribute_type_system_flags_use_case = (
+            attribute_type_system_flags_use_case
+        )
         self._object_class_dao = object_class_dao
 
     async def get(self, _id: str) -> AttributeTypeDTO:
@@ -67,6 +75,23 @@ class AttributeTypeUseCase(AbstractService):
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system Attribute Types by names."""
         return await self._attribute_type_dao.delete_all_by_names(names)
+
+    def is_replicated(self, attribute_type: AttributeType) -> bool:
+        """Check if attribute is replicated based on systemFlags."""
+        return self._attribute_type_system_flags_use_case.is_replicated(
+            attribute_type,
+        )
+
+    def set_replication_flag(
+        self,
+        attribute_type: AttributeType,
+        need_to_replicate: bool,
+    ) -> None:
+        """Set replication flag in systemFlags."""
+        self._attribute_type_system_flags_use_case.set_is_replicated(
+            attribute_type,
+            need_to_replicate,
+        )
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
         get.__name__: AuthorizationRules.ATTRIBUTE_TYPE_GET,

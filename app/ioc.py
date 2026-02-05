@@ -78,6 +78,9 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_system_flags import (
+    AttributeTypeSystemFlagsUseCase,
+)
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
@@ -435,6 +438,9 @@ class MainProvider(Provider):
         scope=Scope.RUNTIME,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    attribute_type_system_flags_use_case = provide(
+        AttributeTypeSystemFlagsUseCase, scope=Scope.REQUEST
+    )
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_use_case = provide(
