@@ -74,7 +74,7 @@ class PowerDNSManager(AbstractDNSManager):
         """Set up DNS server and DNS manager."""
         records = []
         if dns_settings.power_dns_settings is None:
-            raise DNSError("PowerDNS settings is not set.")
+            raise DNSSetupError("PowerDNS settings is not set.")
 
         for record in DNS_FIRST_SETUP_RECORDS:
             records.append(
