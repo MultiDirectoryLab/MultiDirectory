@@ -72,7 +72,7 @@ class RemoteDNSManager(AbstractDNSManager):
         await self._send(action)
 
     @logger_wraps()
-    async def get_records(self) -> list[DNSRRSetDTO]:
+    async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Get all DNS records."""
         if (
             self._dns_settings.dns_server_ip is None
@@ -80,7 +80,7 @@ class RemoteDNSManager(AbstractDNSManager):
         ):
             raise DNSConnectionError
 
-        zone = from_text(self._dns_settings.domain)
+        zone = from_text(self._dns_settings.domain or zone_id)
         zone_tm = Zone(zone)
         query = make_dns_query(zone, AXFR, IN)
 

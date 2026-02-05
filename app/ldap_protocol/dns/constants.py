@@ -11,7 +11,7 @@ DNS_MANAGER_ZONE_NAME = "DNSManagerZoneName"
 DNS_MANAGER_IP_ADDRESS_NAME = "DNSManagerIpAddress"
 DNS_MANAGER_TSIG_KEY_NAME = "DNSManagerTSIGKey"
 
-DNS_FIRST_SETUP_RECORDS: list[dict[str, str]] = [
+DNS_FIRST_SETUP_RECORDS: list[dict[str, str | DNSRecordType]] = [
     {"name": "_ldap._tcp.", "value": "0 0 389 ", "type": DNSRecordType.SRV},
     {"name": "_ldaps._tcp.", "value": "0 0 636 ", "type": DNSRecordType.SRV},
     {"name": "_kerberos._tcp.", "value": "0 0 88 ", "type": DNSRecordType.SRV},

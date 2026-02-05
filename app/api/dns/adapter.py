@@ -142,7 +142,7 @@ class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):
         data: DNSServiceForwardZoneRequest,
     ) -> None:
         """Update DNS forward zone with given params."""
-        await self._service.update_zone(
+        await self._service.update_forward_zone(
             DNSForwardZoneDTO(
                 id=data.zone_name,
                 name=data.zone_name,
