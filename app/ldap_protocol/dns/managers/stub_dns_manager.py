@@ -4,6 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from ipaddress import IPv4Address, IPv6Address
+
 from ldap_protocol.dns.dto import (
     DNSForwardZoneDTO,
     DNSMasterZoneDTO,
@@ -98,5 +100,6 @@ class StubDNSManager(AbstractDNSManager):
     @logger_wraps(is_stub=True)
     async def check_forward_dns_server(
         self,
-        dns_server_ip: str,
+        dns_server_ip: IPv4Address | IPv6Address,
+        host_dns_servers: list[str],
     ) -> None: ...

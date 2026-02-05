@@ -25,7 +25,7 @@ class AbstractDNSManager:
 
     _dns_settings: DNSSettingsDTO
     _dns_master_client: AbstractDNSMasterHTTPClient | None = None
-    _dns_forward_cient: AbstractDNSForwardHTTPClient | None = None
+    _dns_forward_client: AbstractDNSForwardHTTPClient | None = None
 
     def __init__(
         self,
