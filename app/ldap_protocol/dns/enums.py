@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from enum import Enum, StrEnum
 
 
-class DNSdistCommandType(Enum):
+class DNSdistCommandTypes(Enum):
     """PDNSdist command types."""
 
     GENERIC = "generic"

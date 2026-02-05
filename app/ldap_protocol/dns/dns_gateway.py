@@ -46,13 +46,11 @@ class DNSStateGateway:
         settings = await self._session.scalars(
             select(CatalogueSetting)
             .filter(
-                qa(CatalogueSetting.name)
-                .in_(
-                    [
+                qa(CatalogueSetting.name).in_((
                         DNS_MANAGER_ZONE_NAME,
                         DNS_MANAGER_IP_ADDRESS_NAME,
                         DNS_MANAGER_TSIG_KEY_NAME,
-                    ],
+                    ),
                 ),
             ),
         )  # fmt: skip
