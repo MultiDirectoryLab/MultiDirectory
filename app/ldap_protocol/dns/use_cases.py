@@ -142,7 +142,9 @@ class DNSUseCase(AbstractService):
         return {
             "dns_status": await self._dns_gateway.get_state(),
             "zone_name": self._dns_settings.domain,
-            "dns_server_ip": str(self._dns_settings.dns_server_ip),
+            "dns_server_ip": str(self._dns_settings.dns_server_ip)
+            if self._dns_settings.dns_server_ip is not None
+            else None,
         }
 
     async def set_state(self, state: DNSManagerState) -> None:
