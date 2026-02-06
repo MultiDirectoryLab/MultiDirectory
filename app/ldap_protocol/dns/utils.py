@@ -18,7 +18,7 @@ log = logger.bind(name="DNSManager")
 
 log.add(
     "logs/dnsmanager_{time:DD-MM-YYYY}.log",
-    filter=lambda rec: rec["extra"].get("name") == "dnsmanager",
+    filter=lambda rec: rec["extra"].get("name") == "DNSManager",
     retention="10 days",
     rotation="1d",
     colorize=False,
