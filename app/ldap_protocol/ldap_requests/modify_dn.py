@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import AsyncGenerator, ClassVar
 
+from loguru import logger
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
@@ -83,6 +84,14 @@ class ModifyDNRequest(BaseRequest):
             newrdn=data[1].value,
             deleteoldrdn=data[2].value,
             new_superior=None if len(data) < 4 else data[3].value,
+        )
+
+    def is_move_to_new_superior(self, directory: Directory) -> bool:
+        """Check if the request is a move operation."""
+        return bool(
+            self.new_superior
+            and directory.parent
+            and self.new_superior != directory.parent.path_dn,
         )
 
     async def handle(
@@ -166,11 +175,7 @@ class ModifyDNRequest(BaseRequest):
             )
             return
 
-        if (
-            self.new_superior
-            and directory.parent
-            and self.new_superior != directory.parent.path_dn
-        ):
+        if self.is_move_to_new_superior(directory) and self.new_superior:
             new_sup_query = select(Directory).filter(
                 get_filter_from_path(self.new_superior),
             )
@@ -219,6 +224,10 @@ class ModifyDNRequest(BaseRequest):
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
                 )
                 return
+
+        logger.critical(self.entry)
+        logger.critical(self.newrdn)
+        logger.critical(self.new_superior)
 
         async with ctx.session.begin_nested():
             if self.deleteoldrdn:
