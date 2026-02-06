@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
-from application.entities import Directory, Group
+from domain.entities import Directory, Group
 from enums import AceType, RoleScope
 from application.kerberos.base import AbstractKadmin
 from application.ldap_codes import LDAPCodes

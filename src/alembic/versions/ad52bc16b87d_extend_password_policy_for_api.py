@@ -12,7 +12,7 @@ from dishka import AsyncContainer
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from application.entities import PasswordPolicy
+from domain.entities import PasswordPolicy
 from application.policies.password.dataclasses import (
     DefaultDomainPasswordPolicyPreset,
 )

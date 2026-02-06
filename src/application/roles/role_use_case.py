@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy import and_, insert, literal, or_, select
 
-from application.entities import AccessControlEntry, AceType, Directory, Role
+from domain.entities import AccessControlEntry, AceType, Directory, Role
 from enums import AuthorizationRules, RoleConstants, RoleScope
 from application.kerberos.utils import get_system_container_dn
 from application.utils.queries import get_base_directories

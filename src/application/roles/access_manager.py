@@ -9,7 +9,7 @@ from typing import Literal
 from sqlalchemy import Select, and_
 from sqlalchemy.orm import selectinload, with_loader_criteria
 
-from application.entities import AccessControlEntry, Directory
+from domain.entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from application.objects import Changes, Operation
 from infrastructure.pg.tables import queryable_attr as qa

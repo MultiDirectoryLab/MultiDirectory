@@ -64,7 +64,7 @@ from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
-from application.entities import AttributeType
+from domain.entities import AttributeType
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from application.auth import AuthManager, MFAManager

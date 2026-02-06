@@ -12,7 +12,7 @@ from loguru import logger
 from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 
-from application.entities import Directory, User
+from domain.entities import Directory, User
 from application.asn1parser import LDAPOID, ASN1Row, asn1todict
 from application.kerberos.exceptions import (
     KRBAPIChangePasswordError,

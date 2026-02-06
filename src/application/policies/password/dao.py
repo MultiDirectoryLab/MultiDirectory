@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
 from abstract_dao import AbstractDAO
-from application.entities import Attribute, Group, PasswordPolicy, User
+from domain.entities import Attribute, Group, PasswordPolicy, User
 from enums import EntityTypeNames
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,

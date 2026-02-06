@@ -16,7 +16,7 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
-from application.entities import Attribute, AttributeType, ObjectClass
+from domain.entities import Attribute, AttributeType, ObjectClass
 from extra.alembic_utils import temporary_stub_column
 from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from application.ldap_schema.dto import AttributeTypeDTO

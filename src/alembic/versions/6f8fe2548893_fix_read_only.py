@@ -13,7 +13,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from constants import DOMAIN_USERS_GROUP_NAME
-from application.entities import Attribute, Directory
+from domain.entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
 from application.utils.helpers import create_integer_hash
 

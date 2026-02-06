@@ -9,7 +9,7 @@ from ipaddress import IPv4Address, IPv6Address, ip_address
 from fastapi import HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.entities import User
+from domain.entities import User
 from application.utils.queries import get_user
 from password_utils import PasswordUtils
 

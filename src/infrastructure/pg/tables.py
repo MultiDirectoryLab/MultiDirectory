@@ -33,7 +33,7 @@ from sqlalchemy.orm import QueryableAttribute, registry, relationship, synonym
 from sqlalchemy.sql import expression
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from application.entities import (
+from domain.entities import (
     AccessControlEntry,
     Attribute,
     AttributeType,

@@ -12,7 +12,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from application.entities import Attribute, Directory, EntityType
+from domain.entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
 from infrastructure.pg.tables import queryable_attr as qa

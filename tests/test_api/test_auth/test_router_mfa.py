@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.entities import CatalogueSetting
+from domain.entities import CatalogueSetting
 
 
 @pytest.mark.asyncio

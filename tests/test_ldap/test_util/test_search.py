@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from config import Settings
-from application.entities import User
+from domain.entities import User
 from enums import AceType, ProtocolType, RoleScope
 from application.asn1parser import ASN1Row, TagNumbers
 from application.dialogue import LDAPSession

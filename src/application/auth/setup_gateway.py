@@ -11,7 +11,7 @@ from loguru import logger
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.entities import Attribute, Directory, Group, NetworkPolicy, User
+from domain.entities import Attribute, Directory, Group, NetworkPolicy, User
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )

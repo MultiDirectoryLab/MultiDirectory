@@ -10,7 +10,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
-from application.entities import AccessControlEntry, Attribute, Directory
+from domain.entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
 from application.asn1parser import ASN1Row
 from application.ldap_codes import LDAPCodes

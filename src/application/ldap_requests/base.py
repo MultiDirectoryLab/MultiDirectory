@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from sqlalchemy.exc import OperationalError
 
 from config import Settings
-from application.entities import Directory
+from domain.entities import Directory
 from application.dependency import resolve_deps
 from application.dialogue import LDAPSession
 from application.ldap_codes import LDAPCodes

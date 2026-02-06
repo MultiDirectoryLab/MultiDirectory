@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.entities import Directory
+from domain.entities import Directory
 
 
 class SADomainGateway:

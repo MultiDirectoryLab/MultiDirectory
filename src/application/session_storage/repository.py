@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
 from config import Settings
-from application.entities import User
+from domain.entities import User
 from enums import AuthorizationRules
 from application.utils.queries import get_user, set_user_logon_attrs
 

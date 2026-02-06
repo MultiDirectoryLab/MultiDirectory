@@ -9,7 +9,7 @@ from ipaddress import IPv4Address, IPv4Network
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.entities import NetworkPolicy
+from domain.entities import NetworkPolicy
 from enums import ProtocolType
 from application.policies.network import NetworkPolicyValidatorUseCase
 from application.utils.queries import get_group, get_user

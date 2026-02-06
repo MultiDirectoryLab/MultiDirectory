@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from application.entities import Attribute, Directory, Group, User
+from domain.entities import Attribute, Directory, Group, User
 from enums import SamAccountTypeCodes
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import select
 
 from config import Settings
-from application.entities import Attribute, Directory, User
+from domain.entities import Attribute, Directory, User
 from application.objects import UserAccountControlFlag
 from application.user_account_control import get_check_uac
 from application.utils.queries import (

@@ -9,7 +9,7 @@ from typing import Awaitable
 from sqlalchemy import case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.entities import CatalogueSetting
+from domain.entities import CatalogueSetting
 from application.dns.base import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,

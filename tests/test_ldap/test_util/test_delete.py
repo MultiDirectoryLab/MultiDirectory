@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from application.entities import Directory
+from domain.entities import Directory
 from enums import AceType, RoleScope
 from application.ldap_codes import LDAPCodes
 from application.roles.ace_dao import AccessControlEntryDAO

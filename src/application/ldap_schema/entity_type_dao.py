@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from application.entities import Attribute, Directory, EntityType, ObjectClass
+from domain.entities import Attribute, Directory, EntityType, ObjectClass
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,

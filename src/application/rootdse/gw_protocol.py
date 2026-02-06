@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Protocol
 
-from application.entities import Directory
+from domain.entities import Directory
 
 
 class DomainReadProtocol(Protocol):

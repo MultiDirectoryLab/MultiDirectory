@@ -11,7 +11,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from application.entities import Directory, Group
+from domain.entities import Directory, Group
 from extra.alembic_utils import temporary_stub_column
 from application.roles.role_use_case import RoleUseCase
 from application.utils.queries import get_base_directories

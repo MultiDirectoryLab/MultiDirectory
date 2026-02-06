@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from application.entities import Group, NetworkPolicy
+from domain.entities import Group, NetworkPolicy
 from application.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,

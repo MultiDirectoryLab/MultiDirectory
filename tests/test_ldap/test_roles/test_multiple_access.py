@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, subqueryload
 
 from config import Settings
-from application.entities import Directory
+from domain.entities import Directory
 from enums import AceType, EntityTypeNames, RoleScope
 from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from application.ldap_schema.entity_type_dao import EntityTypeDAO

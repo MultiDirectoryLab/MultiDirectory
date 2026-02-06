@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DATAS
-from application.entities import Attribute, Directory, User
+from domain.entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_column
 from application.ldap_schema.dto import EntityTypeDTO
 from application.ldap_schema.entity_type_dao import EntityTypeDAO

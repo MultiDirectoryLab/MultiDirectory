@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, select
 
 from config import Settings
-from application.entities import Attribute, User
+from domain.entities import Attribute, User
 from application.kerberos import AbstractKadmin
 from application.objects import UserAccountControlFlag
 from application.utils.queries import add_lock_and_expire_attributes

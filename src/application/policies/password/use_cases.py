@@ -9,7 +9,7 @@ from typing import ClassVar, Iterable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
-from application.entities import User
+from domain.entities import User
 from enums import AuthorizationRules
 from application.identity.exceptions import UserNotFoundError
 from application.policies.password.ban_word_repository import (

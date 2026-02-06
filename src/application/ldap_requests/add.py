@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
-from application.entities import Attribute, Directory, Group, User
+from domain.entities import Attribute, Directory, Group, User
 from enums import AceType, EntityTypeNames, SamAccountTypeCodes
 from application.asn1parser import ASN1Row
 from application.kerberos.exceptions import (

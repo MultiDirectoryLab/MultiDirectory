@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from loguru import logger
 
 from config import Settings
-from application.entities import User
+from domain.entities import User
 from enums import AuthorizationRules
 from application.dialogue import UserSchema
 from application.identity.exceptions import UnauthorizedError

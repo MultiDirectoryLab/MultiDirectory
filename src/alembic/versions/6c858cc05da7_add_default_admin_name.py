@@ -11,7 +11,7 @@ from alembic import op
 from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
-from application.entities import Attribute, User
+from domain.entities import Attribute, User
 from extra.alembic_utils import temporary_stub_column
 from infrastructure.pg.tables import queryable_attr as qa
 

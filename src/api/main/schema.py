@@ -11,7 +11,7 @@ from dishka import AsyncContainer
 from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
-from application.entities import Directory
+from domain.entities import Directory
 from application.dns import DNSManagerState, DNSZoneParam, DNSZoneType
 from application.filter_interpreter import (
     Filter,

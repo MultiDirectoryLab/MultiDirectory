@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
-from application.entities import AccessControlEntry
+from domain.entities import AccessControlEntry
 from enums import AceType
 from application.ldap_responses import PartialAttribute
 from application.objects import Changes, Operation

@@ -12,7 +12,7 @@ from dishka import AsyncContainer
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
-from application.entities import AttributeType
+from domain.entities import AttributeType
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

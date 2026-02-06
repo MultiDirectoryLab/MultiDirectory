@@ -19,7 +19,7 @@ from constants import (
     DOMAIN_USERS_GROUP_NAME,
     READ_ONLY_GROUP_NAME,
 )
-from application.entities import Directory
+from domain.entities import Directory
 from application.utils.queries import get_base_directories
 from infrastructure.pg.tables import queryable_attr as qa
 
