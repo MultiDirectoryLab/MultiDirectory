@@ -293,7 +293,7 @@ class MainProvider(Provider):
     ) -> PowerDNSDistClient:
         """Get PowerDNS dist client."""
         return PowerDNSDistClient(
-            dnsdist_host=settings.PDNS_DIST_HOST,
+            dnsdist_host=settings.PDNS_DIST_IP,
             dnsdist_port=settings.PDNS_DIST_PORT,
             dnsdist_key=settings.PDNS_DIST_KEY,
             config_path=settings.PDNS_DIST_CONFIG_PATH,
