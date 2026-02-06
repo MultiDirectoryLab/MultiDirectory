@@ -12,7 +12,7 @@ from sqlalchemy import Integer, String, cast, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
-from abstract_dao import AbstractDAO
+from abstract_dao import AbstractDBGateWay
 from domain.entities import Attribute, Group, PasswordPolicy, User
 from enums import EntityTypeNames
 from application.ldap_schema.attribute_value_validator import (
@@ -64,7 +64,7 @@ _convert_model_to_dto = get_converter(
 )
 
 
-class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
+class PasswordPolicyDAO(AbstractDBGateWay[PasswordPolicyDTO, int]):
     """Password Policy DAO."""
 
     _session: AsyncSession

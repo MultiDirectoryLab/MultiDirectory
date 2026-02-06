@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from abstract_dao import AbstractDAO
+from abstract_dao import AbstractDBGateWay
 from domain.entities import AttributeType, EntityType, ObjectClass
 from application.utils.pagination import (
     PaginationParams,
@@ -45,7 +45,7 @@ _converter = get_converter(
 )
 
 
-class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
+class ObjectClassDAO(AbstractDBGateWay[ObjectClassDTO, str]):
     """Object Class DAO."""
 
     def __init__(self, session: AsyncSession) -> None:

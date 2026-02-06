@@ -10,7 +10,7 @@ from adaptix.conversion import get_converter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractDAO
+from abstract_dao import AbstractDBGateWay
 from domain.entities import AuditDestination
 
 from .dataclasses import AuditDestinationDTO
@@ -19,7 +19,7 @@ from .exception import AuditNotFoundError
 _convert = get_converter(AuditDestination, AuditDestinationDTO)
 
 
-class AuditDestinationDAO(AbstractDAO[AuditDestinationDTO, int]):
+class AuditDestinationDAO(AbstractDBGateWay[AuditDestinationDTO, int]):
     """Audit destination DAO class."""
 
     def __init__(self, session: AsyncSession):

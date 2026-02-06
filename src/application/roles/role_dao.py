@@ -10,7 +10,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from abstract_dao import AbstractDAO
+from abstract_dao import AbstractDBGateWay
 from domain.entities import AccessControlEntry, Group, Role
 from enums import AuthorizationRules, RoleConstants
 from application.utils.queries import get_groups
@@ -53,7 +53,7 @@ _convert = retort.get_converter(Role, RoleDTO)
 _convert_without_aces = retort_without_ace.get_converter(Role, RoleDTO)
 
 
-class RoleDAO(AbstractDAO[RoleDTO, int]):
+class RoleDAO(AbstractDBGateWay[RoleDTO, int]):
     """Role DAO."""
 
     _session: AsyncSession

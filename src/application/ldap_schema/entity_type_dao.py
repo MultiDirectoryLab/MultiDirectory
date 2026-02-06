@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from abstract_dao import AbstractDAO
+from abstract_dao import AbstractDBGateWay
 from domain.entities import Attribute, Directory, EntityType, ObjectClass
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
@@ -43,7 +43,7 @@ _convert = get_converter(
 )
 
 
-class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
+class EntityTypeDAO(AbstractDBGateWay[EntityTypeDTO, str]):
     """Entity Type DAO."""
 
     __session: AsyncSession

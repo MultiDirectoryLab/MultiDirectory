@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from abstract_dao import AbstractDAO
+from abstract_dao import AbstractDBGateWay
 from domain.entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from application.utils.helpers import get_depth_by_dn
@@ -48,7 +48,7 @@ _convert = get_converter(
 )
 
 
-class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
+class AccessControlEntryDAO(AbstractDBGateWay[AccessControlEntryDTO, int]):
     """Access control entry DAO."""
 
     _session: AsyncSession

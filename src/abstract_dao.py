@@ -11,7 +11,7 @@ _T = TypeVar("_T")
 _A = TypeVar("_A", int, str, contravariant=True)
 
 
-class AbstractDAO(Protocol[_T, _A]):
+class AbstractDBGateWay(Protocol[_T, _A]):
     """Abstract Data Access Object (DAO) interface."""
 
     @abstractmethod
