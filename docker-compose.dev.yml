@@ -2,6 +2,8 @@ services:
   traefik:
     image: "traefik:v3.6.1"
     container_name: traefik
+    networks:
+      md_net:
     restart: unless-stopped
     command:
       # - --metrics
@@ -42,6 +44,8 @@ services:
   traefik_certs_dumper:
     image: multidirectory
     container_name: traefik_certs_dumper
+    networks:
+      md_net:
     restart: "on-failure"
     volumes:
       - ./certs:/certs
@@ -54,6 +58,8 @@ services:
 
   interface:
     container_name: multidirectory_interface
+    networks:
+      md_net:
     # image: ghcr.io/multidirectorylab/multidirectory-web-admin::beta
     restart: unless-stopped
     build:
@@ -79,6 +85,8 @@ services:
   cert_check:
     image: multidirectory
     container_name: multidirectory_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -93,6 +101,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     environment:
       - SERVICE_NAME=cldap_server
@@ -129,6 +139,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     deploy:
       mode: replicated
@@ -179,6 +191,8 @@ services:
   cert_local_check:
     image: multidirectory
     container_name: multidirectory_local_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -187,6 +201,8 @@ services:
   migrations:
     image: multidirectory
     container_name: multidirectory_migrations
+    networks:
+      md_net:
     restart: "no"
     command: python multidirectory.py --migrate
     env_file:
@@ -206,6 +222,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: multidirectory
     volumes:
@@ -262,8 +280,7 @@ services:
       SERVICE_NAME: multidirectory_api
       KRB5_LDAP_URI: ldap://ldap_server
     networks:
-      default:
-      dns_net:
+      md_net:
     hostname: api_server
     env_file:
       local.env
@@ -291,6 +308,8 @@ services:
   shadow_api:
     image: multidirectory
     container_name: shadow_api
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     depends_on:
@@ -311,6 +330,8 @@ services:
   maintence:
     image: multidirectory
     container_name: md_maintence
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -335,6 +356,8 @@ services:
 
   postgres:
     container_name: MD-postgres
+    networks:
+      md_net:
     image: postgres:16
     restart: unless-stopped
     environment:
@@ -359,6 +382,8 @@ services:
       args:
         VERSION: beta
     container_name: kdc
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -378,6 +403,8 @@ services:
   kadmin_api:
     image: krb5md
     container_name: kadmin-api
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -398,6 +425,8 @@ services:
 
   kadmind:
     container_name: kadmind
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -424,6 +453,8 @@ services:
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly
+    networks:
+      md_net:
     restart: always
     expose:
       - 6379
@@ -436,6 +467,39 @@ services:
           cpus: '0.25'
           memory: 0.5GiB
 
+  kea_dhcp4:
+    image: kea_image:0.1
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    build:
+      context: .
+      dockerfile: ./.docker/kea.Dockerfile
+    container_name: kea_dhcp4
+    tty: true
+    restart: unless-stopped
+    command: -c /kea/config/kea-dhcp4.conf
+    volumes:
+      - dhcp:/kea/config
+      - sockets:/kea/sockets
+      - leases:/kea/leases
+
+  kea_ctrl_agent:
+    image: jonasal/kea-ctrl-agent:3.1.2-alpine
+    container_name: kea_ctrl_agent
+    networks:
+      md_net:
+    restart: unless-stopped
+    command: -c /kea/config/kea-ctrl-agent.conf
+    tty: true
+    depends_on:
+      kea_dhcp4:
+        condition: service_started
+    volumes:
+      - ./.package/kea-ctrl-agent.conf:/kea/config/kea-ctrl-agent.conf
+      - sockets:/kea/sockets
+      - leases:/kea/leases
+
   pdns_auth:
     build:
       context: .
@@ -446,8 +510,8 @@ services:
     container_name: pdns_auth
     networks:
       default:
-      dns_net:
-        ipv4_address: 172.20.0.4
+      md_net:
+        ipv4_address: 172.20.0.202
     expose:
       - 8082
       - 53/udp
@@ -462,8 +526,8 @@ services:
     container_name: pdnsdist
     networks:
       default:
-      dns_net:
-        ipv4_address: 172.20.0.3
+      md_net:
+        ipv4_address: 172.20.0.201
     expose:
       - 8084
     ports:
@@ -479,8 +543,8 @@ services:
     container_name: pdns_recursor
     networks:
       default:
-      dns_net:
-        ipv4_address: 172.20.0.2
+      md_net:
+        ipv4_address: 172.20.0.200
     expose:
       - 8083
       - 53/udp
@@ -490,7 +554,7 @@ services:
       - forward_zones:/etc/powerdns/recursor.d/
 
 networks:
-  dns_net:
+  md_net:
     driver: bridge
     ipam:
       config:

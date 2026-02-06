@@ -5,6 +5,8 @@ services:
   traefik:
     image: "traefik:v3.6.1"
     container_name: "traefik"
+    networks:
+      md_net:
     command:
       - "--providers.file.filename=/traefik.yml"
     ports:
@@ -30,6 +32,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     environment:
       - SERVICE_NAME=ldap_server
@@ -84,6 +88,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     user: root
     restart: unless-stopped
     environment:
@@ -121,6 +127,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     deploy:
       mode: replicated
@@ -170,8 +178,7 @@ services:
     image: multidirectory
     container_name: multidirectory_api
     networks:
-      - default
-      - dns_net
+      md_net:
     volumes:
       - ./app:/app
       - ./certs:/certs
@@ -206,6 +213,8 @@ services:
   migrations:
     image: multidirectory
     container_name: multidirectory_migrations
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./app:/app
@@ -219,6 +228,8 @@ services:
   cert_check:
     image: multidirectory
     container_name: multidirectory_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -228,6 +239,8 @@ services:
   cert_local_check:
     image: multidirectory
     container_name: multidirectory_local_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -235,6 +248,8 @@ services:
 
   postgres:
     container_name: MD-postgres
+    networks:
+      md_net:
     image: postgres:16
     restart: unless-stopped
     ports:
@@ -254,6 +269,8 @@ services:
 
   pgadmin:
     container_name: pgadmin_container
+    networks:
+      md_net:
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
@@ -273,6 +290,8 @@ services:
   kadmin_api:
     image: krb5md
     container_name: kadmin_api
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -312,6 +331,8 @@ services:
   kea_ctrl_agent:
     image: jonasal/kea-ctrl-agent:3.1.2-alpine
     container_name: kea_ctrl_agent
+    networks:
+      md_net:
     restart: unless-stopped
     command: -c /kea/config/kea-ctrl-agent.conf
     tty: true
@@ -330,6 +351,8 @@ services:
       args:
         VERSION: beta
     container_name: kdc
+    networks:
+      md_net:
     hostname: kerberos
     restart: unless-stopped
     volumes:
@@ -348,6 +371,8 @@ services:
 
   kadmind:
     container_name: kadmind
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -376,6 +401,8 @@ services:
   shadow_api:
     image: multidirectory
     container_name: shadow_api
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     depends_on:
@@ -397,6 +424,8 @@ services:
   maintence:
     image: multidirectory
     container_name: md_maintence
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -420,6 +449,8 @@ services:
 
   interface:
     container_name: multidirectory_interface
+    networks:
+      md_net:
     build:
       context: ./interface
       dockerfile: configurations/docker/Dockerfile.dev
@@ -442,6 +473,8 @@ services:
   dragonfly:
     image: "docker.dragonflydb.io/dragonflydb/dragonfly"
     container_name: dragonfly
+    networks:
+      md_net:
     expose:
       - 6379
     deploy:
@@ -455,6 +488,8 @@ services:
 
   redis-commander:
     container_name: redis-commander
+    networks:
+      md_net:
     hostname: redis-commander
     image: ghcr.io/joeferner/redis-commander:latest
     restart: always
@@ -471,6 +506,8 @@ services:
   event_handler:
     image: multidirectory
     container_name: event_handler
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     env_file: local.env
@@ -486,6 +523,8 @@ services:
   event_sender:
     image: multidirectory
     container_name: event_sender
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     depends_on:
@@ -502,6 +541,8 @@ services:
   syslog:
     image: balabit/syslog-ng:latest
     container_name: syslog-server
+    networks:
+      md_net:
     volumes:
       - ./syslog:/var/log
       - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
@@ -517,9 +558,8 @@ services:
     image: pdns_auth_md
     container_name: pdns_auth
     networks:
-      default:
-      dns_net:
-        ipv4_address: 172.20.0.4
+      md_net:
+        ipv4_address: 172.20.0.202
     expose:
       - 8082
       - 53/udp
@@ -533,9 +573,8 @@ services:
     image: powerdns/dnsdist-19:1.9.11
     container_name: pdnsdist
     networks:
-      default:
-      dns_net:
-        ipv4_address: 172.20.0.3
+      md_net:
+        ipv4_address: 172.20.0.201
     expose:
       - 8084
     ports:
@@ -550,9 +589,8 @@ services:
     image: powerdns/pdns-recursor-51:5.1.7
     container_name: pdns_recursor
     networks:
-      default:
-      dns_net:
-        ipv4_address: 172.20.0.2
+      md_net:
+        ipv4_address: 172.20.0.200
     expose:
       - 8083
       - 53/udp
@@ -562,7 +600,7 @@ services:
       - forward_zones:/etc/powerdns/recursor.d/
 
 networks:
-  dns_net:
+  md_net:
     driver: bridge
     ipam:
       config:
