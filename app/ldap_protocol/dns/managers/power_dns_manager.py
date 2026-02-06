@@ -247,7 +247,7 @@ class PowerDNSManager(AbstractDNSManager):
 
         try:
             await self._power_dns_auth_client.delete_master_zone(zone_id)
-            self._dnsdist_client.remove_zone_rule(zone.name)
+            self._dnsdist_client.remove_zone_rule(zone.name[:-1])
         except DNSError as e:
             raise DNSZoneDeleteError(f"Failed to delete DNS zone: {e}")
 
