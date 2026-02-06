@@ -13,7 +13,7 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from entities import CatalogueSetting, DedicatedServer
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "4798b12b97aa"

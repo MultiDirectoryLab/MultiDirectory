@@ -16,7 +16,7 @@ from ioc import (
     MFAProvider,
     MigrationProvider,
 )
-from repo.pg.tables import metadata
+from infrasture.pg.tables import metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

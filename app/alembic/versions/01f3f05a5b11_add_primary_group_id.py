@@ -29,7 +29,7 @@ from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_search_path,
 )
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "01f3f05a5b11"

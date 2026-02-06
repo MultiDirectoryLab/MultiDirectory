@@ -21,7 +21,7 @@ from constants import (
 )
 from entities import Directory
 from ldap_protocol.utils.queries import get_base_directories
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "71e642808369"

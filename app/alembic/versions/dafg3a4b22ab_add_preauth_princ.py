@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from entities import Attribute, CatalogueSetting, User
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.kerberos import KERBEROS_STATE_NAME
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "dafg3a4b22ab"

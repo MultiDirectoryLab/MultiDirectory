@@ -10,7 +10,7 @@ from sqlalchemy.sql.expression import select
 from sqlalchemy.sql.selectable import CTE
 
 from entities import Directory, Group
-from repo.pg.tables import (
+from infrasture.pg.tables import (
     directory_memberships_table,
     directory_table,
     groups_table,

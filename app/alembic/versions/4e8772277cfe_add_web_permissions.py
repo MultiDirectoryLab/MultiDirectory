@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Role
 from enums import AuthorizationRules, RoleConstants
-from repo.pg.types import AuthorizationRulesType
+from infrasture.pg.types import AuthorizationRulesType
 
 # revision identifiers, used by Alembic.
 revision: None | str = "4e8772277cfe"

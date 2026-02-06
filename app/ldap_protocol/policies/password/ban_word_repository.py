@@ -14,7 +14,7 @@ from entities import PasswordBanWord
 from ldap_protocol.policies.password.exceptions import (
     PasswordBanWordFileHasDuplicatesError,
 )
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 
 class PasswordBanWordRepository:

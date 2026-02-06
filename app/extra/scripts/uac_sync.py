@@ -13,7 +13,7 @@ from entities import Attribute, User
 from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.utils.queries import add_lock_and_expire_attributes
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 
 async def disable_accounts(

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, CatalogueSetting, Directory, EntityType
 from enums import EntityTypeNames, StrEnum
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 from .exceptions import KRBAPIConnectionError, KRBAPIError
 

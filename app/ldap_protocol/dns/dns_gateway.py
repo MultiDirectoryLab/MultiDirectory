@@ -19,7 +19,7 @@ from ldap_protocol.dns.base import (
     DNSManagerState,
 )
 from ldap_protocol.dns.dto import DNSSettingDTO
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 
 class DNSStateGateway:

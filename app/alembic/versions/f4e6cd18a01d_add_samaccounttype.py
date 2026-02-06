@@ -14,7 +14,7 @@ from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames, SamAccountTypeCodes
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 revision: None | str = "f4e6cd18a01d"
 down_revision: None | str = "379fce54fb08"

@@ -24,7 +24,7 @@ from ldap_protocol.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 from .dto import AttributeTypeDTO, ObjectClassDTO
 from .exceptions import (

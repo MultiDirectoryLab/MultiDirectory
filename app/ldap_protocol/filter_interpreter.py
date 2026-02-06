@@ -32,7 +32,7 @@ from entities import (
 )
 from ldap_protocol.utils.helpers import ft_to_dt
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
-from repo.pg.tables import (
+from infrasture.pg.tables import (
     directory_table,
     groups_table,
     queryable_attr as qa,

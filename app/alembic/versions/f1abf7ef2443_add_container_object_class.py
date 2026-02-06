@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "f1abf7ef2443"

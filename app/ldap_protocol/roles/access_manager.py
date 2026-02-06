@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload, with_loader_criteria
 from entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from ldap_protocol.objects import Changes, Operation
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 
 class AccessManager:

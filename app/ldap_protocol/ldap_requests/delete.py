@@ -30,7 +30,7 @@ from ldap_protocol.utils.queries import (
     is_computer,
     validate_entry,
 )
-from repo.pg.tables import Attribute, queryable_attr as qa
+from infrasture.pg.tables import Attribute, queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPDeleteRequestContext

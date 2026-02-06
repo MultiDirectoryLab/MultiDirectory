@@ -152,7 +152,7 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
-from repo.pg.master_gateway import PGMasterGateway
+from infrasture.pg.master_gateway import PGMasterGateway
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)

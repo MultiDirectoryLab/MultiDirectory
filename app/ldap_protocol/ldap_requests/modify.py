@@ -57,7 +57,7 @@ from ldap_protocol.utils.queries import (
     remove_from_group_membership,
 )
 from password_utils import PasswordUtils
-from repo.pg.tables import (
+from infrasture.pg.tables import (
     directory_memberships_table,
     directory_table,
     queryable_attr as qa,

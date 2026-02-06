@@ -20,7 +20,7 @@ from ldap_protocol.utils.async_cache import base_directories_cache
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
 from password_utils import PasswordUtils
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 
 class SetupGateway:

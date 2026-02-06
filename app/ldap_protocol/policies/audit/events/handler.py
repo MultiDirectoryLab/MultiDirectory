@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from entities import AuditPolicy, AuditPolicyTrigger
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import OperationEvent
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent
 from .managers import NormalizedAuditManager, RawAuditManager

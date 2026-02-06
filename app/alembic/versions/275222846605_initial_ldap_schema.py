@@ -23,7 +23,7 @@ from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "275222846605"

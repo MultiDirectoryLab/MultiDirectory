@@ -10,7 +10,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from entities import Group, Role, User
 from enums import AuthorizationRules
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 
 class IdentityProviderGateway:

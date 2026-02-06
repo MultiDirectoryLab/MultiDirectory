@@ -14,7 +14,7 @@ from abstract_dao import AbstractDAO
 from entities import AccessControlEntry, Group, Role
 from enums import AuthorizationRules, RoleConstants
 from ldap_protocol.utils.queries import get_groups
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 from .ace_dao import _convert as ace_convert
 from .dataclasses import AccessControlEntryDTO, RoleDTO

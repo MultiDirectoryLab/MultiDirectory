@@ -61,7 +61,7 @@ from ldap_protocol.utils.queries import (
     get_path_filter,
     get_search_path,
 )
-from repo.pg.tables import queryable_attr as qa
+from infrasture.pg.tables import queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPSearchRequestContext
