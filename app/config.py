@@ -136,7 +136,7 @@ class Settings(BaseModel):
     PDNS_RECURSOR_SERVER_HOST: str = "pdns_recursor"
     PDNS_RECURSOR_SERVER_IP: str = "172.20.0.200"
     PDNS_RECURSOR_SERVER_PORT: int = 8083
-    PDNS_DIST_HOST: str = "172.20.0.201"
+    PDNS_DIST_IP: str = "172.20.0.201"
     PDNS_DIST_PORT: int = 8084
     PDNS_DIST_CONFIG_PATH: str = "/dnsdist/delta.conf"
     PDNS_DIST_KEY: str
