@@ -14,7 +14,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractDBGateWay
+from abstract_db_gateway import AbstractDBGateWay
 from domain.entities import AttributeType
 from application.ldap_schema.dto import AttributeTypeDTO
 from application.ldap_schema.exceptions import (
