@@ -14,7 +14,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from constants import READ_ONLY_GROUP_NAME
-from application.entities import Attribute, Directory
+from domain.entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
 from infrastructure.pg.tables import queryable_attr as qa
 
