@@ -139,7 +139,7 @@ class Settings(BaseModel):
 
     @cached_property
     def replica_engine(self) -> AsyncEngine | None:
-        if self.POSTGRES_RW_MODE != "replication":
+        if self.POSTGRES_RW_MODE == PostgresRWModeType.SINGLE:
             return None
 
         return create_async_engine(
