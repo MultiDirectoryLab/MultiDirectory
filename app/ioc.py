@@ -88,6 +88,10 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.master_check_use_case import (
+    MasterCheckUseCase,
+    MasterGatewayProtocol,
+)
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -148,6 +152,7 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
+from repo.pg.master_gateway import PGMasterGateway
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -580,6 +585,19 @@ class HTTPProvider(LDAPContextProvider):
             user_agent=user_agent,
             session_key=session_key,
         )
+
+    @provide(scope=Scope.REQUEST, provides=MasterGatewayProtocol)
+    async def get_master_gateway(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+    ) -> PGMasterGateway:
+        return PGMasterGateway(session, settings)
+
+    master_check_use_case = provide(
+        MasterCheckUseCase,
+        scope=Scope.REQUEST,
+    )
 
     identity_provider_gateway = provide(
         IdentityProviderGateway,
