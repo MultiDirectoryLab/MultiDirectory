@@ -21,19 +21,19 @@ from api.error_routing import (
 )
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.auth.exceptions.mfa import (
+from application.auth.exceptions.mfa import (
     MFAAPIError,
     MFAConnectError,
     MFARequiredError,
     MissingMFACredentialsError,
 )
-from ldap_protocol.auth.schemas import (
+from application.auth.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity.exceptions import (
+from application.dialogue import UserSchema
+from application.identity.exceptions import (
     AlreadyConfiguredError,
     AuthValidationError,
     ForbiddenError,
@@ -42,8 +42,8 @@ from ldap_protocol.identity.exceptions import (
     UnauthorizedError,
     UserNotFoundError,
 )
-from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
-from ldap_protocol.session_storage import SessionStorage
+from application.kerberos.exceptions import KRBAPIChangePasswordError
+from application.session_storage import SessionStorage
 
 from .utils import verify_auth
 

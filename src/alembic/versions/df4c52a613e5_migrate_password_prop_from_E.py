@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from entities import PasswordPolicy
-from ldap_protocol.policies.password.ban_word_repository import (
+from application.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
 

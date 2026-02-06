@@ -16,14 +16,14 @@ from api.main.schema import (
     DNSServiceZoneDeleteRequest,
     DNSServiceZoneUpdateRequest,
 )
-from ldap_protocol.dns.base import (
+from application.dns.base import (
     DNSForwardServerStatus,
     DNSForwardZone,
     DNSRecords,
     DNSServerParam,
     DNSZone,
 )
-from ldap_protocol.dns.use_cases import DNSUseCase
+from application.dns.use_cases import DNSUseCase
 
 
 class DNSFastAPIAdapter(BaseAdapter[DNSUseCase]):

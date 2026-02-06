@@ -19,13 +19,13 @@ from sqlalchemy.orm import joinedload, selectinload, subqueryload
 from config import Settings
 from entities import Directory, Group
 from enums import AceType, RoleScope
-from ldap_protocol.kerberos.base import AbstractKadmin
-from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.objects import Operation
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
-from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.utils.queries import get_filter_from_path
+from application.kerberos.base import AbstractKadmin
+from application.ldap_codes import LDAPCodes
+from application.objects import Operation
+from application.roles.ace_dao import AccessControlEntryDAO
+from application.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from application.roles.role_dao import RoleDAO
+from application.utils.queries import get_filter_from_path
 from repo.pg.tables import Attribute, directory_table, queryable_attr as qa
 from tests.conftest import TestCreds
 

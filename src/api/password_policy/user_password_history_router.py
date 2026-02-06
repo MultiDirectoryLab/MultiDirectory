@@ -20,7 +20,7 @@ from api.error_routing import (
 from api.password_policy.adapter import UserPasswordHistoryResetFastAPIAdapter
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.identity.exceptions import (
+from application.identity.exceptions import (
     AuthorizationError,
     UserNotFoundError,
 )

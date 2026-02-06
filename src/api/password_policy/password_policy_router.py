@@ -14,7 +14,7 @@ from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.error_utils import error_map
 from api.password_policy.schemas import PasswordPolicySchema
 from api.utils import require_master_db
-from ldap_protocol.utils.const import GRANT_DN_STRING
+from application.utils.const import GRANT_DN_STRING
 
 from .schemas import PriorityT
 

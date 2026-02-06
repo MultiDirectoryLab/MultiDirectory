@@ -15,11 +15,11 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
-from ldap_protocol.policies.audit.events.managers import RawAuditManager
-from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
-from ldap_protocol.utils.queries import get_base_directories
+from application.policies.audit.audit_use_case import AuditUseCase
+from application.policies.audit.destination_dao import AuditDestinationDAO
+from application.policies.audit.events.managers import RawAuditManager
+from application.policies.audit.policies_dao import AuditPoliciesDAO
+from application.utils.queries import get_base_directories
 
 # revision identifiers, used by Alembic.
 revision = "e4d6d99d32bd"

@@ -26,7 +26,7 @@ from api.error_routing import (
 )
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.auth.exceptions.mfa import (
+from application.auth.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
     MFAAPIError,
@@ -35,8 +35,8 @@ from ldap_protocol.auth.exceptions.mfa import (
     NetworkPolicyError,
     NotFoundError,
 )
-from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
-from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
+from application.auth.schemas import MFACreateRequest, MFAGetResponse
+from application.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 translator = DomainErrorTranslator(DomainCodes.MFA)
 

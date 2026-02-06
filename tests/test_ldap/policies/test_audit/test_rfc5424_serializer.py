@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from ldap_protocol.policies.audit.events.service_senders.rfc5424_serializer import (  # noqa: E501
+from application.policies.audit.events.service_senders.rfc5424_serializer import (  # noqa: E501
     RFC5424Serializer,
 )
 

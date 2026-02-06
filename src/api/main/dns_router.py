@@ -10,7 +10,7 @@ from fastapi import Depends, status
 from fastapi_error_map import rule
 from fastapi_error_map.routing import ErrorAwareRouter
 
-import ldap_protocol.dns.exceptions as dns_exc
+import application.dns.exceptions as dns_exc
 from api.auth.utils import verify_auth
 from api.error_routing import (
     ERROR_MAP_TYPE,
@@ -31,7 +31,7 @@ from api.main.schema import (
 )
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.dns import (
+from application.dns import (
     DNSForwardServerStatus,
     DNSForwardZone,
     DNSRecords,

@@ -20,7 +20,7 @@ from constants import (
     READ_ONLY_GROUP_NAME,
 )
 from entities import Directory
-from ldap_protocol.utils.queries import get_base_directories
+from application.utils.queries import get_base_directories
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

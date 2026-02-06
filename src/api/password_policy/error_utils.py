@@ -9,8 +9,8 @@ from fastapi_error_map.rules import rule
 
 from api.error_routing import ERROR_MAP_TYPE, DomainErrorTranslator
 from enums import DomainCodes
-from ldap_protocol.permissions_checker import AuthorizationError
-from ldap_protocol.policies.password.exceptions import (
+from application.permissions_checker import AuthorizationError
+from application.policies.password.exceptions import (
     PasswordBanWordWrongFileExtensionError,
     PasswordPolicyAgeDaysError,
     PasswordPolicyAlreadyExistsError,

@@ -12,7 +12,7 @@ from constants import (
     USERS_CONTAINER_NAME,
 )
 from enums import SamAccountTypeCodes
-from ldap_protocol.objects import UserAccountControlFlag
+from application.objects import UserAccountControlFlag
 
 TEST_DATA = [
     {

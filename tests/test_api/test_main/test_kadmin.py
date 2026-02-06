@@ -10,13 +10,13 @@ from fastapi import status
 from httpx import AsyncClient
 
 from config import Settings
-from ldap_protocol.kerberos import AbstractKadmin, KerberosState
-from ldap_protocol.kerberos.exceptions import (
+from application.kerberos import AbstractKadmin, KerberosState
+from application.kerberos.exceptions import (
     KRBAPIChangePasswordError,
     KRBAPIPrincipalNotFoundError,
 )
-from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
-from ldap_protocol.ldap_requests.contexts import LDAPBindRequestContext
+from application.ldap_requests.bind import LDAPCodes, SimpleAuthentication
+from application.ldap_requests.contexts import LDAPBindRequestContext
 from password_utils import PasswordUtils
 from tests.conftest import MutePolicyBindRequest, TestCreds
 

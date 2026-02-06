@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.attribute_value_validator import (
+from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 

@@ -1,0 +1,100 @@
+"""Kerberos LDAP structure manager.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
+from sqlalchemy import delete, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from entities import Directory
+from application.kerberos.exceptions import KerberosConflictError
+from application.ldap_requests import AddRequest
+from application.ldap_requests.contexts import LDAPAddRequestContext
+from application.roles.access_manager import AccessManager
+from application.roles.role_use_case import RoleUseCase
+from application.utils.queries import get_filter_from_path
+from infrastructure.pg.tables import queryable_attr as qa
+
+
+class KRBLDAPStructureManager:
+    """Manager for Kerberos-related LDAP structure operations."""
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        role_use_case: RoleUseCase,
+        access_manager: AccessManager,
+    ) -> None:
+        """Initialize KRBLDAPStructureManager with a database session.
+
+        :param AsyncSession session: SQLAlchemy async session.
+        :param RoleUseCase role_use_case: Role use case for managing roles.
+        :return None.
+        """
+        self._session = session
+        self._role_use_case = role_use_case
+        self._access_manager = access_manager
+
+    async def create_kerberos_structure(
+        self,
+        group: AddRequest,
+        services: AddRequest,
+        krb_user: AddRequest,
+        ctx: LDAPAddRequestContext,
+    ) -> None:
+        """Create Kerberos structure in the LDAP directory.
+
+        :param AddRequest group: AddRequest for Kerberos group.
+        :param AddRequest services: AddRequest for services container.
+        :param AddRequest krb_user: AddRequest for Kerberos admin user.
+        :param LDAPSession ldap_session: LDAP session.
+        :param AbstractKadmin kadmin: Kerberos admin interface.
+        :param EntityTypeDAO entity_type_dao: DAO for entity types.
+        :param str services_container: DN for services container.
+        :param str krbgroup: DN for Kerberos group.
+        :raises Exception: On structure creation error.
+        :return None.
+        """
+        async with self._session.begin_nested():
+            service_result = await anext(services.handle(ctx))
+            if service_result.result_code != 0:
+                raise KerberosConflictError("Service error")
+
+        async with self._session.begin_nested():
+            group_result = await anext(group.handle(ctx))
+            if group_result.result_code != 0:
+                raise KerberosConflictError("Group error")
+
+        async with self._session.begin_nested():
+            await self._role_use_case.create_kerberos_system_role()
+            user_result = await anext(krb_user.handle(ctx))
+            if user_result.result_code != 0:
+                raise KerberosConflictError("User error")
+
+    async def rollback_kerberos_structure(
+        self,
+        krbadmin: str,
+        services_container: str,
+        krbgroup: str,
+    ) -> None:
+        """Rollback Kerberos structure in the LDAP directory.
+
+        :param str krbadmin: DN for Kerberos admin user.
+        :param str services_container: DN for services container.
+        :param str krbgroup: DN for Kerberos group.
+        :return None.
+        """
+        directories_query = select(Directory).where(
+            or_(
+                get_filter_from_path(krbadmin),
+                get_filter_from_path(services_container),
+                get_filter_from_path(krbgroup),
+            ),
+        )
+        directories = await self._session.scalars(directories_query)
+        if directories:
+            q = qa(Directory.id).in_([dir_.id for dir_ in directories])
+            await self._session.execute(delete(Directory).where(q))
+
+        await self._role_use_case.delete_kerberos_system_role()

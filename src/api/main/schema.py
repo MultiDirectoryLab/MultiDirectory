@@ -12,15 +12,15 @@ from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from entities import Directory
-from ldap_protocol.dns import DNSManagerState, DNSZoneParam, DNSZoneType
-from ldap_protocol.filter_interpreter import (
+from application.dns import DNSManagerState, DNSZoneParam, DNSZoneType
+from application.filter_interpreter import (
     Filter,
     FilterInterpreterProtocol,
     StringFilterInterpreter,
 )
-from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
-from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
-from ldap_protocol.utils.const import GRANT_DN_STRING
+from application.ldap_requests import SearchRequest as LDAPSearchRequest
+from application.ldap_responses import SearchResultDone, SearchResultEntry
+from application.utils.const import GRANT_DN_STRING
 
 
 class SearchRequest(LDAPSearchRequest):

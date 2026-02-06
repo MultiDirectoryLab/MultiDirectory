@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from passlib.context import CryptContext
 from pydantic import BaseModel, ConfigDict
 
-from ldap_protocol.utils.helpers import ft_to_dt
+from application.utils.helpers import ft_to_dt
 
 
 class PasswordUtils(BaseModel):

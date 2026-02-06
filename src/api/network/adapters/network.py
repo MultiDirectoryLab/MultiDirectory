@@ -19,7 +19,7 @@ from api.network.schema import (
     PolicyUpdate,
     SwapResponse,
 )
-from ldap_protocol.policies.network import (
+from application.policies.network import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
     NetworkPolicyUseCase,

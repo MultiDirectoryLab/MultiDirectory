@@ -12,11 +12,11 @@ from fastapi.responses import StreamingResponse
 
 from api.base_adapter import BaseAdapter
 from api.password_policy.schemas import PasswordPolicySchema, PriorityT
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
-from ldap_protocol.policies.password.exceptions import (
+from application.policies.password.dataclasses import PasswordPolicyDTO
+from application.policies.password.exceptions import (
     PasswordBanWordWrongFileExtensionError,
 )
-from ldap_protocol.policies.password.use_cases import (
+from application.policies.password.use_cases import (
     PasswordBanWordUseCases,
     PasswordPolicyUseCases,
     UserPasswordHistoryUseCases,

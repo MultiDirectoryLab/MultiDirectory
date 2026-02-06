@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.auth import AuthManager, MFAManager
+from application.auth import AuthManager, MFAManager
 
 
 class ShadowAdapter(BaseAdapter):

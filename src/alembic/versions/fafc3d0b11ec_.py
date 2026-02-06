@@ -15,10 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_value_validator import (
+from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.utils.queries import (
+from application.utils.queries import (
     create_group,
     get_base_directories,
     get_search_path,

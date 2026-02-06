@@ -8,7 +8,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import HTTPException, status
 
-from ldap_protocol.master_check_use_case import MasterCheckUseCase
+from application.master_check_use_case import MasterCheckUseCase
 
 
 @inject

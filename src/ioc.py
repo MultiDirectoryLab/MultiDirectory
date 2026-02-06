@@ -40,10 +40,10 @@ from api.password_policy.adapter import (
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from ldap_protocol.auth import AuthManager, MFAManager
-from ldap_protocol.auth.setup_gateway import SetupGateway
-from ldap_protocol.auth.use_cases import SetupUseCase
-from ldap_protocol.dhcp import (
+from application.auth import AuthManager, MFAManager
+from application.auth.setup_gateway import SetupGateway
+from application.auth.use_cases import SetupUseCase
+from application.dhcp import (
     AbstractDHCPManager,
     DHCPAPIRepository,
     DHCPManagerRepository,
@@ -51,22 +51,22 @@ from ldap_protocol.dhcp import (
     get_dhcp_api_repository_class,
     get_dhcp_manager_class,
 )
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.dns import (
+from application.dialogue import LDAPSession
+from application.dns import (
     AbstractDNSManager,
     DNSManagerSettings,
     get_dns_manager_class,
 )
-from ldap_protocol.dns.dns_gateway import DNSStateGateway
-from ldap_protocol.dns.use_cases import DNSUseCase
-from ldap_protocol.dns.utils import resolve_dns_server_ip
-from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
-from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
-from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
-from ldap_protocol.kerberos.service import KerberosService
-from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
-from ldap_protocol.ldap_requests.contexts import (
+from application.dns.dns_gateway import DNSStateGateway
+from application.dns.use_cases import DNSUseCase
+from application.dns.utils import resolve_dns_server_ip
+from application.identity import IdentityProvider
+from application.identity.provider_gateway import IdentityProviderGateway
+from application.kerberos import AbstractKadmin, get_kerberos_class
+from application.kerberos.ldap_structure import KRBLDAPStructureManager
+from application.kerberos.service import KerberosService
+from application.kerberos.template_render import KRBTemplateRenderer
+from application.ldap_requests.contexts import (
     LDAPAbandonRequestContext,
     LDAPAddRequestContext,
     LDAPBindRequestContext,
@@ -77,22 +77,22 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from application.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_value_validator import (
+from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
-from ldap_protocol.master_check_use_case import (
+from application.ldap_schema.entity_type_dao import EntityTypeDAO
+from application.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from application.ldap_schema.object_class_dao import ObjectClassDAO
+from application.ldap_schema.object_class_use_case import ObjectClassUseCase
+from application.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
 )
-from ldap_protocol.multifactor import (
+from application.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
     MFA_HTTP_Creds,
@@ -100,57 +100,57 @@ from ldap_protocol.multifactor import (
     MultifactorAPI,
     get_creds,
 )
-from ldap_protocol.permissions_checker import AuthorizationProvider
-from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
-from ldap_protocol.policies.audit.events.dataclasses import (
+from application.permissions_checker import AuthorizationProvider
+from application.policies.audit.audit_use_case import AuditUseCase
+from application.policies.audit.destination_dao import AuditDestinationDAO
+from application.policies.audit.events.dataclasses import (
     NormalizedAuditEvent,
     NormalizedAuditEventRedis,
 )
-from ldap_protocol.policies.audit.events.managers import (
+from application.policies.audit.events.managers import (
     AuditRedisClient,
     NormalizedAuditManager,
     RawAuditManager,
 )
-from ldap_protocol.policies.audit.events.sender import (
+from application.policies.audit.events.sender import (
     AuditEventSenderManager,
     AuditLogger,
 )
-from ldap_protocol.policies.audit.monitor import (
+from application.policies.audit.monitor import (
     AuditMonitor,
     AuditMonitorUseCase,
 )
-from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
-from ldap_protocol.policies.audit.service import AuditService
-from ldap_protocol.policies.network import (
+from application.policies.audit.policies_dao import AuditPoliciesDAO
+from application.policies.audit.service import AuditService
+from application.policies.network import (
     NetworkPolicyGateway,
     NetworkPolicyUseCase,
     NetworkPolicyValidatorGateway,
     NetworkPolicyValidatorProtocol,
     NetworkPolicyValidatorUseCase,
 )
-from ldap_protocol.policies.password import (
+from application.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
     PasswordPolicyValidator,
 )
-from ldap_protocol.policies.password.ban_word_repository import (
+from application.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
-from ldap_protocol.policies.password.settings import PasswordValidatorSettings
-from ldap_protocol.policies.password.use_cases import (
+from application.policies.password.settings import PasswordValidatorSettings
+from application.policies.password.use_cases import (
     PasswordBanWordUseCases,
     UserPasswordHistoryUseCases,
 )
-from ldap_protocol.roles.access_manager import AccessManager
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.rootdse.gateway import SADomainGateway
-from ldap_protocol.rootdse.gw_protocol import DomainReadProtocol
-from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
-from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
-from ldap_protocol.session_storage.repository import SessionRepository
+from application.roles.access_manager import AccessManager
+from application.roles.ace_dao import AccessControlEntryDAO
+from application.roles.role_dao import RoleDAO
+from application.roles.role_use_case import RoleUseCase
+from application.rootdse.gateway import SADomainGateway
+from application.rootdse.gw_protocol import DomainReadProtocol
+from application.rootdse.reader import DCInfoReader, RootDSEReader
+from application.session_storage import RedisSessionStorage, SessionStorage
+from application.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
 from infrastructure.pg.master_gateway import PGMasterGateway
 

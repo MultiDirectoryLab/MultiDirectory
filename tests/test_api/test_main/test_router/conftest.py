@@ -7,13 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.auth.setup_gateway import SetupGateway
-from ldap_protocol.ldap_schema.attribute_value_validator import (
+from application.auth.setup_gateway import SetupGateway
+from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.utils.queries import get_base_directories
+from application.ldap_schema.entity_type_dao import EntityTypeDAO
+from application.ldap_schema.object_class_dao import ObjectClassDAO
+from application.utils.queries import get_base_directories
 from password_utils import PasswordUtils
 from tests.constants import TEST_SYSTEM_ADMIN_DATA
 

@@ -8,10 +8,10 @@ from typing import Generic, Self, TypeVar
 
 from pydantic import BaseModel, Field, model_validator
 
-from ldap_protocol.policies.password.constants import (
+from application.policies.password.constants import (
     PasswordValidatorLanguageType,
 )
-from ldap_protocol.policies.password.exceptions import (
+from application.policies.password.exceptions import (
     PasswordPolicyAgeDaysError,
     PasswordPolicyPriorityError,
 )

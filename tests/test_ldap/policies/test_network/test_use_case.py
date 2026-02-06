@@ -9,8 +9,8 @@ from ipaddress import IPv4Network
 import pytest
 
 from enums import MFAFlags
-from ldap_protocol.policies.network import NetworkPolicyUseCase
-from ldap_protocol.policies.network.dto import (
+from application.policies.network import NetworkPolicyUseCase
+from application.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
 )

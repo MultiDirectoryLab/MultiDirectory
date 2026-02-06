@@ -12,7 +12,7 @@ from extra.scripts.check_ldap_principal import check_ldap_principal
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_krb5_config import update_krb5_config
-from ldap_protocol.kerberos import AbstractKadmin
+from application.kerberos import AbstractKadmin
 
 
 @pytest.mark.asyncio

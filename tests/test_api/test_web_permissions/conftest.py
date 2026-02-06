@@ -20,10 +20,10 @@ from dishka import (
 from abstract_service import AbstractService
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from ldap_protocol.auth.auth_manager import AuthManager
-from ldap_protocol.dhcp.base import AbstractDHCPManager
-from ldap_protocol.dhcp.stub import StubDHCPManager
-from ldap_protocol.policies.audit.service import AuditService
+from application.auth.auth_manager import AuthManager
+from application.dhcp.base import AbstractDHCPManager
+from application.dhcp.stub import StubDHCPManager
+from application.policies.audit.service import AuditService
 from tests.conftest import TestProvider
 
 

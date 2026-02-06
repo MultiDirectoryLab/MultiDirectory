@@ -19,12 +19,12 @@ from starlette.requests import Request
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from config import Settings
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.identity.exceptions import ErrorCodes, UnauthorizedError
-from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
-from ldap_protocol.session_storage.base import SessionStorage
-from ldap_protocol.session_storage.exceptions import (
+from application.dialogue import UserSchema
+from application.identity import IdentityProvider
+from application.identity.exceptions import ErrorCodes, UnauthorizedError
+from application.identity.provider_gateway import IdentityProviderGateway
+from application.session_storage.base import SessionStorage
+from application.session_storage.exceptions import (
     SessionStorageInvalidDataError,
 )
 from tests.conftest import TestProvider

@@ -4,7 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 
 from api.auth.adapters.auth import AuthFastAPIAdapter
-from ldap_protocol.dialogue import LDAPSession
+from application.dialogue import LDAPSession
 
 
 @inject

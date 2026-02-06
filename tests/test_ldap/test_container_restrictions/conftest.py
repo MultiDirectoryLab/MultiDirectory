@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import pytest_asyncio
 
 from entities import AccessControlEntry
-from ldap_protocol.dialogue import UserSchema
+from application.dialogue import UserSchema
 
 
 @pytest_asyncio.fixture

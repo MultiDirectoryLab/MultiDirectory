@@ -18,16 +18,16 @@ from api.error_routing import (
 )
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.custom_requests.rename import RenameRequest
-from ldap_protocol.identity.exceptions import UnauthorizedError
-from ldap_protocol.ldap_requests import (
+from application.custom_requests.rename import RenameRequest
+from application.identity.exceptions import UnauthorizedError
+from application.ldap_requests import (
     AddRequest,
     DeleteRequest,
     ModifyDNRequest,
     ModifyRequest,
 )
-from ldap_protocol.ldap_responses import LDAPResult
-from ldap_protocol.utils.queries import set_or_update_primary_group
+from application.ldap_responses import LDAPResult
+from application.utils.queries import set_or_update_primary_group
 
 from .schema import (
     PrimaryGroupRequest,

@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fastapi import status
 
-from ldap_protocol.ldap_requests.modify import Operation
+from application.ldap_requests.modify import Operation
 from tests.conftest import TestCreds
 
 

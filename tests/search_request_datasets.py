@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
-from ldap_protocol.objects import UserAccountControlFlag
+from application.objects import UserAccountControlFlag
 
 test_search_filter_account_expires_dataset = [
     "(accountExpires=*)",

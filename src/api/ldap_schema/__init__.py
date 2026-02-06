@@ -18,7 +18,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DomainCodes
-from ldap_protocol.ldap_schema.exceptions import (
+from application.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeCantModifyError,
     AttributeTypeNotFoundError,

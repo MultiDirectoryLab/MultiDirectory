@@ -11,7 +11,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from ldap_protocol.dhcp.dataclasses import (
+from application.dhcp.dataclasses import (
     DHCPLease,
     DHCPLeaseToReservationError,
     DHCPOptionData,
@@ -19,7 +19,7 @@ from ldap_protocol.dhcp.dataclasses import (
     DHCPReservation,
     DHCPSubnet,
 )
-from ldap_protocol.dhcp.exceptions import (
+from application.dhcp.exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
     DHCPEntryNotFoundError,

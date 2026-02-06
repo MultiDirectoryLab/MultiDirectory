@@ -19,12 +19,12 @@ from sqlalchemy.orm import joinedload
 
 from entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
-from ldap_protocol.auth.utils import authenticate_user
-from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_requests.modify import Operation
-from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import get_filter_from_path
+from application.auth.utils import authenticate_user
+from application.kerberos import AbstractKadmin
+from application.ldap_codes import LDAPCodes
+from application.ldap_requests.modify import Operation
+from application.session_storage import SessionStorage
+from application.utils.queries import get_filter_from_path
 from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds

@@ -15,8 +15,8 @@ from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.objects import UserAccountControlFlag
-from ldap_protocol.utils.helpers import create_integer_hash
+from application.objects import UserAccountControlFlag
+from application.utils.helpers import create_integer_hash
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

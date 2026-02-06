@@ -20,7 +20,7 @@ from api.error_routing import (
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.policies.network.exceptions import (
+from application.policies.network.exceptions import (
     LastActivePolicyError,
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,

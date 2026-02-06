@@ -8,9 +8,9 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.kerberos.base import AbstractKadmin
-from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_requests.modify import Operation
+from application.kerberos.base import AbstractKadmin
+from application.ldap_codes import LDAPCodes
+from application.ldap_requests.modify import Operation
 
 
 @pytest.mark.asyncio

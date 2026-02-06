@@ -18,9 +18,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from entities import Attribute, AttributeType, ObjectClass
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.utils.raw_definition_parser import (
+from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from application.ldap_schema.dto import AttributeTypeDTO
+from application.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
 from infrastructure.pg.tables import queryable_attr as qa

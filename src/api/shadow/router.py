@@ -19,14 +19,14 @@ from api.error_routing import (
 )
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.auth.exceptions.mfa import (
+from application.auth.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
     NetworkPolicyError,
 )
-from ldap_protocol.policies.password.exceptions import PasswordPolicyError
-from ldap_protocol.rootdse.dto import DomainControllerInfo
-from ldap_protocol.rootdse.reader import DCInfoReader
+from application.policies.password.exceptions import PasswordPolicyError
+from application.rootdse.dto import DomainControllerInfo
+from application.rootdse.reader import DCInfoReader
 
 from .adapter import ShadowAdapter
 

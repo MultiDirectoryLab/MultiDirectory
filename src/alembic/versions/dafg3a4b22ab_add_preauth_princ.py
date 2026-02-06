@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from entities import Attribute, CatalogueSetting, User
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.kerberos import KERBEROS_STATE_NAME
+from application.kerberos import KERBEROS_STATE_NAME
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

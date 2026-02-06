@@ -9,11 +9,11 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, Field
 
 from enums import EntityTypeNames, KindType
-from ldap_protocol.ldap_schema.constants import (
+from application.ldap_schema.constants import (
     DEFAULT_ENTITY_TYPE_IS_SYSTEM,
     OID_REGEX_PATTERN,
 )
-from ldap_protocol.utils.pagination import BasePaginationSchema
+from application.utils.pagination import BasePaginationSchema
 
 _IdT = TypeVar("_IdT", int, None)
 

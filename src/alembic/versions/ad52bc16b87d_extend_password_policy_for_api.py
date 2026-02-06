@@ -13,7 +13,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from entities import PasswordPolicy
-from ldap_protocol.policies.password.dataclasses import (
+from application.policies.password.dataclasses import (
     DefaultDomainPasswordPolicyPreset,
 )
 

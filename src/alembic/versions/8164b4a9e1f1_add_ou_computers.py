@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.queries import get_base_directories
+from application.roles.role_use_case import RoleUseCase
+from application.utils.queries import get_base_directories
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -37,7 +37,7 @@ _OU_COMPUTERS_DATA = {
 @temporary_stub_column("is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
-    from ldap_protocol.auth.setup_gateway import SetupGateway
+    from application.auth.setup_gateway import SetupGateway
 
     async def _create_ou_computers(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:

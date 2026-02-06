@@ -13,10 +13,10 @@ from starlette.background import BackgroundTask
 
 from api.base_adapter import BaseAdapter
 from api.main.schema import KerberosSetupRequest
-from ldap_protocol.dialogue import LDAPSession, UserSchema
-from ldap_protocol.kerberos import KerberosState
-from ldap_protocol.kerberos.service import KerberosService
-from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
+from application.dialogue import LDAPSession, UserSchema
+from application.kerberos import KerberosState
+from application.kerberos.service import KerberosService
+from application.ldap_requests.contexts import LDAPAddRequestContext
 
 
 class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):

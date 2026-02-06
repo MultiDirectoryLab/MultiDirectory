@@ -7,8 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from httpx import AsyncClient
 
-from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_requests.modify import Operation
+from application.ldap_codes import LDAPCodes
+from application.ldap_requests.modify import Operation
 
 
 @pytest.mark.asyncio

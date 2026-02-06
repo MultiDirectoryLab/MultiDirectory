@@ -12,7 +12,7 @@ from typing import ClassVar, Generic, Protocol, TypeVar
 from pydantic import BaseModel
 
 from api.ldap_schema import LimitedListType
-from ldap_protocol.utils.pagination import (
+from application.utils.pagination import (
     BasePaginationSchema,
     PaginationParams,
     PaginationResult,

@@ -6,7 +6,7 @@ import pytest
 from httpx import AsyncClient
 from starlette import status
 
-from ldap_protocol.dns import (
+from application.dns import (
     AbstractDNSManager,
     DNSManagerState,
     DNSServerParam,

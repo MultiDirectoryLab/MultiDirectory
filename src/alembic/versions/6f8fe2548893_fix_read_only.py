@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from constants import DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.utils.helpers import create_integer_hash
+from application.utils.helpers import create_integer_hash
 
 # revision identifiers, used by Alembic.
 revision = "6f8fe2548893"

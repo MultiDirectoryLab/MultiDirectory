@@ -15,16 +15,16 @@ from sqlalchemy.orm import selectinload
 from config import Settings
 from entities import User
 from enums import AceType, ProtocolType, RoleScope
-from ldap_protocol.asn1parser import ASN1Row, TagNumbers
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.ldap_requests import SearchRequest
-from ldap_protocol.ldap_requests.contexts import LDAPSearchRequestContext
-from ldap_protocol.ldap_responses import SearchResultEntry
-from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
-from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.utils.queries import get_group, get_groups
+from application.asn1parser import ASN1Row, TagNumbers
+from application.dialogue import LDAPSession
+from application.ldap_requests import SearchRequest
+from application.ldap_requests.contexts import LDAPSearchRequestContext
+from application.ldap_responses import SearchResultEntry
+from application.policies.network import NetworkPolicyValidatorUseCase
+from application.roles.ace_dao import AccessControlEntryDAO
+from application.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from application.roles.role_dao import RoleDAO
+from application.utils.queries import get_group, get_groups
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 from tests.search_request_datasets import (

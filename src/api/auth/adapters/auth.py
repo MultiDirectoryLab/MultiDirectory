@@ -10,14 +10,14 @@ from adaptix.conversion import get_converter
 from fastapi import Request
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.auth import AuthManager
-from ldap_protocol.auth.dto import SetupDTO
-from ldap_protocol.auth.schemas import (
+from application.auth import AuthManager
+from application.auth.dto import SetupDTO
+from application.auth.schemas import (
     MFAChallengeResponse,
     OAuth2Form,
     SetupRequest,
 )
-from ldap_protocol.dialogue import UserSchema
+from application.dialogue import UserSchema
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
 

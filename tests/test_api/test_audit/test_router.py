@@ -11,11 +11,11 @@ from fastapi import status
 from httpx import AsyncClient
 
 from enums import AuditDestinationProtocolType, AuditDestinationServiceType
-from ldap_protocol.policies.audit.dataclasses import (
+from application.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
 )
-from ldap_protocol.policies.audit.schemas import (
+from application.policies.audit.schemas import (
     AuditDestinationSchemaRequest,
     AuditPolicySchemaRequest,
 )

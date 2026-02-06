@@ -11,7 +11,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DomainCodes
-from ldap_protocol.session_storage.exceptions import SessionUserNotFoundError
+from application.session_storage.exceptions import SessionUserNotFoundError
 
 from .adapters.session_gateway import (
     SessionContentResponseSchema,

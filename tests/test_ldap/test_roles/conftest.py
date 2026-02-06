@@ -10,7 +10,7 @@ import tempfile
 import pytest_asyncio
 
 from config import Settings
-from ldap_protocol.roles.role_dao import RoleDAO, RoleDTO
+from application.roles.role_dao import RoleDAO, RoleDTO
 from tests.conftest import TestCreds
 
 BASE_DN = "dc=md,dc=test"

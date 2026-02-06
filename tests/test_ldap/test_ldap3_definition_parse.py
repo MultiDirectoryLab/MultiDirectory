@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import AttributeType, ObjectClass
-from ldap_protocol.utils.raw_definition_parser import (
+from application.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
 

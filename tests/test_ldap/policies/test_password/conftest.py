@@ -16,7 +16,7 @@ from dishka import (
 )
 
 from config import Settings
-from ldap_protocol.policies.password import PasswordPolicyUseCases
+from application.policies.password import PasswordPolicyUseCases
 from tests.conftest import TestProvider
 
 

@@ -8,10 +8,10 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_requests.modify import Operation
-from ldap_protocol.session_storage import SessionStorage
-from ldap_protocol.utils.queries import get_user
+from application.ldap_codes import LDAPCodes
+from application.ldap_requests.modify import Operation
+from application.session_storage import SessionStorage
+from application.utils.queries import get_user
 from tests.conftest import TestCreds
 
 

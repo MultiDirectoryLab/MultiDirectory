@@ -11,14 +11,14 @@ import pytest
 
 from api.dhcp.adapter import DHCPAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
-from ldap_protocol.dhcp.dataclasses import (
+from application.dhcp.dataclasses import (
     DHCPLease,
     DHCPOptionData,
     DHCPPool,
     DHCPReservation,
     DHCPSubnet,
 )
-from ldap_protocol.dhcp.schemas import (
+from application.dhcp.schemas import (
     DHCPLeaseSchemaRequest,
     DHCPReservationSchemaRequest,
     DHCPSubnetSchemaAddRequest,

@@ -49,12 +49,12 @@ from ioc import (
     MFACredsProvider,
     MFAProvider,
 )
-from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.identity.exceptions import UnauthorizedError
-from ldap_protocol.policies.audit.events.handler import AuditEventHandler
-from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
-from ldap_protocol.server import PoolClientHandler, ServerLogger
-from ldap_protocol.udp_server import CLDAPUDPServer
+from application.dependency import resolve_deps
+from application.identity.exceptions import UnauthorizedError
+from application.policies.audit.events.handler import AuditEventHandler
+from application.policies.audit.events.sender import AuditEventSenderManager
+from application.server import PoolClientHandler, ServerLogger
+from application.udp_server import CLDAPUDPServer
 from schedule import scheduler_factory
 
 

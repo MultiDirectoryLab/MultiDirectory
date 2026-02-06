@@ -13,8 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory, Group
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.queries import get_base_directories
+from application.roles.role_use_case import RoleUseCase
+from application.utils.queries import get_base_directories
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

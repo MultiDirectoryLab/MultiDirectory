@@ -10,7 +10,7 @@ import tempfile
 import pytest
 
 from config import Settings
-from ldap_protocol.ldap_codes import LDAPCodes
+from application.ldap_codes import LDAPCodes
 from tests.conftest import TestCreds
 
 

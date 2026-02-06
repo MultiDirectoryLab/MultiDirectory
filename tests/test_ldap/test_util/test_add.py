@@ -16,14 +16,14 @@ from sqlalchemy.orm import selectinload, subqueryload
 from config import Settings
 from entities import Directory, Group, User
 from enums import AceType, RoleScope
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_requests import AddRequest
-from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
-from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.utils.queries import get_filter_from_path
+from application.dialogue import LDAPSession
+from application.ldap_codes import LDAPCodes
+from application.ldap_requests import AddRequest
+from application.ldap_requests.contexts import LDAPAddRequestContext
+from application.roles.ace_dao import AccessControlEntryDAO
+from application.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from application.roles.role_dao import RoleDAO
+from application.utils.queries import get_filter_from_path
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 

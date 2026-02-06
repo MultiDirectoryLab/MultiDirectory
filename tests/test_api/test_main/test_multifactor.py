@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from config import Settings
-from ldap_protocol.multifactor import MultifactorAPI
+from application.multifactor import MultifactorAPI
 
 
 @pytest.mark.asyncio

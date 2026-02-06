@@ -22,15 +22,15 @@ from api.ldap_schema.schema import (
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from application.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
-from ldap_protocol.ldap_schema.constants import (
+from application.ldap_schema.constants import (
     DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
     DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
     DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
 )
-from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
+from application.ldap_schema.dto import AttributeTypeDTO
 
 
 def _convert_update_uschema_to_dto(

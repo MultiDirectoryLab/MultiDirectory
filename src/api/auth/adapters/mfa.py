@@ -10,10 +10,10 @@ from fastapi import status
 from fastapi.responses import RedirectResponse
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.auth import MFAManager
-from ldap_protocol.auth.exceptions.mfa import MFATokenError
-from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
-from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
+from application.auth import MFAManager
+from application.auth.exceptions.mfa import MFATokenError
+from application.auth.schemas import MFACreateRequest, MFAGetResponse
+from application.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 
 class MFAFastAPIAdapter(BaseAdapter[MFAManager]):

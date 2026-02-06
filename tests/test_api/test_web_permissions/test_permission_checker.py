@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from abstract_service import AbstractService
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from enums import AuthorizationRules
-from ldap_protocol.dialogue import UserSchema
-from ldap_protocol.permissions_checker import AuthorizationError
-from ldap_protocol.utils.queries import get_user
+from application.dialogue import UserSchema
+from application.permissions_checker import AuthorizationError
+from application.utils.queries import get_user
 from tests.conftest import TestCreds
 from tests.test_api.test_web_permissions.conftest import (
     get_params,

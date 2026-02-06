@@ -18,7 +18,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DomainCodes
-from ldap_protocol.dhcp.exceptions import (
+from application.dhcp.exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
     DHCPEntryDeleteError,
@@ -27,7 +27,7 @@ from ldap_protocol.dhcp.exceptions import (
     DHCPOperationError,
     DHCPValidationError,
 )
-from ldap_protocol.dhcp.schemas import (
+from application.dhcp.schemas import (
     DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,

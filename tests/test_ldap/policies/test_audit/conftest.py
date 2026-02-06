@@ -16,9 +16,9 @@ from dishka import (
 )
 
 from config import Settings
-from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
-from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
-from ldap_protocol.policies.audit.service import AuditService
+from application.policies.audit.destination_dao import AuditDestinationDAO
+from application.policies.audit.policies_dao import AuditPoliciesDAO
+from application.policies.audit.service import AuditService
 from tests.conftest import TestProvider
 
 

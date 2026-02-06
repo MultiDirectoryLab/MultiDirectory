@@ -5,17 +5,17 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.policies.audit.dataclasses import (
+from application.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
 )
-from ldap_protocol.policies.audit.schemas import (
+from application.policies.audit.schemas import (
     AuditDestinationResponse,
     AuditDestinationSchemaRequest,
     AuditPolicyResponse,
     AuditPolicySchemaRequest,
 )
-from ldap_protocol.policies.audit.service import AuditService
+from application.policies.audit.service import AuditService
 
 
 class AuditPoliciesAdapter(BaseAdapter[AuditService]):

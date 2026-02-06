@@ -8,11 +8,11 @@ import copy
 
 import pytest
 
-from ldap_protocol.policies.password.dataclasses import (
+from application.policies.password.dataclasses import (
     DefaultDomainPasswordPolicyPreset,
     PasswordPolicyDTO,
 )
-from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
+from application.policies.password.use_cases import PasswordPolicyUseCases
 
 from .datasets import test_get_password_policy_by_dir_path_dn_extended_dataset
 

@@ -18,12 +18,12 @@ from constants import DOMAIN_COMPUTERS_GROUP_NAME
 from entities import Attribute, Directory, EntityType, Group
 from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_value_validator import (
+from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.queries import (
+from application.ldap_schema.entity_type_dao import EntityTypeDAO
+from application.roles.role_use_case import RoleUseCase
+from application.utils.queries import (
     create_group,
     get_base_directories,
     get_filter_from_path,

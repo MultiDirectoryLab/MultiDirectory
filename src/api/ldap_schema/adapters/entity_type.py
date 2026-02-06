@@ -15,9 +15,9 @@ from api.ldap_schema.schema import (
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
-from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from application.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
+from application.ldap_schema.dto import EntityTypeDTO
+from application.ldap_schema.entity_type_use_case import EntityTypeUseCase
 
 
 def _convert_update_chema_to_dto(

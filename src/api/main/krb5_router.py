@@ -26,9 +26,9 @@ from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.kerberos import KerberosState
-from ldap_protocol.kerberos.exceptions import (
+from application.dialogue import LDAPSession
+from application.kerberos import KerberosState
+from application.kerberos.exceptions import (
     KerberosBaseDnNotFoundError,
     KerberosConflictError,
     KerberosDependencyError,
@@ -36,8 +36,8 @@ from ldap_protocol.kerberos.exceptions import (
     KerberosUnavailableError,
     KRBAPIConnectionError,
 )
-from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
-from ldap_protocol.utils.const import EmailStr
+from application.ldap_requests.contexts import LDAPAddRequestContext
+from application.utils.const import EmailStr
 
 from .utils import get_ldap_session
 

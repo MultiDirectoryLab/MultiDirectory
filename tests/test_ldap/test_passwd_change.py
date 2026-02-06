@@ -8,7 +8,7 @@ import pytest
 from aioldap3 import LDAPConnection
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ldap_protocol.utils.queries import get_user
+from application.utils.queries import get_user
 from password_utils import PasswordUtils
 from tests.conftest import TestCreds
 

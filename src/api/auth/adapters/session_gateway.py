@@ -6,7 +6,7 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Literal, ParamSpec, TypeVar
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.session_storage import SessionRepository
+from application.session_storage import SessionRepository
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")

@@ -1,0 +1,288 @@
+"""Modify DN request.
+
+Copyright (c) 2024 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
+from typing import AsyncGenerator, ClassVar
+
+from sqlalchemy import delete, func, select, text, update
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload, selectinload
+
+from entities import AccessControlEntry, Attribute, Directory
+from enums import AceType
+from application.asn1parser import ASN1Row
+from application.ldap_codes import LDAPCodes
+from application.ldap_responses import (
+    INVALID_ACCESS_RESPONSE,
+    ModifyDNResponse,
+)
+from application.objects import ProtocolRequests
+from application.utils.queries import get_filter_from_path, validate_entry
+from infrastructure.pg.tables import (
+    ace_directory_memberships_table,
+    queryable_attr as qa,
+)
+
+from .base import BaseRequest
+from .contexts import LDAPModifyDNRequestContext
+
+
+class ModifyDNRequest(BaseRequest):
+    """Update DN.
+
+    ```
+    ModifyDNRequest ::= [APPLICATION 12] SEQUENCE {
+        entry           LDAPDN,
+        newrdn          RelativeLDAPDN,
+        deleteoldrdn    BOOLEAN,
+        newSuperior     [0] LDAPDN OPTIONAL
+    }
+    ```
+
+    **entry** — The current DN for the target entry.
+
+    **newrdn** — The new RDN to use assign to the entry.
+        It may be the same as the
+        current RDN if you only intend to move the entry beneath a new parent.
+        If the new RDN includes any attribute values that arent
+        already in the entry, the entry will be updated to include them.
+
+    **deleteoldrdn** — Indicates whether to delete any attribute values from
+        the entry that were in the original RDN but not in the new RDN.
+
+    **newSuperior** — The DN of the entry that should become the new
+        parent for the entry (and any of its subordinates).
+        This is optional, and if it is omitted, then the entry will be
+        left below the same parent and only the RDN will be altered.
+
+    **example**:
+
+        entry='cn=main,dc=multifactor,dc=dev'
+        newrdn='cn=main2'
+        deleteoldrdn=true
+        new_superior='cn=Users,dc=multifactor,dc=dev'
+
+        >>> cn = main2, cn = Users, dc = multifactor, dc = dev
+    """
+
+    RESPONSE_TYPE: ClassVar[type] = ModifyDNResponse
+    PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY_DN
+    CONTEXT_TYPE: ClassVar[type] = LDAPModifyDNRequestContext
+
+    entry: str
+    newrdn: str
+    deleteoldrdn: bool
+    new_superior: str | None
+
+    @classmethod
+    def from_data(cls, data: list[ASN1Row]) -> "ModifyDNRequest":
+        """Create structure from ASN1Row dataclass list."""
+        return cls(
+            entry=data[0].value,
+            newrdn=data[1].value,
+            deleteoldrdn=data[2].value,
+            new_superior=None if len(data) < 4 else data[3].value,
+        )
+
+    async def handle(
+        self,
+        ctx: LDAPModifyDNRequestContext,
+    ) -> AsyncGenerator[ModifyDNResponse, None]:
+        """Handle message with current user."""
+        if not ctx.ldap_session.user:
+            yield ModifyDNResponse(**INVALID_ACCESS_RESPONSE)
+            return
+
+        if any(
+            [
+                not validate_entry(self.entry),
+                self.new_superior and not validate_entry(self.new_superior),
+                not validate_entry(self.newrdn),
+            ],
+        ):
+            yield ModifyDNResponse(result_code=LDAPCodes.INVALID_DN_SYNTAX)
+            return
+
+        if not ctx.ldap_session.user.role_ids:
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
+            return
+
+        query = (
+            select(Directory)
+            .options(
+                joinedload(qa(Directory.parent)),
+                joinedload(qa(Directory.entity_type)),
+            )
+            .filter(get_filter_from_path(self.entry))
+        )
+
+        query = ctx.access_manager.mutate_query_with_ace_load(
+            user_role_ids=ctx.ldap_session.user.role_ids,
+            query=query,
+            ace_types=[AceType.DELETE],
+            require_attribute_type_null=True,
+        )
+
+        directory = await ctx.session.scalar(query)
+
+        if not directory:
+            yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+            return
+
+        if directory.is_domain:
+            yield ModifyDNResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
+            return
+
+        if directory.is_system:
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
+            )
+            return
+
+        old_name = directory.name
+        new_dn, new_name = self.newrdn.split("=")
+        directory.name = new_name
+
+        old_path = directory.path
+        old_dn = old_path[-1].split("=")[0]
+
+        old_depth = directory.depth
+
+        if (
+            directory.entity_type
+            and not ctx.attribute_value_validator.is_value_valid(
+                entity_type_name=directory.entity_type.name,
+                attr_name="name",
+                attr_value=new_name,
+            )
+        ):
+            await ctx.session.rollback()
+            yield ModifyDNResponse(
+                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                message="Invalid attribute value(s)",
+            )
+            return
+
+        if (
+            self.new_superior
+            and directory.parent
+            and self.new_superior != directory.parent.path_dn
+        ):
+            new_sup_query = select(Directory).filter(
+                get_filter_from_path(self.new_superior),
+            )
+            new_sup_query = ctx.access_manager.mutate_query_with_ace_load(
+                user_role_ids=ctx.ldap_session.user.role_ids,
+                query=new_sup_query,
+                ace_types=[AceType.CREATE_CHILD],
+                require_attribute_type_null=True,
+            )
+
+            parent_dir = await ctx.session.scalar(new_sup_query)
+
+            if not parent_dir:
+                yield ModifyDNResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
+                return
+
+            can_add = ctx.access_manager.check_entity_level_access(
+                aces=parent_dir.access_control_entries,
+                entity_type_id=directory.entity_type_id,
+            )
+
+            if not can_add:
+                yield ModifyDNResponse(
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+                )
+                return
+
+            directory.parent = parent_dir
+            directory.create_path(directory.parent, dn=new_dn)
+
+            try:
+                await ctx.session.flush()
+                await ctx.session.execute(
+                    delete(ace_directory_memberships_table)
+                    .filter_by(directory_id=directory.id),
+                )  # fmt: skip
+
+                await ctx.role_use_case.inherit_parent_aces(
+                    parent_directory=directory.parent,
+                    directory=directory,
+                )
+                await ctx.session.flush()
+            except IntegrityError:
+                await ctx.session.rollback()
+                yield ModifyDNResponse(
+                    result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                )
+                return
+
+        async with ctx.session.begin_nested():
+            if self.deleteoldrdn:
+                await ctx.session.execute(
+                    update(Attribute)
+                    .filter_by(
+                        directory_id=directory.id,
+                        name=old_dn,
+                        value=old_name,
+                    )
+                    .values(name=new_dn, value=new_name),
+                )
+            else:
+                ctx.session.add(
+                    Attribute(
+                        directory_id=directory.id,
+                        name=new_dn,
+                        value=new_name,
+                    ),
+                )
+            await ctx.session.flush()
+
+            new_path = directory.path[:-1] + [f"{new_dn}={new_name}"]
+            if old_path != new_path:
+                update_query = (
+                    update(Directory)
+                    .where(qa(Directory.path)[1:old_depth] == old_path)
+                    .values(
+                        path=func.array_cat(
+                            new_path,
+                            text(f"path[{old_depth + 1} :]"),
+                        ),
+                        depth=func.cardinality(
+                            func.array_cat(
+                                new_path,
+                                text(f"path[{old_depth + 1} :]"),
+                            ),
+                        ),
+                    )
+                )
+                await ctx.session.execute(
+                    update_query,
+                    execution_options={"synchronize_session": "fetch"},
+                )
+                await ctx.session.flush()
+
+                explicit_aces_query = (
+                    select(AccessControlEntry)
+                    .options(selectinload(qa(AccessControlEntry.directories)))
+                    .where(
+                        qa(AccessControlEntry.directories).any(
+                            qa(Directory.id) == directory.id,
+                        ),
+                        qa(AccessControlEntry.depth) == old_depth,
+                    )
+                )
+                for ace in await ctx.session.scalars(explicit_aces_query):
+                    ace.directories.append(directory)
+                    ace.path = directory.path_dn
+                    ace.depth = directory.depth
+
+            await ctx.session.flush()
+
+        await ctx.session.commit()
+
+        yield ModifyDNResponse(result_code=LDAPCodes.SUCCESS)

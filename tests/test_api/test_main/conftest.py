@@ -10,14 +10,14 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import CatalogueSetting
-from ldap_protocol.dns import (
+from application.dns import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
     DNS_MANAGER_ZONE_NAME,
     DNSManagerState,
 )
-from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_requests.modify import Operation
+from application.ldap_codes import LDAPCodes
+from application.ldap_requests.modify import Operation
 
 
 @pytest_asyncio.fixture(scope="function")

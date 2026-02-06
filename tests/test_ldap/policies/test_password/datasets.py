@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE.
 """
 
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
+from application.policies.password.dataclasses import PasswordPolicyDTO
 
 test_get_password_policy_by_dir_path_dn_extended_dataset = [
     [

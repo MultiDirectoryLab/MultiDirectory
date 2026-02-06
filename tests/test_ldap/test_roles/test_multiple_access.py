@@ -14,11 +14,11 @@ from sqlalchemy.orm import joinedload, subqueryload
 from config import Settings
 from entities import Directory
 from enums import AceType, EntityTypeNames, RoleScope
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
-from ldap_protocol.utils.queries import get_filter_from_path
+from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from application.ldap_schema.entity_type_dao import EntityTypeDAO
+from application.roles.ace_dao import AccessControlEntryDAO
+from application.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from application.utils.queries import get_filter_from_path
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 

@@ -8,11 +8,11 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from ldap_protocol.policies.password import PasswordPolicyValidator
-from ldap_protocol.policies.password.ban_word_repository import (
+from application.policies.password import PasswordPolicyValidator
+from application.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
-from ldap_protocol.utils.helpers import dt_to_ft
+from application.utils.helpers import dt_to_ft
 
 
 @pytest.mark.asyncio

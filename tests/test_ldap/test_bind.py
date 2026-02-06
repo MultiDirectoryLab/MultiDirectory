@@ -14,9 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
 from entities import Attribute, Directory, User
-from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.ldap_requests.bind import (
+from application.dependency import resolve_deps
+from application.dialogue import LDAPSession
+from application.ldap_requests.bind import (
     BindRequest,
     BindResponse,
     LDAPCodes,
@@ -24,14 +24,14 @@ from ldap_protocol.ldap_requests.bind import (
     SimpleAuthentication,
     UnbindRequest,
 )
-from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import (
+from application.ldap_requests.bind_methods.sasl_spnego import (
     SaslSPNEGOAuthentication,
 )
-from ldap_protocol.ldap_requests.contexts import (
+from application.ldap_requests.contexts import (
     LDAPBindRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.objects import UserAccountControlFlag
+from application.objects import UserAccountControlFlag
 from password_utils import PasswordUtils
 from tests.conftest import MutePolicyBindRequest, TestCreds
 

@@ -8,10 +8,10 @@ import pytest
 
 from config import Settings
 from enums import AceType, EntityTypeNames, RoleScope
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
+from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from application.ldap_schema.entity_type_dao import EntityTypeDAO
+from application.roles.ace_dao import AccessControlEntryDAO
+from application.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from tests.conftest import TestCreds
 
 from .conftest import perform_ldap_search_and_validate

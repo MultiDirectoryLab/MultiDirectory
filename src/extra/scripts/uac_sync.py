@@ -10,9 +10,9 @@ from sqlalchemy.sql import func, select
 
 from config import Settings
 from entities import Attribute, User
-from ldap_protocol.kerberos import AbstractKadmin
-from ldap_protocol.objects import UserAccountControlFlag
-from ldap_protocol.utils.queries import add_lock_and_expire_attributes
+from application.kerberos import AbstractKadmin
+from application.objects import UserAccountControlFlag
+from application.utils.queries import add_lock_and_expire_attributes
 from infrastructure.pg.tables import queryable_attr as qa
 
 

@@ -16,7 +16,7 @@ from extra.scripts.update_status_proccess_events import (
     update_status_process_events,
 )
 from ioc import MainProvider
-from ldap_protocol.dependency import resolve_deps
+from application.dependency import resolve_deps
 
 type task_type = Callable[..., Coroutine]
 

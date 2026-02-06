@@ -18,7 +18,7 @@ from api.ldap_schema.schema import (
     ObjectClassUpdateSchema,
 )
 from api.utils import require_master_db
-from ldap_protocol.utils.pagination import PaginationParams
+from application.utils.pagination import PaginationParams
 
 
 @ldap_schema_router.post(

@@ -21,9 +21,9 @@ from api.password_policy.adapter import (
     UserPasswordHistoryResetFastAPIAdapter,
 )
 from config import Settings
-from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
-from ldap_protocol.policies.password.use_cases import (
+from application.policies.password import PasswordPolicyUseCases
+from application.policies.password.dataclasses import PasswordPolicyDTO
+from application.policies.password.use_cases import (
     UserPasswordHistoryUseCases,
 )
 from tests.conftest import TestProvider

@@ -8,15 +8,15 @@ import pytest
 import pytest_asyncio
 
 from enums import AuditDestinationProtocolType, AuditDestinationServiceType
-from ldap_protocol.policies.audit.dataclasses import (
+from application.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
 )
-from ldap_protocol.policies.audit.exception import (
+from application.policies.audit.exception import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
 )
-from ldap_protocol.policies.audit.service import AuditService
+from application.policies.audit.service import AuditService
 
 
 @pytest.mark.asyncio
