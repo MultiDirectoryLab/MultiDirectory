@@ -176,16 +176,13 @@ class MainProvider(Provider):
         engine_registry: EngineRegistry,
     ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
-        if settings.POSTGRES_RW_MODE == "single":
-            return async_sessionmaker(
-                bind=engine_registry.get_master_engine(),
-                expire_on_commit=False,
-            )
-
         return async_sessionmaker(
             sync_session_class=RoutingSession,
             expire_on_commit=False,
-            info={"engine_registry": engine_registry},
+            info={
+                "engine_registry": engine_registry,
+                "rw_mode": settings.POSTGRES_RW_MODE,
+            },
         )
 
     @provide(scope=Scope.REQUEST)

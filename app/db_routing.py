@@ -11,6 +11,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.orm import Session
 
+from enums import PostgresRWModeType
+
 
 class EngineRegistry:
     _master_engine: AsyncEngine
@@ -46,12 +48,25 @@ class RoutingSession(Session):
 
     @property
     def engine_registry(self) -> EngineRegistry:
-        return self.info["engine_registry"]
+        engine_registry = self.info.get("engine_registry")
+        if engine_registry is None:
+            raise RuntimeError("Engine registry is not configured")
+        return engine_registry
+
+    @property
+    def rw_mode(self) -> PostgresRWModeType:
+        rw_mode = self.info.get("rw_mode")
+        if rw_mode is None:
+            raise RuntimeError("RW mode is not configured")
+        return rw_mode
 
     def set_force_master(self, value: bool) -> None:
         self._force_master = value
 
-    def get_bind(self, mapper=None, clause=None) -> Engine:  # type: ignore  # noqa: ARG002
+    def get_bind(self, mapper=None, *, clause=None, **kw) -> Engine:  # type: ignore  # noqa: ARG002
+        if self.rw_mode == PostgresRWModeType.SINGLE:
+            return self.engine_registry.get_sync_master_engine()
+
         if isinstance(clause, Update | Insert | Delete):
             self._force_master = True
             return self.engine_registry.get_sync_master_engine()

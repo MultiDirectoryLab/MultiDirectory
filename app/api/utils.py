@@ -13,6 +13,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from enums import PostgresRWModeType
 
 
 @inject
@@ -20,7 +21,7 @@ async def require_master_db(
     session: FromDishka[AsyncSession],
     settings: FromDishka[Settings],
 ) -> None:
-    if settings.POSTGRES_RW_MODE == "single":
+    if settings.POSTGRES_RW_MODE == PostgresRWModeType.SINGLE:
         return
 
     try:

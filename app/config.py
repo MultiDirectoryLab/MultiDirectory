@@ -24,6 +24,8 @@ from pydantic import (
 )
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from enums import PostgresRWModeType
+
 
 def _get_vendor_version() -> str:
     with open("/pyproject.toml", "rb") as f:
@@ -49,7 +51,7 @@ class Settings(BaseModel):
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
 
-    POSTGRES_RW_MODE: Literal["single", "replication"] = "single"
+    POSTGRES_RW_MODE: PostgresRWModeType = PostgresRWModeType.SINGLE
     POSTGRES_SCHEMA: ClassVar[str] = "postgresql+psycopg"
 
     POSTGRES_REPLICA_DB: str = ""
