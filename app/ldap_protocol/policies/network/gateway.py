@@ -15,7 +15,7 @@ from ldap_protocol.policies.network.exceptions import (
     NetworkPolicyNotFoundError,
 )
 from ldap_protocol.utils.queries import get_groups
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 
 class NetworkPolicyGateway:

@@ -20,7 +20,7 @@ from ldap_protocol.ldap_responses import (
 )
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.utils.queries import get_filter_from_path, validate_entry
-from infrasture.pg.tables import (
+from infrastructure.pg.tables import (
     ace_directory_memberships_table,
     queryable_attr as qa,
 )

@@ -14,7 +14,7 @@ from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_filter_from_path
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 
 class KRBLDAPStructureManager:

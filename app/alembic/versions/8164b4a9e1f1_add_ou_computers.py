@@ -16,7 +16,7 @@ from entities import Directory
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "8164b4a9e1f1"

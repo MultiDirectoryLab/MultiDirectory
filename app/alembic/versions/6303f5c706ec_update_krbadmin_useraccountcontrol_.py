@@ -17,7 +17,7 @@ from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.utils.helpers import create_integer_hash
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "6303f5c706ec"

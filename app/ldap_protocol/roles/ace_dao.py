@@ -16,7 +16,7 @@ from entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 from .dataclasses import AccessControlEntryDTO
 from .exceptions import (

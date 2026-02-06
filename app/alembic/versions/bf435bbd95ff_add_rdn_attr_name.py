@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision = "bf435bbd95ff"

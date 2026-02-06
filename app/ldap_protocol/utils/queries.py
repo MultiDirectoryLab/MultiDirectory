@@ -21,7 +21,7 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
 )
-from infrasture.pg.tables import (
+from infrastructure.pg.tables import (
     directory_memberships_table,
     directory_table,
     queryable_attr as qa,

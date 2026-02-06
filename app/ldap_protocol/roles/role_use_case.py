@@ -10,7 +10,7 @@ from entities import AccessControlEntry, AceType, Directory, Role
 from enums import AuthorizationRules, RoleConstants, RoleScope
 from ldap_protocol.kerberos.utils import get_system_container_dn
 from ldap_protocol.utils.queries import get_base_directories
-from infrasture.pg.tables import (
+from infrastructure.pg.tables import (
     access_control_entries_table,
     ace_directory_memberships_table,
     queryable_attr as qa,

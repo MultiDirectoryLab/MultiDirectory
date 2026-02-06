@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from entities import AttributeType
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "f24ed0e49df2"

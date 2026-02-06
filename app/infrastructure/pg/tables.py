@@ -61,7 +61,7 @@ from enums import (
     MFAFlags,
     RoleScope,
 )
-from infrasture.pg.types import AuthorizationRulesType
+from infrastructure.pg.types import AuthorizationRulesType
 
 type DistinguishedNamePrefix = Literal["cn", "ou", "dc"]
 UniqueConstraint.argument_for("postgresql", "nulls_not_distinct", None)

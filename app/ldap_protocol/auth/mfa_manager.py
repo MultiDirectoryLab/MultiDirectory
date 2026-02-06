@@ -50,7 +50,7 @@ from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 ALGORITHM = "HS256"
 

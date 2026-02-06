@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, selectinload
 from constants import READ_ONLY_GROUP_NAME
 from entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "16a9fa2c1f1e"

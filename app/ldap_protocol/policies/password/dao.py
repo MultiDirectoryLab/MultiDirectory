@@ -34,7 +34,7 @@ from ldap_protocol.utils.queries import (
     get_filter_from_path,
     get_groups,
 )
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 from .dataclasses import (
     DefaultDomainPasswordPolicyPreset as DefaultDomainP,

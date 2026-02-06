@@ -13,7 +13,7 @@ from sqlalchemy.sql.expression import Select, true
 
 from entities import Group, NetworkPolicy, User
 from enums import ProtocolType
-from infrasture.pg.tables import queryable_attr as qa
+from infrastructure.pg.tables import queryable_attr as qa
 
 
 class NetworkPolicyValidatorGateway:
