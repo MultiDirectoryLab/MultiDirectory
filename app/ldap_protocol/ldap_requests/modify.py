@@ -102,6 +102,7 @@ class ModifyRequest(BaseRequest):
     ```
     """
 
+    RESPONSE_TYPE: ClassVar[type] = ModifyResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY
     CONTEXT_TYPE: ClassVar[type] = LDAPModifyRequestContext
 

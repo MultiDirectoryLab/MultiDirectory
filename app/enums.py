@@ -12,6 +12,13 @@ from operator import or_
 from typing import Iterable, Self
 
 
+class PostgresRWModeType(StrEnum):
+    """Postgres read/write mode type."""
+
+    SINGLE = "single"
+    REPLICATION = "replication"
+
+
 class AceType(IntEnum):
     """ACE types."""
 

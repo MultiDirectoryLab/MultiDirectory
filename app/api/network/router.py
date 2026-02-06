@@ -18,6 +18,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.policies.network.exceptions import (
     LastActivePolicyError,
@@ -64,6 +65,7 @@ network_router = ErrorAwareRouter(
     "",
     status_code=status.HTTP_201_CREATED,
     error_map=error_map,
+    dependencies=[Depends(require_master_db)],
 )
 async def add_network_policy(
     policy: Policy,
@@ -97,6 +99,7 @@ async def get_list_network_policies(
     response_class=RedirectResponse,
     status_code=status.HTTP_303_SEE_OTHER,
     error_map=error_map,
+    dependencies=[Depends(require_master_db)],
 )
 async def delete_network_policy(
     policy_id: int,
@@ -114,7 +117,11 @@ async def delete_network_policy(
     return await adapter.delete(request, policy_id)  # type: ignore
 
 
-@network_router.patch("/{policy_id}", error_map=error_map)
+@network_router.patch(
+    "/{policy_id}",
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def switch_network_policy(
     policy_id: int,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],
@@ -133,7 +140,11 @@ async def switch_network_policy(
     return await adapter.switch_network_policy(policy_id)
 
 
-@network_router.put("", error_map=error_map)
+@network_router.put(
+    "",
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def update_network_policy(
     request: PolicyUpdate,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],
@@ -150,7 +161,11 @@ async def update_network_policy(
     return await adapter.update(request)
 
 
-@network_router.post("/swap", error_map=error_map)
+@network_router.post(
+    "/swap",
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def swap_network_policy(
     swap: SwapRequest,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],

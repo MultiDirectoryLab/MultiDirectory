@@ -18,11 +18,13 @@ from typing import (
 from dishka import AsyncContainer
 from loguru import logger
 from pydantic import BaseModel
+from sqlalchemy.exc import OperationalError
 
 from config import Settings
 from entities import Directory
 from ldap_protocol.dependency import resolve_deps
 from ldap_protocol.dialogue import LDAPSession
+from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -63,6 +65,7 @@ else:
 class BaseRequest(ABC, _APIProtocol, BaseModel):
     """Base request builder."""
 
+    RESPONSE_TYPE: ClassVar[type]
     CONTEXT_TYPE: ClassVar[type]
     handle: ClassVar[handler]
     from_data: ClassVar[serializer]
@@ -118,9 +121,17 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
 
         responses = []
-        async for response in self.handle(ctx=ctx):
-            responses.append(response)
-            yield response
+        try:
+            async for response in self.handle(ctx=ctx):
+                responses.append(response)
+                yield response
+        except OperationalError:
+            if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
+                yield self.RESPONSE_TYPE(
+                    result_code=LDAPCodes.UNAVAILABLE,
+                    errorMessage="Master DB is not available",
+                )
+            return
 
         if self.PROTOCOL_OP != ProtocolRequests.SEARCH:
             ldap_session = await container.get(LDAPSession)
@@ -172,7 +183,17 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         else:
             log_api.info(f"{get_class_name(self)}[{un}]")
 
-        responses = [response async for response in self.handle(ctx=ctx)]
+        try:
+            responses = [response async for response in self.handle(ctx=ctx)]
+        except OperationalError:
+            responses = []
+            if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
+                responses.append(
+                    self.RESPONSE_TYPE(
+                        result_code=LDAPCodes.UNAVAILABLE,
+                        errorMessage="Master DB is not available",
+                    ),
+                )
 
         if settings.DEBUG:
             for response in responses:

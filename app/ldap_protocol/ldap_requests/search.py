@@ -104,6 +104,7 @@ class SearchRequest(BaseRequest):
     ```
     """
 
+    RESPONSE_TYPE: ClassVar[type] = SearchResultDone
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.SEARCH
     CONTEXT_TYPE: ClassVar[type] = LDAPSearchRequestContext
 
