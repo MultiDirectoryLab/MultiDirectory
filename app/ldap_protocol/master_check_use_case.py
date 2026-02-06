@@ -4,9 +4,10 @@ Copyright (c) 2026 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Protocol
+from typing import ClassVar, Protocol
 
 from abstract_service import AbstractService
+from enums import AuthorizationRules
 
 
 class MasterGatewayProtocol(Protocol):
@@ -25,3 +26,5 @@ class MasterCheckUseCase(AbstractService):
 
     async def check_master(self) -> bool:
         return await self._master_gateway.check_master()
+
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {}
