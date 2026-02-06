@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from abstract_dao import AbstractDBGateWay
+from abstract_db_gateway import AbstractDBGateWay
 from domain.entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from application.utils.helpers import get_depth_by_dn

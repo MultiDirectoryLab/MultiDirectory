@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from abstract_dao import AbstractDBGateWay
+from abstract_db_gateway import AbstractDBGateWay
 from domain.entities import AttributeType, EntityType, ObjectClass
 from application.utils.pagination import (
     PaginationParams,

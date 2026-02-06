@@ -10,7 +10,7 @@ from adaptix.conversion import get_converter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractDBGateWay
+from abstract_db_gateway import AbstractDBGateWay
 from domain.entities import AuditDestination
 
 from .dataclasses import AuditDestinationDTO

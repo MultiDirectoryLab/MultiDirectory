@@ -10,7 +10,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from abstract_dao import AbstractDBGateWay
+from abstract_db_gateway import AbstractDBGateWay
 from domain.entities import AccessControlEntry, Group, Role
 from enums import AuthorizationRules, RoleConstants
 from application.utils.queries import get_groups
