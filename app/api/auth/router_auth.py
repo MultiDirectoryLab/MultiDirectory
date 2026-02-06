@@ -19,6 +19,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.auth.exceptions.mfa import (
     MFAAPIError,
@@ -186,7 +187,7 @@ async def logout(
 @auth_router.patch(
     "/user/password",
     status_code=200,
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def password_reset(
@@ -229,6 +230,7 @@ async def check_setup(
     status_code=status.HTTP_200_OK,
     responses={423: {"detail": "Locked"}},
     error_map=error_map,
+    dependencies=[Depends(require_master_db)],
 )
 async def first_setup(
     request: SetupRequest,

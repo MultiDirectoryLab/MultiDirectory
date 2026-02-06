@@ -1,9 +1,11 @@
 """Enterprise Session Repository."""
 
+import contextlib
 from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address
 from typing import ClassVar, Literal
 
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
@@ -87,8 +89,13 @@ class SessionRepository(AbstractService):
             },
             ttl=ttl,
         )
+        with contextlib.suppress(OperationalError):
+            await set_user_logon_attrs(
+                user,
+                self.session,
+                self.settings.TIMEZONE,
+            )
 
-        await set_user_logon_attrs(user, self.session, self.settings.TIMEZONE)
         return key
 
     async def get_user_sessions(
