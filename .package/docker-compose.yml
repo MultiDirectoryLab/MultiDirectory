@@ -5,6 +5,8 @@ services:
   traefik:
     image: "mirror.gcr.io/traefik:v3.6.1"
     container_name: traefik
+    networks:
+      md_net:
     restart: unless-stopped
     command:
       - "--providers.file.filename=/traefik.yml"
@@ -42,6 +44,8 @@ services:
   traefik_certs_dumper:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: traefik_certs_dumper
+    networks:
+      md_net:
     restart: "on-failure"
     env_file:
       .env
@@ -56,6 +60,8 @@ services:
   interface:
     image: ghcr.io/multidirectorylab/multidirectory-web-admin:${VERSION:-latest}
     container_name: multidirectory_interface
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: interface
     environment:
@@ -83,6 +89,8 @@ services:
 
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: multidirectory-ldap
     env_file:
@@ -131,6 +139,8 @@ services:
 
   cldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    networks:
+      md_net:
     restart: unless-stopped
     environment:
       - SERVICE_NAME=cldap_server
@@ -166,6 +176,8 @@ services:
           cpus: "0.25"
           memory: 100M
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    networks:
+      md_net:
     restart: unless-stopped
     environment:
       - SERVICE_NAME=global_ldap_server
@@ -206,6 +218,8 @@ services:
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_api
+    networks:
+      md_net:
     restart: unless-stopped
     env_file:
       .env
@@ -239,6 +253,8 @@ services:
 
   postgres:
     container_name: MD-postgres
+    networks:
+      md_net:
     image: mirror.gcr.io/postgres:16
     restart: unless-stopped
     env_file:
@@ -260,6 +276,8 @@ services:
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -268,6 +286,8 @@ services:
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: md_maintence
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -292,6 +312,8 @@ services:
 
   kdc:
     container_name: kdc
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -308,6 +330,8 @@ services:
   kadmin_api:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
     container_name: kadmin_api
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -322,9 +346,12 @@ services:
         condition: service_started
     working_dir: /server
     command: ./entrypoint.sh
+
   kadmind:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
     container_name: kadmind
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -352,8 +379,8 @@ services:
     container_name: pdns_auth
     networks:
       default:
-      dns_net:
-        ipv4_address: 172.20.0.4
+      md_net:
+        ipv4_address: 172.20.0.202
     expose:
       - 8082
       - 53/udp
@@ -368,8 +395,8 @@ services:
     container_name: pdns_recursor
     networks:
       default:
-      dns_net:
-        ipv4_address: 172.20.0.2
+      md_net:
+        ipv4_address: 172.20.0.200
     expose:
       - 8083
       - 53/udp
@@ -383,8 +410,8 @@ services:
     container_name: pdnsdist
     networks:
       default:
-      dns_net:
-        ipv4_address: 172.20.0.3
+      md_net:
+        ipv4_address: 172.20.0.201
     expose:
       - 8084
     ports:
@@ -414,6 +441,8 @@ services:
   kea_ctrl_agent:
     image: jonasal/kea-ctrl-agent:3.1.2-alpine
     container_name: kea_ctrl_agent
+    networks:
+      md_net:
     restart: unless-stopped
     command: -c /kea/config/kea-ctrl-agent.conf
     tty: true
@@ -428,6 +457,8 @@ services:
   dragonfly_mem:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - dragonflydata:/data
@@ -449,6 +480,8 @@ services:
   shadow_api:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: shadow_api
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     volumes:
@@ -465,6 +498,8 @@ services:
   event_handler:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: event_handler
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     env_file:
@@ -479,6 +514,8 @@ services:
   event_sender:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: event_sender
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     depends_on:
@@ -493,7 +530,7 @@ services:
       HANDLER_NAME: event_sender-1
 
 networks:
-  dns_net:
+  md_net:
     driver: bridge
     ipam:
       config:
