@@ -10,7 +10,7 @@ from sqlalchemy import delete, literal, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import PasswordBanWord
+from application.entities import PasswordBanWord
 from application.policies.password.exceptions import (
     PasswordBanWordFileHasDuplicatesError,
 )

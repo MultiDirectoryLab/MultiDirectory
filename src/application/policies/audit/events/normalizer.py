@@ -4,7 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from entities import AuditPolicyTrigger
+from application.entities import AuditPolicyTrigger
 from application.objects import OperationEvent
 
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent

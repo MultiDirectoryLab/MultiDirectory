@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
 from constants import DOMAIN_COMPUTERS_GROUP_NAME
-from entities import Attribute, Directory, EntityType, Group
+from application.entities import Attribute, Directory, EntityType, Group
 from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
 from application.ldap_schema.attribute_value_validator import (

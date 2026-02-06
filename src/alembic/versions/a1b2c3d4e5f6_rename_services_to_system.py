@@ -11,7 +11,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from entities import Attribute, Directory
+from application.entities import Attribute, Directory
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

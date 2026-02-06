@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import Select, true
 
-from entities import Group, NetworkPolicy, User
+from application.entities import Group, NetworkPolicy, User
 from enums import ProtocolType
 from infrastructure.pg.tables import queryable_attr as qa
 

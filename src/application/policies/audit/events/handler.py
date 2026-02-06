@@ -13,7 +13,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from entities import AuditPolicy, AuditPolicyTrigger
+from application.entities import AuditPolicy, AuditPolicyTrigger
 from application.ldap_codes import LDAPCodes
 from application.objects import OperationEvent
 from infrastructure.pg.tables import queryable_attr as qa

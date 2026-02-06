@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest_asyncio
 
-from entities import AccessControlEntry
+from application.entities import AccessControlEntry
 from application.dialogue import UserSchema
 
 

@@ -17,7 +17,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
+from application.entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
 from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
 from application.auth.utils import authenticate_user
 from application.kerberos import AbstractKadmin

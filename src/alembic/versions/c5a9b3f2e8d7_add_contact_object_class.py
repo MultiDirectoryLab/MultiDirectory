@@ -11,7 +11,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from entities import EntityType
+from application.entities import EntityType
 from enums import EntityTypeNames
 from application.ldap_schema.dto import EntityTypeDTO
 from application.ldap_schema.entity_type_use_case import EntityTypeUseCase

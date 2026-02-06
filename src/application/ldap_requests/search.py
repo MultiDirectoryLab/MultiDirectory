@@ -23,7 +23,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from entities import (
+from application.entities import (
     Attribute,
     AttributeType,
     Directory,

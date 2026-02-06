@@ -13,7 +13,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
-from entities import Attribute, Directory
+from application.entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
 from application.objects import UserAccountControlFlag
 from application.utils.helpers import create_integer_hash

@@ -10,7 +10,7 @@ from httpx import AsyncClient
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import NetworkPolicy
+from application.entities import NetworkPolicy
 from enums import MFAFlags
 
 from .conftest import ProxyRequestModel

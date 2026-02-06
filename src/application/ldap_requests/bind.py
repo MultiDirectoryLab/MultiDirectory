@@ -10,7 +10,7 @@ from typing import AsyncGenerator, ClassVar
 from pydantic import Field
 from sqlalchemy.exc import OperationalError
 
-from entities import NetworkPolicy
+from application.entities import NetworkPolicy
 from enums import MFAFlags
 from application.asn1parser import ASN1Row
 from application.kerberos.exceptions import (

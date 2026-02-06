@@ -8,7 +8,7 @@ from loguru import logger as loguru_logger
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import Attribute, CatalogueSetting, Directory, EntityType
+from application.entities import Attribute, CatalogueSetting, Directory, EntityType
 from enums import EntityTypeNames, StrEnum
 from infrastructure.pg.tables import queryable_attr as qa
 

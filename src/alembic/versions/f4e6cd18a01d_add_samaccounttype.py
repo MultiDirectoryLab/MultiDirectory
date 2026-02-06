@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
-from entities import Attribute, Directory, EntityType
+from application.entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames, SamAccountTypeCodes
 from infrastructure.pg.tables import queryable_attr as qa
 

@@ -8,7 +8,7 @@ from typing import ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import User
+from application.entities import User
 from application.utils.queries import get_user
 from password_utils import PasswordUtils
 

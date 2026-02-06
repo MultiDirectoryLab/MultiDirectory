@@ -22,7 +22,7 @@ from sqlalchemy.sql.elements import (
 )
 from sqlalchemy.sql.expression import false as sql_false
 
-from entities import (
+from application.entities import (
     Attribute,
     AttributeType,
     Directory,

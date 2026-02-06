@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 from typing import Callable, cast as tcast
 
-from entities import Attribute, Directory, User
+from application.entities import Attribute, Directory, User
 from enums import EntityTypeNames
 from application.objects import PartialAttribute
 

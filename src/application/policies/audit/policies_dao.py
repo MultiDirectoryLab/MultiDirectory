@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_dao import AbstractDAO
-from entities import AuditPolicy, AuditPolicyTrigger
+from application.entities import AuditPolicy, AuditPolicyTrigger
 
 from .dataclasses import AuditPolicyDTO, AuditPolicySetupDTO
 from .exception import AuditNotFoundError

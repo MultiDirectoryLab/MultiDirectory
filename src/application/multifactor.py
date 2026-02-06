@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from entities import CatalogueSetting
+from application.entities import CatalogueSetting
 from infrastructure.pg.tables import queryable_attr as qa
 
 

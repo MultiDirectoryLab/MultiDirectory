@@ -12,7 +12,7 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
-from entities import NetworkPolicy, User
+from application.entities import NetworkPolicy, User
 from enums import AuthorizationRules, ProtocolType
 from application.policies.network.dto import (
     NetworkPolicyDTO,

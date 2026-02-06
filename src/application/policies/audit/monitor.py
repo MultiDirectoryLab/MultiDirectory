@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from config import Settings
-from entities import User
+from application.entities import User
 from application.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,

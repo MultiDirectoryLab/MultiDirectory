@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv6Address
 from typing import Protocol
 
-from entities import NetworkPolicy, User
+from application.entities import NetworkPolicy, User
 from enums import ProtocolType
 
 

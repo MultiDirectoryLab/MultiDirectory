@@ -12,7 +12,7 @@ from starlette.datastructures import URL
 
 from abstract_service import AbstractService
 from config import Settings
-from entities import User
+from application.entities import User
 from enums import AuthorizationRules, MFAFlags
 from application.auth.dto import SetupDTO
 from application.auth.mfa_manager import MFAManager

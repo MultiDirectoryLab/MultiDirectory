@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from entities import AttributeType, EntityType, ObjectClass
+from application.entities import AttributeType, EntityType, ObjectClass
 from application.utils.pagination import (
     PaginationParams,
     PaginationResult,

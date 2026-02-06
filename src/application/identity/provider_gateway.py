@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from entities import Group, Role, User
+from application.entities import Group, Role, User
 from enums import AuthorizationRules
 from infrastructure.pg.tables import queryable_attr as qa
 

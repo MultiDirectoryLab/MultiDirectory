@@ -12,7 +12,7 @@ from dishka import AsyncContainer
 from loguru import logger
 from sqlalchemy.orm import Session
 
-from entities import CatalogueSetting, DedicatedServer
+from application.entities import CatalogueSetting, DedicatedServer
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

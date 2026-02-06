@@ -8,7 +8,7 @@ from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import AttributeType, ObjectClass
+from application.entities import AttributeType, ObjectClass
 from infrastructure.pg.tables import queryable_attr as qa
 
 

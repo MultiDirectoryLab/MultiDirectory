@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
-from entities import AccessControlEntry
+from application.entities import AccessControlEntry
 from application.roles.access_manager import AccessManager
 
 from .conftest import create_mock_ace

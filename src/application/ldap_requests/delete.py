@@ -9,7 +9,7 @@ from typing import AsyncGenerator, ClassVar
 from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import joinedload, selectinload
 
-from entities import Directory, Group
+from application.entities import Directory, Group
 from enums import AceType
 from application.asn1parser import ASN1Row
 from application.kerberos.exceptions import (

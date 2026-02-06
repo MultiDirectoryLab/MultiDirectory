@@ -11,7 +11,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import Column, select, text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from entities import Role
+from application.entities import Role
 from enums import AuthorizationRules, RoleConstants
 from infrastructure.pg.types import AuthorizationRulesType
 

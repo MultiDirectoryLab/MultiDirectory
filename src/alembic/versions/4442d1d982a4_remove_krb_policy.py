@@ -12,7 +12,7 @@ from dishka import AsyncContainer
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from entities import Attribute, Directory
+from application.entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
 
 # revision identifiers, used by Alembic.

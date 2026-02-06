@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
-from entities import AccessControlEntry, Directory
+from application.entities import AccessControlEntry, Directory
 from enums import AceType, RoleScope
 from application.utils.helpers import get_depth_by_dn
 from application.utils.queries import get_path_filter, get_search_path

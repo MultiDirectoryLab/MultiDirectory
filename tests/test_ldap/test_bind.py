@@ -13,7 +13,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from entities import Attribute, Directory, User
+from application.entities import Attribute, Directory, User
 from application.dependency import resolve_deps
 from application.dialogue import LDAPSession
 from application.ldap_requests.bind import (

@@ -11,7 +11,7 @@ from typing import ClassVar
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import User
+from application.entities import User
 from application.asn1parser import ASN1Row
 from application.ldap_codes import LDAPCodes
 from application.ldap_responses import BindResponse

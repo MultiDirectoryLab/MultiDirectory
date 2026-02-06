@@ -19,7 +19,7 @@ from starlette.datastructures import URL
 
 from abstract_service import AbstractService
 from config import Settings
-from entities import CatalogueSetting, NetworkPolicy, User
+from application.entities import CatalogueSetting, NetworkPolicy, User
 from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
 from application.auth.exceptions.mfa import (
     AuthenticationError,

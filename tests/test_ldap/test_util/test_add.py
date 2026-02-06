@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, subqueryload
 
 from config import Settings
-from entities import Directory, Group, User
+from application.entities import Directory, Group, User
 from enums import AceType, RoleScope
 from application.dialogue import LDAPSession
 from application.ldap_codes import LDAPCodes

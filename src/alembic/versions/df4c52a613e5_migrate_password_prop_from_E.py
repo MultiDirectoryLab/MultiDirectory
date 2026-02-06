@@ -13,7 +13,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from entities import PasswordPolicy
+from application.entities import PasswordPolicy
 from application.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )

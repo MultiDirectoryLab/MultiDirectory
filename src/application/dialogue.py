@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, AsyncIterator
 
 import gssapi
 
-from entities import NetworkPolicy, User
+from application.entities import NetworkPolicy, User
 from enums import ProtocolType
 from application.policies.network import NetworkPolicyValidatorUseCase
 
