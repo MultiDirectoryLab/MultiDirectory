@@ -19,7 +19,12 @@ from ldap_protocol.ldap_responses import (
     INVALID_ACCESS_RESPONSE,
     ModifyDNResponse,
 )
-from ldap_protocol.objects import ProtocolRequests
+from ldap_protocol.objects import (
+    Changes,
+    Operation,
+    PartialAttribute,
+    ProtocolRequests,
+)
 from ldap_protocol.utils.queries import get_filter_from_path, validate_entry
 from repo.pg.tables import (
     ace_directory_memberships_table,
@@ -131,8 +136,8 @@ class ModifyDNRequest(BaseRequest):
         query = ctx.access_manager.mutate_query_with_ace_load(
             user_role_ids=ctx.ldap_session.user.role_ids,
             query=query,
-            ace_types=[AceType.DELETE],
-            require_attribute_type_null=True,
+            ace_types=[AceType.DELETE, AceType.WRITE],
+            load_attribute_type=True,
         )
 
         directory = await ctx.session.scalar(query)
@@ -222,6 +227,23 @@ class ModifyDNRequest(BaseRequest):
                 await ctx.session.rollback()
                 yield ModifyDNResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
+                )
+                return
+        else:
+            can_modify = ctx.access_manager.check_modify_access(
+                changes=[
+                    Changes(
+                        operation=Operation.DELETE,
+                        modification=PartialAttribute(type="cn", vals="value"),
+                    ),
+                ],
+                aces=directory.access_control_entries,
+                entity_type_id=directory.entity_type_id,
+            )
+            logger.critical(f"Can modify: {can_modify}")
+            if not can_modify:
+                yield ModifyDNResponse(
+                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
                 )
                 return
 
