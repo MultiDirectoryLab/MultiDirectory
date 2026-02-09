@@ -262,15 +262,12 @@ class KAdminLocalManager(AbstractKRBManager):
         """Init kadmin local connection."""
         return await self.loop.run_in_executor(self.pool, kadmv.local)
 
-    def _parse_algorithms(self, algorithms: list[str] | None) -> list | None:
+    def _parse_algorithms(self, algorithms: list[str] | None) -> list:
         """Parse algorithm strings to kadmv EncryptionType.
 
         :param algorithms: list of algorithm strings
         :return: list of EncryptionType or None
         """
-        if not algorithms:
-            return None
-
         enc_types = []
         for alg in algorithms:
             if enc_type := ALGORITHM_MAP.get(alg):
@@ -278,7 +275,7 @@ class KAdminLocalManager(AbstractKRBManager):
             else:
                 logging.warning(f"Unknown algorithm: {alg}, skipping")
 
-        return enc_types if enc_types else None
+        return enc_types
 
     async def add_princ(
         self,
