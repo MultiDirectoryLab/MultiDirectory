@@ -115,6 +115,11 @@ class LDAPSession:
             "Cannot manually set user, use `set_user()` instead",
         )
 
+    @property
+    def is_anonymous(self) -> bool:
+        """Check if session is anonymous."""
+        return self._user is None
+
     async def set_user(self, user: User | UserSchema) -> None:
         """Bind user to session concurrently save."""
         async with self._lock:

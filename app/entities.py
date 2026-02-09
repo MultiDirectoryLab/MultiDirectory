@@ -260,6 +260,41 @@ class Directory:
         return not self.parent_id and self.object_class == "domain"
 
     @property
+    def is_user(self) -> bool:
+        return self.user is not None
+
+    @property
+    def is_group(self) -> bool:
+        return self.group is not None
+
+    @property
+    def is_computer(self) -> bool:
+        return self.object_class == "computer"
+
+    @property
+    def computer_sam_account_name(self) -> str | None:
+        if self.is_computer:
+            sam_account_names = self.attributes_dict.get("sAMAccountName")
+            if sam_account_names:
+                return sam_account_names[0]
+        return None
+
+    @property
+    def base_dn(self) -> str:
+        return ",".join(reversed(self.path[1:]))
+
+    @property
+    def computer_principal_names(self) -> tuple[str, str]:
+        if not self.is_computer:
+            raise ValueError("Not a computer object")
+
+        sam_account_name = self.computer_sam_account_name
+        return (
+            f"host/{sam_account_name}",
+            f"{sam_account_name}.{self.base_dn}",
+        )
+
+    @property
     def path_dn(self) -> str:
         return ",".join(reversed(self.path))
 

@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass
 
+from application.delete_directory_use_case import DeleteDirectoryUseCase
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -91,6 +92,12 @@ class LDAPDeleteRequestContext:
     session_storage: SessionStorage
     access_manager: AccessManager
 
+@dataclass
+class LDAPNewDeleteRequestContext:
+    """Context for LDAP delete request."""
+
+    ldap_session: LDAPSession
+    delete_directory_use_case: DeleteDirectoryUseCase
 
 @dataclass
 class LDAPUnbindRequestContext:
