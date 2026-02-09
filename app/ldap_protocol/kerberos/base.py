@@ -232,14 +232,17 @@ class AbstractKadmin(ABC):
         if response.status_code == 200:
             return
 
-        response = await self.client.post("/principal", json={"name": name})
+        response = await self.client.post(
+            "/principal",
+            json={"principal_name": name},
+        )
         if response.status_code != 201:
             log.error(f"Error creating ldap principal: {response.text}")
             return
 
         response = await self.client.post(
             "/principal/ktadd",
-            json=[name],
+            json={"names": [name], "is_rand_key": True},
         )
         if response.status_code != 200:
             log.error(f"Error getting keytab: {response.text}")

@@ -212,7 +212,10 @@ async def test_ktadd(
     :param LDAPSession ldap_session: ldap
     """
     names = ["test1", "test2"]
-    response = await http_client.post("/kerberos/ktadd", json=names)
+    response = await http_client.post(
+        "/kerberos/ktadd",
+        json={"names": names, "is_rand_key": False},
+    )
 
     kadmin.ktadd.assert_called()  # type: ignore
     assert kadmin.ktadd.call_args.args[0] == names  # type: ignore
@@ -240,7 +243,10 @@ async def test_ktadd_400(
     kadmin.ktadd.side_effect = KRBAPIPrincipalNotFoundError()  # type: ignore
 
     names = ["test1", "test2"]
-    response = await http_client.post("/kerberos/ktadd", json=names)
+    response = await http_client.post(
+        "/kerberos/ktadd",
+        json={"names": names, "is_rand_key": False},
+    )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
