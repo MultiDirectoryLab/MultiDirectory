@@ -77,10 +77,9 @@ class AttributeTypeUseCase(AbstractService):
 
     async def is_attr_replicated(self, name: str) -> bool:
         """Check if attribute is replicated based on systemFlags."""
-        dtos = await self.get_all_by_names([name])
-        if not dtos:
+        dto = await self.get(name)
+        if not dto:
             raise ValueError(f"Attribute Type with name '{name}' not found.")
-        dto = dtos[0]
         return await self._attribute_type_system_flags_use_case.is_attr_replicated(dto)  # noqa: E501  # fmt: skip
 
     async def set_attr_replication_flag(
@@ -89,10 +88,9 @@ class AttributeTypeUseCase(AbstractService):
         need_to_replicate: bool,
     ) -> None:
         """Set replication flag in systemFlags."""
-        dtos = await self.get_all_by_names([name])
-        if not dtos:
+        dto = await self.get(name)
+        if not dto:
             raise ValueError(f"Attribute Type with name '{name}' not found.")
-        dto = dtos[0]
         dto = await self._attribute_type_system_flags_use_case.set_attr_replication_flag(  # noqa: E501
             dto,
             need_to_replicate,

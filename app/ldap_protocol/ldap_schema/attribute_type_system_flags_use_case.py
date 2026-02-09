@@ -50,11 +50,6 @@ class AttributeTypeSystemFlagsUseCase:
         need_to_replicate: bool,
     ) -> AttributeTypeDTO:
         """Set/clear replication flag in systemFlags."""
-        if attribute_type_dto.is_system:
-            raise ValueError(
-                "Cannot change replication flag for system attribute types.",
-            )
-
         if not need_to_replicate:
             attribute_type_dto.system_flags = int(
                 attribute_type_dto.system_flags

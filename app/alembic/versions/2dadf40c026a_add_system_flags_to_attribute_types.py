@@ -6,16 +6,19 @@ Create Date: 2026-02-04 09:33:33.218126
 
 """
 
+import contextlib
+
 import sqlalchemy as sa
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from entities import AttributeType
-from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
-    AttributeTypeSystemFlags,
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
 )
-from repo.pg.tables import queryable_attr as qa
+from ldap_protocol.ldap_schema.exceptions import AttributeTypeNotFoundError
 
 # revision identifiers, used by Alembic.
 revision: None | str = "2dadf40c026a"
@@ -126,7 +129,7 @@ _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES = (
 )
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -143,19 +146,22 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
     session.execute(sa.update(AttributeType).values({"system_flags": 0}))
 
-    session.execute(
-        sa.update(AttributeType)
-        .where(
-            qa(AttributeType.name).in_(_NON_REPLICATED_ATTRIBUTES_TYPE_NAMES),
-        )
-        .values(
-            {
-                "system_flags": int(
-                    AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
-                ),
-            },
-        ),
-    )
+    async def _set_attr_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+
+        for name in _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES:
+            with contextlib.suppress(AttributeTypeNotFoundError):
+                await at_type_use_case.set_attr_replication_flag(
+                    name,
+                    need_to_replicate=False,
+                )
+
+        await session.commit()
+        await session.close()
+
+    op.run_async(_set_attr_replication_flag)
 
     op.alter_column("AttributeTypes", "system_flags", nullable=False)
 
