@@ -355,7 +355,7 @@ async def test_bind_create_user(
 
     assert await proc.wait() == 0
     kadmin_args = kadmin.add_principal.call_args.args  # type: ignore
-    assert kadmin_args == (san, pw, 0.1)
+    assert kadmin_args == (san, pw)
 
 
 @pytest.mark.asyncio
@@ -395,15 +395,15 @@ async def test_add_princ(
     :param LDAPSession ldap_session: ldap
     """
     response = await http_client.post(
-        "/kerberos/principal/add",
+        "/kerberos/principal",
         json={
-            "primary": "host",
-            "instance": "12345",
+            "principal_name": "host/12345",
+            "password": None,
         },
     )
     kadmin_args = kadmin.add_principal.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
-    assert kadmin_args == ("host/12345", None)
+    assert kadmin_args == ("host/12345", None, None)
 
 
 @pytest.mark.asyncio
@@ -417,16 +417,16 @@ async def test_rename_princ(
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    response = await http_client.patch(
-        "/kerberos/principal/rename",
+    response = await http_client.put(
+        "/kerberos/principal",
         json={
             "principal_name": "name",
-            "principal_new_name": "nname",
+            "new_principal_name": "nname",
         },
     )
     kadmin_args = kadmin.rename_princ.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
-    assert kadmin_args == ("name", "nname")
+    assert kadmin_args == ("name", "nname", None, None)
 
 
 @pytest.mark.asyncio
