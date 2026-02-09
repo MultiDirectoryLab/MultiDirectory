@@ -16,7 +16,7 @@ from application.ldap_schema.attribute_value_validator import (
 )
 from application.ldap_schema.entity_type_dao import EntityTypeDAO
 from application.multifactor import LDAPMultiFactorAPI
-from application.policies.network import NetworkPolicyValidatorUseCase
+from application.policies.network import ValidatePolicyAccessUseCase
 from application.policies.password import PasswordPolicyUseCases
 from application.roles.access_manager import AccessManager
 from application.roles.role_use_case import RoleUseCase
@@ -67,7 +67,7 @@ class LDAPBindRequestContext:
     password_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
     mfa: LDAPMultiFactorAPI
-    network_policy_validator: NetworkPolicyValidatorUseCase
+    validate_policy_access_use_case: ValidatePolicyAccessUseCase
 
 
 @dataclass

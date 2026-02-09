@@ -161,13 +161,12 @@ class BindRequest(BaseRequest):
         if uac_check(UserAccountControlFlag.ACCOUNTDISABLE):
             yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
-        policy = getattr(ctx.ldap_session, "policy", None)
-        if (
-            policy is not None
-        ) and not await ctx.network_policy_validator.is_user_group_valid(
+
+        has_access = await ctx.validate_policy_access_use_case.execute(
+            ctx.ldap_session,
             user,
-            policy,
-        ):
+        )
+        if not has_access:
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
