@@ -429,7 +429,11 @@ class SearchRequest(BaseRequest):
                 ),
             )
 
-        elif self.scope == Scope.WHOLE_SUBTREE and not root_is_base:
+        elif (
+            self.scope == Scope.WHOLE_SUBTREE
+            and not root_is_base
+            and self.base_object
+        ):
             query = query.filter(
                 get_path_filter(
                     column=qa(Directory.path)[1 : len(search_path)],
