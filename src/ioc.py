@@ -123,11 +123,10 @@ from application.policies.audit.monitor import (
 from application.policies.audit.policies_dao import AuditPoliciesDAO
 from application.policies.audit.service import AuditService
 from application.policies.network import (
-    NetworkPolicyGateway,
     NetworkPolicyUseCase,
-    NetworkPolicyValidatorGateway,
-    NetworkPolicyValidatorProtocol,
     NetworkPolicyValidatorUseCase,
+    NetworkPolicyGatewayProtocol,
+    ValidatePolicyAccessUseCase,
 )
 from application.policies.password import (
     PasswordPolicyDAO,
@@ -152,7 +151,9 @@ from application.rootdse.reader import DCInfoReader, RootDSEReader
 from application.session_storage import RedisSessionStorage, SessionStorage
 from application.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
+
 from infrastructure.pg.master_gateway import PGMasterGateway
+from infrastructure.pg.network_policy_gateway import NetworkPolicyGateway
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -499,6 +500,16 @@ class MainProvider(Provider):
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
 
+    network_policy_gateway = provide(
+        NetworkPolicyGateway,
+        provides=NetworkPolicyGatewayProtocol,
+        scope=Scope.REQUEST,
+    )
+    validate_policy_access_use_case = provide(
+        ValidatePolicyAccessUseCase,
+        scope=Scope.REQUEST,
+    )
+
 
 class LDAPContextProvider(Provider):
     """Context provider."""
@@ -547,14 +558,8 @@ class HTTPProvider(LDAPContextProvider):
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
     network_policy_use_case = provide(
         NetworkPolicyUseCase,
-        scope=Scope.REQUEST,
-    )
-    network_policy_validator_gateway = provide(
-        NetworkPolicyValidatorGateway,
-        provides=NetworkPolicyValidatorProtocol,
         scope=Scope.REQUEST,
     )
     network_policy_validator_use_case = provide(
@@ -723,15 +728,11 @@ class LDAPServerProvider(LDAPContextProvider):
     scope = Scope.SESSION
 
     network_policy_validator_gateway = provide(
-        NetworkPolicyValidatorGateway,
+        NetworkPolicyGateway,
+        provides=NetworkPolicyGatewayProtocol,
         scope=Scope.REQUEST,
     )
 
-    network_policy_validator = provide(
-        NetworkPolicyValidatorGateway,
-        provides=NetworkPolicyValidatorProtocol,
-        scope=Scope.REQUEST,
-    )
     network_policy_validator_use_case = provide(
         NetworkPolicyValidatorUseCase,
         scope=Scope.REQUEST,
@@ -778,11 +779,6 @@ class GlobalLDAPServerProvider(Provider):
         scope=Scope.REQUEST,
     )
 
-    network_policy_validator = provide(
-        NetworkPolicyValidatorGateway,
-        provides=NetworkPolicyValidatorProtocol,
-        scope=Scope.REQUEST,
-    )
     network_policy_validator_use_case = provide(
         NetworkPolicyValidatorUseCase,
         scope=Scope.REQUEST,
