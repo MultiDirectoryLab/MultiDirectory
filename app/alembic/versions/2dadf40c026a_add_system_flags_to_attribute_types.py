@@ -159,7 +159,6 @@ def upgrade(container: AsyncContainer) -> None:
                 )
 
         await session.commit()
-        await session.close()
 
     op.run_async(_set_attr_replication_flag)
 

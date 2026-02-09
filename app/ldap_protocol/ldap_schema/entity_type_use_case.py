@@ -54,7 +54,7 @@ class EntityTypeUseCase(AbstractService):
                 f"Entity Type '{dto.name}' is system and cannot be modified.",
             )
         if name != dto.name:
-            await self._validate_name(name=name)
+            await self._validate_name(name=dto.name)
         await self._entity_type_dao.update(entity_type.name, dto)
 
     async def get(self, name: str) -> EntityTypeDTO:

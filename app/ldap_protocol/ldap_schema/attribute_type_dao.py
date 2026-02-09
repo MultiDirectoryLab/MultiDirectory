@@ -57,7 +57,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         self.__session = session
 
     async def get(self, name: str) -> AttributeTypeDTO:
-        """Get Attribute Type by id."""
+        """Get Attribute Type by name."""
         return _convert_model_to_dto(await self._get_one_raw_by_name(name))
 
     async def get_all(self) -> list[AttributeTypeDTO]:
