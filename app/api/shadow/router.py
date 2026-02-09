@@ -8,7 +8,7 @@ from ipaddress import IPv4Address
 from typing import Annotated
 
 from dishka import FromDishka
-from fastapi import Body, status
+from fastapi import Body, Depends, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
@@ -17,6 +17,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
@@ -67,7 +68,11 @@ async def proxy_request(
     return await adapter.proxy_request(principal, ip)
 
 
-@shadow_router.post("/sync/password", error_map=error_map)
+@shadow_router.post(
+    "/sync/password",
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def change_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],

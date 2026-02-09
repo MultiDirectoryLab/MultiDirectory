@@ -8,12 +8,12 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
+from db_routing import EngineRegistry, RoutingSession
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
 )
@@ -91,6 +91,10 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.master_check_use_case import (
+    MasterCheckUseCase,
+    MasterGatewayProtocol,
+)
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -151,6 +155,7 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
+from repo.pg.master_gateway import PGMasterGateway
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -166,17 +171,27 @@ class MainProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.APP)
 
     @provide(scope=Scope.APP)
-    def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine."""
-        return settings.engine
+    def get_engine_registry(self, settings: Settings) -> EngineRegistry:
+        return EngineRegistry(
+            master_engine=settings.engine,
+            replica_engine=settings.replica_engine,
+        )
 
     @provide(scope=Scope.APP)
     def get_session_factory(
         self,
-        engine: AsyncEngine,
+        settings: Settings,
+        engine_registry: EngineRegistry,
     ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
-        return async_sessionmaker(engine, expire_on_commit=False)
+        return async_sessionmaker(
+            sync_session_class=RoutingSession,
+            expire_on_commit=False,
+            info={
+                "engine_registry": engine_registry,
+                "rw_mode": settings.POSTGRES_RW_MODE,
+            },
+        )
 
     @provide(scope=Scope.REQUEST)
     async def create_session(
@@ -578,6 +593,19 @@ class HTTPProvider(LDAPContextProvider):
             session_key=session_key,
         )
 
+    @provide(scope=Scope.REQUEST, provides=MasterGatewayProtocol)
+    async def get_master_gateway(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+    ) -> PGMasterGateway:
+        return PGMasterGateway(session, settings)
+
+    master_check_use_case = provide(
+        MasterCheckUseCase,
+        scope=Scope.REQUEST,
+    )
+
     identity_provider_gateway = provide(
         IdentityProviderGateway,
         scope=Scope.REQUEST,
@@ -902,8 +930,9 @@ class MigrationProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_conn_factory(
         self,
-        engine: AsyncEngine,
+        engine_registry: EngineRegistry,
     ) -> AsyncIterator[AsyncConnection]:
         """Create session factory."""
+        engine = engine_registry.get_master_engine()
         async with engine.connect() as connection:
             yield connection

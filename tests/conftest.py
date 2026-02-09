@@ -113,6 +113,10 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.master_check_use_case import (
+    MasterCheckUseCase,
+    MasterGatewayProtocol,
+)
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -160,6 +164,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
+from repo.pg.master_gateway import PGMasterGateway
 from tests.constants import TEST_DATA
 
 
@@ -464,6 +469,19 @@ class TestProvider(Provider):
         await client.flushdb()
         with suppress(RuntimeError):
             await client.aclose()
+
+    @provide(scope=Scope.REQUEST, provides=MasterGatewayProtocol)
+    async def get_master_gateway(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+    ) -> PGMasterGateway:
+        return PGMasterGateway(session, settings)
+
+    master_check_use_case = provide(
+        MasterCheckUseCase,
+        scope=Scope.REQUEST,
+    )
 
     @provide(scope=Scope.APP)
     async def get_session_storage(
