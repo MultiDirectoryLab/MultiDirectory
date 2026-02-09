@@ -34,7 +34,7 @@ class AttributeTypeSystemFlags(IntFlag):
 
 
 class AttributeTypeSystemFlagsUseCase:
-    async def is_attr_replicated(
+    def is_attr_replicated(
         self,
         attribute_type_dto: AttributeTypeDTO,
     ) -> bool:
@@ -44,7 +44,7 @@ class AttributeTypeSystemFlagsUseCase:
             & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
         )
 
-    async def set_attr_replication_flag(
+    def set_attr_replication_flag(
         self,
         attribute_type_dto: AttributeTypeDTO,
         need_to_replicate: bool,

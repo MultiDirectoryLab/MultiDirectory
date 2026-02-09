@@ -1216,9 +1216,9 @@ async def attribute_type_dao(
 async def attribute_type_system_flags_use_case(
     container: AsyncContainer,
 ) -> AsyncIterator[AttributeTypeSystemFlagsUseCase]:
-    """Get session and acquire after completion."""
+    """Get AttributeTypeSystemFlagsUseCase."""
     async with container(scope=Scope.APP) as container:
-        yield AttributeTypeSystemFlagsUseCase()
+        yield await container.get(AttributeTypeSystemFlagsUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")
