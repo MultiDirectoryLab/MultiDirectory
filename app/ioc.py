@@ -78,7 +78,7 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.attribute_type_system_flags import (
+from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_type_use_case import (

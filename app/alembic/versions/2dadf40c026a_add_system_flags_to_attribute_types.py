@@ -12,7 +12,7 @@ from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
 from entities import AttributeType
-from ldap_protocol.ldap_schema.attribute_type_system_flags import (
+from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlags,
 )
 from repo.pg.tables import queryable_attr as qa

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from enum import IntFlag
 
-from entities import AttributeType
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 
 
 class AttributeTypeSystemFlags(IntFlag):
@@ -34,26 +34,36 @@ class AttributeTypeSystemFlags(IntFlag):
 
 
 class AttributeTypeSystemFlagsUseCase:
-    def is_replicated(self, attribute_type: AttributeType) -> bool:
+    async def is_attr_replicated(
+        self,
+        attribute_type_dto: AttributeTypeDTO,
+    ) -> bool:
         """Check if attribute is replicated based on system_flags."""
         return not bool(
-            attribute_type.system_flags
+            attribute_type_dto.system_flags
             & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
         )
 
-    def set_is_replicated(
+    async def set_attr_replication_flag(
         self,
-        attribute_type: AttributeType,
+        attribute_type_dto: AttributeTypeDTO,
         need_to_replicate: bool,
-    ) -> None:
+    ) -> AttributeTypeDTO:
         """Set/clear replication flag in systemFlags."""
+        if attribute_type_dto.is_system:
+            raise ValueError(
+                "Cannot change replication flag for system attribute types.",
+            )
+
         if not need_to_replicate:
-            attribute_type.system_flags = int(
-                attribute_type.system_flags
+            attribute_type_dto.system_flags = int(
+                attribute_type_dto.system_flags
                 | AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
             )
         else:
-            attribute_type.system_flags = int(
-                attribute_type.system_flags
+            attribute_type_dto.system_flags = int(
+                attribute_type_dto.system_flags
                 & ~AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
             )
+
+        return attribute_type_dto
