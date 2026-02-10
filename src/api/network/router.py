@@ -19,12 +19,12 @@ from api.error_routing import (
 )
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.policies.network.exceptions import (
     LastActivePolicyError,
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,
 )
+from enums import DomainCodes
 
 from .schema import (
     Policy,
@@ -70,16 +70,15 @@ network_router = ErrorAwareRouter(
 async def add_network_policy(
     policy: Policy,
     adapter: FromDishka[NetworkPolicyFastAPIAdapter],
-) -> PolicyResponse:
+) -> None:
     """Add policy.
 
     \f
     :param Policy policy: policy to add
     :raises HTTPException: 422 invalid group DN
     :raises HTTPException: 422 Entry already exists
-    :return PolicyResponse: Ready policy
     """
-    return await adapter.create(policy)
+    await adapter.create(policy)
 
 
 @network_router.get("", name="policy", error_map=error_map)

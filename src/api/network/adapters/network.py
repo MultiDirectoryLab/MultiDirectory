@@ -63,9 +63,9 @@ _convert_dto_to_schema = get_converter(
 class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
     """Network policy adapter."""
 
-    async def create(self, policy: Policy) -> PolicyResponse:
+    async def create(self, policy: Policy) -> None:
         """Create network policy."""
-        policy_dto = await self._service.create(
+        await self._service.create(
             NetworkPolicyDTO(
                 id=None,
                 name=policy.name,
@@ -82,7 +82,6 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
                 mfa_groups=policy.mfa_groups,
             ),
         )
-        return _convert_dto_to_schema(policy_dto)
 
     async def get_list_policies(self) -> list[PolicyResponse]:
         """Get list of network policies."""
