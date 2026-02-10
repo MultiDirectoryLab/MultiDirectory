@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_db_gateway import AbstractDBGateWay
+from application.utils.queries import get_groups
 from domain.entities import AccessControlEntry, Group, Role
 from enums import AuthorizationRules, RoleConstants
-from application.utils.queries import get_groups
 from infrastructure.pg.tables import queryable_attr as qa
 
 from .ace_dao import _convert as ace_convert

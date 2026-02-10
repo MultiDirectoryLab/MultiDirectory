@@ -10,10 +10,8 @@ from typing import Any
 
 from loguru import logger
 
+from application.policies.audit.events.dataclasses import NormalizedAuditEvent
 from enums import AuditDestinationProtocolType, AuditDestinationServiceType
-from application.policies.audit.events.dataclasses import (
-    NormalizedAuditEvent,
-)
 
 from .base import AuditDestinationSenderABC
 from .rfc5424_serializer import RFC5424Serializer

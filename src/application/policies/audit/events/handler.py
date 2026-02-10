@@ -13,9 +13,9 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from domain.entities import AuditPolicy, AuditPolicyTrigger
 from application.ldap_codes import LDAPCodes
 from application.objects import OperationEvent
+from domain.entities import AuditPolicy, AuditPolicyTrigger
 from infrastructure.pg.tables import queryable_attr as qa
 
 from .dataclasses import NormalizedAuditEvent, RawAuditEvent

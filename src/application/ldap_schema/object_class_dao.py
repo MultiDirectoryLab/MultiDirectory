@@ -18,12 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_db_gateway import AbstractDBGateWay
-from domain.entities import AttributeType, EntityType, ObjectClass
 from application.utils.pagination import (
     PaginationParams,
     PaginationResult,
     build_paginated_search_query,
 )
+from domain.entities import AttributeType, EntityType, ObjectClass
 from infrastructure.pg.tables import queryable_attr as qa
 
 from .dto import AttributeTypeDTO, ObjectClassDTO

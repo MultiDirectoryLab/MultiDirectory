@@ -19,10 +19,10 @@ from proxyprotocol import ProxyProtocolIncompleteError
 from proxyprotocol.v2 import ProxyProtocolV2
 from pydantic import ValidationError
 
-from config import Settings
 from application import LDAPRequestMessage, LDAPSession
 from application.ldap_requests.bind_methods import GSSAPISL
 from application.policies.network import NetworkPolicyValidatorUseCase
+from config import Settings
 
 from .data_logger import DataLogger
 

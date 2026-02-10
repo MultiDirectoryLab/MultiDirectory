@@ -17,8 +17,8 @@ from dataclasses import dataclass
 from enum import IntEnum, IntFlag
 from typing import Any, Self
 
-from constants import DEFAULT_DC_POSTFIX
 from application.asn1parser import ASN1Row
+from constants import DEFAULT_DC_POSTFIX
 
 _NL_DEFAULT_SITE = "Default-First-Site-Name"
 _ZERO_UUID = uuid.UUID(int=0)

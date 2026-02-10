@@ -9,7 +9,6 @@ from aioldap3 import LDAPConnection
 from fastapi import status
 from httpx import AsyncClient
 
-from config import Settings
 from application.kerberos import AbstractKadmin, KerberosState
 from application.kerberos.exceptions import (
     KRBAPIChangePasswordError,
@@ -17,6 +16,7 @@ from application.kerberos.exceptions import (
 )
 from application.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from application.ldap_requests.contexts import LDAPBindRequestContext
+from config import Settings
 from password_utils import PasswordUtils
 from tests.conftest import MutePolicyBindRequest, TestCreds
 

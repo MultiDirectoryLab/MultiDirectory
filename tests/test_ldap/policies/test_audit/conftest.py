@@ -15,10 +15,10 @@ from dishka import (
     provide,
 )
 
-from config import Settings
 from application.policies.audit.destination_dao import AuditDestinationDAO
 from application.policies.audit.policies_dao import AuditPoliciesDAO
 from application.policies.audit.service import AuditService
+from config import Settings
 from tests.conftest import TestProvider
 
 

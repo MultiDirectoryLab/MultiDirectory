@@ -13,13 +13,13 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from constants import ENTITY_TYPE_DATAS
-from domain.entities import Attribute, Directory, User
-from extra.alembic_utils import temporary_stub_column
 from application.ldap_schema.dto import EntityTypeDTO
 from application.ldap_schema.entity_type_dao import EntityTypeDAO
 from application.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from application.utils.queries import get_base_directories
+from constants import ENTITY_TYPE_DATAS
+from domain.entities import Attribute, Directory, User
+from extra.alembic_utils import temporary_stub_column
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

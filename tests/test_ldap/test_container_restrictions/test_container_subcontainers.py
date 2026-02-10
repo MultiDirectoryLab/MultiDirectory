@@ -9,8 +9,8 @@ import tempfile
 
 import pytest
 
-from config import Settings
 from application.ldap_codes import LDAPCodes
+from config import Settings
 from tests.conftest import TestCreds
 
 

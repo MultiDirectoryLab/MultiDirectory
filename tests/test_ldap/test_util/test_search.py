@@ -12,9 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from config import Settings
-from domain.entities import User
-from enums import AceType, ProtocolType, RoleScope
 from application.asn1parser import ASN1Row, TagNumbers
 from application.dialogue import LDAPSession
 from application.ldap_requests import SearchRequest
@@ -25,6 +22,9 @@ from application.roles.ace_dao import AccessControlEntryDAO
 from application.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from application.roles.role_dao import RoleDAO
 from application.utils.queries import get_group, get_groups
+from config import Settings
+from domain.entities import User
+from enums import AceType, ProtocolType, RoleScope
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 from tests.search_request_datasets import (

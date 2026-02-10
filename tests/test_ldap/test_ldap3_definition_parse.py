@@ -7,10 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import AttributeType, ObjectClass
 from application.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
+from domain.entities import AttributeType, ObjectClass
 
 test_ldap3_parse_attribute_types_dataset = [
     [

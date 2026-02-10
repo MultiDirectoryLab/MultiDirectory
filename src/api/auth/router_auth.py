@@ -20,7 +20,6 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.auth.exceptions.mfa import (
     MFAAPIError,
     MFAConnectError,
@@ -44,6 +43,7 @@ from application.identity.exceptions import (
 )
 from application.kerberos.exceptions import KRBAPIChangePasswordError
 from application.session_storage import SessionStorage
+from enums import DomainCodes
 
 from .utils import verify_auth
 

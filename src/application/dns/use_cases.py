@@ -8,8 +8,6 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import ClassVar
 
 from abstract_service import AbstractService
-from config import Settings
-from enums import AuthorizationRules
 from application.dns.base import (
     AbstractDNSManager,
     DNSForwardServerStatus,
@@ -22,6 +20,8 @@ from application.dns.base import (
     DNSZoneType,
 )
 from application.dns.dns_gateway import DNSStateGateway
+from config import Settings
+from enums import AuthorizationRules
 
 
 class DNSUseCase(AbstractService):

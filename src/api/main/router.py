@@ -17,7 +17,6 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.custom_requests.rename import RenameRequest
 from application.identity.exceptions import UnauthorizedError
 from application.ldap_requests import (
@@ -28,6 +27,7 @@ from application.ldap_requests import (
 )
 from application.ldap_responses import LDAPResult
 from application.utils.queries import set_or_update_primary_group
+from enums import DomainCodes
 
 from .schema import (
     PrimaryGroupRequest,

@@ -9,10 +9,10 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
+from application.utils.queries import get_user, set_user_logon_attrs
 from config import Settings
 from domain.entities import User
 from enums import AuthorizationRules
-from application.utils.queries import get_user, set_user_logon_attrs
 
 from .exceptions import SessionUserNotFoundError
 from .redis import SessionStorage

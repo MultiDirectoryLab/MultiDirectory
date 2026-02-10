@@ -12,7 +12,6 @@ from loguru import logger
 from pydantic import BaseModel, SecretStr, SerializeAsAny
 from sqlalchemy import update
 
-from domain.entities import Directory, User
 from application.asn1parser import LDAPOID, ASN1Row, asn1todict
 from application.kerberos.exceptions import (
     KRBAPIChangePasswordError,
@@ -34,6 +33,7 @@ from application.ldap_responses import (
 )
 from application.objects import ProtocolRequests
 from application.utils.queries import get_user
+from domain.entities import Directory, User
 
 from .base import BaseRequest
 from .contexts import LDAPExtendedRequestContext

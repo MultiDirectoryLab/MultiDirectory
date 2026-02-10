@@ -10,8 +10,8 @@ from httpx import AsyncClient
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import CatalogueSetting
 from application.ldap_codes import LDAPCodes
+from domain.entities import CatalogueSetting
 
 
 class ProxyRequestModel(BaseModel):

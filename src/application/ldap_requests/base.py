@@ -20,18 +20,16 @@ from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy.exc import OperationalError
 
-from config import Settings
-from domain.entities import Directory
 from application.dependency import resolve_deps
 from application.dialogue import LDAPSession
 from application.ldap_codes import LDAPCodes
 from application.ldap_responses import BaseResponse, LDAPResult
 from application.objects import ProtocolRequests
 from application.policies.audit.audit_use_case import AuditUseCase
-from application.policies.audit.events.factory import (
-    RawAuditEventBuilderRedis,
-)
+from application.policies.audit.events.factory import RawAuditEventBuilderRedis
 from application.utils.helpers import get_class_name
+from config import Settings
+from domain.entities import Directory
 
 log_api = logger.bind(name="admin")
 

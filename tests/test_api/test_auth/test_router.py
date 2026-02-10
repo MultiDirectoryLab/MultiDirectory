@@ -17,14 +17,20 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from domain.entities import CatalogueSetting, Directory, Group, NetworkPolicy, Role
-from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
 from application.auth.utils import authenticate_user
 from application.kerberos import AbstractKadmin
 from application.ldap_codes import LDAPCodes
 from application.ldap_requests.modify import Operation
 from application.session_storage import SessionStorage
 from application.utils.queries import get_filter_from_path
+from domain.entities import (
+    CatalogueSetting,
+    Directory,
+    Group,
+    NetworkPolicy,
+    Role,
+)
+from enums import AceType, MFAChallengeStatuses, MFAFlags, RoleScope
 from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds

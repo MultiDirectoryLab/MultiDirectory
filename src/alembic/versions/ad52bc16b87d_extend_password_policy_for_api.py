@@ -12,10 +12,10 @@ from dishka import AsyncContainer
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from domain.entities import PasswordPolicy
 from application.policies.password.dataclasses import (
     DefaultDomainPasswordPolicyPreset,
 )
+from domain.entities import PasswordPolicy
 
 # revision identifiers, used by Alembic.
 revision: None | str = "ad52bc16b87d"

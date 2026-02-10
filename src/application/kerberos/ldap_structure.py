@@ -7,13 +7,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import Directory
 from application.kerberos.exceptions import KerberosConflictError
 from application.ldap_requests import AddRequest
 from application.ldap_requests.contexts import LDAPAddRequestContext
 from application.roles.access_manager import AccessManager
 from application.roles.role_use_case import RoleUseCase
 from application.utils.queries import get_filter_from_path
+from domain.entities import Directory
 from infrastructure.pg.tables import queryable_attr as qa
 
 

@@ -4,6 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from application.objects import UserAccountControlFlag
 from constants import (
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_COMPUTERS_GROUP_NAME,
@@ -12,7 +13,6 @@ from constants import (
     USERS_CONTAINER_NAME,
 )
 from enums import SamAccountTypeCodes
-from application.objects import UserAccountControlFlag
 
 TEST_DATA = [
     {

@@ -25,7 +25,6 @@ from api.error_routing import (
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import KerberosSetupRequest
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.dialogue import LDAPSession
 from application.kerberos import KerberosState
 from application.kerberos.exceptions import (
@@ -38,6 +37,7 @@ from application.kerberos.exceptions import (
 )
 from application.ldap_requests.contexts import LDAPAddRequestContext
 from application.utils.const import EmailStr
+from enums import DomainCodes
 
 from .utils import get_ldap_session
 

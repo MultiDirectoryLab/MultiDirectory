@@ -25,7 +25,6 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.auth.exceptions.mfa import (
     ForbiddenError,
     InvalidCredentialsError,
@@ -37,6 +36,7 @@ from application.auth.exceptions.mfa import (
 )
 from application.auth.schemas import MFACreateRequest, MFAGetResponse
 from application.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
+from enums import DomainCodes
 
 translator = DomainErrorTranslator(DomainCodes.MFA)
 

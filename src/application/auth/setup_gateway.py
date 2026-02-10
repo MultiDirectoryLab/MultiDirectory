@@ -11,7 +11,6 @@ from loguru import logger
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import Attribute, Directory, Group, NetworkPolicy, User
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -19,8 +18,9 @@ from application.ldap_schema.entity_type_dao import EntityTypeDAO
 from application.utils.async_cache import base_directories_cache
 from application.utils.helpers import create_object_sid, generate_domain_sid
 from application.utils.queries import get_domain_object_class
-from password_utils import PasswordUtils
+from domain.entities import Attribute, Directory, Group, NetworkPolicy, User
 from infrastructure.pg.tables import queryable_attr as qa
+from password_utils import PasswordUtils
 
 
 class SetupGateway:

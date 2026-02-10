@@ -32,7 +32,6 @@ from dishka import (
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
 from loguru import logger
-from multidirectory import _create_basic_app
 from sqlalchemy import schema, text
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -61,12 +60,6 @@ from api.password_policy.adapter import (
     PasswordPolicyFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
-from authorization_provider_protocol import AuthorizationProviderProtocol
-from config import Settings
-from constants import ENTITY_TYPE_DATAS
-from domain.entities import AttributeType
-from enums import AuthorizationRules
-from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from application.auth import AuthManager, MFAManager
 from application.auth.setup_gateway import SetupGateway
 from application.auth.use_cases import SetupUseCase
@@ -160,6 +153,13 @@ from application.server import PoolClientHandler
 from application.session_storage import RedisSessionStorage, SessionStorage
 from application.session_storage.repository import SessionRepository
 from application.utils.queries import get_user
+from authorization_provider_protocol import AuthorizationProviderProtocol
+from config import Settings
+from constants import ENTITY_TYPE_DATAS
+from domain.entities import AttributeType
+from enums import AuthorizationRules
+from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
+from multidirectory import _create_basic_app
 from password_utils import PasswordUtils
 from repo.pg.master_gateway import PGMasterGateway
 from tests.constants import TEST_DATA

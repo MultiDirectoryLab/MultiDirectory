@@ -8,7 +8,6 @@ from fastapi import status
 from fastapi_error_map.rules import rule
 
 from api.error_routing import ERROR_MAP_TYPE, DomainErrorTranslator
-from enums import DomainCodes
 from application.permissions_checker import AuthorizationError
 from application.policies.password.exceptions import (
     PasswordBanWordWrongFileExtensionError,
@@ -20,6 +19,7 @@ from application.policies.password.exceptions import (
     PasswordPolicyNotFoundError,
     PasswordPolicyPriorityError,
 )
+from enums import DomainCodes
 
 translator = DomainErrorTranslator(DomainCodes.PASSWORD_POLICY)
 

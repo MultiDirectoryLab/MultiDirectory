@@ -13,6 +13,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
+from application.utils.queries import get_base_directories
 from constants import (
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_COMPUTERS_GROUP_NAME,
@@ -20,7 +21,6 @@ from constants import (
     READ_ONLY_GROUP_NAME,
 )
 from domain.entities import Directory
-from application.utils.queries import get_base_directories
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

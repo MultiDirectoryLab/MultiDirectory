@@ -18,7 +18,6 @@ from httpx import AsyncClient
 from starlette.requests import Request
 
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from config import Settings
 from application.dialogue import UserSchema
 from application.identity import IdentityProvider
 from application.identity.exceptions import ErrorCodes, UnauthorizedError
@@ -27,6 +26,7 @@ from application.session_storage.base import SessionStorage
 from application.session_storage.exceptions import (
     SessionStorageInvalidDataError,
 )
+from config import Settings
 from tests.conftest import TestProvider
 
 

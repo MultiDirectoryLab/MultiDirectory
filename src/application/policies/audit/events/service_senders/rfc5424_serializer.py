@@ -8,9 +8,7 @@ import socket
 from datetime import datetime, timezone
 from typing import Any
 
-from application.policies.audit.events.dataclasses import (
-    NormalizedAuditEvent,
-)
+from application.policies.audit.events.dataclasses import NormalizedAuditEvent
 
 
 class RFC5424Serializer:

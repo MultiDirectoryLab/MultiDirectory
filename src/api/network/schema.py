@@ -18,8 +18,8 @@ from pydantic import (
     model_validator,
 )
 
-from enums import MFAFlags
 from application.utils.helpers import validate_entry
+from enums import MFAFlags
 
 
 class IPRange(BaseModel):

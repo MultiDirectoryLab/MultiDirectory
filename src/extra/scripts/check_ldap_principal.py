@@ -9,13 +9,13 @@ import os
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from application.kerberos import (
     AbstractKadmin,
     KerberosState,
     get_krb_server_state,
 )
 from application.utils.queries import get_base_directories
+from config import Settings
 
 
 async def check_ldap_principal(

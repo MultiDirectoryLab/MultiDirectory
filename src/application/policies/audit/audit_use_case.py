@@ -4,9 +4,9 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from domain.entities import AuditSeverity
 from application.asn1parser import LDAPOID
 from application.objects import OperationEvent, UserAccountControlFlag
+from domain.entities import AuditSeverity
 
 from .dataclasses import (
     AuditDestinationDTO,

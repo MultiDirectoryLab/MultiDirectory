@@ -6,12 +6,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass, field
 
+from application.objects import OperationEvent
 from enums import (
     AuditDestinationProtocolType,
     AuditDestinationServiceType,
     AuditSeverity,
 )
-from application.objects import OperationEvent
 
 
 @dataclass

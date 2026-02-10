@@ -3,9 +3,9 @@
 from functools import wraps
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 
-from enums import AuthorizationRules
 from application.identity import IdentityProvider
 from application.identity.exceptions import AuthorizationError
+from enums import AuthorizationRules
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")

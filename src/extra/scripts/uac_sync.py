@@ -8,11 +8,11 @@ from sqlalchemy import Integer, String, cast, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, select
 
-from config import Settings
-from domain.entities import Attribute, User
 from application.kerberos import AbstractKadmin
 from application.objects import UserAccountControlFlag
 from application.utils.queries import add_lock_and_expire_attributes
+from config import Settings
+from domain.entities import Attribute, User
 from infrastructure.pg.tables import queryable_attr as qa
 
 

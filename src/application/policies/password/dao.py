@@ -13,8 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
 from abstract_db_gateway import AbstractDBGateWay
-from domain.entities import Attribute, Group, PasswordPolicy, User
-from enums import EntityTypeNames
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -34,6 +32,8 @@ from application.utils.queries import (
     get_filter_from_path,
     get_groups,
 )
+from domain.entities import Attribute, Group, PasswordPolicy, User
+from enums import EntityTypeNames
 from infrastructure.pg.tables import queryable_attr as qa
 
 from .dataclasses import (

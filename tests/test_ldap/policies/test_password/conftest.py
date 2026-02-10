@@ -15,8 +15,8 @@ from dishka import (
     provide,
 )
 
-from config import Settings
 from application.policies.password import PasswordPolicyUseCases
+from config import Settings
 from tests.conftest import TestProvider
 
 

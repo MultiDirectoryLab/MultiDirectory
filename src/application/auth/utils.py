@@ -6,8 +6,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import User
 from application.utils.queries import get_user
+from domain.entities import User
 from password_utils import PasswordUtils
 
 

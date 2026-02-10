@@ -12,10 +12,10 @@ from dishka import AsyncContainer
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from application.utils.helpers import create_integer_hash
 from constants import DOMAIN_USERS_GROUP_NAME
 from domain.entities import Attribute, Directory
 from extra.alembic_utils import temporary_stub_column
-from application.utils.helpers import create_integer_hash
 
 # revision identifiers, used by Alembic.
 revision = "6f8fe2548893"

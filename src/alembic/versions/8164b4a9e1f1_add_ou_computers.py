@@ -12,10 +12,10 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from domain.entities import Directory
-from extra.alembic_utils import temporary_stub_column
 from application.roles.role_use_case import RoleUseCase
 from application.utils.queries import get_base_directories
+from domain.entities import Directory
+from extra.alembic_utils import temporary_stub_column
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

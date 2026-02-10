@@ -15,7 +15,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_db_gateway import AbstractDBGateWay
-from domain.entities import AttributeType
 from application.ldap_schema.dto import AttributeTypeDTO
 from application.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
@@ -26,6 +25,7 @@ from application.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
+from domain.entities import AttributeType
 from infrastructure.pg.tables import queryable_attr as qa
 
 _convert_model_to_dto = get_converter(

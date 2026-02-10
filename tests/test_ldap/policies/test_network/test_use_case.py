@@ -8,12 +8,12 @@ from ipaddress import IPv4Network
 
 import pytest
 
-from enums import MFAFlags
 from application.policies.network import NetworkPolicyUseCase
 from application.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
 )
+from enums import MFAFlags
 
 
 @pytest.mark.asyncio

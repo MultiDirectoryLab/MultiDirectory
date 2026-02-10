@@ -7,11 +7,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import ClassVar
 
 from abstract_service import AbstractService
-from enums import AuthorizationRules
 from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from application.ldap_schema.dto import AttributeTypeDTO
 from application.ldap_schema.object_class_dao import ObjectClassDAO
 from application.utils.pagination import PaginationParams, PaginationResult
+from enums import AuthorizationRules
 
 
 class AttributeTypeUseCase(AbstractService):

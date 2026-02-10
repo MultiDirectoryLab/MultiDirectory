@@ -9,6 +9,7 @@ from sqlalchemy import Connection, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from config import Settings
+from infrastructure.pg.tables import metadata
 from ioc import (
     HTTPProvider,
     MainProvider,
@@ -16,7 +17,6 @@ from ioc import (
     MFAProvider,
     MigrationProvider,
 )
-from infrastructure.pg.tables import metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

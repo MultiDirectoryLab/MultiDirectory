@@ -12,8 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
-from config import Settings
-from domain.entities import User
 from application.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -35,10 +33,10 @@ from application.kerberos.exceptions import KRBAPIChangePasswordError
 from application.multifactor import MFA_HTTP_Creds
 from application.objects import OperationEvent
 from application.policies.audit.audit_use_case import AuditUseCase
-from application.policies.audit.events.factory import (
-    RawAuditEventBuilderRedis,
-)
+from application.policies.audit.events.factory import RawAuditEventBuilderRedis
 from application.session_storage import SessionStorage
+from config import Settings
+from domain.entities import User
 
 _T = TypeVar("_T", bound=Callable)
 

@@ -9,7 +9,6 @@ from typing import Awaitable
 from sqlalchemy import case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import CatalogueSetting
 from application.dns.base import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
@@ -19,6 +18,7 @@ from application.dns.base import (
     DNSManagerState,
 )
 from application.dns.dto import DNSSettingDTO
+from domain.entities import CatalogueSetting
 from infrastructure.pg.tables import queryable_attr as qa
 
 

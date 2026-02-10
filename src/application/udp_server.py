@@ -11,9 +11,9 @@ from dishka import AsyncContainer, Scope
 from loguru import logger
 from pydantic import ValidationError
 
-from config import Settings
 from application import LDAPRequestMessage, LDAPSession
 from application.policies.network import NetworkPolicyValidatorUseCase
+from config import Settings
 
 from .data_logger import DataLogger
 from .utils.udp import create_udp_socket

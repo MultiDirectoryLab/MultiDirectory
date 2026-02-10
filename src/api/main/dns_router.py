@@ -30,7 +30,6 @@ from api.main.schema import (
     DNSServiceZoneUpdateRequest,
 )
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.dns import (
     DNSForwardServerStatus,
     DNSForwardZone,
@@ -38,6 +37,7 @@ from application.dns import (
     DNSServerParam,
     DNSZone,
 )
+from enums import DomainCodes
 
 translator = DomainErrorTranslator(DomainCodes.DNS)
 

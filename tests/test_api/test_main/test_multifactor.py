@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, Mock
 import httpx
 import pytest
 
-from config import Settings
 from application.multifactor import MultifactorAPI
+from config import Settings
 
 
 @pytest.mark.asyncio

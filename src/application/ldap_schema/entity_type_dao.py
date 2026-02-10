@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_db_gateway import AbstractDBGateWay
-from domain.entities import Attribute, Directory, EntityType, ObjectClass
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -32,6 +31,7 @@ from application.utils.pagination import (
     PaginationResult,
     build_paginated_search_query,
 )
+from domain.entities import Attribute, Directory, EntityType, ObjectClass
 from infrastructure.pg.tables import queryable_attr as qa
 
 _convert = get_converter(

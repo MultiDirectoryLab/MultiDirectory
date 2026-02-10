@@ -8,9 +8,9 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from enums import SamAccountTypeCodes
 from application.ldap_codes import LDAPCodes
 from application.objects import UserAccountControlFlag
+from enums import SamAccountTypeCodes
 from tests.api_datasets import test_api_forbidden_chars_in_attr_value
 
 

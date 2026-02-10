@@ -15,12 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
-from domain.entities import Attribute, Directory, Group, User
-from enums import SamAccountTypeCodes
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
 )
+from domain.entities import Attribute, Directory, Group, User
+from enums import SamAccountTypeCodes
 from infrastructure.pg.tables import (
     directory_memberships_table,
     directory_table,

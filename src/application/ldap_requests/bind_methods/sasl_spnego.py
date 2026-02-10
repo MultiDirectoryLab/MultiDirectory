@@ -8,10 +8,10 @@ from typing import ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from application.dialogue import LDAPSession
 from application.ldap_codes import LDAPCodes
 from application.ldap_responses import BindResponse
+from config import Settings
 
 from .base import LDAPBindErrors, SASLMethod, get_bad_response
 from .sasl_gssapi import GSSAPISL, GSSAPIAuthStatus, SaslGSSAPIAuthentication

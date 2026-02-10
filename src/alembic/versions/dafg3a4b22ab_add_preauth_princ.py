@@ -11,9 +11,9 @@ from alembic import op
 from dishka import AsyncContainer
 from sqlalchemy.orm import Session
 
+from application.kerberos import KERBEROS_STATE_NAME
 from domain.entities import Attribute, CatalogueSetting, User
 from extra.alembic_utils import temporary_stub_column
-from application.kerberos import KERBEROS_STATE_NAME
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

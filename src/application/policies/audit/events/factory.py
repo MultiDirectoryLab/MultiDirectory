@@ -7,8 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from config import Settings
 from application.objects import OperationEvent
+from config import Settings
 
 from .dataclasses import RawAuditEvent, RawAuditEventRedis
 

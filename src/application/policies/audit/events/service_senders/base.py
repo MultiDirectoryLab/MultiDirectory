@@ -6,11 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from abc import ABC, abstractmethod
 
-from enums import AuditDestinationServiceType
 from application.policies.audit.dataclasses import AuditDestinationDTO
-from application.policies.audit.events.dataclasses import (
-    NormalizedAuditEvent,
-)
+from application.policies.audit.events.dataclasses import NormalizedAuditEvent
+from enums import AuditDestinationServiceType
 
 
 class AuditDestinationSenderABC(ABC):

@@ -9,8 +9,8 @@ import tempfile
 
 import pytest_asyncio
 
-from config import Settings
 from application.roles.role_dao import RoleDAO, RoleDTO
+from config import Settings
 from tests.conftest import TestCreds
 
 BASE_DN = "dc=md,dc=test"

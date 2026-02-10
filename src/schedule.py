@@ -6,6 +6,7 @@ from typing import Callable, Coroutine
 from dishka import AsyncContainer, Scope, make_async_container
 from loguru import logger
 
+from application.dependency import resolve_deps
 from config import Settings
 from extra.scripts.check_ldap_principal import check_ldap_principal
 from extra.scripts.principal_block_user_sync import principal_block_sync
@@ -16,7 +17,6 @@ from extra.scripts.update_status_proccess_events import (
     update_status_process_events,
 )
 from ioc import MainProvider
-from application.dependency import resolve_deps
 
 type task_type = Callable[..., Coroutine]
 

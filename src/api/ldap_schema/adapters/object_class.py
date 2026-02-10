@@ -16,10 +16,10 @@ from api.ldap_schema.schema import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from enums import KindType
 from application.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
 from application.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from application.ldap_schema.object_class_use_case import ObjectClassUseCase
+from enums import KindType
 
 
 def _convert_update_schema_to_dto(

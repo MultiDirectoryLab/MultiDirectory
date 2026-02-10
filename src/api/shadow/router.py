@@ -18,7 +18,6 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.auth.exceptions.mfa import (
     AuthenticationError,
     InvalidCredentialsError,
@@ -27,6 +26,7 @@ from application.auth.exceptions.mfa import (
 from application.policies.password.exceptions import PasswordPolicyError
 from application.rootdse.dto import DomainControllerInfo
 from application.rootdse.reader import DCInfoReader
+from enums import DomainCodes
 
 from .adapter import ShadowAdapter
 

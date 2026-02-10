@@ -23,15 +23,6 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from domain.entities import (
-    Attribute,
-    AttributeType,
-    Directory,
-    Group,
-    ObjectClass,
-    User,
-)
-from enums import AceType
 from application.asn1parser import ASN1Row
 from application.dialogue import UserSchema
 from application.filter_interpreter import (
@@ -61,6 +52,15 @@ from application.utils.queries import (
     get_path_filter,
     get_search_path,
 )
+from domain.entities import (
+    Attribute,
+    AttributeType,
+    Directory,
+    Group,
+    ObjectClass,
+    User,
+)
+from enums import AceType
 from infrastructure.pg.tables import queryable_attr as qa
 
 from .base import BaseRequest

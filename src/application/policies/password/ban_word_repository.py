@@ -10,10 +10,10 @@ from sqlalchemy import delete, literal, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import PasswordBanWord
 from application.policies.password.exceptions import (
     PasswordBanWordFileHasDuplicatesError,
 )
+from domain.entities import PasswordBanWord
 from infrastructure.pg.tables import queryable_attr as qa
 
 

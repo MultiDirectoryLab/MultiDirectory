@@ -9,11 +9,11 @@ from typing import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.entities import Attribute
 from application.objects import (
     UserAccountControlFlag as UserAccountControlFlag,
 )
 from application.utils.queries import get_user
+from domain.entities import Attribute
 
 
 async def get_check_uac(

@@ -11,11 +11,11 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from domain.entities import EntityType
-from enums import EntityTypeNames
 from application.ldap_schema.dto import EntityTypeDTO
 from application.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from application.utils.queries import get_base_directories
+from domain.entities import EntityType
+from enums import EntityTypeNames
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

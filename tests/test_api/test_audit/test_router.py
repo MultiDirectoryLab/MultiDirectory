@@ -10,7 +10,6 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 from application.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
@@ -19,6 +18,7 @@ from application.policies.audit.schemas import (
     AuditDestinationSchemaRequest,
     AuditPolicySchemaRequest,
 )
+from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,6 @@ from unittest.mock import Mock
 import pytest
 
 from api.dhcp.adapter import DHCPAdapter
-from authorization_provider_protocol import AuthorizationProviderProtocol
 from application.dhcp.dataclasses import (
     DHCPLease,
     DHCPOptionData,
@@ -23,6 +22,7 @@ from application.dhcp.schemas import (
     DHCPReservationSchemaRequest,
     DHCPSubnetSchemaAddRequest,
 )
+from authorization_provider_protocol import AuthorizationProviderProtocol
 
 
 @pytest.fixture

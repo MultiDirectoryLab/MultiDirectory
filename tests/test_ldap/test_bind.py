@@ -12,8 +12,6 @@ from aioldap3 import LDAPConnection, PlainSaslCreds
 from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
-from domain.entities import Attribute, Directory, User
 from application.dependency import resolve_deps
 from application.dialogue import LDAPSession
 from application.ldap_requests.bind import (
@@ -32,6 +30,8 @@ from application.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from application.objects import UserAccountControlFlag
+from config import Settings
+from domain.entities import Attribute, Directory, User
 from password_utils import PasswordUtils
 from tests.conftest import MutePolicyBindRequest, TestCreds
 

@@ -7,9 +7,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from httpx import AsyncClient
 
-from enums import EntityTypeNames
 from application.ldap_codes import LDAPCodes
 from application.ldap_requests.modify import Operation
+from enums import EntityTypeNames
 from tests.search_request_datasets import (
     test_search_by_rule_anr_dataset,
     test_search_by_rule_bit_and_dataset,

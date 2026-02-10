@@ -6,9 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from loguru import logger
 
-from config import Settings
-from domain.entities import User
-from enums import AuthorizationRules
 from application.dialogue import UserSchema
 from application.identity.exceptions import UnauthorizedError
 from application.identity.provider_gateway import IdentityProviderGateway
@@ -21,6 +18,9 @@ from application.session_storage.exceptions import (
     SessionStorageInvalidUserAgentError,
     SessionStorageMissingDataError,
 )
+from config import Settings
+from domain.entities import User
+from enums import AuthorizationRules
 
 
 class IdentityProvider:

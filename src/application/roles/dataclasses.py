@@ -7,8 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass
 from datetime import datetime
 
-from enums import AceType, AuthorizationRules, RoleScope
 from application.utils.const import GRANT_DN_STRING
+from enums import AceType, AuthorizationRules, RoleScope
 
 
 @dataclass

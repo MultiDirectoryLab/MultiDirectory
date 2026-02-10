@@ -11,9 +11,9 @@ from typing import NewType
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from application.policies.audit.audit_use_case import AuditUseCase
 from application.policies.audit.dataclasses import AuditDestinationDTO
+from config import Settings
 
 from .dataclasses import NormalizedAuditEvent
 from .managers import NormalizedAuditManager

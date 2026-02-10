@@ -16,13 +16,13 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
-from domain.entities import Attribute, AttributeType, ObjectClass
-from extra.alembic_utils import temporary_stub_column
 from application.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from application.ldap_schema.dto import AttributeTypeDTO
 from application.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
+from domain.entities import Attribute, AttributeType, ObjectClass
+from extra.alembic_utils import temporary_stub_column
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

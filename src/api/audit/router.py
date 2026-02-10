@@ -16,7 +16,6 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.policies.audit.exception import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
@@ -27,6 +26,7 @@ from application.policies.audit.schemas import (
     AuditPolicyResponse,
     AuditPolicySchemaRequest,
 )
+from enums import DomainCodes
 
 from .adapter import AuditPoliciesAdapter
 

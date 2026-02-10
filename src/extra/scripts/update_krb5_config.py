@@ -9,9 +9,9 @@ from pathlib import Path
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from application.kerberos.utils import get_system_container_dn
 from application.utils.queries import get_base_directories
+from config import Settings
 
 KRB5_CONF_PATH = Path("/etc/krb5kdc/krb5.conf")
 KDC_CONF_PATH = Path("/etc/krb5kdc/kdc.conf")

@@ -10,8 +10,8 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DomainCodes
 from application.session_storage.exceptions import SessionUserNotFoundError
+from enums import DomainCodes
 
 from .adapters.session_gateway import (
     SessionContentResponseSchema,

@@ -17,7 +17,6 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DomainCodes
 from application.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeCantModifyError,
@@ -29,6 +28,7 @@ from application.ldap_schema.exceptions import (
     ObjectClassCantModifyError,
     ObjectClassNotFoundError,
 )
+from enums import DomainCodes
 
 LimitedListType = Annotated[
     list[str],

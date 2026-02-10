@@ -20,12 +20,10 @@ from api.password_policy.adapter import (
     PasswordPolicyFastAPIAdapter,
     UserPasswordHistoryResetFastAPIAdapter,
 )
-from config import Settings
 from application.policies.password import PasswordPolicyUseCases
 from application.policies.password.dataclasses import PasswordPolicyDTO
-from application.policies.password.use_cases import (
-    UserPasswordHistoryUseCases,
-)
+from application.policies.password.use_cases import UserPasswordHistoryUseCases
+from config import Settings
 from tests.conftest import TestProvider
 
 

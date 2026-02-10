@@ -7,11 +7,11 @@ from aioldap3 import LDAPConnection
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from application.ldap_codes import LDAPCodes
 from application.ldap_requests.modify import Operation
 from application.session_storage import SessionStorage
 from application.utils.queries import get_user
+from config import Settings
 from tests.conftest import TestCreds
 
 

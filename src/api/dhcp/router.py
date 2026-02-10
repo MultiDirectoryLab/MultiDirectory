@@ -17,7 +17,6 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
-from enums import DomainCodes
 from application.dhcp.exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
@@ -38,6 +37,7 @@ from application.dhcp.schemas import (
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
 )
+from enums import DomainCodes
 
 from .adapter import DHCPAdapter
 

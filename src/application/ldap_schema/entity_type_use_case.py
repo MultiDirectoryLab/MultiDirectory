@@ -7,8 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import ClassVar
 
 from abstract_service import AbstractService
-from constants import ENTITY_TYPE_DATAS
-from enums import AuthorizationRules, EntityTypeNames
 from application.ldap_schema.dto import EntityTypeDTO
 from application.ldap_schema.entity_type_dao import EntityTypeDAO
 from application.ldap_schema.exceptions import (
@@ -17,6 +15,8 @@ from application.ldap_schema.exceptions import (
 )
 from application.ldap_schema.object_class_dao import ObjectClassDAO
 from application.utils.pagination import PaginationParams, PaginationResult
+from constants import ENTITY_TYPE_DATAS
+from enums import AuthorizationRules, EntityTypeNames
 
 
 class EntityTypeUseCase(AbstractService):

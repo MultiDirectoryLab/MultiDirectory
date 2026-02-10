@@ -18,12 +18,12 @@ from dishka import (
 )
 
 from abstract_service import AbstractService
-from authorization_provider_protocol import AuthorizationProviderProtocol
-from config import Settings
 from application.auth.auth_manager import AuthManager
 from application.dhcp.base import AbstractDHCPManager
 from application.dhcp.stub import StubDHCPManager
 from application.policies.audit.service import AuditService
+from authorization_provider_protocol import AuthorizationProviderProtocol
+from config import Settings
 from tests.conftest import TestProvider
 
 

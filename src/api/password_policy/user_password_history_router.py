@@ -19,11 +19,11 @@ from api.error_routing import (
 )
 from api.password_policy.adapter import UserPasswordHistoryResetFastAPIAdapter
 from api.utils import require_master_db
-from enums import DomainCodes
 from application.identity.exceptions import (
     AuthorizationError,
     UserNotFoundError,
 )
+from enums import DomainCodes
 
 translator = DomainErrorTranslator(DomainCodes.PASSWORD_POLICY)
 

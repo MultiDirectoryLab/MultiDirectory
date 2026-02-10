@@ -38,6 +38,12 @@ from api import (
 )
 from api.exception_handlers import handle_auth_error, handle_db_connect_error
 from api.middlewares import proc_time_header_middleware, set_key_middleware
+from application.dependency import resolve_deps
+from application.identity.exceptions import UnauthorizedError
+from application.policies.audit.events.handler import AuditEventHandler
+from application.policies.audit.events.sender import AuditEventSenderManager
+from application.server import PoolClientHandler, ServerLogger
+from application.udp_server import CLDAPUDPServer
 from config import Settings
 from extra.dump_acme_certs import dump_acme_cert
 from ioc import (
@@ -49,12 +55,6 @@ from ioc import (
     MFACredsProvider,
     MFAProvider,
 )
-from application.dependency import resolve_deps
-from application.identity.exceptions import UnauthorizedError
-from application.policies.audit.events.handler import AuditEventHandler
-from application.policies.audit.events.sender import AuditEventSenderManager
-from application.server import PoolClientHandler, ServerLogger
-from application.udp_server import CLDAPUDPServer
 from schedule import scheduler_factory
 
 

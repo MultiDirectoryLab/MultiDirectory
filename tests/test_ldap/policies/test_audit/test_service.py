@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 import pytest_asyncio
 
-from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 from application.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
@@ -17,6 +16,7 @@ from application.policies.audit.exception import (
     AuditNotFoundError,
 )
 from application.policies.audit.service import AuditService
+from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 
 
 @pytest.mark.asyncio

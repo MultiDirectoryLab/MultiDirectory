@@ -9,12 +9,6 @@ import copy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import (
-    DOMAIN_ADMIN_GROUP_NAME,
-    FIRST_SETUP_DATA,
-    USERS_CONTAINER_NAME,
-)
-from enums import SamAccountTypeCodes
 from application.auth.dto import SetupDTO
 from application.auth.setup_gateway import SetupGateway
 from application.identity.exceptions import (
@@ -26,6 +20,12 @@ from application.policies.audit.audit_use_case import AuditUseCase
 from application.policies.password import PasswordPolicyUseCases
 from application.roles.role_use_case import RoleUseCase
 from application.utils.helpers import create_integer_hash, ft_now
+from constants import (
+    DOMAIN_ADMIN_GROUP_NAME,
+    FIRST_SETUP_DATA,
+    USERS_CONTAINER_NAME,
+)
+from enums import SamAccountTypeCodes
 
 
 class SetupUseCase:

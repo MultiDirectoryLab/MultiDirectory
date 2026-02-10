@@ -8,8 +8,8 @@ from unittest.mock import Mock
 
 import pytest_asyncio
 
-from domain.entities import AccessControlEntry
 from application.dialogue import UserSchema
+from domain.entities import AccessControlEntry
 
 
 @pytest_asyncio.fixture

@@ -13,10 +13,10 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from domain.entities import PasswordPolicy
 from application.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
+from domain.entities import PasswordPolicy
 
 # revision identifiers, used by Alembic.
 revision: None | str = "df4c52a613e5"

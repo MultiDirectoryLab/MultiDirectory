@@ -7,11 +7,11 @@ from dishka import AsyncContainer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
-from authorization_provider_protocol import AuthorizationProviderProtocol
-from enums import AuthorizationRules
 from application.dialogue import UserSchema
 from application.permissions_checker import AuthorizationError
 from application.utils.queries import get_user
+from authorization_provider_protocol import AuthorizationProviderProtocol
+from enums import AuthorizationRules
 from tests.conftest import TestCreds
 from tests.test_api.test_web_permissions.conftest import (
     get_params,

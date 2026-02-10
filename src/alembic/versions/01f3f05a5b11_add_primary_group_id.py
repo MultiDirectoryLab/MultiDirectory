@@ -14,10 +14,6 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session, selectinload
 
-from constants import DOMAIN_COMPUTERS_GROUP_NAME
-from domain.entities import Attribute, Directory, EntityType, Group
-from enums import EntityTypeNames
-from extra.alembic_utils import temporary_stub_column
 from application.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -29,6 +25,10 @@ from application.utils.queries import (
     get_filter_from_path,
     get_search_path,
 )
+from constants import DOMAIN_COMPUTERS_GROUP_NAME
+from domain.entities import Attribute, Directory, EntityType, Group
+from enums import EntityTypeNames
+from extra.alembic_utils import temporary_stub_column
 from infrastructure.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.

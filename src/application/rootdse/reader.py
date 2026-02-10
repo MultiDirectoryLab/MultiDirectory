@@ -6,9 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from collections import defaultdict
 
+from application.utils.helpers import get_generalized_now
 from config import Settings
 from constants import DEFAULT_DC_POSTFIX, UNC_PREFIX
-from application.utils.helpers import get_generalized_now
 
 from .dto import DomainControllerInfo
 from .gw_protocol import DomainReadProtocol
