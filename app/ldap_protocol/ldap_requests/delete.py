@@ -74,6 +74,7 @@ class DeleteRequest(BaseRequest):
             select(Directory)
             .options(
                 joinedload(qa(Directory.user)),
+                joinedload(qa(Directory.entity_type)),
                 selectinload(qa(Directory.groups)).selectinload(
                     qa(Group.directory),
                 ),
