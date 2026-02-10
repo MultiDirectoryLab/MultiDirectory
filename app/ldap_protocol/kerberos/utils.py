@@ -64,6 +64,9 @@ def logger_wraps(is_stub: bool = False) -> Callable:
                 if isinstance(err, KRBAPIError):
                     logger.error(f"{name} call raised: {err}")
                 raise
+            else:
+                if not is_stub:
+                    logger.success(f"Executed {name}")
             return result
 
         return wrapped

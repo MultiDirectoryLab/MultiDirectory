@@ -83,13 +83,13 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
             algorithms=request.algorithms,
         )
 
-    async def rename_principal(self, request: PrincipalPutRequest) -> None:
-        """Modify principal (rename, password, algorithms).
+    async def modify_principal(self, request: PrincipalPutRequest) -> None:
+        """Modify principal ( password, algorithms).
 
         :raises HTTPException: on Kerberos errors
         :return: None
         """
-        return await self._service.rename_principal(
+        return await self._service.modify_principal(
             principal_name=request.principal_name,
             principal_new_name=request.new_principal_name,
             algorithms=request.algorithms,

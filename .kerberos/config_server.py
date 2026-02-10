@@ -374,19 +374,6 @@ class KAdminLocalManager(AbstractKRBManager):
         except kadmv.UnknownPrincipalError:
             raise PrincipalNotFoundError
 
-    async def rename_princ(self, name: str, new_name: str) -> None:
-        """Rename principal.
-
-        :param str name: original name
-        :param str new_name: new name
-        """
-        await self.loop.run_in_executor(
-            self.pool,
-            self.client.rename_principal,
-            name,
-            new_name,
-        )
-
     async def ktadd(
         self,
         names: list[str],

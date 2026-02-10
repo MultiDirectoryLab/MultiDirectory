@@ -935,7 +935,7 @@ class ModifyRequest(BaseRequest):
                         new_user_principal_name = f"{new_sam_account_name}@{base_dir.name}"  # noqa: E501  # fmt: skip
 
                     if directory.user.sam_account_name != new_sam_account_name:
-                        await kadmin.rename_princ(
+                        await kadmin.modify_princ(
                             directory.user.sam_account_name,
                             new_sam_account_name,
                         )
@@ -1041,11 +1041,11 @@ class ModifyRequest(BaseRequest):
             raise ModifyForbiddenError("Old sAMAccountName value not found.")
 
         if old_sam_account_name != new_sam_account_name:
-            await kadmin.rename_princ(
+            await kadmin.modify_princ(
                 f"host/{old_sam_account_name}",
                 f"host/{new_sam_account_name}",
             )
-            await kadmin.rename_princ(
+            await kadmin.modify_princ(
                 f"host/{old_sam_account_name}.{base_dir.name}",
                 f"host/{new_sam_account_name}.{base_dir.name}",
             )

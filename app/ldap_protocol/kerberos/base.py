@@ -180,7 +180,7 @@ class AbstractKadmin(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def rename_princ(
+    async def modify_princ(
         self,
         name: str,
         new_name: str,

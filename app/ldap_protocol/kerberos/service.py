@@ -382,14 +382,14 @@ class KerberosService(AbstractService):
                 f"Error adding principal: {exc}",
             ) from exc
 
-    async def rename_principal(
+    async def modify_principal(
         self,
         principal_name: str,
         principal_new_name: str,
         algorithms: list[str] | None,
         password: str | None,
     ) -> None:
-        """Rename principal in Kerberos with given name.
+        """Modify principal in Kerberos with given name.
 
         :param str principal_name: Current principal name.
         :param str principal_new_name: New principal name.
@@ -399,7 +399,7 @@ class KerberosService(AbstractService):
         :return None: None.
         """
         try:
-            await self._kadmin.rename_princ(
+            await self._kadmin.modify_princ(
                 principal_name,
                 principal_new_name,
                 algorithms,
@@ -488,7 +488,7 @@ class KerberosService(AbstractService):
         ktadd.__name__: AuthorizationRules.KRB_KTADD,
         get_status.__name__: AuthorizationRules.KRB_GET_STATUS,
         add_principal.__name__: AuthorizationRules.KRB_ADD_PRINCIPAL,
-        rename_principal.__name__: AuthorizationRules.KRB_RENAME_PRINCIPAL,
+        modify_principal.__name__: AuthorizationRules.KRB_MODIFY_PRINCIPAL,
         reset_principal_pw.__name__: AuthorizationRules.KRB_RESET_PRINCIPAL_PW,
         delete_principal.__name__: AuthorizationRules.KRB_DELETE_PRINCIPAL,
     }

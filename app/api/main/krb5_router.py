@@ -206,11 +206,11 @@ async def add_principal(
     dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
-async def rename_principal(
+async def modify_principal(
     request: PrincipalPutRequest,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
-    await kerberos_adapter.rename_principal(request)
+    await kerberos_adapter.modify_principal(request)
 
 
 @krb5_router.patch(
