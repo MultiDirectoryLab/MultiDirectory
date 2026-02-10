@@ -1,6 +1,6 @@
 """Directory Gateway module."""
 
-from sqlalchemy import delete, exists, select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -34,9 +34,7 @@ class DirectoryGateway:
         return await self._session.scalar(query)
 
     async def delete(self, directory: Directory) -> None:
-        await self._session.execute(
-            delete(Directory).filter_by(id=directory.id),
-        )
+        await self._session.delete(directory)
 
     async def has_primary_group_members(self, directory_id: int) -> bool:
         query = exists(Attribute).where(
