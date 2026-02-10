@@ -10,8 +10,6 @@ from typing import AsyncGenerator, ClassVar
 from pydantic import Field
 from sqlalchemy.exc import OperationalError
 
-from domain.entities import NetworkPolicy
-from enums import MFAFlags
 from application.asn1parser import ASN1Row
 from application.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -35,6 +33,8 @@ from application.multifactor import MultifactorAPI
 from application.objects import ProtocolRequests, UserAccountControlFlag
 from application.user_account_control import get_check_uac
 from application.utils.queries import set_user_logon_attrs
+from domain.entities import NetworkPolicy
+from enums import MFAFlags
 
 from .base import BaseRequest
 from .contexts import LDAPBindRequestContext, LDAPUnbindRequestContext
