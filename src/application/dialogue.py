@@ -17,9 +17,9 @@ from typing import TYPE_CHECKING, AsyncIterator
 
 import gssapi
 
+from application.policies.network import NetworkPolicyValidatorUseCase
 from domain.entities import NetworkPolicy, User
 from enums import ProtocolType
-from application.policies.network import NetworkPolicyValidatorUseCase
 
 from .session_storage import SessionStorage
 
@@ -71,9 +71,8 @@ class UserSchema:
 class LDAPSession:
     """LDAPSession for one client handling."""
 
+    _policy: NetworkPolicy | None
     ip: IPv4Address | IPv6Address
-    policy: NetworkPolicy | None
-
     gssapi_authenticated: bool = False
     gssapi_security_context: gssapi.SecurityContext | None = None
     gssapi_security_layer: GSSAPISL
@@ -94,6 +93,7 @@ class LDAPSession:
         self.id = uuid.uuid4()
         self.storage = storage
         self._task_group_cm = TaskGroup()
+        self._policy = None
 
     def __str__(self) -> str:
         """Session with id."""
@@ -153,11 +153,18 @@ class LDAPSession:
             ProtocolType.LDAP,
         )
         if policy is not None:
-            self.policy = policy
+            self._policy = policy
             await self.bind_session()
             return
 
         raise PermissionError
+
+    @property
+    def policy(self) -> NetworkPolicy:
+        if self._policy is None:
+            raise PermissionError
+
+        return self._policy
 
     @property
     def key(self) -> str:
