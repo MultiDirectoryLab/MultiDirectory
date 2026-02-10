@@ -18,9 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_service import AbstractService
-from config import Settings
-from domain.entities import CatalogueSetting, NetworkPolicy, User
-from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
 from application.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -46,11 +43,17 @@ from application.multifactor import (
     MultifactorAPI,
 )
 from application.policies.audit.monitor import AuditMonitorUseCase
-from application.policies.network import NetworkPolicyValidatorUseCase
+from application.policies.network import (
+    NetworkPolicyValidatorUseCase,
+    ValidateMFARequirementUseCase,
+)
 from application.session_storage import SessionStorage
 from application.session_storage.repository import SessionRepository
-from password_utils import PasswordUtils
+from config import Settings
+from domain.entities import CatalogueSetting, NetworkPolicy, User
+from enums import AuthorizationRules, MFAChallengeStatuses
 from infrastructure.pg.tables import queryable_attr as qa
+from password_utils import PasswordUtils
 
 ALGORITHM = "HS256"
 
@@ -70,6 +73,7 @@ class MFAManager(AbstractService):
         password_utils: PasswordUtils,
         identity_provider: IdentityProvider,
         network_policy_validator: NetworkPolicyValidatorUseCase,
+        validate_mfa_requirement: ValidateMFARequirementUseCase,
     ) -> None:
         """Initialize dependencies via DI.
 
@@ -89,6 +93,7 @@ class MFAManager(AbstractService):
         self._password_utils = password_utils
         self._identity_provider = identity_provider
         self._network_policy_validator = network_policy_validator
+        self.validate_mfa_requirement = validate_mfa_requirement
 
     def __getattribute__(self, name: str) -> object:
         """Intercept attribute access."""
@@ -339,23 +344,14 @@ class MFAManager(AbstractService):
                 f"Network policy not found for user {principal}.",
             )
 
-        if (
-            not self._ldap_mfa_api
-            or network_policy.mfa_status == MFAFlags.DISABLED
-        ):
+        if not self._ldap_mfa_api:
             return
-        elif network_policy.mfa_status in (
-            MFAFlags.ENABLED,
-            MFAFlags.WHITELIST,
-        ):
-            if (
-                network_policy.mfa_status == MFAFlags.WHITELIST
-                and not await self._network_policy_validator.check_mfa_group(
-                    network_policy,
-                    user,
-                )
-            ):
-                return
+
+        is_mfa_required = await self.validate_mfa_requirement.execute(
+            network_policy,
+            user,
+        )
+        if not is_mfa_required:
             try:
                 if await self._ldap_mfa_api.ldap_validate_mfa(
                     user.user_principal_name,

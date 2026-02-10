@@ -34,7 +34,6 @@ from application.objects import ProtocolRequests, UserAccountControlFlag
 from application.user_account_control import get_check_uac
 from application.utils.queries import set_user_logon_attrs
 from domain.entities import NetworkPolicy
-from enums import MFAFlags
 
 from .base import BaseRequest
 from .contexts import LDAPBindRequestContext, LDAPUnbindRequestContext
@@ -163,7 +162,7 @@ class BindRequest(BaseRequest):
             return
 
         has_access = await ctx.validate_policy_access_use_case.execute(
-            ctx.ldap_session,
+            ctx.ldap_session.policy,
             user,
         )
         if not has_access:
@@ -180,30 +179,21 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.PASSWORD_MUST_CHANGE)
             return
 
-        if (policy is not None) and (
-            policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
-            and ctx.mfa is not None
-        ):
-            request_2fa = True
-            if policy.mfa_status == MFAFlags.WHITELIST:
-                request_2fa = (
-                    await ctx.network_policy_validator.check_mfa_group(
-                        policy,
-                        user,
-                    )
-                )
+        is_mfa_required = await ctx.validate_mfa_requirement.execute(
+            ctx.ldap_session.policy,
+            user,
+        )
 
-            if request_2fa:
-                mfa_status = await self.check_mfa(
-                    ctx.mfa,
-                    user.user_principal_name,
-                    self.authentication_choice.otpassword,
-                    policy,
-                )
-
-                if mfa_status is False:
-                    yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
-                    return
+        if is_mfa_required and ctx.mfa is not None:
+            mfa_status = await self.check_mfa(
+                ctx.mfa,
+                user.user_principal_name,
+                self.authentication_choice.otpassword,
+                ctx.ldap_session.policy,
+            )
+            if mfa_status is False:
+                yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
+                return
 
         with contextlib.suppress(
             KRBAPIAddPrincipalError,

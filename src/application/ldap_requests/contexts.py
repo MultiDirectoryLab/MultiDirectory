@@ -8,7 +8,6 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from application.dialogue import LDAPSession
 from application.kerberos import AbstractKadmin
 from application.ldap_schema.attribute_value_validator import (
@@ -16,12 +15,16 @@ from application.ldap_schema.attribute_value_validator import (
 )
 from application.ldap_schema.entity_type_dao import EntityTypeDAO
 from application.multifactor import LDAPMultiFactorAPI
-from application.policies.network import ValidatePolicyAccessUseCase
+from application.policies.network import (
+    ValidateMFARequirementUseCase,
+    ValidatePolicyAccessUseCase,
+)
 from application.policies.password import PasswordPolicyUseCases
 from application.roles.access_manager import AccessManager
 from application.roles.role_use_case import RoleUseCase
 from application.rootdse.reader import RootDSEReader
 from application.session_storage import SessionStorage
+from config import Settings
 from password_utils import PasswordUtils
 
 
@@ -68,6 +71,7 @@ class LDAPBindRequestContext:
     password_utils: PasswordUtils
     mfa: LDAPMultiFactorAPI
     validate_policy_access_use_case: ValidatePolicyAccessUseCase
+    validate_mfa_requirement: ValidateMFARequirementUseCase
 
 
 @dataclass
