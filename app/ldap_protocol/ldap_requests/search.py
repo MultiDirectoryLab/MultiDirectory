@@ -304,9 +304,16 @@ class SearchRequest(BaseRequest):
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
+        base_directories = await get_base_directories(ctx.session)
+        if (
+            ctx.settings.is_global_catalog
+            and not self.base_object
+            and base_directories
+        ):
+            self.base_object = base_directories[0].path_dn
 
         query = self._build_query(
-            await get_base_directories(ctx.session),
+            base_directories,
             user,
             ctx.access_manager,
         )

@@ -245,6 +245,12 @@ class Settings(BaseModel):
 
     @computed_field  # type: ignore
     @cached_property
+    def is_global_catalog(self) -> bool:
+        """Check if this is Global Catalog server."""
+        return self.PORT in (self.GLOBAL_LDAP_PORT, self.GLOBAL_LDAP_TLS_PORT)
+
+    @computed_field  # type: ignore
+    @cached_property
     def KRB5_CONFIG_SERVER(self) -> HttpUrl:  # noqa: N802
         return f"https://{self.KADMIN_API_SERVER}:8000"  # type: ignore
 
