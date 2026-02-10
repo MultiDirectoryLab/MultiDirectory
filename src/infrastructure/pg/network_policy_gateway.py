@@ -4,18 +4,31 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import delete, exists, func, select, update, Select, text, true, or_
+from ipaddress import IPv4Address, IPv6Address
+
+from sqlalchemy import (
+    Select,
+    delete,
+    exists,
+    func,
+    or_,
+    select,
+    text,
+    true,
+    update,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from ipaddress import IPv4Address, IPv6Address
-from domain.entities import Group, NetworkPolicy, User
+
 from application.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,
 )
-from enums import ProtocolType
 from application.utils.queries import get_groups
+from domain.entities import Group, NetworkPolicy, User
+from enums import ProtocolType
+
 from .tables import queryable_attr as qa
 
 
@@ -258,7 +271,7 @@ class NetworkPolicyGateway:
                 ),
             ),
         )
-    
+
     async def has_access_to_policy(
         self,
         user: User | None,
