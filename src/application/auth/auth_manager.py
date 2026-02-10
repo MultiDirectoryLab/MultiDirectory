@@ -11,9 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_service import AbstractService
-from config import Settings
-from domain.entities import User
-from enums import AuthorizationRules, MFAFlags
 from application.auth.dto import SetupDTO
 from application.auth.mfa_manager import MFAManager
 from application.auth.schemas import LoginDTO, OAuth2Form
@@ -38,6 +35,9 @@ from application.session_storage import SessionStorage
 from application.session_storage.repository import SessionRepository
 from application.user_account_control import get_check_uac
 from application.utils.queries import get_user
+from config import Settings
+from domain.entities import User
+from enums import AuthorizationRules, MFAFlags
 from password_utils import PasswordUtils
 
 
