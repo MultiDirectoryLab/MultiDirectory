@@ -234,7 +234,15 @@ class AddRequest(BaseRequest):
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
-        user_fields = User.search_fields.keys() | User.fields.keys()
+        is_user_like = (
+            "user" in self.object_class_names
+            or "computer" in self.object_class_names
+        )
+        user_fields = (
+            User.search_fields.keys() | User.fields.keys()
+            if is_user_like
+            else set()
+        )
 
         attributes.append(
             Attribute(
