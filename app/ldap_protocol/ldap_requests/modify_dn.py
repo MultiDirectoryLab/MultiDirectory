@@ -119,23 +119,21 @@ class ModifyDNRequest(BaseRequest):
     async def _delete_old_inherited_aces(
         self,
         session: AsyncSession,
-        directory_id: int,
+        directory: Directory,
         old_depth: int,
     ) -> None:
         old_inherited_aces_query = (
             select(qa(AccessControlEntry.id))
             .options(selectinload(qa(AccessControlEntry.directories)))
             .where(
-                qa(AccessControlEntry.directories).any(
-                    qa(Directory.id) == directory_id,
-                ),
+                qa(AccessControlEntry.directories).contains(directory),
                 qa(AccessControlEntry.depth) != old_depth,
             )
         )
         await session.execute(
             delete(ace_directory_memberships_table)
             .filter_by(
-                directory_id=directory_id,
+                directory_id=directory.id,
             )
             .where(
                 ace_directory_memberships_table.c.access_control_entry_id.in_(
@@ -154,17 +152,13 @@ class ModifyDNRequest(BaseRequest):
             select(AccessControlEntry)
             .options(selectinload(qa(AccessControlEntry.directories)))
             .where(
-                qa(AccessControlEntry.directories).any(
-                    qa(Directory.id) == directory.id,
-                ),
+                qa(AccessControlEntry.directories).contains(directory),
                 qa(AccessControlEntry.depth) == old_depth,
             )
         )
         for ace in await session.scalars(explicit_aces_query):
-            ace.directories.append(directory)
             ace.path = directory.path_dn
             ace.depth = directory.depth
-
 
     async def handle(  # noqa: C901
         self,
@@ -261,7 +255,8 @@ class ModifyDNRequest(BaseRequest):
 
         if is_move_to_new_superior:
             delete_aces = [
-                ace for ace in directory.access_control_entries
+                ace
+                for ace in directory.access_control_entries
                 if (
                     ace.ace_type == AceType.DELETE
                     and ace.attribute_type is None
@@ -313,7 +308,7 @@ class ModifyDNRequest(BaseRequest):
                 await ctx.session.flush()
                 await self._delete_old_inherited_aces(
                     ctx.session,
-                    directory_id=directory.id,
+                    directory=directory,
                     old_depth=old_depth,
                 )
                 await ctx.role_use_case.inherit_parent_aces(
@@ -373,14 +368,10 @@ class ModifyDNRequest(BaseRequest):
                 )
                 await ctx.session.flush()
 
-                new_depth = old_depth
-                if is_move_to_new_superior:
-                    new_depth = directory.depth
-
                 await self._update_explicit_aces(
                     ctx.session,
                     directory,
-                    new_depth,
+                    old_depth,
                 )
 
             await ctx.session.flush()
