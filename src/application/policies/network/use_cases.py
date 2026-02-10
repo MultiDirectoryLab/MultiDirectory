@@ -12,8 +12,7 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
-from domain.entities import NetworkPolicy, User
-from enums import AuthorizationRules, ProtocolType
+from application.dialogue import LDAPSession
 from application.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -23,7 +22,9 @@ from application.policies.network.exceptions import (
     LastActivePolicyError,
     NetworkPolicyAlreadyExistsError,
 )
-from application.dialogue import LDAPSession
+from domain.entities import NetworkPolicy, User
+from enums import AuthorizationRules
+
 from .gateway_protocol import NetworkPolicyGatewayProtocol
 
 
@@ -73,37 +74,17 @@ class NetworkPolicyUseCase(AbstractService):
     async def create(
         self,
         dto: NetworkPolicyDTO,
-    ) -> NetworkPolicyDTO:
+    ) -> None:
         """Create network policy."""
         policy_model = _convert_dto_to_model(dto)
         if dto.groups:
-            policy_model.groups = (
-                await self.gateway.get_groups(dto.groups)
-            )
+            policy_model.groups = await self.gateway.get_groups(dto.groups)
         if dto.mfa_groups:
-            policy_model.mfa_groups = (
-                await self.gateway.get_groups(
-                    dto.mfa_groups,
-                )
+            policy_model.mfa_groups = await self.gateway.get_groups(
+                dto.mfa_groups,
             )
 
-        policy = await self.gateway.create(policy_model)
-        return NetworkPolicyDTO[int](
-            id=policy.id,
-            name=policy.name,
-            netmasks=policy.netmasks,
-            priority=policy.priority,
-            raw=policy.raw,
-            mfa_status=policy.mfa_status,
-            is_http=policy.is_http,
-            is_ldap=policy.is_ldap,
-            is_kerberos=policy.is_kerberos,
-            bypass_no_connection=policy.bypass_no_connection,
-            bypass_service_failure=policy.bypass_service_failure,
-            enabled=policy.enabled,
-            groups=dto.groups,
-            mfa_groups=dto.mfa_groups,
-        )
+        await self.gateway.create(policy_model)
 
     async def get(self, _id: int) -> NetworkPolicyDTO[int]:
         policy = await self.gateway.get_with_for_update(_id)
@@ -113,7 +94,7 @@ class NetworkPolicyUseCase(AbstractService):
         self,
     ) -> list[NetworkPolicyDTO]:
         """Get list of network policies."""
-        policies = await self.gateway.get_list_policies()
+        policies = await self.gateway.get_all()
         return list(map(_convert_model_to_dto, policies))
 
     async def delete(self, _id: int) -> None:
@@ -185,9 +166,7 @@ class NetworkPolicyUseCase(AbstractService):
         """Apply group updates."""
         if dto.groups is not None:
             policy.groups = (
-                await self.gateway.get_groups(dto.groups)
-                if dto.groups
-                else []
+                await self.gateway.get_groups(dto.groups) if dto.groups else []
             )
 
         if dto.mfa_groups is not None:
@@ -222,6 +201,7 @@ class NetworkPolicyValidatorUseCase(AbstractService):
     """Network policies validator use cases."""
 
     _gateway: NetworkPolicyGatewayProtocol
+
     def __init__(
         self,
         network_policy_gateway: NetworkPolicyGatewayProtocol,
@@ -235,7 +215,7 @@ class NetworkPolicyValidatorUseCase(AbstractService):
         user: User,
     ) -> NetworkPolicy | None:
         """Get user HTTP policy."""
-        return await self._gateway.get_user_http_policy(
+        return await self._gateway.get_http_policy_by_user(
             ip,
             user,
         )
@@ -246,7 +226,7 @@ class NetworkPolicyValidatorUseCase(AbstractService):
         user: User,
     ) -> NetworkPolicy | None:
         """Get user Kerberos policy."""
-        return await self._gateway.get_user_kerberos_policy(
+        return await self._gateway.get_kerberos_policy_by_user(
             ip,
             user,
         )
@@ -271,16 +251,16 @@ class NetworkPolicyValidatorUseCase(AbstractService):
 
 class ValidatePolicyAccessUseCase:
     """Validates user access according to network policy rules.
-    
+
     This use case implements the business logic for determining whether a user
     is allowed to access resources based on the configured network policy.
-    
+
     Business Rules:
-    1. If no policy is attached to the session, 
+    1. If no policy is attached to the session,
         access is DENIED (secure by default)
     2. If policy has no group restrictions, access is GRANTED
     3. Otherwise, check if user belongs to any of the policy's allowed groups
-    
+
     Note: This implements a whitelist approach - only explicitly allowed
     groups have access when policy has group restrictions.
     """
@@ -294,21 +274,21 @@ class ValidatePolicyAccessUseCase:
         """Initialize Validate user with network policy use case."""
         self._gateway = network_policy_gateway
 
-    def execute(
+    async def execute(
         self,
         ldap_session: LDAPSession,
         user: User,
     ) -> bool:
         """Execute use case."""
-        policy = getattr(ldap_session, "policy", None)
+        policy: NetworkPolicy | None = getattr(ldap_session, "policy", None)
 
         if policy is None:
             return False
-        
+
         if not policy.groups:
             return True
 
-        return self._gateway.has_access_to_policy(
+        return await self._gateway.has_access_to_policy(
             policy,
             user,
         )
