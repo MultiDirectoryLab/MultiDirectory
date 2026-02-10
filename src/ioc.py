@@ -152,7 +152,9 @@ from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
 from db_routing import EngineRegistry, RoutingSession
 from infrastructure.pg.master_gateway import PGMasterGateway
-from infrastructure.pg.network_policy_gateway import NetworkPolicyGateway
+from infrastructure.pg.network_policy_gateway import (
+    NetworkPolicyPostgresGateway,
+)
 from password_utils import PasswordUtils
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
@@ -501,7 +503,7 @@ class MainProvider(Provider):
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
 
     network_policy_gateway = provide(
-        NetworkPolicyGateway,
+        NetworkPolicyPostgresGateway,
         provides=NetworkPolicyGatewayProtocol,
         scope=Scope.REQUEST,
     )
@@ -732,7 +734,7 @@ class LDAPServerProvider(LDAPContextProvider):
     scope = Scope.SESSION
 
     network_policy_validator_gateway = provide(
-        NetworkPolicyGateway,
+        NetworkPolicyPostgresGateway,
         provides=NetworkPolicyGatewayProtocol,
         scope=Scope.REQUEST,
     )

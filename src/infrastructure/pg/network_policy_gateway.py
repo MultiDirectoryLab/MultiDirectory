@@ -32,7 +32,7 @@ from enums import ProtocolType
 from .tables import queryable_attr as qa
 
 
-class NetworkPolicyGateway:
+class NetworkPolicyPostgresGateway:
     """Network policy gateway."""
 
     def __init__(self, session: AsyncSession):
