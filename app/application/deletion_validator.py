@@ -3,13 +3,13 @@
 from entities import Directory
 from ldap_protocol.dialogue import UserSchema
 
-from .deletion_exception import (
+from ..domain.directory.deletion_exception import (
     DirectoryHasPrimaryGroupMembersError,
     DomainDirectoryDeletionError,
     SystemDirectoryDeletionError,
     UserSelfDeletionError,
 )
-from .gateway_protocol import DirectoryGatewayProtocol
+from ..domain.directory.gateway_protocol import DirectoryGatewayProtocol
 
 
 class DirectoryDeletionValidator:

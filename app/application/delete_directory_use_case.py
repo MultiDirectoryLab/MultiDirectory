@@ -1,10 +1,8 @@
 """Delete Directory UseCase."""
 
 from application.access_use_case import AccessControlUseCase
+from application.deletion_validator import DirectoryDeletionValidator
 from domain.directory.deletion_exception import DirectoryNotFoundError
-from domain.directory.deletion_validator_protocol import (
-    DirectoryDeletionValidatorProtocol,
-)
 from domain.directory.gateway_protocol import DirectoryGatewayProtocol
 
 from entities import Directory
@@ -18,7 +16,7 @@ class DeleteDirectoryUseCase:
     def __init__(
         self,
         directory_gateway: DirectoryGatewayProtocol,  # интерфейс
-        directory_deletion_validator: DirectoryDeletionValidatorProtocol,  # интерфейс  # noqa: E501
+        directory_deletion_validator: DirectoryDeletionValidator,  # реализация
         access_control_use_case: AccessControlUseCase,  # реализация
         session_storage: SessionStorage,  # интерфейс
         kadmin: AbstractKadmin,  # интерфейс
