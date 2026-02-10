@@ -6,8 +6,13 @@ from .exceptions import (
     NetworkPolicyAlreadyExistsError,
     NetworkPolicyNotFoundError,
 )
-from .use_cases import NetworkPolicyUseCase, NetworkPolicyValidatorUseCase, ValidatePolicyAccessUseCase
 from .gateway_protocol import NetworkPolicyGatewayProtocol
+from .use_cases import (
+    NetworkPolicyUseCase,
+    NetworkPolicyValidatorUseCase,
+    ValidateMFARequirementUseCase,
+    ValidatePolicyAccessUseCase,
+)
 
 __all__ = [
     "NetworkPolicyDTO",
@@ -20,4 +25,5 @@ __all__ = [
     "NetworkPolicyValidatorUseCase",
     "NetworkPolicyGatewayProtocol",
     "ValidatePolicyAccessUseCase",
+    "ValidateMFARequirementUseCase",
 ]

@@ -12,7 +12,6 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from abstract_service import AbstractService
-from application.dialogue import LDAPSession
 from application.policies.network.dto import (
     NetworkPolicyDTO,
     NetworkPolicyUpdateDTO,
@@ -23,7 +22,7 @@ from application.policies.network.exceptions import (
     NetworkPolicyAlreadyExistsError,
 )
 from domain.entities import NetworkPolicy, User
-from enums import AuthorizationRules
+from enums import AuthorizationRules, MFAFlags
 
 from .gateway_protocol import NetworkPolicyGatewayProtocol
 
@@ -276,15 +275,10 @@ class ValidatePolicyAccessUseCase:
 
     async def execute(
         self,
-        ldap_session: LDAPSession,
+        policy: NetworkPolicy,
         user: User,
     ) -> bool:
         """Execute use case."""
-        policy: NetworkPolicy | None = getattr(ldap_session, "policy", None)
-
-        if policy is None:
-            return False
-
         if not policy.groups:
             return True
 
@@ -292,3 +286,33 @@ class ValidatePolicyAccessUseCase:
             policy,
             user,
         )
+
+
+class ValidateMFARequirementUseCase:
+    """Validates if MFA is required according to network policy rules."""
+
+    _gateway: NetworkPolicyGatewayProtocol
+
+    def __init__(
+        self,
+        network_policy_gateway: NetworkPolicyGatewayProtocol,
+    ) -> None:
+        """Initialize Validate MFA requirement use case."""
+        self._gateway = network_policy_gateway
+
+    async def execute(
+        self,
+        policy: NetworkPolicy,
+        user: User,
+    ) -> bool:
+        """Execute use case."""
+        if policy.mfa_status == MFAFlags.DISABLED:
+            return False
+
+        if policy.mfa_status == MFAFlags.WHITELIST:
+            return await self._gateway.check_mfa_group(
+                policy,
+                user,
+            )
+
+        return True

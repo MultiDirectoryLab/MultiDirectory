@@ -8,7 +8,6 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
-from db_routing import EngineRegistry, RoutingSession
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
@@ -38,8 +37,6 @@ from api.password_policy.adapter import (
     UserPasswordHistoryResetFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
-from authorization_provider_protocol import AuthorizationProviderProtocol
-from config import Settings
 from application.auth import AuthManager, MFAManager
 from application.auth.setup_gateway import SetupGateway
 from application.auth.use_cases import SetupUseCase
@@ -123,9 +120,10 @@ from application.policies.audit.monitor import (
 from application.policies.audit.policies_dao import AuditPoliciesDAO
 from application.policies.audit.service import AuditService
 from application.policies.network import (
+    NetworkPolicyGatewayProtocol,
     NetworkPolicyUseCase,
     NetworkPolicyValidatorUseCase,
-    NetworkPolicyGatewayProtocol,
+    ValidateMFARequirementUseCase,
     ValidatePolicyAccessUseCase,
 )
 from application.policies.password import (
@@ -150,10 +148,12 @@ from application.rootdse.gw_protocol import DomainReadProtocol
 from application.rootdse.reader import DCInfoReader, RootDSEReader
 from application.session_storage import RedisSessionStorage, SessionStorage
 from application.session_storage.repository import SessionRepository
-from password_utils import PasswordUtils
-
+from authorization_provider_protocol import AuthorizationProviderProtocol
+from config import Settings
+from db_routing import EngineRegistry, RoutingSession
 from infrastructure.pg.master_gateway import PGMasterGateway
 from infrastructure.pg.network_policy_gateway import NetworkPolicyGateway
+from password_utils import PasswordUtils
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
@@ -507,6 +507,10 @@ class MainProvider(Provider):
     )
     validate_policy_access_use_case = provide(
         ValidatePolicyAccessUseCase,
+        scope=Scope.REQUEST,
+    )
+    validate_mfa_requirement_use_case = provide(
+        ValidateMFARequirementUseCase,
         scope=Scope.REQUEST,
     )
 
