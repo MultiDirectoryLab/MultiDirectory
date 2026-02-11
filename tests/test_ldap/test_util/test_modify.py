@@ -793,12 +793,7 @@ async def test_ldap_modify_rdn(
     async def try_modify() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
             file.write(
-                (
-                    f"dn: {dn}\n"
-                    "changetype: modify\n"
-                    "replace: cn\n"
-                    "cn: modme\n"
-                ),
+                (f"dn: {dn}\nchangetype: modify\nreplace: cn\ncn: modme\n"),
             )
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(
