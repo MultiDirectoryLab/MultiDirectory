@@ -822,6 +822,49 @@ async def run_single_modify(
         return await proc.wait()
 
 
+async def run_single_modrdn(
+    *,
+    settings: Settings,
+    bind_dn: str,
+    password: str,
+    dn: str,
+    newrdn: str,
+    deleteoldrdn: int = 1,
+    newsuperior: str | None = None,
+) -> int:
+    with tempfile.NamedTemporaryFile("w") as file:
+        lines = [
+            f"dn: {dn}",
+            "changetype: modrdn",
+            f"newrdn: {newrdn}",
+            f"deleteoldrdn: {deleteoldrdn}",
+        ]
+        if newsuperior is not None:
+            lines.append(f"newsuperior: {newsuperior}")
+
+        file.write("\n".join(lines) + "\n")
+        file.seek(0)
+
+        proc = await asyncio.create_subprocess_exec(
+            "ldapmodify",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            bind_dn,
+            "-x",
+            "-w",
+            password,
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        await proc.communicate()
+        return await proc.wait()
+
+
 async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     """Fetch directory by DN."""
     query = (
@@ -1019,37 +1062,16 @@ async def test_modify_dn_rename_with_ap(
     name_attr = await attribute_type_dao.get("name")
     assert name_attr
 
-    async def try_modify() -> int:
-        with tempfile.NamedTemporaryFile("w") as file:
-            file.write(
-                (
-                    f"dn: {dn}\n"
-                    "changetype: modrdn\n"
-                    "newrdn: cn=user2\n"
-                    "deleteoldrdn: 1\n"
-                ),
-            )
-            file.seek(0)
-            proc = await asyncio.create_subprocess_exec(
-                "ldapmodify",
-                "-vvv",
-                "-H",
-                f"ldap://{settings.HOST}:{settings.PORT}",
-                "-D",
-                "user_non_admin",
-                "-x",
-                "-w",
-                creds.pw,
-                "-f",
-                file.name,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+    )
 
-            await proc.communicate()
-            return await proc.wait()
-
-    assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+    assert res == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
     await role_dao.create(
         dto=RoleDTO(
@@ -1085,7 +1107,16 @@ async def test_modify_dn_rename_with_ap(
 
     aces_before = await access_control_entry_dao.get_all()
 
-    assert await try_modify() == LDAPCodes.SUCCESS
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+    )
+
+    assert res == LDAPCodes.SUCCESS
 
     aces_after = await access_control_entry_dao.get_all()
 
@@ -1104,7 +1135,7 @@ async def test_modify_dn_rename_with_ap(
     assert inherited_aces_before == inherited_aces_after
     assert len(explicit_aces_after) == len(explicit_aces_before)
 
-    # check expicit aces have same properties except base_dn
+    # NOTE: Check explicit ACEs have same properties except base_dn
     for ace_before, ace_after in zip(
         explicit_aces_before,
         explicit_aces_after,
@@ -1141,38 +1172,17 @@ async def test_modify_dn_move_with_ap(
 
     new_parent_dn = "cn=Groups,dc=md,dc=test"
 
-    async def try_modify() -> int:
-        with tempfile.NamedTemporaryFile("w") as file:
-            file.write(
-                (
-                    f"dn: {dn}\n"
-                    "changetype: modrdn\n"
-                    "newrdn: cn=user2\n"
-                    "deleteoldrdn: 1\n"
-                    f"newsuperior: {new_parent_dn}\n"
-                ),
-            )
-            file.seek(0)
-            proc = await asyncio.create_subprocess_exec(
-                "ldapmodify",
-                "-vvv",
-                "-H",
-                f"ldap://{settings.HOST}:{settings.PORT}",
-                "-D",
-                "user_non_admin",
-                "-x",
-                "-w",
-                creds.pw,
-                "-f",
-                file.name,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+        newsuperior=new_parent_dn,
+    )
 
-            await proc.communicate()
-            return await proc.wait()
-
-    assert await try_modify() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+    assert res == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
     await role_dao.create(
         dto=RoleDTO(
@@ -1208,7 +1218,17 @@ async def test_modify_dn_move_with_ap(
 
     aces_before = await access_control_entry_dao.get_all()
 
-    assert await try_modify() == LDAPCodes.SUCCESS
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+        newsuperior=new_parent_dn,
+    )
+
+    assert res == LDAPCodes.SUCCESS
 
     aces_after = await access_control_entry_dao.get_all()
 
