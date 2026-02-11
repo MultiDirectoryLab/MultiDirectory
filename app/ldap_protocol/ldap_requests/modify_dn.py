@@ -122,12 +122,9 @@ class ModifyDNRequest(BaseRequest):
         directory: Directory,
         old_depth: int,
     ) -> None:
-        old_inherited_aces_ids = (
-            select(qa(AccessControlEntry.id))
-            .where(
-                qa(AccessControlEntry.directories).contains(directory),
-                qa(AccessControlEntry.depth) != old_depth,
-            )
+        old_inherited_aces_ids = select(qa(AccessControlEntry.id)).where(
+            qa(AccessControlEntry.directories).contains(directory),
+            qa(AccessControlEntry.depth) != old_depth,
         )
         await session.execute(
             delete(ace_directory_memberships_table)
@@ -146,19 +143,19 @@ class ModifyDNRequest(BaseRequest):
         session: AsyncSession,
         directory: Directory,
         old_depth: int,
+        new_path: list[str],
     ) -> None:
-        explicit_aces_ids = (
-            select(qa(AccessControlEntry.id))
-            .where(
-                qa(AccessControlEntry.directories).contains(directory),
-                qa(AccessControlEntry.depth) == old_depth,
-            )
+        new_path_dn = ",".join(reversed(new_path))
+        new_depth = len(new_path)
+
+        explicit_aces_ids = select(qa(AccessControlEntry.id)).where(
+            qa(AccessControlEntry.directories).contains(directory),
+            qa(AccessControlEntry.depth) == old_depth,
         )
         await session.execute(
             update(AccessControlEntry)
             .where(qa(AccessControlEntry.id).in_(explicit_aces_ids))
-            .values(path=directory.path_dn, depth=directory.depth)
-            .execution_options(synchronize_session=False),
+            .values(path=new_path_dn, depth=new_depth),
         )
 
     async def handle(  # noqa: C901
@@ -372,6 +369,7 @@ class ModifyDNRequest(BaseRequest):
                     ctx.session,
                     directory,
                     old_depth,
+                    new_path,
                 )
 
             await ctx.session.flush()
