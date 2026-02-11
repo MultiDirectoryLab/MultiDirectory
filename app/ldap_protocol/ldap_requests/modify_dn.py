@@ -9,7 +9,7 @@ from typing import AsyncGenerator, ClassVar
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload
 
 from entities import AccessControlEntry, Attribute, Directory
 from enums import AceType
@@ -122,9 +122,8 @@ class ModifyDNRequest(BaseRequest):
         directory: Directory,
         old_depth: int,
     ) -> None:
-        old_inherited_aces_query = (
+        old_inherited_aces_ids = (
             select(qa(AccessControlEntry.id))
-            .options(selectinload(qa(AccessControlEntry.directories)))
             .where(
                 qa(AccessControlEntry.directories).contains(directory),
                 qa(AccessControlEntry.depth) != old_depth,
@@ -137,7 +136,7 @@ class ModifyDNRequest(BaseRequest):
             )
             .where(
                 ace_directory_memberships_table.c.access_control_entry_id.in_(
-                    old_inherited_aces_query,
+                    old_inherited_aces_ids,
                 ),
             ),
         )
@@ -148,17 +147,19 @@ class ModifyDNRequest(BaseRequest):
         directory: Directory,
         old_depth: int,
     ) -> None:
-        explicit_aces_query = (
-            select(AccessControlEntry)
-            .options(selectinload(qa(AccessControlEntry.directories)))
+        explicit_aces_ids = (
+            select(qa(AccessControlEntry.id))
             .where(
                 qa(AccessControlEntry.directories).contains(directory),
                 qa(AccessControlEntry.depth) == old_depth,
             )
         )
-        for ace in await session.scalars(explicit_aces_query):
-            ace.path = directory.path_dn
-            ace.depth = directory.depth
+        await session.execute(
+            update(AccessControlEntry)
+            .where(qa(AccessControlEntry.id).in_(explicit_aces_ids))
+            .values(path=directory.path_dn, depth=directory.depth)
+            .execution_options(synchronize_session=False),
+        )
 
     async def handle(  # noqa: C901
         self,
@@ -230,14 +231,6 @@ class ModifyDNRequest(BaseRequest):
             )
             return
 
-        old_name = directory.name
-        directory.name = new_name
-
-        old_path = directory.path
-        old_dn = old_path[-1].split("=")[0]
-
-        old_depth = directory.depth
-
         if (
             directory.entity_type
             and not ctx.attribute_value_validator.is_value_valid(
@@ -252,6 +245,13 @@ class ModifyDNRequest(BaseRequest):
                 message="Invalid attribute value(s)",
             )
             return
+
+        old_name = directory.name
+        directory.name = new_name
+
+        old_path = directory.path
+        old_dn = old_path[-1].split("=")[0]
+        old_depth = directory.depth
 
         if is_move_to_new_superior:
             delete_aces = [
