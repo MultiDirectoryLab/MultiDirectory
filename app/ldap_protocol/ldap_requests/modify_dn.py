@@ -119,7 +119,8 @@ class ModifyDNRequest(BaseRequest):
                 Changes(
                     operation=Operation.DELETE,
                     modification=PartialAttribute(
-                        type=old_dn, vals=[old_name],
+                        type=old_dn,
+                        vals=[old_name],
                     ),
                 ),
             )
