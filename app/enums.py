@@ -60,6 +60,9 @@ class EntityTypeNames(StrEnum):
     """
 
     DOMAIN = "Domain"
+    CONFIGURATION = "Configuration"
+    ATTRIBUTE_TYPE = "Attribute Type"
+    OBJECT_CLASS = "Object Class"
     COMPUTER = "Computer"
     CONTAINER = "Container"
     ORGANIZATIONAL_UNIT = "Organizational Unit"

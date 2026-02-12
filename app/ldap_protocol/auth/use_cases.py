@@ -137,6 +137,7 @@ class SetupUseCase:
                 dn=dto.domain,
                 is_system=True,
             )
+            # TODO
             await self._password_use_cases.create_default_domain_policy()
 
             errors = await (

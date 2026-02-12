@@ -88,6 +88,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.setup_gateway import CreateAttributeDirGateway
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
@@ -454,6 +455,10 @@ class MainProvider(Provider):
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_use_case = provide(
         AttributeTypeUseCase,
+        scope=Scope.REQUEST,
+    )
+    create_attribute_dir_gateway = provide(
+        CreateAttributeDirGateway,
         scope=Scope.REQUEST,
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)

@@ -184,6 +184,11 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
                 + f" '{dto.name}' already exists.",
             )
 
+    async def create_ldap(
+        self,
+        dto: ObjectClassDTO[None, str],
+    ) -> None: ...  # TODO
+
     async def _count_exists_object_class_by_names(
         self,
         names: Iterable[str],

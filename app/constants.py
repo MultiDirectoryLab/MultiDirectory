@@ -235,6 +235,18 @@ ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
         object_class_names=["top", "domain", "domainDNS"],
     ),
     EntityTypeData(
+        name=EntityTypeNames.CONFIGURATION,
+        object_class_names=["top", "container", "configuration"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.ATTRIBUTE_TYPE,
+        object_class_names=["top", "attributeSchema"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.OBJECT_CLASS,
+        object_class_names=["top", "classSchema"],
+    ),
+    EntityTypeData(
         name=EntityTypeNames.COMPUTER,
         object_class_names=["top", "computer"],
     ),
@@ -292,6 +304,11 @@ ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
 
 
 FIRST_SETUP_DATA = [
+    {
+        "name": "Configuration",
+        "object_class": "container",
+        "attributes": {"objectClass": ["top", "configuration"]},
+    },
     {
         "name": GROUPS_CONTAINER_NAME,
         "object_class": "container",

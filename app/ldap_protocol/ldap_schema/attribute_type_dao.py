@@ -13,14 +13,17 @@ from adaptix.conversion import (
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from abstract_dao import AbstractDAO
-from entities import AttributeType
+from entities import AttributeType, Directory, EntityType
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeNotFoundError,
 )
+from ldap_protocol.ldap_schema.setup_gateway import CreateAttributeDirGateway
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
@@ -51,10 +54,16 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
     """Attribute Type DAO."""
 
     __session: AsyncSession
+    __create_attribute_dir_gateway: CreateAttributeDirGateway
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        create_attribute_dir_gateway: CreateAttributeDirGateway,
+    ) -> None:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
+        self.__create_attribute_dir_gateway = create_attribute_dir_gateway
 
     async def get(self, _id: str) -> AttributeTypeDTO:
         """Get Attribute Type by id."""
@@ -75,6 +84,44 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
             attribute_type = _convert_dto_to_model(dto)
             self.__session.add(attribute_type)
             await self.__session.flush()
+
+        except IntegrityError:
+            raise AttributeTypeAlreadyExistsError(
+                f"Attribute Type with oid '{dto.oid}' and name"
+                + f" '{dto.name}' already exists.",
+            )
+
+    async def create_ldap(self, dto: AttributeTypeDTO) -> None:
+        """Create Attribute Type."""
+        try:
+            parent = await self.__session.scalar(
+                select(Directory)
+                .join(qa(Directory.entity_type))
+                .where(qa(EntityType.name) == EntityTypeNames.CONFIGURATION)
+                .options(joinedload(qa(Directory.entity_type))),
+            )
+
+            await self.__create_attribute_dir_gateway.create_dir(
+                data={
+                    "name": dto.name,
+                    "object_class": "",
+                    "attributes": {
+                        "objectClass": ["top", "attributeSchema"],
+                        "oid": [str(dto.oid)],
+                        "name": [str(dto.name)],
+                        "syntax": [str(dto.syntax)],
+                        "single_value": [str(dto.single_value)],
+                        "no_user_modification": [
+                            str(dto.no_user_modification),
+                        ],
+                        "is_system": [str(dto.is_system)],  # TODO asd223edfsda
+                        "is_included_anr": [str(dto.is_included_anr)],
+                    },
+                    "children": [],
+                },
+                is_system=dto.is_system,  # TODO asd223edfsda связать два поля
+                parent=parent,  # type: ignore
+            )
 
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(

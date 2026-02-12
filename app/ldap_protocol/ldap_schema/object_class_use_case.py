@@ -45,6 +45,10 @@ class ObjectClassUseCase(AbstractService):
         """Create a new Object Class."""
         await self._object_class_dao.create(dto)
 
+    async def create_ldap(self, dto: ObjectClassDTO[None, str]) -> None:
+        """Create a new Object Class."""
+        await self._object_class_dao.create_ldap(dto)
+
     async def get(self, _id: str) -> ObjectClassDTO:
         """Get Object Class by id."""
         dto = await self._object_class_dao.get(_id)

@@ -110,6 +110,7 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.setup_gateway import CreateAttributeDirGateway
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
@@ -297,12 +298,15 @@ class TestProvider(Provider):
         weakref.finalize(resolver, resolver.close)
 
     @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
-    def get_attribute_type_dao(
+    async def get_attribute_type_dao(
         self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
+        container: AsyncContainer,
+    ) -> AsyncIterator[AttributeTypeDAO]:
         """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
+        async with container(scope=Scope.REQUEST) as container:
+            session = await container.get(AsyncSession)
+            gw = await container.get(CreateAttributeDirGateway)
+            yield AttributeTypeDAO(session, create_attribute_dir_gateway=gw)
 
     @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
     def get_object_class_dao(self, session: AsyncSession) -> ObjectClassDAO:
@@ -326,6 +330,10 @@ class TestProvider(Provider):
     )
     password_ban_word_repository = provide(
         PasswordBanWordRepository,
+        scope=Scope.REQUEST,
+    )
+    create_attribute_dir_gateway = provide(
+        CreateAttributeDirGateway,
         scope=Scope.REQUEST,
     )
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
@@ -1211,7 +1219,8 @@ async def attribute_type_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        yield AttributeTypeDAO(session)
+        gw = await container.get(CreateAttributeDirGateway)
+        yield AttributeTypeDAO(session, create_attribute_dir_gateway=gw)
 
 
 @pytest_asyncio.fixture(scope="function")

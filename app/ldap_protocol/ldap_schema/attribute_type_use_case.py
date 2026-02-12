@@ -42,6 +42,10 @@ class AttributeTypeUseCase(AbstractService):
         """Create Attribute Type."""
         await self._attribute_type_dao.create(dto)
 
+    async def create_ldap(self, dto: AttributeTypeDTO) -> None:
+        """Create Attribute Type."""
+        await self._attribute_type_dao.create_ldap(dto)
+
     async def update(self, _id: str, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type."""
         await self._attribute_type_dao.update(_id, dto)
