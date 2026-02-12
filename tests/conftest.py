@@ -300,17 +300,11 @@ class TestProvider(Provider):
         weakref.finalize(resolver, resolver.close)
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
-    attribute_type_dao_app = provide(AttributeTypeDAO, scope=Scope.APP)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
-    object_class_dao_app = provide(ObjectClassDAO, scope=Scope.APP)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
         AttributeTypeSystemFlagsUseCase,
         scope=Scope.REQUEST,
-    )
-    attribute_type_system_flags_use_case_app = provide(
-        AttributeTypeSystemFlagsUseCase,
-        scope=Scope.APP,
     )
     attribute_type_use_case = provide(
         AttributeTypeUseCase,
@@ -1210,33 +1204,6 @@ async def attribute_type_dao(
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
         yield AttributeTypeDAO(session)
-
-
-@pytest_asyncio.fixture(scope="function")
-async def attribute_type_system_flags_use_case(
-    container: AsyncContainer,
-) -> AsyncIterator[AttributeTypeSystemFlagsUseCase]:
-    """Get AttributeTypeSystemFlagsUseCase."""
-    async with container(scope=Scope.APP) as container:
-        yield await container.get(AttributeTypeSystemFlagsUseCase)
-
-
-@pytest_asyncio.fixture(scope="function")
-async def attribute_type_use_case(
-    container: AsyncContainer,
-) -> AsyncIterator[AttributeTypeUseCase]:
-    """Get session and acquire after completion."""
-    async with container(scope=Scope.APP) as container:
-        attribute_type_dao = await container.get(AttributeTypeDAO)
-        object_class_dao = await container.get(ObjectClassDAO)
-        sys_flags_use_case = await container.get(
-            AttributeTypeSystemFlagsUseCase,
-        )
-        yield AttributeTypeUseCase(
-            attribute_type_dao=attribute_type_dao,
-            object_class_dao=object_class_dao,
-            attribute_type_system_flags_use_case=sys_flags_use_case,
-        )
 
 
 @pytest_asyncio.fixture(scope="function")
