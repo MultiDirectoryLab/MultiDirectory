@@ -99,19 +99,32 @@ class ModifyDNRequest(BaseRequest):
             and self.new_superior != directory.parent.path_dn,
         )
 
-    def _can_rename(
+    def _can_modify_rdn(
         self,
         access_manager: AccessManager,
         directory: Directory,
-        name: str,
+        old_dn: str,
+        old_name: str,
+        new_dn: str,
+        new_name: str,
     ) -> bool:
-        return access_manager.check_modify_access(
-            changes=[
+        change = [
+            Changes(
+                operation=Operation.ADD,
+                modification=PartialAttribute(type=new_dn, vals=[new_name]),
+            ),
+        ]
+        if self.deleteoldrdn:
+            change.append(
                 Changes(
-                    operation=Operation.REPLACE,
-                    modification=PartialAttribute(type="name", vals=[name]),
+                    operation=Operation.DELETE,
+                    modification=PartialAttribute(
+                        type=old_dn, vals=[old_name],
+                    ),
                 ),
-            ],
+            )
+        return access_manager.check_modify_access(
+            changes=change,
             aces=directory.access_control_entries,
             entity_type_id=directory.entity_type_id,
         )
@@ -218,10 +231,18 @@ class ModifyDNRequest(BaseRequest):
         new_dn, new_name = self.newrdn.split("=")
         is_move_to_new_superior = self._is_move_to_new_superior(directory)
 
-        if not is_move_to_new_superior and not self._can_rename(
-            ctx.access_manager,
-            directory,
-            new_name,
+        old_name = directory.name
+        old_path = directory.path
+        old_dn = old_path[-1].split("=")[0]
+        old_depth = directory.depth
+
+        if not self._can_modify_rdn(
+            access_manager=ctx.access_manager,
+            directory=directory,
+            old_dn=old_dn,
+            old_name=old_name,
+            new_dn=new_dn,
+            new_name=new_name,
         ):
             yield ModifyDNResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
@@ -243,12 +264,7 @@ class ModifyDNRequest(BaseRequest):
             )
             return
 
-        old_name = directory.name
         directory.name = new_name
-
-        old_path = directory.path
-        old_dn = old_path[-1].split("=")[0]
-        old_depth = directory.depth
 
         if is_move_to_new_superior:
             delete_aces = [
