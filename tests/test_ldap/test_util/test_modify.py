@@ -18,9 +18,10 @@ from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
 from entities import Directory, Group
-from enums import AceType, RoleScope
+from enums import AceType, EntityTypeNames, RoleScope
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.objects import Operation
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
@@ -821,6 +822,49 @@ async def run_single_modify(
         return await proc.wait()
 
 
+async def run_single_modrdn(
+    *,
+    settings: Settings,
+    bind_dn: str,
+    password: str,
+    dn: str,
+    newrdn: str,
+    deleteoldrdn: int = 1,
+    newsuperior: str | None = None,
+) -> int:
+    with tempfile.NamedTemporaryFile("w") as file:
+        lines = [
+            f"dn: {dn}",
+            "changetype: modrdn",
+            f"newrdn: {newrdn}",
+            f"deleteoldrdn: {deleteoldrdn}",
+        ]
+        if newsuperior is not None:
+            lines.append(f"newsuperior: {newsuperior}")
+
+        file.write("\n".join(lines) + "\n")
+        file.seek(0)
+
+        proc = await asyncio.create_subprocess_exec(
+            "ldapmodify",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            bind_dn,
+            "-x",
+            "-w",
+            password,
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        await proc.communicate()
+        return await proc.wait()
+
+
 async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     """Fetch directory by DN."""
     query = (
@@ -997,3 +1041,244 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
     user_dir = await fetch_directory_by_dn(session, user_dn)
     group_names = {group.directory.name for group in user_dir.groups}
     assert group_names == expected_groups
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_modify_dn_rename_with_ap(
+    settings: Settings,
+    creds: TestCreds,
+    role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
+    entity_type_dao: EntityTypeDAO,
+    attribute_type_dao: EntityTypeDAO,
+) -> None:
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+    base_dn = "dc=md,dc=test"
+
+    user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
+    assert user_entity_type
+
+    rdn_attr = await attribute_type_dao.get("cn")
+    assert rdn_attr
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+    )
+
+    assert res == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Modify Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=Groups," + base_dn],
+        ),
+    )
+
+    role_id = role_dao.get_last_id()
+
+    write_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.WRITE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=rdn_attr.id,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+    delete_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.DELETE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=rdn_attr.id,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+
+    await access_control_entry_dao.create_bulk([write_ace, delete_ace])
+
+    aces_before = await access_control_entry_dao.get_all()
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+    )
+
+    assert res == LDAPCodes.SUCCESS
+
+    aces_after = await access_control_entry_dao.get_all()
+
+    inherited_aces_before = [
+        ace for ace in aces_before if ace.base_dn == base_dn
+    ]
+    explicit_aces_before = [
+        ace for ace in aces_before if ace.base_dn != base_dn
+    ]
+
+    inherited_aces_after = [
+        ace for ace in aces_after if ace.base_dn == base_dn
+    ]
+    explicit_aces_after = [ace for ace in aces_after if ace.base_dn != base_dn]
+
+    assert inherited_aces_before == inherited_aces_after
+    assert len(explicit_aces_after) == len(explicit_aces_before)
+
+    # NOTE: Check explicit ACEs have same properties except base_dn
+    for ace_before, ace_after in zip(
+        explicit_aces_before,
+        explicit_aces_after,
+    ):
+        assert ace_before.id == ace_after.id
+        assert ace_before.role_id == ace_after.role_id
+        assert ace_before.ace_type == ace_after.ace_type
+        assert ace_before.scope == ace_after.scope
+        assert ace_before.attribute_type_id == ace_after.attribute_type_id
+        assert ace_before.entity_type_id == ace_after.entity_type_id
+        assert ace_before.is_allow == ace_after.is_allow
+
+        assert ace_after.base_dn == "cn=user2,cn=Users,dc=md,dc=test"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_modify_dn_move_with_ap(
+    settings: Settings,
+    creds: TestCreds,
+    role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
+    entity_type_dao: EntityTypeDAO,
+    attribute_type_dao: EntityTypeDAO,
+) -> None:
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+    base_dn = "dc=md,dc=test"
+
+    user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
+    assert user_entity_type
+
+    rdn_attr = await attribute_type_dao.get("cn")
+    assert rdn_attr
+
+    new_parent_dn = "cn=Groups,dc=md,dc=test"
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+        newsuperior=new_parent_dn,
+    )
+
+    assert res == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Modify Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=Groups," + base_dn],
+        ),
+    )
+
+    role_id = role_dao.get_last_id()
+
+    write_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.WRITE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=rdn_attr.id,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+    create_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.CREATE_CHILD,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=new_parent_dn,
+        attribute_type_id=None,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+    delete_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.DELETE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=None,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+
+    await access_control_entry_dao.create_bulk(
+        [write_ace, create_ace, delete_ace],
+    )
+
+    aces_before = await access_control_entry_dao.get_all()
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+        newsuperior=new_parent_dn,
+    )
+
+    assert res == LDAPCodes.SUCCESS
+
+    aces_after = await access_control_entry_dao.get_all()
+
+    inherited_aces_before = [
+        ace
+        for ace in aces_before
+        if ace.base_dn != "cn=user0,cn=Users,dc=md,dc=test"
+    ]
+    explicit_aces_before = [
+        ace
+        for ace in aces_before
+        if ace.base_dn == "cn=user0,cn=Users,dc=md,dc=test"
+    ]
+
+    inherited_aces_after = [
+        ace
+        for ace in aces_after
+        if ace.base_dn != "cn=user2,cn=Groups,dc=md,dc=test"
+    ]
+    explicit_aces_after = [
+        ace
+        for ace in aces_after
+        if ace.base_dn == "cn=user2,cn=Groups,dc=md,dc=test"
+    ]
+
+    assert inherited_aces_before == inherited_aces_after
+    assert len(explicit_aces_after) == len(explicit_aces_before)
+
+    # check expicit aces have same properties except base_dn
+    for ace_before, ace_after in zip(
+        explicit_aces_before,
+        explicit_aces_after,
+    ):
+        assert ace_before.id == ace_after.id
+        assert ace_before.role_id == ace_after.role_id
+        assert ace_before.ace_type == ace_after.ace_type
+        assert ace_before.scope == ace_after.scope
+        assert ace_before.attribute_type_id == ace_after.attribute_type_id
+        assert ace_before.entity_type_id == ace_after.entity_type_id
+        assert ace_before.is_allow == ace_after.is_allow
+
+        assert ace_after.base_dn == "cn=user2,cn=Groups,dc=md,dc=test"
