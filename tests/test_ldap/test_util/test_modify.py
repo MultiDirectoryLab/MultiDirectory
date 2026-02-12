@@ -1059,8 +1059,8 @@ async def test_modify_dn_rename_with_ap(
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
-    name_attr = await attribute_type_dao.get("name")
-    assert name_attr
+    rdn_attr = await attribute_type_dao.get("cn")
+    assert rdn_attr
 
     res = await run_single_modrdn(
         settings=settings,
@@ -1089,7 +1089,7 @@ async def test_modify_dn_rename_with_ap(
         ace_type=AceType.WRITE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=name_attr.id,
+        attribute_type_id=rdn_attr.id,
         entity_type_id=user_entity_type.id,
         is_allow=True,
     )
@@ -1098,7 +1098,7 @@ async def test_modify_dn_rename_with_ap(
         ace_type=AceType.DELETE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=name_attr.id,
+        attribute_type_id=rdn_attr.id,
         entity_type_id=user_entity_type.id,
         is_allow=True,
     )
@@ -1167,8 +1167,8 @@ async def test_modify_dn_move_with_ap(
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
-    name_attr = await attribute_type_dao.get("name")
-    assert name_attr
+    rdn_attr = await attribute_type_dao.get("cn")
+    assert rdn_attr
 
     new_parent_dn = "cn=Groups,dc=md,dc=test"
 
@@ -1195,6 +1195,15 @@ async def test_modify_dn_move_with_ap(
 
     role_id = role_dao.get_last_id()
 
+    write_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.WRITE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=rdn_attr.id,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
     create_ace = AccessControlEntryDTO(
         role_id=role_id,
         ace_type=AceType.CREATE_CHILD,
@@ -1214,7 +1223,9 @@ async def test_modify_dn_move_with_ap(
         is_allow=True,
     )
 
-    await access_control_entry_dao.create_bulk([create_ace, delete_ace])
+    await access_control_entry_dao.create_bulk(
+        [write_ace, create_ace, delete_ace],
+    )
 
     aces_before = await access_control_entry_dao.get_all()
 
