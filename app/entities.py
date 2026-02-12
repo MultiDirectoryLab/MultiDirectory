@@ -69,6 +69,7 @@ class AttributeType:
     single_value: bool = False
     no_user_modification: bool = False
     is_system: bool = False
+    system_flags: int = 0
     # NOTE: ms-adts/cf133d47-b358-4add-81d3-15ea1cff9cd9
     # see section 3.1.1.2.3 `searchFlags` (fANR) for details
     is_included_anr: bool = False

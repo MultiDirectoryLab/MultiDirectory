@@ -157,6 +157,7 @@ class AuthorizationRules(IntFlag):
     ATTRIBUTE_TYPE_GET_PAGINATOR = auto()
     ATTRIBUTE_TYPE_UPDATE = auto()
     ATTRIBUTE_TYPE_DELETE_ALL_BY_NAMES = auto()
+    ATTRIBUTE_TYPE_SET_ATTR_REPLICATION_FLAG = auto()
 
     ENTITY_TYPE_GET = auto()
     ENTITY_TYPE_CREATE = auto()

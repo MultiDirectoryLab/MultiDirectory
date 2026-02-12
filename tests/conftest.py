@@ -99,6 +99,9 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+    AttributeTypeSystemFlagsUseCase,
+)
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
@@ -296,23 +299,12 @@ class TestProvider(Provider):
         yield await dns_state_gateway.get_dns_manager_settings(resolver)
         weakref.finalize(resolver, resolver.close)
 
-    @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
-    def get_attribute_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
-
-    @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
-    def get_object_class_dao(self, session: AsyncSession) -> ObjectClassDAO:
-        """Get Object Class DAO."""
-        return ObjectClassDAO(session=session)
-
-    get_entity_type_dao = provide(
-        EntityTypeDAO,
+    attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+    attribute_type_system_flags_use_case = provide(
+        AttributeTypeSystemFlagsUseCase,
         scope=Scope.REQUEST,
-        cache=False,
     )
     attribute_type_use_case = provide(
         AttributeTypeUseCase,
