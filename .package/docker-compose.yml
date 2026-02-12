@@ -119,7 +119,7 @@ services:
       - traefik.tcp.routers.ldap.entrypoints=ldap
       - traefik.tcp.routers.ldap.service=ldap
       - traefik.tcp.services.ldap.loadbalancer.server.port=389
-      - traefik.tcp.services.ldap.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.ldap.loadbalancer.serversTransport=ldap_transport@file
 
       - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
@@ -127,7 +127,7 @@ services:
       - traefik.tcp.routers.ldaps.tls=true
       - traefik.tcp.routers.ldaps.tls.certResolver=md-resolver
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
-      - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.ldaps.loadbalancer.serversTransport=ldap_transport@file
 
   cldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -193,7 +193,7 @@ services:
       - traefik.tcp.routers.global_ldap.entrypoints=global_ldap
       - traefik.tcp.routers.global_ldap.service=global_ldap
       - traefik.tcp.services.global_ldap.loadbalancer.server.port=3268
-      - traefik.tcp.services.global_ldap.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.global_ldap.loadbalancer.serversTransport=ldap_transport@file
 
       - traefik.tcp.routers.global_ldap_tls.rule=HostSNI(`*`)
       - traefik.tcp.routers.global_ldap_tls.entrypoints=global_ldap_tls
@@ -201,7 +201,7 @@ services:
       - traefik.tcp.routers.global_ldap_tls.tls=true
       - traefik.tcp.routers.global_ldap_tls.tls.certresolver=md-resolver
       - traefik.tcp.services.global_ldap_tls.loadbalancer.server.port=3269
-      - traefik.tcp.services.global_ldap_tls.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.global_ldap_tls.loadbalancer.serversTransport=ldap_transport@file
 
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -230,7 +230,6 @@ services:
       - "traefik.http.routers.api.service=api"
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
-      - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
 
     command: python multidirectory.py --http
     depends_on:
