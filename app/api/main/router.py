@@ -27,9 +27,13 @@ from ldap_protocol.ldap_requests import (
     ModifyRequest,
 )
 from ldap_protocol.ldap_responses import LDAPResult
-from ldap_protocol.utils.queries import set_or_update_primary_group
+from ldap_protocol.utils.queries import (
+    get_group_name_by_primary_group_id,
+    set_or_update_primary_group,
+)
 
 from .schema import (
+    PrimaryGroupeNameResponse,
     PrimaryGroupRequest,
     SearchRequest,
     SearchResponse,
@@ -185,3 +189,16 @@ async def set_primary_group(
         )
     except (ValueError, IntegrityError):
         raise HTTPException(status_code=400, detail="Invalid request")
+
+
+@entry_router.post("/group/primary/{primary_group_id}")
+async def get_group_name_by_id(
+    primary_group_id: int,
+    session: FromDishka[AsyncSession],
+) -> PrimaryGroupeNameResponse:
+    """Get group name by its ID."""
+    group_name = await get_group_name_by_primary_group_id(
+        primary_group_id,
+        session,
+    )
+    return PrimaryGroupeNameResponse(name=group_name)
