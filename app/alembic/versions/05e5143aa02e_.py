@@ -1,8 +1,8 @@
 """empty message.
 
-Revision ID: 5fcbea85bcc1
-Revises: f4e6cd18a01d
-Create Date: 2026-02-11 09:39:14.967626
+Revision ID: 05e5143aa02e
+Revises: 2dadf40c026a
+Create Date: 2026-02-13 09:37:39.506101
 
 """
 
@@ -21,8 +21,8 @@ from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.utils.queries import get_base_directories
 
 # revision identifiers, used by Alembic.
-revision: None | str = "5fcbea85bcc1"
-down_revision: None | str = "f4e6cd18a01d"
+revision: None | str = "05e5143aa02e"
+down_revision: None | str = "2dadf40c026a"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
