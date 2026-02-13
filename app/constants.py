@@ -11,6 +11,7 @@ from enums import EntityTypeNames, SamAccountTypeCodes
 GROUPS_CONTAINER_NAME = "Groups"
 COMPUTERS_CONTAINER_NAME = "Computers"
 USERS_CONTAINER_NAME = "Users"
+DOMAIN_CONTROLLERS_OU_NAME = "Domain Controllers"
 
 READ_ONLY_GROUP_NAME = "read-only"
 
@@ -367,6 +368,13 @@ FIRST_SETUP_DATA = [
         "object_class": "container",
         "attributes": {"objectClass": ["top"]},
         "children": [],
+    },
+    {
+        "name": DOMAIN_CONTROLLERS_OU_NAME,
+        "object_class": "organizationalUnit",
+        "attributes": {
+            "objectClass": ["top", "container"],
+        },
     },
 ]
 
