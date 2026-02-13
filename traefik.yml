@@ -7,6 +7,12 @@ api:
 ping:
   entryPoint: "ping"
 
+tcp:
+  serversTransports:
+    ldap_transport:
+      proxyProtocol:
+        version: 2
+
 entryPoints:
   ping:
     address: ":8800"
