@@ -65,9 +65,9 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         self.__session = session
         self.__create_attribute_dir_gateway = create_attribute_dir_gateway
 
-    async def get(self, _id: str) -> AttributeTypeDTO:
-        """Get Attribute Type by id."""
-        return _convert_model_to_dto(await self._get_one_raw_by_name(_id))
+    async def get(self, name: str) -> AttributeTypeDTO:
+        """Get Attribute Type by name."""
+        return _convert_model_to_dto(await self._get_one_raw_by_name(name))
 
     async def get_all(self) -> list[AttributeTypeDTO]:
         """Get all Attribute Types."""
@@ -129,7 +129,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
                 + f" '{dto.name}' already exists.",
             )
 
-    async def update(self, _id: str, dto: AttributeTypeDTO) -> None:
+    async def update(self, name: str, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type.
 
         Docs:
@@ -142,7 +142,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
             can only be modified for non-system attributes to preserve
             LDAP schema integrity.
         """
-        obj = await self._get_one_raw_by_name(_id)
+        obj = await self._get_one_raw_by_name(name)
 
         obj.is_included_anr = dto.is_included_anr
 
@@ -153,9 +153,15 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
 
         await self.__session.flush()
 
-    async def delete(self, _id: str) -> None:
+    async def update_sys_flags(self, name: str, dto: AttributeTypeDTO) -> None:
+        """Update system flags of Attribute Type."""
+        obj = await self._get_one_raw_by_name(name)
+        obj.system_flags = dto.system_flags
+        await self.__session.flush()
+
+    async def delete(self, name: str) -> None:
         """Delete Attribute Type."""
-        attribute_type = await self._get_one_raw_by_name(_id)
+        attribute_type = await self._get_one_raw_by_name(name)
         await self.__session.delete(attribute_type)
         await self.__session.flush()
 
@@ -197,7 +203,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
     async def get_all_by_names(
         self,
         names: list[str] | set[str],
-    ) -> list[AttributeTypeDTO]:
+    ) -> list[AttributeTypeDTO[int]]:
         """Get list of Attribute Types by names.
 
         :param list[str] names: Attribute Type names.

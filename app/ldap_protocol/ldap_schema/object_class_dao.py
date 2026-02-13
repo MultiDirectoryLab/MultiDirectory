@@ -77,9 +77,9 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         )  # fmt: skip
         return set(row[0] for row in result.fetchall())
 
-    async def delete(self, _id: str) -> None:
+    async def delete(self, name: str) -> None:
         """Delete Object Class."""
-        object_class = await self._get_one_raw_by_name(_id)
+        object_class = await self._get_one_raw_by_name(name)
         await self.__session.delete(object_class)
         await self.__session.flush()
 
@@ -250,14 +250,14 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             )
         return object_class
 
-    async def get(self, _id: str) -> ObjectClassDTO:
-        """Get single Object Class by id.
+    async def get(self, name: str) -> ObjectClassDTO:
+        """Get single Object Class by name.
 
-        :param str _id: Object Class name.
+        :param str name: Object Class name.
         :raise ObjectClassNotFoundError: If Object Class not found.
         :return ObjectClass: Instance of Object Class.
         """
-        return _converter(await self._get_one_raw_by_name(_id))
+        return _converter(await self._get_one_raw_by_name(name))
 
     async def get_all_by_names(
         self,
@@ -278,16 +278,9 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         )  # fmt: skip
         return list(map(_converter, query.all()))
 
-    async def update(self, _id: str, dto: ObjectClassDTO[None, str]) -> None:
-        """Modify Object Class.
-
-        :param ObjectClassDTO object_class: Object Class.
-        :param ObjectClassDTO dto: New statement ObjectClass
-        :raise ObjectClassCantModifyError: If Object Class is system,\
-            it cannot be changed.
-        :return None.
-        """
-        obj = await self._get_one_raw_by_name(_id)
+    async def update(self, name: str, dto: ObjectClassDTO[None, str]) -> None:
+        """Update Object Class."""
+        obj = await self._get_one_raw_by_name(name)
         if obj.is_system:
             raise ObjectClassCantModifyError(
                 "System Object Class cannot be modified.",

@@ -85,9 +85,9 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
                 f"Entity Type with name '{dto.name}' already exists.",
             )
 
-    async def update(self, _id: str, dto: EntityTypeDTO[int]) -> None:
+    async def update(self, name: str, dto: EntityTypeDTO[int]) -> None:
         """Update an Entity Type."""
-        entity_type = await self._get_one_raw_by_name(_id)
+        entity_type = await self._get_one_raw_by_name(name)
 
         try:
             await self.__object_class_dao.is_all_object_classes_exists(
@@ -153,9 +153,9 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
                 f"names {dto.object_class_names} already exists.",
             )
 
-    async def delete(self, _id: str) -> None:
+    async def delete(self, name: str) -> None:
         """Delete an Entity Type."""
-        entity_type = await self._get_one_raw_by_name(_id)
+        entity_type = await self._get_one_raw_by_name(name)
         await self.__session.delete(entity_type)
         await self.__session.flush()
 
@@ -182,10 +182,7 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             session=self.__session,
         )
 
-    async def _get_one_raw_by_name(
-        self,
-        name: str,
-    ) -> EntityType:
+    async def _get_one_raw_by_name(self, name: str) -> EntityType:
         """Get single Entity Type by name.
 
         :param str name: Entity Type name.
@@ -203,14 +200,14 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
             )
         return entity_type
 
-    async def get(self, _id: str) -> EntityTypeDTO:
+    async def get(self, name: str) -> EntityTypeDTO:
         """Get single Entity Type by name.
 
         :param str name: Entity Type name.
         :raise EntityTypeNotFoundError: If Entity Type not found.
         :return EntityType: Instance of Entity Type.
         """
-        return _convert(await self._get_one_raw_by_name(_id))
+        return _convert(await self._get_one_raw_by_name(name))
 
     async def get_entity_type_by_object_class_names(
         self,
