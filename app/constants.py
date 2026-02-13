@@ -369,13 +369,6 @@ FIRST_SETUP_DATA = [
         "attributes": {"objectClass": ["top"]},
         "children": [],
     },
-    {
-        "name": DOMAIN_CONTROLLERS_OU_NAME,
-        "object_class": "organizationalUnit",
-        "attributes": {
-            "objectClass": ["top", "container"],
-        },
-    },
 ]
 
 

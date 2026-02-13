@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from constants import (
     DOMAIN_ADMIN_GROUP_NAME,
+    DOMAIN_CONTROLLERS_OU_NAME,
     FIRST_SETUP_DATA,
     USERS_CONTAINER_NAME,
 )
@@ -22,6 +23,7 @@ from ldap_protocol.identity.exceptions import (
     ForbiddenError,
 )
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -67,6 +69,7 @@ class SetupUseCase:
 
         data = copy.deepcopy(FIRST_SETUP_DATA)
         data.append(self._create_user_data(dto))
+        data.append(self._create_domain_controller_data())
 
         await self._create(dto, data)
 
@@ -76,6 +79,31 @@ class SetupUseCase:
         :return: bool (True if setup is performed, False otherwise)
         """
         return await self._setup_gateway.is_setup()
+
+    def _create_domain_controller_data(self) -> dict:
+        return {
+            "name": DOMAIN_CONTROLLERS_OU_NAME,
+            "object_class": "organizationalUnit",
+            "attributes": {
+                "objectClass": ["top", "container"],
+            },
+            "children": [
+                {
+                    "name": "DC1",
+                    "object_class": "computer",
+                    "attributes": {
+                        "objectClass": ["top"],
+                        "userAccountControl": [
+                            str(UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value),
+                        ],
+                        "sAMAccountType": [
+                            str(SamAccountTypeCodes.SAM_USER_OBJECT),
+                        ],
+                        "sAMAccountName": ["DC1"],
+                    },
+                },
+            ],
+        }
 
     def _create_user_data(self, dto: SetupDTO) -> dict:
         """Create user data by request.
