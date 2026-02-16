@@ -619,3 +619,17 @@ async def test_api_get_group_name_by_primary_group_id(
     response = response.json()
 
     assert response["name"] == "domain admins"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_api_get_group_name_by_primary_group_id_not_found(
+    http_client: AsyncClient,
+) -> None:
+    """Test api get group name by primary group id not found."""
+    primary_group_id = 513
+    response = await http_client.get(
+        f"entry/group/primary/{primary_group_id}",
+    )
+
+    assert response.status_code == 404

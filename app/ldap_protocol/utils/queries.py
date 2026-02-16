@@ -555,6 +555,7 @@ async def get_group_name_by_primary_group_id(
     :param int primary_group_id: primary group ID
     :param AsyncSession session: db session
     :return str: group name
+    :raises ValueError: if no group found with the given primaryGroupID
     """
     query = (
         select(Directory)
