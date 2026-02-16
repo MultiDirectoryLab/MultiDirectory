@@ -781,6 +781,104 @@ async def test_ldap_modify_with_ap(
     assert "posixEmail" not in attributes
 
 
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_modify_rdn(
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test modify RDN."""
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+
+    async def try_modify() -> int:
+        with tempfile.NamedTemporaryFile("w") as file:
+            file.write(
+                (f"dn: {dn}\nchangetype: modify\nreplace: cn\ncn: modme\n-\n"),
+            )
+            file.seek(0)
+            proc = await asyncio.create_subprocess_exec(
+                "ldapmodify",
+                "-vvv",
+                "-H",
+                f"ldap://{settings.HOST}:{settings.PORT}",
+                "-D",
+                "user_admin",
+                "-x",
+                "-w",
+                creds.pw,
+                "-f",
+                file.name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            await proc.communicate()
+            return await proc.wait()
+
+    assert await try_modify() == LDAPCodes.NOT_ALLOWED_ON_RDN
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_modify_name(
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test modify name."""
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+
+    query = (
+        select(Directory)
+        .options(
+            subqueryload(qa(Directory.attributes)),
+            joinedload(qa(Directory.user)),
+        )
+        .filter(get_filter_from_path(dn))
+    )
+
+    old_directory = await session.scalar(query)
+    assert old_directory
+
+    async def try_modify() -> int:
+        with tempfile.NamedTemporaryFile("w") as file:
+            file.write(
+                (
+                    f"dn: {dn}\n"
+                    "changetype: modify\n"
+                    "replace: name\n"
+                    "name: changename\n"
+                    "-\n"
+                ),
+            )
+            file.seek(0)
+            proc = await asyncio.create_subprocess_exec(
+                "ldapmodify",
+                "-vvv",
+                "-H",
+                f"ldap://{settings.HOST}:{settings.PORT}",
+                "-D",
+                "user_admin",
+                "-x",
+                "-w",
+                creds.pw,
+                "-f",
+                file.name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            await proc.communicate()
+            return await proc.wait()
+
+    assert await try_modify() == LDAPCodes.SUCCESS
+
+    new_directory = await session.scalar(query)
+    assert new_directory
+
+    assert old_directory.name == new_directory.name
+
+
 async def run_single_modify(
     settings: Settings,
     operation: Literal["add", "delete", "replace"],
