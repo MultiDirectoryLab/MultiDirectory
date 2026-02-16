@@ -570,4 +570,4 @@ async def get_group_name_by_primary_group_id(
             f"No group found with primaryGroupID '{primary_group_id}'.",
         )
 
-    return directory.name
+    return directory.path_dn
