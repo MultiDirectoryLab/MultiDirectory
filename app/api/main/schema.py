@@ -155,7 +155,7 @@ class PrimaryGroupRequest(BaseModel):
     group_dn: GRANT_DN_STRING
 
 
-class PrimaryGroupeNameResponse(BaseModel):
+class PrimaryGroupNameResponse(BaseModel):
     """Response schema for getting group name by primary group ID."""
 
     name: str

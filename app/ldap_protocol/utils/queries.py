@@ -552,9 +552,9 @@ async def get_group_name_by_primary_group_id(
 ) -> str:
     """Get group name by primary group ID.
 
-    :param AsyncSession session: db session
     :param int primary_group_id: primary group ID
-    :return str | None: group name or None if not found
+    :param AsyncSession session: db session
+    :return str: group name
     """
     query = (
         select(Directory)
