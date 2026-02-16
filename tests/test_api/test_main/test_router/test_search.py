@@ -602,3 +602,20 @@ async def test_api_empty_search(
 
     assert response["resultCode"] == LDAPCodes.SUCCESS
     assert not response["search_result"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_api_get_group_name_by_primary_group_id(
+    http_client: AsyncClient,
+) -> None:
+    """Test api get group name by primary group id."""
+    primary_group_id = 512
+    response = await http_client.get(
+        f"entry/group/primary/{primary_group_id}",
+    )
+
+    assert response.status_code == 200
+    response = response.json()
+
+    assert response["name"] == "domain admins"
