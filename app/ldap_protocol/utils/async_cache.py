@@ -21,7 +21,8 @@ class AsyncTTLCache(Generic[T]):
         self._expires_at = None
 
     def __call__(
-        self, func: Callable[..., Awaitable[T]],
+        self,
+        func: Callable[..., Awaitable[T]],
     ) -> Callable[..., Awaitable[T]]:
         @wraps(func)
         async def wrapper(*args: tuple, **kwargs: dict) -> T:
