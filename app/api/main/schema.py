@@ -153,3 +153,9 @@ class PrimaryGroupRequest(BaseModel):
 
     directory_dn: GRANT_DN_STRING
     group_dn: GRANT_DN_STRING
+
+
+class PrimaryGroupPathDNResponse(BaseModel):
+    """Response schema for getting group path DN by primary group ID."""
+
+    path_dn: str
