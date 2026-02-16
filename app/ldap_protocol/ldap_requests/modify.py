@@ -208,23 +208,21 @@ class ModifyRequest(BaseRequest):
             and await ctx.password_use_cases.is_password_change_restricted(
                 directory.id,
             )
+        ) or (
+            not can_modify and not (password_change_requested and self_modify)
         ):
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 
+        if directory.rdname in names:
+            yield ModifyResponse(result_code=LDAPCodes.NOT_ALLOWED_ON_RDN)
+            return
+
         before_attrs = self.get_directory_attrs(directory)
         entity_type = directory.entity_type
         try:
-            if not can_modify and not (
-                password_change_requested and self_modify
-            ):
-                yield ModifyResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-                )
-                return
-
             for change in self.changes:
                 if change.l_type in Directory.ro_fields:
                     continue
