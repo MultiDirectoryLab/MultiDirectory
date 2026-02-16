@@ -12,7 +12,12 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import Column, exists, func, insert, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
+from sqlalchemy.orm import (
+    InstrumentedAttribute,
+    contains_eager,
+    joinedload,
+    selectinload,
+)
 from sqlalchemy.sql.expression import ColumnElement
 
 from entities import Attribute, Directory, Group, User
@@ -539,3 +544,30 @@ async def set_or_update_primary_group(
         )
 
     await session.commit()
+
+
+async def get_group_path_dn_by_primary_group_id(
+    primary_group_id: int,
+    session: AsyncSession,
+) -> str:
+    """Get group path DN by primary group ID.
+
+    :param int primary_group_id: primary group ID
+    :param AsyncSession session: db session
+    :return str: group path DN
+    :raises ValueError: if no group found with the given primaryGroupID
+    """
+    query = (
+        select(Directory)
+        .join(qa(Directory.group))
+        .options(contains_eager(qa(Directory.group)))
+        .filter(qa(Directory.object_sid).endswith(f"-{primary_group_id}"))
+    )
+
+    directory = await session.scalar(query)
+    if directory is None:
+        raise ValueError(
+            f"No group found with primaryGroupID '{primary_group_id}'.",
+        )
+
+    return directory.path_dn
