@@ -546,15 +546,15 @@ async def set_or_update_primary_group(
     await session.commit()
 
 
-async def get_group_name_by_primary_group_id(
+async def get_group_path_dn_by_primary_group_id(
     primary_group_id: int,
     session: AsyncSession,
 ) -> str:
-    """Get group name by primary group ID.
+    """Get group path DN by primary group ID.
 
     :param int primary_group_id: primary group ID
     :param AsyncSession session: db session
-    :return str: group name
+    :return str: group path DN
     :raises ValueError: if no group found with the given primaryGroupID
     """
     query = (
