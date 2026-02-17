@@ -8,11 +8,14 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from extra.scripts.add_domain_controller import add_domain_controller
 from extra.scripts.check_ldap_principal import check_ldap_principal
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_krb5_config import update_krb5_config
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.roles.role_use_case import RoleUseCase
 
 
 @pytest.mark.asyncio
@@ -72,4 +75,22 @@ async def test_update_krb5_config(
     await update_krb5_config(
         session=session,
         settings=settings,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
+async def test_add_domain_controller(
+    session: AsyncSession,
+    settings: Settings,
+    role_use_case: RoleUseCase,
+    entity_type_dao: EntityTypeDAO,
+) -> None:
+    """Test add domain controller."""
+    await add_domain_controller(
+        settings=settings,
+        session=session,
+        role_use_case=role_use_case,
+        entity_type_dao=entity_type_dao,
     )
