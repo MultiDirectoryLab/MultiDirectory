@@ -96,21 +96,6 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
             password=request.password,
         )
 
-    async def reset_principal_pw(
-        self,
-        principal_name: str,
-        new_password: str,
-    ) -> None:
-        """Reset principal password in Kerberos.
-
-        :raises HTTPException: on Kerberos errors
-        :return: None
-        """
-        return await self._service.reset_principal_pw(
-            principal_name,
-            new_password,
-        )
-
     async def delete_principal(
         self,
         principal_name: str,

@@ -213,27 +213,6 @@ async def modify_principal(
     await kerberos_adapter.modify_principal(request)
 
 
-@krb5_router.patch(
-    "/principal/reset",
-    dependencies=[Depends(verify_auth), Depends(require_master_db)],
-    error_map=error_map,
-)
-async def reset_principal_pw(
-    principal_name: Annotated[LIMITED_STR, Body()],
-    new_password: Annotated[LIMITED_STR, Body()],
-    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
-) -> None:
-    """Reset principal password in kerberos with given name.
-
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LIMITED_STR, Body new_password: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
-    """
-    await kerberos_adapter.reset_principal_pw(principal_name, new_password)
-
-
 @krb5_router.delete(
     "/principal/delete",
     dependencies=[Depends(verify_auth), Depends(require_master_db)],

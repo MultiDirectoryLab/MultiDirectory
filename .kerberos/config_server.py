@@ -220,15 +220,6 @@ class KAdminLocalManager(AbstractKRBManager):
     """Kadmin manager."""
 
     client: KAdminProtocol
-    SERVICE_PREFIXES = [
-        "host/",
-        "HTTP/",
-        "ldap/",
-        "cifs/",
-        "dns/",
-        "krbtgt/",
-        "kadmin/",
-    ]
 
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
         """Create threadpool and get loop."""
@@ -290,12 +281,6 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str | None password: if None - uses randkey.
         :param list[str] | None algorithms: encryption algorithms
         """
-        is_service = any(
-            name.startswith(prefix) for prefix in self.SERVICE_PREFIXES
-        )
-        if password is None and not is_service:
-            raise ValueError("Password required for user principals")
-
         await self.loop.run_in_executor(
             self.pool,
             partial(self.client.add_principal, name, password),
@@ -391,27 +376,15 @@ class KAdminLocalManager(AbstractKRBManager):
         if not all(principals):
             raise PrincipalNotFoundError("Principal not found")
 
-        try:
-            if is_rand_key:
-                for princ in principals:
-                    await self.loop.run_in_executor(
-                        self.pool,
-                        partial(princ.ktadd, fn, randkey=True),
-                    )
-            else:
-                for princ in principals:
-                    await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
-        except (AttributeError, TypeError):
-            logging.warning(
-                "python-kadmv doesn't support randkey in ktadd, "
-                "using subprocess",
-            )
-            if is_rand_key:
-                for name in names:
-                    await self._ktadd_with_randkey_via_subprocess(name, fn)
-            else:
-                for princ in principals:
-                    await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
+        if is_rand_key:
+            for princ in principals:
+                await self.loop.run_in_executor(
+                    self.pool,
+                    partial(princ.ktadd, fn, randkey=True),
+                )
+        else:
+            for princ in principals:
+                await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
 
     async def _ktadd_with_randkey_via_subprocess(
         self,
@@ -764,11 +737,7 @@ async def ktadd(
     """Ktadd principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    <<<<<<< Updated upstream
-    :param KtaddSchema schema: ktadd request data
-    =======
     :param KtaddRequest request: request data
-    >>>>>>> Stashed changes
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
     await kadmin.ktadd(

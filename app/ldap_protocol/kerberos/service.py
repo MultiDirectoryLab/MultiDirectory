@@ -410,28 +410,6 @@ class KerberosService(AbstractService):
                 f"Error renaming principal: {exc}",
             ) from exc
 
-    async def reset_principal_pw(
-        self,
-        principal_name: str,
-        new_password: str,
-    ) -> None:
-        """Reset principal password in Kerberos with given name.
-
-        :param str principal_name: Principal name.
-        :param str new_password: New password.
-        :raises KerberosDependencyError: On failed kadmin request.
-        :return None: None.
-        """
-        try:
-            await self._kadmin.change_principal_password(
-                principal_name,
-                new_password,
-            )
-        except Exception as exc:
-            raise KerberosDependencyError(
-                f"Error resetting principal password: {exc}",
-            ) from exc
-
     async def delete_principal(self, principal_name: str) -> None:
         """Delete principal in Kerberos with given name.
 
@@ -489,6 +467,5 @@ class KerberosService(AbstractService):
         get_status.__name__: AuthorizationRules.KRB_GET_STATUS,
         add_principal.__name__: AuthorizationRules.KRB_ADD_PRINCIPAL,
         modify_principal.__name__: AuthorizationRules.KRB_MODIFY_PRINCIPAL,
-        reset_principal_pw.__name__: AuthorizationRules.KRB_RESET_PRINCIPAL_PW,
         delete_principal.__name__: AuthorizationRules.KRB_DELETE_PRINCIPAL,
     }
