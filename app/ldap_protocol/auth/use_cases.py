@@ -9,6 +9,7 @@ import copy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from constants import (
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_CONTROLLERS_OU_NAME,
@@ -41,6 +42,7 @@ class SetupUseCase:
         role_use_case: RoleUseCase,
         audit_use_case: AuditUseCase,
         session: AsyncSession,
+        settings: Settings,
     ) -> None:
         """Initialize Setup manager.
 
@@ -54,6 +56,7 @@ class SetupUseCase:
         self._role_use_case = role_use_case
         self._audit_use_case = audit_use_case
         self._session = session
+        self._settings = settings
 
     async def setup(self, dto: SetupDTO) -> None:
         """Perform the initial setup of structure and policies.
@@ -94,12 +97,15 @@ class SetupUseCase:
                     "attributes": {
                         "objectClass": ["top"],
                         "userAccountControl": [
-                            str(UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value),
+                            str(
+                                UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value,
+                            ),
                         ],
                         "sAMAccountType": [
                             str(SamAccountTypeCodes.SAM_USER_OBJECT),
                         ],
                         "sAMAccountName": ["DC1"],
+                        "ipHostNumber": [self._settings.DEFAULT_NAMESERVER],
                     },
                 },
             ],
