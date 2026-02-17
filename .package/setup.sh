@@ -80,8 +80,8 @@ else
     echo "Directory already exists: certs"
 fi
 
-# HOSTNAME
-if ! get_env_var "HOSTNAME"; then
-    hostname=$(hostname)
-    add_env_var "HOSTNAME" "$hostname"
+# HOST_MACHINE_NAME
+if ! get_env_var "HOST_MACHINE_NAME"; then
+    host_machine_name=$(hostname)
+    add_env_var "HOST_MACHINE_NAME" "$host_machine_name"
 fi
