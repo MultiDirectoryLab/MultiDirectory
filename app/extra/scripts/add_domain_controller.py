@@ -106,10 +106,10 @@ async def add_domain_controller(
 
     domains = await get_base_directories(session)
     if not domains:
-        logger.critical("Cannot get base directory")
+        logger.debug("Cannot get base directory")
         return
 
-    logger.critical("Check if domain controller OU exists.")
+    logger.debug("Check if domain controller OU exists.")
 
     domain_controllers_ou = await session.scalar(
         select(Directory).where(
@@ -118,7 +118,7 @@ async def add_domain_controller(
     )
 
     if not domain_controllers_ou:
-        logger.critical("Domain controllers OU does not exist.")
+        logger.debug("Domain controllers OU does not exist.")
         return
 
     domain_controllers_count = (
