@@ -28,6 +28,7 @@ depends_on: None | list[str] = None
 _OU_DOMAIN_CONTROLLERS_DATA = {
     "name": DOMAIN_CONTROLLERS_OU_NAME,
     "object_class": "organizationalUnit",
+    "is_system": True,
     "attributes": {"objectClass": ["top", "container"]},
     "children": [],
 }
@@ -60,7 +61,6 @@ def upgrade(container: AsyncContainer) -> None:
 
         await setup_gateway.create_dir(
             _OU_DOMAIN_CONTROLLERS_DATA,
-            is_system=False,
             domain=domain_dir,
             parent=domain_dir,
         )

@@ -296,6 +296,7 @@ FIRST_SETUP_DATA = [
     {
         "name": GROUPS_CONTAINER_NAME,
         "object_class": "container",
+        "is_system": True,
         "attributes": {
             "objectClass": ["top"],
             "sAMAccountName": ["groups"],
@@ -304,6 +305,7 @@ FIRST_SETUP_DATA = [
             {
                 "name": DOMAIN_ADMIN_GROUP_NAME,
                 "object_class": "group",
+                "is_system": True,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -319,6 +321,7 @@ FIRST_SETUP_DATA = [
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
                 "object_class": "group",
+                "is_system": True,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -334,6 +337,7 @@ FIRST_SETUP_DATA = [
             {
                 "name": READ_ONLY_GROUP_NAME,
                 "object_class": "group",
+                "is_system": True,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -349,6 +353,7 @@ FIRST_SETUP_DATA = [
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
                 "object_class": "group",
+                "is_system": True,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -366,6 +371,7 @@ FIRST_SETUP_DATA = [
     {
         "name": COMPUTERS_CONTAINER_NAME,
         "object_class": "container",
+        "is_system": True,
         "attributes": {"objectClass": ["top"]},
         "children": [],
     },

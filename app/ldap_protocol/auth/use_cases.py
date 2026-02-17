@@ -87,6 +87,7 @@ class SetupUseCase:
         return {
             "name": DOMAIN_CONTROLLERS_OU_NAME,
             "object_class": "organizationalUnit",
+            "is_system": True,
             "attributes": {
                 "objectClass": ["top", "container"],
             },
@@ -94,6 +95,7 @@ class SetupUseCase:
                 {
                     "name": "DC1",
                     "object_class": "computer",
+                    "is_system": False,
                     "attributes": {
                         "objectClass": ["top"],
                         "userAccountControl": [
@@ -120,11 +122,13 @@ class SetupUseCase:
         return {
             "name": USERS_CONTAINER_NAME,
             "object_class": "container",
+            "is_system": True,
             "attributes": {"objectClass": ["top"]},
             "children": [
                 {
                     "name": dto.username,
                     "object_class": "user",
+                    "is_system": True,
                     "organizationalPerson": {
                         "sam_account_name": dto.username,
                         "user_principal_name": dto.user_principal_name,
@@ -169,7 +173,6 @@ class SetupUseCase:
             await self._setup_gateway.setup_enviroment(
                 data=data,
                 dn=dto.domain,
-                is_system=True,
             )
             await self._password_use_cases.create_default_domain_policy()
 
