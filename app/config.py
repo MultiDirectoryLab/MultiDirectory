@@ -36,6 +36,7 @@ class Settings(BaseModel):
     """Settigns with database dsn."""
 
     DOMAIN: str
+    HOSTNAME: str
 
     DEBUG: bool = False
     AUTO_RELOAD: bool = False

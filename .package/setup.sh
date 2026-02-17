@@ -79,3 +79,9 @@ if [ ! -d "certs" ]; then
 else
     echo "Directory already exists: certs"
 fi
+
+# HOSTNAME
+if ! get_env_var "HOSTNAME"; then
+    hostname=$(hostname)
+    add_env_var "HOSTNAME" "$hostname"
+fi
