@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from loguru import logger
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
@@ -27,12 +27,10 @@ async def _add_domain_controller(
     settings: Settings,
     domain: Directory,
     dc_ou_dir: Directory,
-    dc_number: int,
 ) -> None:
-    dc_name = f"DC{dc_number}"
     dc_directory = Directory(
         object_class="",
-        name=dc_name,
+        name=settings.HOSTNAME,
         is_system=False,
     )
     dc_directory.create_path(dc_ou_dir)
@@ -56,7 +54,7 @@ async def _add_domain_controller(
         ),
         Attribute(
             name="sAMAccountName",
-            value=dc_name,
+            value=settings.HOSTNAME,
             directory_id=dc_directory.id,
         ),
         Attribute(
@@ -78,7 +76,7 @@ async def _add_domain_controller(
         ),
         Attribute(
             name="cn",
-            value=dc_name,
+            value=settings.HOSTNAME,
             directory_id=dc_directory.id,
         ),
     ]
@@ -121,18 +119,6 @@ async def add_domain_controller(
         logger.debug("Domain controllers OU does not exist.")
         return
 
-    domain_controllers_count = (
-        await session.scalars(
-            select(func.count(qa(Directory.id))).filter(
-                qa(Directory.parent_id) == domain_controllers_ou.id,
-            ),
-        )
-    ).one()
-
-    logger.debug(
-        f"Found {domain_controllers_count} domain controllers.",
-    )
-
     domain_controller = await session.scalar(
         select(qa(Directory.id).distinct())
         .join(qa(Directory.attributes))
@@ -154,7 +140,6 @@ async def add_domain_controller(
         settings=settings,
         domain=domains[0],
         dc_ou_dir=domain_controllers_ou,
-        dc_number=domain_controllers_count + 1,
     )
 
     logger.debug("Domain controller added.")
