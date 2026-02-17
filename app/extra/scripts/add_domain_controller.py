@@ -76,6 +76,11 @@ async def _add_domain_controller(
             value=settings.DEFAULT_NAMESERVER,
             directory_id=dc_directory.id,
         ),
+        Attribute(
+            name="cn",
+            value=dc_name,
+            directory_id=dc_directory.id,
+        ),
     ]
 
     session.add_all(attributes)
