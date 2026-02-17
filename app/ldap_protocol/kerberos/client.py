@@ -94,10 +94,10 @@ class KerberosMDAPIClient(AbstractKadmin):
             raise krb_exc.KRBAPIChangePasswordError(response.text)
 
     @logger_wraps()
-    async def rename_princ(
+    async def modify_princ(
         self,
         name: str,
-        new_name: str,
+        new_name: str | None,
         algorithms: list[str] | None,
         password: str | None,
     ) -> None:

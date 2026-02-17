@@ -196,7 +196,7 @@ class TestProvider(Provider):
         kadmin.get_status = AsyncMock(return_value=False)
         kadmin.add_principal = AsyncMock()
         kadmin.del_principal = AsyncMock()
-        kadmin.rename_princ = AsyncMock()
+        kadmin.modify_princ = AsyncMock()
         kadmin.create_or_update_principal_pw = AsyncMock()
         kadmin.change_principal_password = AsyncMock()
         kadmin.lock_principal = AsyncMock()

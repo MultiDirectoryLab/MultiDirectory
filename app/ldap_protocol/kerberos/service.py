@@ -385,14 +385,14 @@ class KerberosService(AbstractService):
     async def modify_principal(
         self,
         principal_name: str,
-        principal_new_name: str,
+        new_name: str | None,
         algorithms: list[str] | None,
         password: str | None,
     ) -> None:
         """Modify principal in Kerberos with given name.
 
         :param str principal_name: Current principal name.
-        :param str principal_new_name: New principal name.
+        :param str new_name: New principal name.
         :param list[str] | None algorithms: Algorithms.
         :param str | None password: Password.
         :raises KerberosDependencyError: On failed kadmin request.
@@ -401,7 +401,7 @@ class KerberosService(AbstractService):
         try:
             await self._kadmin.modify_princ(
                 principal_name,
-                principal_new_name,
+                new_name,
                 algorithms,
                 password,
             )

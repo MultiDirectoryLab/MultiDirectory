@@ -26,8 +26,8 @@ from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.main.schema import (
     KerberosSetupRequest,
     KtaddRequest,
+    ModifyPrincipalRequest,
     PrincipalAddRequest,
-    PrincipalPutRequest,
 )
 from api.utils import require_master_db
 from enums import DomainCodes
@@ -207,7 +207,7 @@ async def add_principal(
     error_map=error_map,
 )
 async def modify_principal(
-    request: PrincipalPutRequest,
+    request: ModifyPrincipalRequest,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     await kerberos_adapter.modify_principal(request)

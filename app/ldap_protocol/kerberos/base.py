@@ -183,7 +183,7 @@ class AbstractKadmin(ABC):
     async def modify_princ(
         self,
         name: str,
-        new_name: str,
+        new_name: str | None,
         algorithms: list[str] | None = None,
         password: str | None = None,
     ) -> None: ...

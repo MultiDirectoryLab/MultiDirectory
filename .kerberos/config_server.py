@@ -98,9 +98,9 @@ class ModifyPrincipalRequest(BaseModel):
     """Request model for modifying principal."""
 
     principal_name: str
-    new_principal_name: str | None = Field(default=None)
-    algorithms: list[str] | None = Field(default=None)
-    password: str | None = Field(default=None)
+    new_name: str | None = None
+    algorithms: list[str] | None = None
+    password: str | None = None
 
 
 ALGORITHM_MAP = {
@@ -202,7 +202,7 @@ class AbstractKRBManager(ABC):
     async def modify_principal(
         self,
         principal_name: str,
-        new_principal_name: str | None = None,
+        new_name: str | None = None,
         algorithms: list[str] | None = None,
         password: str | None = None,
         **dbargs,
@@ -210,7 +210,7 @@ class AbstractKRBManager(ABC):
         """Modify principal (rename, change algorithms, password).
 
         :param str principal_name: current principal name
-        :param str | None new_principal_name: new name if rename needed
+        :param str | None new_name: new name if rename needed
         :param list[str] | None algorithms: new encryption algorithms
         :param str | None password: new password
         """
@@ -430,7 +430,7 @@ class KAdminLocalManager(AbstractKRBManager):
     async def modify_principal(
         self,
         principal_name: str,
-        new_principal_name: str | None = None,
+        new_name: str | None = None,
         algorithms: list[str] | None = None,
         password: str | None = None,
         **dbargs,
@@ -438,13 +438,13 @@ class KAdminLocalManager(AbstractKRBManager):
         """Modify principal (rename, change algorithms, password).
 
         :param str principal_name: current principal name
-        :param str | None new_principal_name: new name if rename needed
+        :param str | None new_name: new name if rename needed
         :param list[str] | None algorithms: new encryption algorithms
         :param str | None password: new password
         """
-        if new_principal_name and new_principal_name != principal_name:
-            await self.rename_princ(principal_name, new_principal_name)
-            principal_name = new_principal_name
+        if new_name and new_name != principal_name:
+            await self.modify_princ(principal_name, new_name)
+            principal_name = new_name
 
         princ = await self._get_raw_principal(principal_name)
 
@@ -723,7 +723,7 @@ async def modify_princ(
     """
     await kadmin.modify_principal(
         principal_name=request.principal_name,
-        new_principal_name=request.new_principal_name,
+        new_name=request.new_name,
         algorithms=request.algorithms,
         password=request.password,
     )

@@ -408,7 +408,7 @@ async def test_add_princ(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_rename_princ(
+async def test_modify_princ(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,
 ) -> None:
@@ -421,10 +421,10 @@ async def test_rename_princ(
         "/kerberos/principal",
         json={
             "principal_name": "name",
-            "new_principal_name": "nname",
+            "new_name": "nname",
         },
     )
-    kadmin_args = kadmin.rename_princ.call_args.args  # type: ignore
+    kadmin_args = kadmin.modify_princ.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
     assert kadmin_args == ("name", "nname", None, None)
 
@@ -440,16 +440,16 @@ async def test_change_princ(
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    response = await http_client.patch(
-        "/kerberos/principal/reset",
+    response = await http_client.put(
+        "/kerberos/principal",
         json={
             "principal_name": "name",
-            "new_password": "pw123",
+            "password": "pw123",
         },
     )
-    kadmin_args = kadmin.change_principal_password.call_args.args  # type: ignore
+    kadmin_args = kadmin.modify_princ.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
-    assert kadmin_args == ("name", "pw123")
+    assert kadmin_args == ("name", None, None, "pw123")
 
 
 @pytest.mark.asyncio

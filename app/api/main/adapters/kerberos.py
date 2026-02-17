@@ -15,8 +15,8 @@ from api.base_adapter import BaseAdapter
 from api.main.schema import (
     KerberosSetupRequest,
     KtaddRequest,
+    ModifyPrincipalRequest,
     PrincipalAddRequest,
-    PrincipalPutRequest,
 )
 from ldap_protocol.dialogue import LDAPSession, UserSchema
 from ldap_protocol.kerberos import KerberosState
@@ -83,7 +83,7 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
             algorithms=request.algorithms,
         )
 
-    async def modify_principal(self, request: PrincipalPutRequest) -> None:
+    async def modify_principal(self, request: ModifyPrincipalRequest) -> None:
         """Modify principal ( password, algorithms).
 
         :raises HTTPException: on Kerberos errors
@@ -91,7 +91,7 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
         """
         return await self._service.modify_principal(
             principal_name=request.principal_name,
-            principal_new_name=request.new_principal_name,
+            new_name=request.new_name,
             algorithms=request.algorithms,
             password=request.password,
         )

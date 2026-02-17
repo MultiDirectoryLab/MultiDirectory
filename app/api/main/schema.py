@@ -85,11 +85,11 @@ class KtaddRequest(BaseModel):
     is_rand_key: bool = False
 
 
-class PrincipalPutRequest(BaseModel):
+class ModifyPrincipalRequest(BaseModel):
     """Request schema for PUT /principal (full modify)."""
 
     principal_name: str
-    new_principal_name: str
+    new_name: str | None = None
     algorithms: list[str] | None = None
     password: str | None = None
 
