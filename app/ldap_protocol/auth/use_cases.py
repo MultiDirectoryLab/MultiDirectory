@@ -102,7 +102,7 @@ class SetupUseCase:
                             ),
                         ],
                         "sAMAccountType": [
-                            str(SamAccountTypeCodes.SAM_USER_OBJECT),
+                            str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
                         ],
                         "sAMAccountName": ["DC1"],
                         "ipHostNumber": [self._settings.DEFAULT_NAMESERVER],
