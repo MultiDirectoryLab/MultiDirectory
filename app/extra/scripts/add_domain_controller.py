@@ -139,7 +139,7 @@ async def add_domain_controller(
     )
 
     if domain_controller:
-        logger.debug("Domain controllers OU already exists")
+        logger.debug("Domain controllers already exists")
         return
 
     await _add_domain_controller(
