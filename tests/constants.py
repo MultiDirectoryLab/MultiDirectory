@@ -18,7 +18,7 @@ TEST_DATA = [
     {
         "name": GROUPS_CONTAINER_NAME,
         "object_class": "container",
-        "is_system": False,
+        "is_system": True,
         "attributes": {
             "objectClass": ["top"],
             "sAMAccountName": ["groups"],
@@ -27,7 +27,7 @@ TEST_DATA = [
             {
                 "name": DOMAIN_ADMIN_GROUP_NAME,
                 "object_class": "group",
-                "is_system": False,
+                "is_system": True,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -70,7 +70,7 @@ TEST_DATA = [
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
                 "object_class": "group",
-                "is_system": False,
+                "is_system": True,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -84,7 +84,7 @@ TEST_DATA = [
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
                 "object_class": "group",
-                "is_system": False,
+                "is_system": True,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -100,7 +100,7 @@ TEST_DATA = [
     {
         "name": USERS_CONTAINER_NAME,
         "object_class": "container",
-        "is_system": False,
+        "is_system": True,
         "attributes": {"objectClass": ["top"]},
         "children": [
             {
