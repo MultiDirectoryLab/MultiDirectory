@@ -103,16 +103,6 @@ class ModifyPrincipalRequest(BaseModel):
     password: str | None = None
 
 
-ALGORITHM_MAP = {
-    "aes128-cts-hmac-sha1-96:normal": kadmv.EncryptionType.aes128_cts_hmac_sha1_96,  # noqa: E501
-    "aes256-cts-hmac-sha1-96:normal": kadmv.EncryptionType.aes256_cts_hmac_sha1_96,  # noqa: E501
-    "des-cbc-md5": kadmv.EncryptionType.des_cbc_md5,
-    "des-cbc-crc": kadmv.EncryptionType.des_cbc_crc,
-    "arcfour-hmac": kadmv.EncryptionType.arcfour_hmac,
-    "arcfour-hmac-md5": kadmv.EncryptionType.arcfour_hmac_md5,
-}
-
-
 class AbstractKRBManager(ABC):
     """Kadmin manager."""
 
@@ -253,21 +243,6 @@ class KAdminLocalManager(AbstractKRBManager):
         """Init kadmin local connection."""
         return await self.loop.run_in_executor(self.pool, kadmv.local)
 
-    def _parse_algorithms(self, algorithms: list[str] | None) -> list:
-        """Parse algorithm strings to kadmv EncryptionType.
-
-        :param algorithms: list of algorithm strings
-        :return: list of EncryptionType or None
-        """
-        enc_types = []
-        for alg in algorithms:
-            if enc_type := ALGORITHM_MAP.get(alg):
-                enc_types.append(enc_type)
-            else:
-                logging.warning(f"Unknown algorithm: {alg}, skipping")
-
-        return enc_types
-
     async def add_princ(
         self,
         name: str,
@@ -293,11 +268,10 @@ class KAdminLocalManager(AbstractKRBManager):
                 self.pool,
                 partial(princ.modify, attributes=128),
             )
-        enc_types = self._parse_algorithms(algorithms)
-        if enc_types:
+        if algorithms:
             await self.loop.run_in_executor(
                 self.pool,
-                partial(princ.modify, enc_types=enc_types),
+                partial(princ.modify, algorithms=algorithms),
             )
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
@@ -449,23 +423,18 @@ class KAdminLocalManager(AbstractKRBManager):
         princ = await self._get_raw_principal(principal_name)
 
         if algorithms is not None:
-            enc_types = self._parse_algorithms(algorithms)
-            if enc_types:
-                await self.loop.run_in_executor(
-                    self.pool,
-                    partial(princ.modify, enc_types=enc_types),
-                )
+            await self.loop.run_in_executor(
+                self.pool,
+                partial(princ.modify, algorithms=algorithms),
+            )
 
         if password is not None:
             if password == "":
-                await self.del_princ(principal_name)
-                await self.add_princ(
-                    principal_name,
-                    None,
-                    algorithms=algorithms,
-                )
+                princ = await self._get_raw_principal(principal_name)
+                await self.loop.run_in_executor(self.pool, princ.randkey)
             else:
                 await self.change_password(principal_name, password)
+                princ = await self._get_raw_principal(principal_name)
                 await self.loop.run_in_executor(
                     self.pool,
                     partial(princ.modify, attributes=128),
