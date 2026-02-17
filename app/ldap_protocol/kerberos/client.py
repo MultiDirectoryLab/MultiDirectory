@@ -27,7 +27,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         response = await self.client.post(
             "principal",
             json={
-                "name": name,
+                "principal_name": name,
                 "password": password,
                 "algorithms": algorithms,
             },

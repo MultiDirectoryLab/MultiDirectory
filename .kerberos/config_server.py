@@ -83,8 +83,8 @@ class AddPrincipalRequest(BaseModel):
     """Request model for adding principal."""
 
     principal_name: str
-    algorithms: list[str] | None = Field(default=None)
-    password: str | None = Field(default=None)
+    password: str | None = None
+    algorithms: list[str] | None = None
 
 
 class KtaddRequest(BaseModel):
@@ -256,22 +256,28 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str | None password: if None - uses randkey.
         :param list[str] | None algorithms: encryption algorithms
         """
-        await self.loop.run_in_executor(
-            self.pool,
-            partial(self.client.add_principal, name, password),
-        )
-
-        princ = await self._get_raw_principal(name)
-        if password:
-            # NOTE: add preauth, attributes == krbticketflags
-            await self.loop.run_in_executor(
-                self.pool,
-                partial(princ.modify, attributes=128),
-            )
         if algorithms:
             await self.loop.run_in_executor(
                 self.pool,
-                partial(princ.modify, algorithms=algorithms),
+                self.client.add_principal,
+                name,
+                password,
+                algorithms,
+            )
+        else:
+            await self.loop.run_in_executor(
+                self.pool,
+                self.client.add_principal,
+                name,
+                password,
+            )
+
+        if password:
+            # NOTE: add preauth, attributes == krbticketflags
+            princ = await self._get_raw_principal(name)
+            await self.loop.run_in_executor(
+                self.pool,
+                partial(princ.modify, attributes=128),
             )
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
@@ -354,8 +360,11 @@ class KAdminLocalManager(AbstractKRBManager):
             for princ in principals:
                 await self.loop.run_in_executor(
                     self.pool,
-                    partial(princ.ktadd, fn, randkey=True),
+                    princ.ktadd,
+                    fn,
+                    True,
                 )
+
         else:
             for princ in principals:
                 await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
@@ -416,29 +425,20 @@ class KAdminLocalManager(AbstractKRBManager):
         :param list[str] | None algorithms: new encryption algorithms
         :param str | None password: new password
         """
-        if new_name and new_name != principal_name:
-            await self.modify_princ(principal_name, new_name)
-            principal_name = new_name
+        args = []
+        if new_name:
+            args.append(new_name)
+        if password:
+            args.append(password)
+        if algorithms:
+            args.append(algorithms)
 
-        princ = await self._get_raw_principal(principal_name)
-
-        if algorithms is not None:
-            await self.loop.run_in_executor(
-                self.pool,
-                partial(princ.modify, algorithms=algorithms),
-            )
-
-        if password is not None:
-            if password == "":
-                princ = await self._get_raw_principal(principal_name)
-                await self.loop.run_in_executor(self.pool, princ.randkey)
-            else:
-                await self.change_password(principal_name, password)
-                princ = await self._get_raw_principal(principal_name)
-                await self.loop.run_in_executor(
-                    self.pool,
-                    partial(princ.modify, attributes=128),
-                )
+        await self.loop.run_in_executor(
+            self.pool,
+            self.client.modify_principal,
+            principal_name,
+            *args,
+        )
 
 
 @asynccontextmanager
@@ -709,12 +709,17 @@ async def ktadd(
     :param KtaddRequest request: request data
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
-    await kadmin.ktadd(
-        request.names,
-        filename,
-        is_rand_key=request.is_rand_key,
-    )
-
+    if request.is_rand_key:
+        await kadmin.ktadd(
+            request.names,
+            filename,
+            is_rand_key=request.is_rand_key,
+        )
+    else:
+        await kadmin.ktadd(
+            request.names,
+            filename,
+        )
     return FileResponse(
         filename,
         background=BackgroundTask(os.unlink, filename),

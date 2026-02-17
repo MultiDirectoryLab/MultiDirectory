@@ -242,7 +242,7 @@ class AbstractKadmin(ABC):
 
         response = await self.client.post(
             "/principal/ktadd",
-            json={"names": [name], "is_rand_key": True},
+            json={"names": [name], "is_rand_key": False},
         )
         if response.status_code != 200:
             log.error(f"Error getting keytab: {response.text}")
