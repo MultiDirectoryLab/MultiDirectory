@@ -18,6 +18,7 @@ TEST_DATA = [
     {
         "name": GROUPS_CONTAINER_NAME,
         "object_class": "container",
+        "is_system": False,
         "attributes": {
             "objectClass": ["top"],
             "sAMAccountName": ["groups"],
@@ -26,6 +27,7 @@ TEST_DATA = [
             {
                 "name": DOMAIN_ADMIN_GROUP_NAME,
                 "object_class": "group",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -39,6 +41,7 @@ TEST_DATA = [
             {
                 "name": "developers",
                 "object_class": "group",
+                "is_system": False,
                 "groups": [DOMAIN_ADMIN_GROUP_NAME],
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -53,6 +56,7 @@ TEST_DATA = [
             {
                 "name": "admin login only",
                 "object_class": "group",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -66,6 +70,7 @@ TEST_DATA = [
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
                 "object_class": "group",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -79,6 +84,7 @@ TEST_DATA = [
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
                 "object_class": "group",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -94,11 +100,13 @@ TEST_DATA = [
     {
         "name": USERS_CONTAINER_NAME,
         "object_class": "container",
+        "is_system": False,
         "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "user0",
                 "object_class": "user",
+                "is_system": False,
                 "organizationalPerson": {
                     "sam_account_name": "user0",
                     "user_principal_name": "user0",
@@ -129,6 +137,7 @@ TEST_DATA = [
             {
                 "name": "user_admin",
                 "object_class": "user",
+                "is_system": False,
                 "organizationalPerson": {
                     "sam_account_name": "user_admin",
                     "user_principal_name": "user_admin",
@@ -156,6 +165,7 @@ TEST_DATA = [
             {
                 "name": "user_admin_for_roles",
                 "object_class": "user",
+                "is_system": False,
                 "organizationalPerson": {
                     "sam_account_name": "user_admin_for_roles",
                     "user_principal_name": "user_admin_for_roles",
@@ -183,6 +193,7 @@ TEST_DATA = [
             {
                 "name": "user_non_admin",
                 "object_class": "user",
+                "is_system": False,
                 "organizationalPerson": {
                     "sam_account_name": "user_non_admin",
                     "user_principal_name": "user_non_admin",
@@ -211,6 +222,7 @@ TEST_DATA = [
             {
                 "name": "russia",
                 "object_class": "container",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top"],
                     "sAMAccountName": ["groups"],
@@ -219,6 +231,7 @@ TEST_DATA = [
                     {
                         "name": "moscow",
                         "object_class": "container",
+                        "is_system": False,
                         "attributes": {
                             "objectClass": ["top"],
                             "sAMAccountName": ["groups"],
@@ -227,6 +240,7 @@ TEST_DATA = [
                             {
                                 "name": "user1",
                                 "object_class": "user",
+                                "is_system": False,
                                 "organizationalPerson": {
                                     "sam_account_name": "user1",
                                     "user_principal_name": "user1",
@@ -262,11 +276,13 @@ TEST_DATA = [
     {
         "name": "test_bit_rules",
         "object_class": "organizationalUnit",
+        "is_system": False,
         "attributes": {"objectClass": ["top", "container"]},
         "children": [
             {
                 "name": "user_admin_1",
                 "object_class": "user",
+                "is_system": False,
                 "organizationalPerson": {
                     "sam_account_name": "user_admin_1",
                     "user_principal_name": "user_admin_1",
@@ -299,6 +315,7 @@ TEST_DATA = [
             {
                 "name": "user_admin_2",
                 "object_class": "user",
+                "is_system": False,
                 "organizationalPerson": {
                     "sam_account_name": "user_admin_2",
                     "user_principal_name": "user_admin_2",
@@ -329,6 +346,7 @@ TEST_DATA = [
             {
                 "name": "user_admin_3",
                 "object_class": "user",
+                "is_system": False,
                 "organizationalPerson": {
                     "sam_account_name": "user_admin_3",
                     "user_principal_name": "user_admin_3",
@@ -358,6 +376,7 @@ TEST_DATA = [
     {
         "name": "testModifyDn1",
         "object_class": "organizationalUnit",
+        "is_system": False,
         "attributes": {
             "objectClass": ["top", "container"],
             "sAMAccountName": ["testModifyDn1"],
@@ -366,6 +385,7 @@ TEST_DATA = [
             {
                 "name": "testModifyDn2",
                 "object_class": "organizationalUnit",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top", "container"],
                     "sAMAccountName": ["testModifyDn2"],
@@ -374,6 +394,7 @@ TEST_DATA = [
                     {
                         "name": "testGroup1",
                         "object_class": "group",
+                        "is_system": False,
                         "attributes": {
                             "objectClass": ["top", "posixGroup"],
                             "groupType": ["-2147483646"],
@@ -391,6 +412,7 @@ TEST_DATA = [
             {
                 "name": "testGroup2",
                 "object_class": "group",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -406,6 +428,7 @@ TEST_DATA = [
     {
         "name": "testModifyDn3",
         "object_class": "organizationalUnit",
+        "is_system": False,
         "attributes": {
             "objectClass": ["top", "container"],
             "sAMAccountName": ["testModifyDn3"],
@@ -414,6 +437,7 @@ TEST_DATA = [
             {
                 "name": "testGroup3",
                 "object_class": "group",
+                "is_system": False,
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
@@ -431,6 +455,7 @@ TEST_DATA = [
 TEST_SYSTEM_ADMIN_DATA = {
     "name": "System Administrator",
     "object_class": "user",
+    "is_system": True,
     "organizationalPerson": {
         "sam_account_name": "system_admin",
         "user_principal_name": "system_admin",

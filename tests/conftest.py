@@ -997,7 +997,6 @@ async def setup_session(
     await setup_gateway.setup_enviroment(
         dn="md.test",
         data=TEST_DATA,
-        is_system=False,
     )
 
     # NOTE: after setup environment we need base DN to be created

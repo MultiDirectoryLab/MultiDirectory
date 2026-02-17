@@ -43,7 +43,6 @@ async def add_system_administrator(
     domain = (await get_base_directories(session))[0]
     await setup_gateway.create_dir(
         data=TEST_SYSTEM_ADMIN_DATA,
-        is_system=True,
         domain=domain,
         parent=domain,
     )
