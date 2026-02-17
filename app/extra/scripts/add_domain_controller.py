@@ -43,43 +43,40 @@ async def _add_domain_controller(
     dc_directory.object_sid = create_object_sid(domain, dc_directory.id)
     await session.flush()
 
-    attributes = []
-    attributes.extend(
-        [
-            Attribute(
-                name="objectClass",
-                value="top",
-                directory_id=dc_directory.id,
+    attributes = [
+        Attribute(
+            name="objectClass",
+            value="top",
+            directory_id=dc_directory.id,
+        ),
+        Attribute(
+            name="objectClass",
+            value="computer",
+            directory_id=dc_directory.id,
+        ),
+        Attribute(
+            name="sAMAccountName",
+            value=dc_name,
+            directory_id=dc_directory.id,
+        ),
+        Attribute(
+            name="userAccountControl",
+            value=str(
+                UserAccountControlFlag.SERVER_TRUST_ACCOUNT,
             ),
-            Attribute(
-                name="objectClass",
-                value="computer",
-                directory_id=dc_directory.id,
-            ),
-            Attribute(
-                name="sAMAccountName",
-                value=dc_name,
-                directory_id=dc_directory.id,
-            ),
-            Attribute(
-                name="userAccountControl",
-                value=str(
-                    UserAccountControlFlag.SERVER_TRUST_ACCOUNT,
-                ),
-                directory_id=dc_directory.id,
-            ),
-            Attribute(
-                name="sAMAccountType",
-                value=str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
-                directory_id=dc_directory.id,
-            ),
-            Attribute(
-                name="ipHostNumber",
-                value=settings.DEFAULT_NAMESERVER,
-                directory_id=dc_directory.id,
-            ),
-        ],
-    )
+            directory_id=dc_directory.id,
+        ),
+        Attribute(
+            name="sAMAccountType",
+            value=str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
+            directory_id=dc_directory.id,
+        ),
+        Attribute(
+            name="ipHostNumber",
+            value=settings.DEFAULT_NAMESERVER,
+            directory_id=dc_directory.id,
+        ),
+    ]
 
     session.add_all(attributes)
     await session.flush()
@@ -108,8 +105,6 @@ async def add_domain_controller(
     if not domains:
         logger.debug("Cannot get base directory")
         return
-
-    logger.debug("Check if domain controller OU exists.")
 
     domain_controllers_ou = await session.scalar(
         select(Directory).where(
