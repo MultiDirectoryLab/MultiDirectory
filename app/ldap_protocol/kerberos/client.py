@@ -20,12 +20,17 @@ class KerberosMDAPIClient(AbstractKadmin):
         self,
         name: str,
         password: str | None,
-        timeout: int = 1,
+        algorithms: list[str] | None = None,
+        timeout: int | float = 1,
     ) -> None:
         """Add request."""
         response = await self.client.post(
             "principal",
-            json={"name": name, "password": password},
+            json={
+                "principal_name": name,
+                "password": password,
+                "algorithms": algorithms,
+            },
             timeout=timeout,
         )
 
@@ -89,17 +94,32 @@ class KerberosMDAPIClient(AbstractKadmin):
             raise krb_exc.KRBAPIChangePasswordError(response.text)
 
     @logger_wraps()
-    async def rename_princ(self, name: str, new_name: str) -> None:
+    async def modify_princ(
+        self,
+        name: str,
+        new_name: str | None,
+        algorithms: list[str] | None,
+        password: str | None,
+    ) -> None:
         """Rename request."""
         response = await self.client.put(
             "principal",
-            json={"name": name, "new_name": new_name},
+            json={
+                "name": name,
+                "new_name": new_name,
+                "algorithms": algorithms,
+                "password": password,
+            },
         )
         if response.status_code != 202:
-            raise krb_exc.KRBAPIRenamePrincipalError(response.text)
+            raise krb_exc.KRBAPIModifyPrincipalError(response.text)
 
     @logger_wraps()
-    async def ktadd(self, names: list[str]) -> httpx.Response:
+    async def ktadd(
+        self,
+        names: list[str],
+        is_rand_key: bool,
+    ) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
         :param list[str] names: principals
@@ -108,7 +128,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         request = self.client.build_request(
             "POST",
             "/principal/ktadd",
-            json=names,
+            json={"names": names, "is_rand_key": is_rand_key},
         )
 
         response = await self.client.send(request, stream=True)

@@ -194,8 +194,7 @@ class AuthorizationRules(IntFlag):
     KRB_KTADD = auto()
     KRB_GET_STATUS = auto()
     KRB_ADD_PRINCIPAL = auto()
-    KRB_RENAME_PRINCIPAL = auto()
-    KRB_RESET_PRINCIPAL_PW = auto()
+    KRB_MODIFY_PRINCIPAL = auto()
     KRB_DELETE_PRINCIPAL = auto()
 
     AUDIT_GET_POLICIES = auto()

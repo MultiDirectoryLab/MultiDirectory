@@ -23,7 +23,12 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.main.schema import KerberosSetupRequest
+from api.main.schema import (
+    KerberosSetupRequest,
+    KtaddRequest,
+    ModifyPrincipalRequest,
+    PrincipalAddRequest,
+)
 from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.dialogue import LDAPSession
@@ -149,15 +154,15 @@ LIMITED_LIST = Annotated[
     error_map=error_map,
 )
 async def ktadd(
-    names: Annotated[LIMITED_LIST, Body()],
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
+    request: KtaddRequest,
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :return bytes: file
     """
-    return await kerberos_adapter.ktadd(names)
+    return await kerberos_adapter.ktadd(request)
 
 
 @krb5_router.get(
@@ -178,13 +183,12 @@ async def get_krb_status(
 
 
 @krb5_router.post(
-    "/principal/add",
+    "/principal",
     dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def add_principal(
-    primary: Annotated[LIMITED_STR, Body()],
-    instance: Annotated[LIMITED_STR, Body()],
+    request: PrincipalAddRequest,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Create principal in kerberos with given name.
@@ -194,52 +198,19 @@ async def add_principal(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request.
     """
-    await kerberos_adapter.add_principal(primary, instance)
+    await kerberos_adapter.add_principal(request)
 
 
-@krb5_router.patch(
-    "/principal/rename",
+@krb5_router.put(
+    "/principal",
     dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
-async def rename_principal(
-    principal_name: Annotated[LIMITED_STR, Body()],
-    principal_new_name: Annotated[LIMITED_STR, Body()],
+async def modify_principal(
+    request: ModifyPrincipalRequest,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
-    """Rename principal in kerberos with given name.
-
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LIMITED_STR, Body principal_new_name: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
-    """
-    await kerberos_adapter.rename_principal(
-        principal_name,
-        principal_new_name,
-    )
-
-
-@krb5_router.patch(
-    "/principal/reset",
-    dependencies=[Depends(verify_auth), Depends(require_master_db)],
-    error_map=error_map,
-)
-async def reset_principal_pw(
-    principal_name: Annotated[LIMITED_STR, Body()],
-    new_password: Annotated[LIMITED_STR, Body()],
-    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
-) -> None:
-    """Reset principal password in kerberos with given name.
-
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LIMITED_STR, Body new_password: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
-    """
-    await kerberos_adapter.reset_principal_pw(principal_name, new_password)
+    await kerberos_adapter.modify_principal(request)
 
 
 @krb5_router.delete(

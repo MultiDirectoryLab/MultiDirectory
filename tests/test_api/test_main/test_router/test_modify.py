@@ -101,7 +101,7 @@ async def test_api_correct_modify_user_samaccountname(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert kadmin.rename_princ.call_args.args == ("new_user", "NEW user name")  # type: ignore
+    assert kadmin.modify_princ.call_args.args == ("new_user", "NEW user name")  # type: ignore
 
     response = await http_client.post(
         "entry/search",
@@ -160,7 +160,7 @@ async def test_api_correct_modify_user_userprincipalname(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert kadmin.rename_princ.call_args.args == ("new_user", "newbiguser")  # type: ignore
+    assert kadmin.modify_princ.call_args.args == ("new_user", "newbiguser")  # type: ignore
 
     response = await http_client.post(
         "entry/search",
@@ -219,12 +219,12 @@ async def test_api_correct_modify_computer_samaccountname_replace(
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert kadmin.rename_princ.call_count == 2  # type: ignore
-    assert kadmin.rename_princ.call_args_list[0].args == (  # type: ignore
+    assert kadmin.modify_princ.call_count == 2  # type: ignore
+    assert kadmin.modify_princ.call_args_list[0].args == (  # type: ignore
         "host/mycomputer",
         "host/maincomputer",
     )
-    assert kadmin.rename_princ.call_args_list[1].args == (  # type: ignore
+    assert kadmin.modify_princ.call_args_list[1].args == (  # type: ignore
         "host/mycomputer.md.test",
         "host/maincomputer.md.test",
     )
