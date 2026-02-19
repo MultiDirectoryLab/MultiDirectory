@@ -2,7 +2,7 @@
 
 import time
 from functools import wraps
-from typing import Callable, Generic, TypeVar
+from typing import Awaitable, Callable, Generic, TypeVar
 
 from entities import Directory
 
@@ -20,7 +20,10 @@ class AsyncTTLCache(Generic[T]):
         self._value = None
         self._expires_at = None
 
-    def __call__(self, func: Callable) -> Callable:
+    def __call__(
+        self,
+        func: Callable[..., Awaitable[T]],
+    ) -> Callable[..., Awaitable[T]]:
         @wraps(func)
         async def wrapper(*args: tuple, **kwargs: dict) -> T:
             if self._value is not None:

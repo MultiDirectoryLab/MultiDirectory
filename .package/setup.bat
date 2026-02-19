@@ -115,3 +115,10 @@ if not exist "certs" (
 ) else (
     echo Directory already exists: certs
 )
+
+:: 9. HOST_MACHINE_NAME
+findstr /b /i /c:"HOST_MACHINE_NAME=" .env >nul
+if errorlevel 1 (
+    set "host_machine_name=%COMPUTERNAME%"
+    echo HOST_MACHINE_NAME=!host_machine_name!>> .env
+)
