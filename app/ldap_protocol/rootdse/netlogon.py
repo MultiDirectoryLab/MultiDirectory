@@ -9,6 +9,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import codecs
 import ipaddress
 import struct
 import uuid
@@ -180,13 +181,17 @@ class NetLogonAttributeHandler:
         )
 
     @staticmethod
-    def _convert_little_endian_string_to_int(value: str) -> int:
+    def _convert_little_endian_string_to_int(value: str | bytes) -> int:
         """Convert little-endian string to int."""
-        return int.from_bytes(
-            value.encode().decode("unicode_escape").encode(),
-            byteorder="little",
-            signed=False,
-        )
+        if isinstance(value, bytes):
+            return int.from_bytes(value, "little", signed=False)
+
+        if "\\x" in value:
+            value = codecs.decode(value, "unicode_escape").encode("latin-1")
+        else:
+            value = value.encode("latin-1", errors="strict")
+
+        return int.from_bytes(value, "little", signed=False)
 
     def get_attr(self) -> bytes:
         """Get NetLogon response."""
@@ -291,6 +296,8 @@ class NetLogonAttributeHandler:
             DSFlag.CLOSEST_FLAG,
             DSFlag.WRITABLE_FLAG,
             DSFlag.GOOD_TIMESERV_FLAG,
+            DSFlag.KDC_FLAG,
+            DSFlag.WS_FLAG,
         ]:
             ds_flags |= flag
 
