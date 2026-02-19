@@ -11,6 +11,7 @@ from enums import EntityTypeNames, SamAccountTypeCodes
 GROUPS_CONTAINER_NAME = "Groups"
 COMPUTERS_CONTAINER_NAME = "Computers"
 USERS_CONTAINER_NAME = "Users"
+DOMAIN_CONTROLLERS_OU_NAME = "Domain Controllers"
 
 READ_ONLY_GROUP_NAME = "read-only"
 

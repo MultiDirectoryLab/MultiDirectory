@@ -36,6 +36,7 @@ class Settings(BaseModel):
     """Settigns with database dsn."""
 
     DOMAIN: str
+    HOST_MACHINE_NAME: str
 
     DEBUG: bool = False
     AUTO_RELOAD: bool = False
@@ -47,6 +48,7 @@ class Settings(BaseModel):
     GLOBAL_LDAP_TLS_PORT: int = 3269
     USE_CORE_TLS: bool = False
     LDAP_LOAD_SSL_CERT: bool = False
+    DEFAULT_NAMESERVER: str
 
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
