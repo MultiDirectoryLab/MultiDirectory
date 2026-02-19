@@ -31,7 +31,7 @@ async def _add_domain_controller(
     dc_directory = Directory(
         object_class="",
         name=settings.HOST_MACHINE_NAME,
-        is_system=False,
+        is_system=True,
     )
     dc_directory.create_path(dc_ou_dir)
     session.add(dc_directory)

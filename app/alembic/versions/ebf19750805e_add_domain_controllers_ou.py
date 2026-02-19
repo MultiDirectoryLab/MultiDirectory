@@ -6,6 +6,8 @@ Create Date: 2026-02-17 08:52:28.048004
 
 """
 
+from typing import Any
+
 from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
@@ -28,12 +30,10 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-_OU_DOMAIN_CONTROLLERS_DATA = {
+_OU_DOMAIN_CONTROLLERS_DATA: dict[str, Any] = {
     "name": DOMAIN_CONTROLLERS_OU_NAME,
     "object_class": "organizationalUnit",
-    "is_system": True,
     "attributes": {"objectClass": ["top", "container"]},
-    "children": [],
 }
 
 
@@ -67,7 +67,6 @@ def upgrade(container: AsyncContainer) -> None:
             {
                 "name": settings.HOST_MACHINE_NAME,
                 "object_class": "computer",
-                "is_system": False,
                 "attributes": {
                     "objectClass": ["top"],
                     "userAccountControl": [
@@ -87,6 +86,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         await setup_gateway.create_dir(
             _OU_DOMAIN_CONTROLLERS_DATA,
+            is_system=True,
             domain=domain_dir,
             parent=domain_dir,
         )

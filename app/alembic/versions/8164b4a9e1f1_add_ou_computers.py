@@ -29,7 +29,6 @@ COMPUTERS = "computers"
 _OU_COMPUTERS_DATA = {
     "name": COMPUTERS,
     "object_class": "organizationalUnit",
-    "is_system": True,
     "attributes": {"objectClass": ["top", "container"]},
     "children": [],
 }
@@ -62,6 +61,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         await setup_gateway.create_dir(
             _OU_COMPUTERS_DATA,
+            is_system=True,
             domain=domain_dir,
             parent=domain_dir,
         )
