@@ -70,6 +70,30 @@ class KerberosSetupRequest(BaseModel):
     stash_password: SecretStr
 
 
+class PrincipalAddRequest(BaseModel):
+    """Request schema for POST /principal/add."""
+
+    principal_name: str
+    algorithms: list[str] | None = None
+    password: str | None = None
+
+
+class KtaddRequest(BaseModel):
+    """Request schema for POST /ktadd."""
+
+    names: list[str]
+    is_rand_key: bool = False
+
+
+class ModifyPrincipalRequest(BaseModel):
+    """Request schema for PUT /principal (full modify)."""
+
+    principal_name: str
+    new_name: str | None = None
+    algorithms: list[str] | None = None
+    password: str | None = None
+
+
 class DNSServiceSetupRequest(BaseModel):
     """DNS setup request schema."""
 

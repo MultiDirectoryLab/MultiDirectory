@@ -213,7 +213,7 @@ class BindRequest(BaseRequest):
             await ctx.kadmin.add_principal(
                 user.sam_account_name,
                 self.authentication_choice.password.get_secret_value(),
-                0.1,
+                timeout=0.1,
             )
 
         await ctx.ldap_session.set_user(user)

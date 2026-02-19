@@ -34,8 +34,8 @@ from .exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
     KRBAPIDeletePrincipalError,
+    KRBAPIModifyPrincipalError,
     KRBAPIPrincipalNotFoundError,
-    KRBAPIRenamePrincipalError,
     KRBAPISetupConfigsError,
     KRBAPISetupStashError,
     KRBAPISetupTreeError,
@@ -358,7 +358,12 @@ class KerberosService(AbstractService):
         )
         return TaskStruct(func=func, args=args)
 
-    async def add_principal(self, primary: str, instance: str) -> None:
+    async def add_principal(
+        self,
+        principal_name: str,
+        password: str | None,
+        algorithms: list[str] | None,
+    ) -> None:
         """Create principal in Kerberos with given name.
 
         :param str primary: Principal primary name.
@@ -367,52 +372,42 @@ class KerberosService(AbstractService):
         :return None: None.
         """
         try:
-            principal_name = f"{primary}/{instance}"
-            await self._kadmin.add_principal(principal_name, None)
+            await self._kadmin.add_principal(
+                principal_name,
+                password,
+                algorithms,
+            )
         except KRBAPIAddPrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error adding principal: {exc}",
             ) from exc
 
-    async def rename_principal(
+    async def modify_principal(
         self,
         principal_name: str,
-        principal_new_name: str,
+        new_name: str | None,
+        algorithms: list[str] | None,
+        password: str | None,
     ) -> None:
-        """Rename principal in Kerberos with given name.
+        """Modify principal in Kerberos with given name.
 
         :param str principal_name: Current principal name.
-        :param str principal_new_name: New principal name.
+        :param str new_name: New principal name.
+        :param list[str] | None algorithms: Algorithms.
+        :param str | None password: Password.
         :raises KerberosDependencyError: On failed kadmin request.
         :return None: None.
         """
         try:
-            await self._kadmin.rename_princ(principal_name, principal_new_name)
-        except KRBAPIRenamePrincipalError as exc:
+            await self._kadmin.modify_princ(
+                principal_name,
+                new_name,
+                algorithms,
+                password,
+            )
+        except KRBAPIModifyPrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error renaming principal: {exc}",
-            ) from exc
-
-    async def reset_principal_pw(
-        self,
-        principal_name: str,
-        new_password: str,
-    ) -> None:
-        """Reset principal password in Kerberos with given name.
-
-        :param str principal_name: Principal name.
-        :param str new_password: New password.
-        :raises KerberosDependencyError: On failed kadmin request.
-        :return None: None.
-        """
-        try:
-            await self._kadmin.change_principal_password(
-                principal_name,
-                new_password,
-            )
-        except Exception as exc:
-            raise KerberosDependencyError(
-                f"Error resetting principal password: {exc}",
             ) from exc
 
     async def delete_principal(self, principal_name: str) -> None:
@@ -432,15 +427,17 @@ class KerberosService(AbstractService):
     async def ktadd(
         self,
         names: list[str],
+        is_rand_key: bool,
     ) -> tuple[AsyncIterator[bytes], TaskStruct]:
         """Generate keytab and return (aiter_bytes, TaskStruct).
 
         :param list[str] names: List of principal names.
+        :param bool is_rand_key: If True, generate random key.
         :raises KerberosNotFoundError: If principal not found.
         :return tuple: (aiter_bytes, (func, args, kwargs)).
         """
         try:
-            response = await self._kadmin.ktadd(names)
+            response = await self._kadmin.ktadd(names, is_rand_key)
         except KRBAPIPrincipalNotFoundError:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
@@ -469,7 +466,6 @@ class KerberosService(AbstractService):
         ktadd.__name__: AuthorizationRules.KRB_KTADD,
         get_status.__name__: AuthorizationRules.KRB_GET_STATUS,
         add_principal.__name__: AuthorizationRules.KRB_ADD_PRINCIPAL,
-        rename_principal.__name__: AuthorizationRules.KRB_RENAME_PRINCIPAL,
-        reset_principal_pw.__name__: AuthorizationRules.KRB_RESET_PRINCIPAL_PW,
+        modify_principal.__name__: AuthorizationRules.KRB_MODIFY_PRINCIPAL,
         delete_principal.__name__: AuthorizationRules.KRB_DELETE_PRINCIPAL,
     }
