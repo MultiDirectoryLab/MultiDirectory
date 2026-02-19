@@ -11,9 +11,12 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from config import Settings
 from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Directory
+from enums import SamAccountTypeCodes
 from ldap_protocol.auth.setup_gateway import SetupGateway
+from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -41,6 +44,7 @@ def upgrade(container: AsyncContainer) -> None:
         connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
+            settings = await cnt.get(Settings)
             session = await cnt.get(AsyncSession)
             setup_gateway = await cnt.get(SetupGateway)
             role_use_case = await cnt.get(RoleUseCase)
@@ -59,6 +63,28 @@ def upgrade(container: AsyncContainer) -> None:
         if exists_dc_ou:
             return
 
+        domain_controller_data = [
+            {
+                "name": settings.HOST_MACHINE_NAME,
+                "object_class": "computer",
+                "is_system": False,
+                "attributes": {
+                    "objectClass": ["top"],
+                    "userAccountControl": [
+                        str(
+                            UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value,
+                        ),
+                    ],
+                    "sAMAccountType": [
+                        str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
+                    ],
+                    "sAMAccountName": [settings.HOST_MACHINE_NAME],
+                    "ipHostNumber": [settings.DEFAULT_NAMESERVER],
+                },
+            },
+        ]
+        _OU_DOMAIN_CONTROLLERS_DATA["children"] = domain_controller_data
+
         await setup_gateway.create_dir(
             _OU_DOMAIN_CONTROLLERS_DATA,
             domain=domain_dir,
@@ -73,9 +99,21 @@ def upgrade(container: AsyncContainer) -> None:
         if not dc_ou:
             raise Exception("Domain Controllers OU was not created")
 
+        dc = await session.scalar(
+            select(Directory).where(
+                qa(Directory.name) == settings.HOST_MACHINE_NAME,
+            ),
+        )
+        if not dc:
+            raise Exception("Domain Controller was not created")
+
         await role_use_case.inherit_parent_aces(
             parent_directory=domain_dir,
             directory=dc_ou,
+        )
+        await role_use_case.inherit_parent_aces(
+            parent_directory=dc_ou,
+            directory=dc,
         )
 
         await session.commit()
@@ -92,9 +130,24 @@ def downgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
+        domain_controller_ou = await session.scalar(
+            select(Directory).where(
+                qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
+            ),
+        )
+
+        if not domain_controller_ou:
+            return
+
         await session.execute(
             delete(Directory).where(
-                qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
+                qa(Directory.parent_id) == domain_controller_ou.id,
+            ),
+        )
+
+        await session.execute(
+            delete(Directory).where(
+                qa(Directory.id) == domain_controller_ou.id,
             ),
         )
         await session.commit()
