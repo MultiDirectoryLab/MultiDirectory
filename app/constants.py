@@ -8,6 +8,7 @@ from typing import TypedDict
 
 from enums import EntityTypeNames, SamAccountTypeCodes
 
+CONFIGURATION_DIR_NAME = "Configuration"
 GROUPS_CONTAINER_NAME = "Groups"
 COMPUTERS_CONTAINER_NAME = "Computers"
 USERS_CONTAINER_NAME = "Users"
@@ -305,7 +306,7 @@ ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
 
 FIRST_SETUP_DATA = [
     {
-        "name": "Configuration",
+        "name": CONFIGURATION_DIR_NAME,
         "object_class": "container",
         "attributes": {"objectClass": ["top", "configuration"]},
     },

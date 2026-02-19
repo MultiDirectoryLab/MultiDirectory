@@ -19,7 +19,7 @@ async def test_attribute_type_system_flags_use_case_is_not_replicated(
     attribute_type_use_case: AttributeTypeUseCase,
 ) -> None:
     """Test AttributeType is not replicated."""
-    await attribute_type_use_case.create_ldap(
+    await attribute_type_use_case.create(
         AttributeTypeDTO(
             oid="1.2.3.4",
             name="objectClass123",
@@ -43,7 +43,7 @@ async def test_attribute_type_system_flags_use_case_is_replicated1(  # TODO fix 
     attribute_type_use_case: AttributeTypeUseCase,
 ) -> None:
     """Test AttributeType is replicated."""
-    await attribute_type_use_case.create_ldap(
+    await attribute_type_use_case.create(
         AttributeTypeDTO(
             oid="1.2.3.4",
             name="objectClass123",
@@ -65,7 +65,7 @@ async def test_attribute_type_system_flags_use_case_is_replicated2(  # TODO fix 
     attribute_type_use_case: AttributeTypeUseCase,
 ) -> None:
     """Test AttributeType is replicated."""
-    await attribute_type_use_case.create_ldap(
+    await attribute_type_use_case.create(
         AttributeTypeDTO(
             oid="1.2.3.4",
             name="objectClass123",

@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from constants import (
+    CONFIGURATION_DIR_NAME,
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_COMPUTERS_GROUP_NAME,
     DOMAIN_USERS_GROUP_NAME,
@@ -425,6 +426,12 @@ TEST_DATA = [
                 },
             },
         ],
+    },
+    {
+        "name": CONFIGURATION_DIR_NAME,
+        "object_class": "container",
+        "attributes": {"objectClass": ["top", "configuration"]},
+        "children": [],
     },
 ]
 

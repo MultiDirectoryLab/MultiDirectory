@@ -9,13 +9,13 @@ from itertools import chain
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from constants import CONFIGURATION_DIR_NAME
 from entities import Attribute, Directory, Group
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -53,8 +53,17 @@ class CreateAttributeDirGateway:
         is_system: bool,
     ) -> None:
         """Create data recursively."""
+        print("SOSI")
+        print((await self.__session.execute(select(Directory))).all())
+
         if not self.__parent:
-            self.__parent = (await get_base_directories(self.__session))[0]
+            self.__parent = (
+                await self.__session.execute(
+                    select(Directory).where(
+                        qa(Directory.name) == CONFIGURATION_DIR_NAME,
+                    ),
+                )
+            ).one()[0]
 
         dir_ = Directory(
             is_system=is_system,

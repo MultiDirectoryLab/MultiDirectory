@@ -98,6 +98,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
 
     sub_dirs = {
         "cn=Groups,dc=md,dc=test",
+        "cn=Configuration,dc=md,dc=test",
         "cn=Users,dc=md,dc=test",
         "ou=testModifyDn1,dc=md,dc=test",
         "ou=testModifyDn3,dc=md,dc=test",

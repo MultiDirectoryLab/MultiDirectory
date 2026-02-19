@@ -366,7 +366,7 @@ def upgrade(container: AsyncContainer) -> None:
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await attribute_type_dao.create(
+            await attribute_type_dao.create_deprecated(
                 AttributeTypeDTO(
                     oid=oid,
                     name=name,
@@ -437,7 +437,7 @@ def upgrade(container: AsyncContainer) -> None:
 
             attribute_types = (
                 await attribute_type_use_case.get_all_raw_by_names_deprecated(
-                    at_names
+                    at_names,
                 )
             )
             # attribute_types = [await session.merge(at) for at in attribute_types]  # TODO либо merge либо инициализация DAO/use case прям тут

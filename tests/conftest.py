@@ -1011,22 +1011,32 @@ async def setup_session(
 
     # TODO delete that
     # NOTE: after setup environment we need base DN to be created
-    # attribute_type_use_case = AttributeTypeUseCase(
-    #     attribute_type_dao=AttributeTypeDAO(
-    #         session,
-    #         create_attribute_dir_gateway=CreateAttributeDirGateway(
-    #             session=session,
-    #             entity_type_dao=entity_type_dao,
-    #             attribute_value_validator=attribute_value_validator,
-    #             role_use_case=role_use_case,
-    #         ),
-    #     ),
-    #     attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
-    #     object_class_dao=object_class_dao,
-    # )
-    # ats = await attribute_type_use_case.get_all()
-    # for _at in ats:
-    #     await attribute_type_use_case.create_ldap(_at)
+    attribute_type_use_case = AttributeTypeUseCase(
+        attribute_type_dao=AttributeTypeDAO(
+            session,
+            create_attribute_dir_gateway=CreateAttributeDirGateway(
+                session=session,
+                entity_type_dao=entity_type_dao,
+                attribute_value_validator=attribute_value_validator,
+                role_use_case=role_use_case,
+            ),
+        ),
+        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
+        object_class_dao=object_class_dao,
+    )
+    for attr_type_name in (  # TODO это для ролевки тестов, по идее нужное.
+        "description",
+        "posixEmail",
+        "userPrincipalName",
+        "userAccountControl",
+        "cn",
+    ):
+        _at = await attribute_type_use_case.get_depricated(attr_type_name)
+        if not _at:
+            raise ValueError(
+                f"setup_session:: AttributeType {attr_type_name} not found",
+            )
+        await attribute_type_use_case.create(_at)
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
@@ -1062,7 +1072,7 @@ async def setup_session(
             no_user_modification=False,
             is_system=True,
         ),
-    )  # TODO тут надо добавить атрибуты которые нужны для тестов ролевки
+    )
     await session.commit()
 
 
@@ -1450,13 +1460,13 @@ def admin_creds(admin_user: dict) -> TestAdminCreds:
 @pytest.fixture
 def user_with_login_perm() -> dict:
     """Get user data."""
-    return TEST_DATA[1]["children"][2]["organizationalPerson"]  # type: ignore
+    return TEST_DATA[1]["children"][2]["organizationalPerson"]  # type: ignore  # TODO REAL SHIT
 
 
 @pytest.fixture
 def admin_user() -> dict:
     """Get admin user data."""
-    return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore
+    return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore  # TODO REAL SHIT
 
 
 @pytest.fixture

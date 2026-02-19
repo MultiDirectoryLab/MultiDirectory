@@ -31,7 +31,7 @@ async def create_one_attribute_type(
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
     """Create a new Attribute Type."""
-    await adapter.create_ldap(request_data)
+    await adapter.create(request_data)
 
 
 @ldap_schema_router.get(

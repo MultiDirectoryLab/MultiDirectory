@@ -68,7 +68,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         ats = await attribute_type_use_case.get_all()
         for _at in ats:
-            await attribute_type_use_case.create_ldap(_at)
+            await attribute_type_use_case.create(_at)
 
         await session.commit()
 
