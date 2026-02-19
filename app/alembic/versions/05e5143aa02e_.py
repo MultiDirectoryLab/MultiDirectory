@@ -26,6 +26,8 @@ down_revision: None | str = "2dadf40c026a"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
+get_base_directories
+
 
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
@@ -35,8 +37,8 @@ def upgrade(container: AsyncContainer) -> None:
             session = await cnt.get(AsyncSession)
             entity_type_use_case = await cnt.get(EntityTypeUseCase)
 
-        if not await get_base_directories(session):
-            return
+        # if not await get_base_directories(session):
+        #     return
 
         for entity_type_data in ENTITY_TYPE_DATAS:
             if entity_type_data["name"] in (
@@ -84,7 +86,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         await session.commit()
 
-    op.run_async(_update_entity_types)
+    # op.run_async(_update_entity_types)  # TODO раскоментить
     op.run_async(_create_ldap_attributes)
     # op.run_async(_create_ldap_object_classes)   # noqa: ERA001
 

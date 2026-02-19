@@ -2,7 +2,10 @@
 
 from fastapi import status
 
-from api.ldap_schema.schema import AttributeTypeSchema
+from api.ldap_schema.schema import (
+    AttributeTypeSchema,
+    AttributeTypeUpdateSchema,
+)
 
 test_modify_one_attribute_type_dataset = [
     {
@@ -16,12 +19,12 @@ test_modify_one_attribute_type_dataset = [
             is_system=False,
             is_included_anr=False,
         ),
-        "attribute_type_changes": {
-            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
-            "single_value": True,
-            "no_user_modification": False,
-            "is_included_anr": False,
-        },
+        "attribute_type_changes": AttributeTypeUpdateSchema(
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_included_anr=False,
+        ),
         "status_code": status.HTTP_200_OK,
     },
     {
@@ -35,12 +38,12 @@ test_modify_one_attribute_type_dataset = [
             is_system=False,
             is_included_anr=False,
         ),
-        "attribute_type_changes": {
-            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
-            "single_value": True,
-            "no_user_modification": False,
-            "is_included_anr": False,
-        },
+        "attribute_type_changes": AttributeTypeUpdateSchema(
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_included_anr=False,
+        ),
         "status_code": status.HTTP_400_BAD_REQUEST,
     },
     {
@@ -54,12 +57,12 @@ test_modify_one_attribute_type_dataset = [
             is_system=True,
             is_included_anr=False,
         ),
-        "attribute_type_changes": {
-            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
-            "single_value": True,
-            "no_user_modification": False,
-            "is_included_anr": False,
-        },
+        "attribute_type_changes": AttributeTypeUpdateSchema(
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_included_anr=False,
+        ),
         "status_code": status.HTTP_200_OK,
     },
 ]

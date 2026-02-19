@@ -12,14 +12,30 @@ import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, or_
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
-from entities import Attribute, AttributeType, ObjectClass
+from entities import Attribute
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+    AttributeTypeSystemFlagsUseCase,
+)
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
+from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.setup_gateway import CreateAttributeDirGateway
+from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -370,6 +386,41 @@ def upgrade(container: AsyncContainer) -> None:
     async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+            object_class_dao = ObjectClassDAO(session=session)
+            attribute_value_validator = AttributeValueValidator()
+            attribute_type_system_flags_use_case = (
+                AttributeTypeSystemFlagsUseCase()
+            )
+            attribute_type_use_case = AttributeTypeUseCase(
+                attribute_type_dao=AttributeTypeDAO(
+                    session=session,
+                    create_attribute_dir_gateway=CreateAttributeDirGateway(
+                        session=session,
+                        entity_type_dao=EntityTypeDAO(
+                            session=session,
+                            object_class_dao=object_class_dao,
+                            attribute_value_validator=attribute_value_validator,
+                        ),
+                        attribute_value_validator=attribute_value_validator,
+                        role_use_case=RoleUseCase(
+                            role_dao=RoleDAO(session=session),
+                            access_control_entry_dao=AccessControlEntryDAO(
+                                session=session,
+                            ),
+                        ),
+                    ),
+                ),
+                attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
+                object_class_dao=object_class_dao,
+            )  # TODO либо merge либо инициализация DAO/use case прям тут
+            object_class_use_case = ObjectClassUseCase(
+                object_class_dao=object_class_dao,
+                entity_type_dao=EntityTypeDAO(
+                    session=session,
+                    object_class_dao=object_class_dao,
+                    attribute_value_validator=attribute_value_validator,
+                ),
+            )  # TODO либо merge либо инициализация DAO/use case прям тут
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
@@ -377,22 +428,21 @@ def upgrade(container: AsyncContainer) -> None:
             ("posixAccount", ["posixEmail"]),
             ("organizationalUnit", ["title", "jpegPhoto"]),
         ):
-            object_class = await session.scalar(
-                select(ObjectClass)
-                .filter_by(name=oc_name)
-                .options(selectinload(qa(ObjectClass.attribute_types_may))),
-            )
+            object_class = await object_class_use_case.get_raw_by_name(oc_name)
 
             if not object_class:
                 continue
 
-            attribute_types = await session.scalars(
-                select(AttributeType)
-                .where(qa(AttributeType.name).in_(at_names),
-                ),
-            )  # fmt: skip
+            # object_class = await session.merge(object_class)  # TODO либо merge либо инициализация DAO/use case прям тут
 
-            object_class.attribute_types_may.extend(attribute_types.all())
+            attribute_types = (
+                await attribute_type_use_case.get_all_raw_by_names_deprecated(
+                    at_names
+                )
+            )
+            # attribute_types = [await session.merge(at) for at in attribute_types]  # TODO либо merge либо инициализация DAO/use case прям тут
+
+            object_class.attribute_types_may.extend(attribute_types)
 
         await session.commit()
 

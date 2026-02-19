@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import ClassVar
 
 from abstract_service import AbstractService
+from entities import ObjectClass
 from enums import AuthorizationRules
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
@@ -48,6 +49,10 @@ class ObjectClassUseCase(AbstractService):
     async def create_ldap(self, dto: ObjectClassDTO[None, str]) -> None:
         """Create a new Object Class."""
         await self._object_class_dao.create_ldap(dto)
+
+    async def get_raw_by_name(self, name: str) -> ObjectClass:
+        """Get Object Class by name without related data."""
+        return await self._object_class_dao.get_raw_by_name(name)
 
     async def get(self, name: str) -> ObjectClassDTO:
         """Get Object Class by name."""

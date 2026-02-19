@@ -8,12 +8,15 @@ Create Date: 2025-11-11 08:33:46.685338
 
 import sqlalchemy as sa
 from alembic import op
-from dishka import AsyncContainer
+from dishka import AsyncContainer, Scope
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from entities import AttributeType
-from repo.pg.tables import queryable_attr as qa
+from extra.alembic_utils import temporary_stub_column2
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
 
 # revision identifiers, used by Alembic.
 revision: None | str = "f24ed0e49df2"
@@ -35,7 +38,8 @@ _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES = (
 )
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+@temporary_stub_column2("AttributeTypes", "system_flags", sa.Integer())
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -44,9 +48,17 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         "AttributeTypes",
         sa.Column("is_included_anr", sa.Boolean(), nullable=True),
     )
-    session.execute(
-        sa.update(AttributeType).values({"is_included_anr": False}),
-    )
+
+    async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+
+        await at_type_use_case.false_all_is_included_anr()
+        await session.flush()
+
+    op.run_async(_set_attr_replication_flag1)
+
     op.alter_column("AttributeTypes", "is_included_anr", nullable=False)
 
     op.alter_column(
@@ -56,14 +68,24 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         nullable=True,
     )
 
-    updated_attrs = session.execute(
-        sa.update(AttributeType)
-        .where(qa(AttributeType.name).in_(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES))
-        .values({"is_included_anr": True})
-        .returning(qa(AttributeType.name)),
-    )
-    if len(updated_attrs.all()) != len(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES):
-        raise ValueError("Not all expected attributes were found in the DB.")
+    async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+
+        len_updated_attrs = (
+            await at_type_use_case.update_and_get_migration_f24ed(
+                _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES,
+            )
+        )
+        await session.flush()
+
+        if len(len_updated_attrs) != len(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES):
+            raise ValueError(
+                "Not all expected attributes were found in the DB.",
+            )
+
+    op.run_async(_set_attr_replication_flag2)
 
     session.commit()
 

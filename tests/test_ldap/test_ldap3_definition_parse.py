@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import AttributeType, ObjectClass
+from entities import ObjectClass
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -38,10 +38,7 @@ test_ldap3_parse_attribute_types_dataset = [
 async def test_ldap3_parse_attribute_types(test_dataset: list[str]) -> None:
     """Test parse ldap3 attribute types."""
     for raw_definition in test_dataset:
-        attribute_type: AttributeType = RDParser.create_attribute_type_by_raw(
-            raw_definition,
-        )
-
+        attribute_type = RDParser.create_attribute_type_by_raw(raw_definition)
         assert raw_definition == attribute_type.get_raw_definition()
 
 

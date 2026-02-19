@@ -250,6 +250,10 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             )
         return object_class
 
+    async def get_raw_by_name(self, name: str) -> ObjectClass:
+        """Get Object Class by name without related data."""
+        return await self._get_one_raw_by_name(name)
+
     async def get(self, name: str) -> ObjectClassDTO:
         """Get single Object Class by name.
 
@@ -292,9 +296,7 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         if dto.attribute_types_must:
             must_query = await self.__session.scalars(
                 select(AttributeType).where(
-                    qa(AttributeType.name).in_(
-                        dto.attribute_types_must,
-                    ),
+                    qa(AttributeType.name).in_(dto.attribute_types_must),
                 ),
             )
             obj.attribute_types_must.extend(must_query.all())

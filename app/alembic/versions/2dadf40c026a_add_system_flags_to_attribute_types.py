@@ -14,7 +14,6 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from entities import AttributeType
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
@@ -144,23 +143,31 @@ def upgrade(container: AsyncContainer) -> None:
         ),
     )
 
-    session.execute(sa.update(AttributeType).values({"system_flags": 0}))
+    async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001   # TODO rename
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            at_type_use_case = await cnt.get(AttributeTypeUseCase)
 
-    async def _set_attr_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
+        await at_type_use_case.zero_all_replicated_flags()
+        await session.commit()
+
+    op.run_async(_set_attr_replication_flag1)
+
+    async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001   # TODO rename
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCase)
 
         for name in _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES:
             with contextlib.suppress(AttributeTypeNotFoundError):
-                await at_type_use_case.set_attr_replication_flag(
+                await at_type_use_case.set_attr_replication_flag_depricated(
                     name,
                     need_to_replicate=False,
                 )
 
         await session.commit()
 
-    op.run_async(_set_attr_replication_flag)
+    op.run_async(_set_attr_replication_flag2)
 
     op.alter_column("AttributeTypes", "system_flags", nullable=False)
 

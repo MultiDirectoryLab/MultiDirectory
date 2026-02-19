@@ -31,7 +31,7 @@ async def create_one_attribute_type(
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
     """Create a new Attribute Type."""
-    await adapter.create(request_data)
+    await adapter.create_ldap(request_data)
 
 
 @ldap_schema_router.get(
@@ -44,6 +44,18 @@ async def get_one_attribute_type(
 ) -> AttributeTypeSchema[int]:
     """Retrieve a one Attribute Type."""
     return await adapter.get(attribute_type_name)
+
+
+@ldap_schema_router.get(
+    "/attribute_type/{attribute_type_name}/deprecated",
+    error_map=error_map,
+)
+async def get_one_attribute_type_deprecated(
+    attribute_type_name: str,
+    adapter: FromDishka[AttributeTypeFastAPIAdapter],
+) -> AttributeTypeSchema[int]:
+    """Retrieve a one Attribute Type."""
+    return await adapter.get_deprecated(attribute_type_name)
 
 
 @ldap_schema_router.get(
@@ -69,7 +81,10 @@ async def modify_one_attribute_type(
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
     """Modify an Attribute Type."""
-    await adapter.update(name=attribute_type_name, data=request_data)
+    await adapter.update(
+        name=attribute_type_name,
+        data=request_data,
+    )
 
 
 @ldap_schema_router.post(

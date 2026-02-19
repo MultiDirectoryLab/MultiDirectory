@@ -92,3 +92,30 @@ class AttributeTypeFastAPIAdapter(
     _converter_to_dto = staticmethod(_convert_schema_to_dto)
     _converter_to_schema = staticmethod(_convert_dto_to_schema)
     _converter_update_sch_to_dto = staticmethod(_convert_update_uschema_to_dto)
+
+    async def create_ldap(
+        self,
+        request_data: AttributeTypeSchema[None],
+    ) -> None:
+        """Create a new Attribute Type."""
+        await self._service.create_ldap(self._converter_to_dto(request_data))
+
+    async def update_depricated(
+        self,
+        name: str,
+        data: AttributeTypeUpdateSchema,
+    ) -> None:
+        """Modify an Attribute Type."""
+        dto = self._converter_update_sch_to_dto(data)
+        await self._service.update_depricated(
+            name=name,
+            dto=dto,
+        )
+
+    async def get_deprecated(
+        self,
+        name: str,
+    ) -> AttributeTypeSchema[int]:
+        """Retrieve a one Attribute Type."""
+        dto = await self._service.get_depricated(name)
+        return self._converter_to_schema(dto)

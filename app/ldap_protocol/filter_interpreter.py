@@ -114,11 +114,25 @@ class FilterInterpreterProtocol(Protocol):
 
         if is_first_char_equal:
             vl = normalized.replace("=", "")
+            # attributes_expr.append(
+            #     and_(
+            #         qa(Attribute.name).in_(
+            #             select(qa(AttributeType.name))
+            #             .where(qa(AttributeType.is_included_anr).is_(True)),
+            #         ),
+            #         func.lower(Attribute.value) == vl,
+            #     ),
+            # )  # fmt: skip
+
             attributes_expr.append(
                 and_(
                     qa(Attribute.name).in_(
-                        select(qa(AttributeType.name))
-                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                        select(qa(Directory.name))
+                        .join(qa(Directory.attributes))
+                        .where(
+                            qa(Attribute.name) == "is_included_anr",
+                            qa(Attribute.value) == "True",  # TODO это верно?
+                        ),
                     ),
                     func.lower(Attribute.value) == vl,
                 ),

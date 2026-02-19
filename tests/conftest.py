@@ -381,7 +381,7 @@ class TestProvider(Provider):
             autocommit=False,
         )
 
-    @provide(scope=Scope.APP, cache=False)
+    @provide(scope=Scope.APP)
     async def get_session(
         self,
         engine: AsyncEngine,
@@ -1005,12 +1005,32 @@ async def setup_session(
         is_system=False,
     )
 
-    # NOTE: after setup environment we need base DN to be created
-    await password_use_cases.create_default_domain_policy()
-
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
+
+    # TODO delete that
+    # NOTE: after setup environment we need base DN to be created
+    # attribute_type_use_case = AttributeTypeUseCase(
+    #     attribute_type_dao=AttributeTypeDAO(
+    #         session,
+    #         create_attribute_dir_gateway=CreateAttributeDirGateway(
+    #             session=session,
+    #             entity_type_dao=entity_type_dao,
+    #             attribute_value_validator=attribute_value_validator,
+    #             role_use_case=role_use_case,
+    #         ),
+    #     ),
+    #     attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
+    #     object_class_dao=object_class_dao,
+    # )
+    # ats = await attribute_type_use_case.get_all()
+    # for _at in ats:
+    #     await attribute_type_use_case.create_ldap(_at)
+
+    # NOTE: after setup environment we need base DN to be created
+    await password_use_cases.create_default_domain_policy()
+
     await role_use_case.create_domain_admins_role()
 
     await role_use_case._role_dao.create(  # noqa: SLF001
@@ -1042,7 +1062,7 @@ async def setup_session(
             no_user_modification=False,
             is_system=True,
         ),
-    )
+    )  # TODO тут надо добавить атрибуты которые нужны для тестов ролевки
     await session.commit()
 
 

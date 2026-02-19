@@ -15,11 +15,18 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
+from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 
 class CreateAttributeDirGateway:
     """Setup use case."""
+
+    __session: AsyncSession
+    __entity_type_dao: EntityTypeDAO
+    __attribute_value_validator: AttributeValueValidator
+    __role_use_case: RoleUseCase
+    __parent: Directory | None
 
     def __init__(
         self,
@@ -38,25 +45,28 @@ class CreateAttributeDirGateway:
         self.__entity_type_dao = entity_type_dao
         self.__attribute_value_validator = attribute_value_validator
         self.__role_use_case = role_use_case
+        self.__parent = None
 
     async def create_dir(
         self,
         data: dict,
         is_system: bool,
-        parent: Directory,
     ) -> None:
         """Create data recursively."""
+        if not self.__parent:
+            self.__parent = (await get_base_directories(self.__session))[0]
+
         dir_ = Directory(
             is_system=is_system,
             object_class=data["object_class"],
             name=data["name"],
         )
         dir_.groups = []
-        dir_.create_path(parent, dir_.get_dn_prefix())
+        dir_.create_path(self.__parent, dir_.get_dn_prefix())
 
         self.__session.add(dir_)
         await self.__session.flush()
-        dir_.parent_id = parent.id
+        dir_.parent_id = self.__parent.id
         await self.__session.refresh(dir_, ["id"])
 
         self.__session.add(
@@ -88,8 +98,7 @@ class CreateAttributeDirGateway:
 
         await self.__session.refresh(
             instance=dir_,
-            attribute_names=["attributes", "user"],
-            with_for_update=None,
+            attribute_names=["attributes"],
         )
         await self.__entity_type_dao.attach_entity_type_to_directory(
             directory=dir_,
@@ -100,7 +109,7 @@ class CreateAttributeDirGateway:
         await self.__session.flush()
 
         await self.__role_use_case.inherit_parent_aces(
-            parent_directory=parent,
+            parent_directory=self.__parent,
             directory=dir_,
         )
 
