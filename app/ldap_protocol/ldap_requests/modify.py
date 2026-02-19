@@ -25,8 +25,8 @@ from ldap_protocol.kerberos.exceptions import (
     KRBAPIConnectionError,
     KRBAPIForcePasswordChangeError,
     KRBAPILockPrincipalError,
+    KRBAPIModifyPrincipalError,
     KRBAPIPrincipalNotFoundError,
-    KRBAPIRenamePrincipalError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
@@ -78,7 +78,7 @@ MODIFY_EXCEPTION_STACK = (
     PermissionError,
     ModifyForbiddenError,
     KRBAPIPrincipalNotFoundError,
-    KRBAPIRenamePrincipalError,
+    KRBAPIModifyPrincipalError,
     KRBAPILockPrincipalError,
     KRBAPIForcePasswordChangeError,
 )
@@ -333,7 +333,7 @@ class ModifyRequest(BaseRequest):
             case ModifyForbiddenError():
                 return LDAPCodes.OPERATIONS_ERROR, str(err)
 
-            case KRBAPIRenamePrincipalError():
+            case KRBAPIModifyPrincipalError():
                 return LDAPCodes.UNAVAILABLE, "Kerberos error"
 
             case KRBAPIPrincipalNotFoundError():

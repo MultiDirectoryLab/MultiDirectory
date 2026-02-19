@@ -34,8 +34,8 @@ from .exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
     KRBAPIDeletePrincipalError,
+    KRBAPIModifyPrincipalError,
     KRBAPIPrincipalNotFoundError,
-    KRBAPIRenamePrincipalError,
     KRBAPISetupConfigsError,
     KRBAPISetupStashError,
     KRBAPISetupTreeError,
@@ -405,7 +405,7 @@ class KerberosService(AbstractService):
                 algorithms,
                 password,
             )
-        except KRBAPIRenamePrincipalError as exc:
+        except KRBAPIModifyPrincipalError as exc:
             raise KerberosDependencyError(
                 f"Error renaming principal: {exc}",
             ) from exc

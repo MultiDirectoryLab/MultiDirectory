@@ -132,7 +132,7 @@ class KRBAPIChangePasswordError(KRBAPIError):
     code = ErrorCodes.KERBEROS_API_CHANGE_PASSWORD_ERROR
 
 
-class KRBAPIRenamePrincipalError(KRBAPIError):
+class KRBAPIModifyPrincipalError(KRBAPIError):
     """Rename principal error."""
 
     code = ErrorCodes.KERBEROS_API_MODIFY_PRINCIPAL_ERROR

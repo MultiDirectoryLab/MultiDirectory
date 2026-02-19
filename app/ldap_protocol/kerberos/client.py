@@ -112,7 +112,7 @@ class KerberosMDAPIClient(AbstractKadmin):
             },
         )
         if response.status_code != 202:
-            raise krb_exc.KRBAPIRenamePrincipalError(response.text)
+            raise krb_exc.KRBAPIModifyPrincipalError(response.text)
 
     @logger_wraps()
     async def ktadd(
