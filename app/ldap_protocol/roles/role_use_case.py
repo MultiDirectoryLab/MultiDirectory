@@ -216,6 +216,31 @@ class RoleUseCase:
         )
         await self._access_control_entry_dao.create_bulk(aces)
 
+    async def add_read_only_role_to_krbadmin_group(self) -> None:
+        """Add Read Only role to krbadmin group."""
+        base_dn_list = await get_base_directories(self._role_dao._session)  # noqa: SLF001
+        if not base_dn_list:
+            return
+
+        try:
+            read_only_role = await self._role_dao.get_by_name(
+                RoleConstants.READ_ONLY_ROLE_NAME,
+            )
+        except RoleNotFoundError:
+            return
+        else:
+            new_groups_dn = [
+                RoleConstants.KERBEROS_GROUP_CN + base_dn_list[0].path_dn,
+                RoleConstants.READONLY_GROUP_CN + base_dn_list[0].path_dn,
+            ]
+
+            read_only_role.groups = new_groups_dn
+
+            await self._role_dao.update(
+                read_only_role.get_id(),
+                read_only_role,
+            )
+
     async def delete_kerberos_system_role(self) -> None:
         """Delete the Kerberos system role."""
         try:
