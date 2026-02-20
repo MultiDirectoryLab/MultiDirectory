@@ -279,3 +279,17 @@ class SamAccountTypeCodes(IntEnum):
     def to_hex(value: int) -> str:
         """Convert decimal value to hex string."""
         return hex(value)
+
+
+class SidPrefix(StrEnum):
+    """SID prefix."""
+
+    DOMAIN_IDENTIFIER = "S-1-5-21"
+    BUILT_IN_DOMAIN = "S-1-5-32"
+
+
+class GroupRid(IntEnum):
+    ADMINISTRATORS = 544
+    USERS = 545
+    GUESTS = 546
+    POWER_USERS = 547
