@@ -164,7 +164,11 @@ async def setup_dns(
     await adapter.setup(data)
 
 
-@dns_router.post("/state", error_map=error_map)
+@dns_router.post(
+    "/state",
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def set_dns_state(
     data: DNSServiceSetStateRequest,
     adapter: FromDishka[DNSFastAPIAdapter],
