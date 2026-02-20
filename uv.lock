@@ -252,6 +252,19 @@ wheels = [
 ]
 
 [[package]]
+name = "dnsdist-console"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "libnacl" },
+    { name = "scrypt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e3/f9/1d3eb92c2a94af1fd970b42e48584f544e832a3d40c86d14340f1def78db/dnsdist_console-1.6.0.tar.gz", hash = "sha256:4afb35b52640db5c4865aa6458147651c757907465204497e6c74f36f5a7eb0a", size = 10337, upload-time = "2025-04-02T10:29:53.382Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/54/5005c1355e3d97ee4cf7e5d118836d898d5ed58470ab8a63139dead16b14/dnsdist_console-1.6.0-py3-none-any.whl", hash = "sha256:074056c0364d6450636051bb1d49a0d07620ae9cf14b1b9ce17f130b8585adce", size = 11336, upload-time = "2025-04-02T10:29:52.132Z" },
+]
+
+[[package]]
 name = "dnspython"
 version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -475,6 +488,15 @@ wheels = [
 ]
 
 [[package]]
+name = "libnacl"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/fc/65daa1a3fd7dd939133c30c6d393ea47e32317d2195619923b67daa29d60/libnacl-2.1.0.tar.gz", hash = "sha256:f3418da7df29e6d9b11fd7d990289d16397dc1020e4e35192e11aee826922860", size = 42189, upload-time = "2023-08-06T21:23:56.86Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ad/ce/85fa0276de7303b44fef63e07c14d618b8630bbe41c7dd7e34db246eab8d/libnacl-2.1.0-py3-none-any.whl", hash = "sha256:a8546b221afe8b72b6a9f298cd92a4c1f90570d7b5baa295acb1913644e230a5", size = 21870, upload-time = "2023-08-06T21:23:55.12Z" },
+]
+
+[[package]]
 name = "loguru"
 version = "0.7.3"
 source = { registry = "https://pypi.org/simple" }
@@ -543,6 +565,7 @@ dependencies = [
     { name = "bcrypt" },
     { name = "cryptography" },
     { name = "dishka" },
+    { name = "dnsdist-console" },
     { name = "dnspython" },
     { name = "fastapi" },
     { name = "fastapi-error-map" },
@@ -597,6 +620,7 @@ requires-dist = [
     { name = "bcrypt", specifier = "==4.0.1" },
     { name = "cryptography", specifier = ">=44.0.1" },
     { name = "dishka", specifier = ">=1.6.0" },
+    { name = "dnsdist-console", specifier = ">=1.6.0" },
     { name = "dnspython", specifier = ">=2.7.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "fastapi-error-map", specifier = ">=0.9.8" },
@@ -1011,6 +1035,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/22/e6/7ed70048e89b01d728ccc950557a17ecf8df4127b08a56944b9d0bae61bc/ruff-0.11.9-py3-none-win32.whl", hash = "sha256:7fe1bc950e7d7b42caaee2a8a3bc27410547cc032c9558ee2e0f6d3b209e845a", size = 10548627, upload-time = "2025-05-09T16:19:33.657Z" },
     { url = "https://files.pythonhosted.org/packages/90/36/1da5d566271682ed10f436f732e5f75f926c17255c9c75cefb77d4bf8f10/ruff-0.11.9-py3-none-win_amd64.whl", hash = "sha256:52edaa4a6d70f8180343a5b7f030c7edd36ad180c9f4d224959c2d689962d964", size = 11634340, upload-time = "2025-05-09T16:19:35.815Z" },
     { url = "https://files.pythonhosted.org/packages/40/f7/70aad26e5877c8f7ee5b161c4c9fa0100e63fc4c944dc6d97b9c7e871417/ruff-0.11.9-py3-none-win_arm64.whl", hash = "sha256:bcf42689c22f2e240f496d0c183ef2c6f7b35e809f12c1db58f75d9aa8d630ca", size = 10741080, upload-time = "2025-05-09T16:19:39.605Z" },
+]
+
+[[package]]
+name = "scrypt"
+version = "0.9.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/38/c9b79f61c04fa79b8fae28213111a6f70d8249d4d789ca7030453326ab62/scrypt-0.9.4.tar.gz", hash = "sha256:0d212010ba8c2e55475ba6258f30cee4da0432017514d8f6e855b7f1f8c55c77", size = 84526, upload-time = "2025-08-05T05:54:37.283Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/aa/22/98e17e1ea6461a5c51c866192304182846fd004852f789dfece9f44c6553/scrypt-0.9.4-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:58f424ac1656d342b2651bf5577f1b2aad9959c2e41ebbadf591035b372368a9", size = 2293992, upload-time = "2025-08-05T06:00:53.887Z" },
+    { url = "https://files.pythonhosted.org/packages/32/d9/076f90cb1086e32ebab30123952f4f162c80c53b8814e35bedb4aa720241/scrypt-0.9.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:efaa359fab4682215d8826c5ff6ecda525d37eabfc0da4ab197a3fd95e6d5f87", size = 1508819, upload-time = "2025-08-05T06:04:54.445Z" },
+    { url = "https://files.pythonhosted.org/packages/87/c0/d59f086fc8a589db06eac0b3829e2956de7a4c34d7c99c20b3cf6a858627/scrypt-0.9.4-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:ee29481f0751eb4e91c4fca8895d44822d523225c796e0ed016a550e7f20f582", size = 2015695, upload-time = "2025-08-05T06:04:55.477Z" },
+    { url = "https://files.pythonhosted.org/packages/98/0d/f62590144acf914a2eb4c3689cc6a2ca737a379962b0358f00dd0a1445cb/scrypt-0.9.4-cp313-cp313-win_amd64.whl", hash = "sha256:6ae6a0f7ccf7df9f0612b9166abbff5b6dacc41661044a0d090111aeb5e0bcf2", size = 47267, upload-time = "2025-08-05T06:03:57.035Z" },
 ]
 
 [[package]]

@@ -18,6 +18,7 @@ dependencies = [
     "bcrypt==4.0.1",
     "cryptography>=44.0.1",
     "dishka>=1.6.0",
+    "dnsdist-console>=1.6.0",
     "dnspython>=2.7.0",
     "fastapi>=0.115.0",
     "fastapi-error-map>=0.9.8",

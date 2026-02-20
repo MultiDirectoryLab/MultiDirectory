@@ -1,61 +1,64 @@
-from .base import (
+from ldap_protocol.dns.clients import (
+    PowerDNSAuthHTTPClient,
+    PowerDNSDistClient,
+    PowerDNSRecursorHTTPClient,
+)
+from ldap_protocol.dns.constants import (
     DNS_MANAGER_IP_ADDRESS_NAME,
     DNS_MANAGER_STATE_NAME,
     DNS_MANAGER_ZONE_NAME,
-    AbstractDNSManager,
-    DNSForwardServerStatus,
-    DNSForwardZone,
-    DNSManagerSettings,
-    DNSManagerState,
-    DNSNotImplementedError,
-    DNSRecords,
-    DNSServerParam,
-    DNSServerParamName,
-    DNSZone,
-    DNSZoneParam,
-    DNSZoneParamName,
-    DNSZoneType,
 )
-from .dns_gateway import DNSStateGateway
-from .exceptions import DNSConnectionError, DNSError
-from .remote import RemoteDNSManager
-from .selfhosted import SelfHostedDNSManager
-from .stub import StubDNSManager
-
-
-async def get_dns_manager_class(
-    dns_state_gateway: DNSStateGateway,
-) -> type[AbstractDNSManager]:
-    """Get DNS manager class."""
-    dns_state = await dns_state_gateway.get_dns_state()
-    if dns_state == DNSManagerState.SELFHOSTED:
-        return SelfHostedDNSManager
-    elif dns_state == DNSManagerState.HOSTED:
-        return RemoteDNSManager
-    return StubDNSManager
-
+from ldap_protocol.dns.dns_gateway import DNSStateGateway
+from ldap_protocol.dns.dto import (
+    DNSForwardServerStatus,
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
+    DNSRRSetDTO,
+    DNSSettingsDTO,
+    PowerDNSSettingsDTO,
+)
+from ldap_protocol.dns.enums import (
+    DNSManagerState,
+    DNSRecordType,
+    PowerDNSZoneType,
+)
+from ldap_protocol.dns.exceptions import (
+    DNSConnectionError,
+    DNSError,
+    DNSNotImplementedError,
+)
+from ldap_protocol.dns.managers import (
+    AbstractDNSManager,
+    PowerDNSManager,
+    RemoteDNSManager,
+    StubDNSManager,
+)
+from ldap_protocol.dns.use_cases import DNSUseCase
 
 __all__ = [
     "get_dns_manager_class",
+    "DNSUseCase",
     "AbstractDNSManager",
+    "PowerDNSManager",
+    "PowerDNSAuthHTTPClient",
+    "PowerDNSRecursorHTTPClient",
+    "PowerDNSDistClient",
     "RemoteDNSManager",
-    "SelfHostedDNSManager",
     "StubDNSManager",
     "DNSStateGateway",
     "DNSForwardServerStatus",
-    "DNSForwardZone",
-    "DNSManagerSettings",
-    "DNSRecords",
-    "DNSServerParam",
-    "DNSZone",
-    "DNSZoneParam",
-    "DNSZoneType",
-    "DNSServerParamName",
-    "DNSZoneParamName",
-    "DNSConnectionError",
+    "DNSForwardZoneDTO",
+    "DNSSettingsDTO",
+    "PowerDNSSettingsDTO",
+    "DNSRRSetDTO",
+    "DNSMasterZoneDTO",
+    "PowerDNSZoneType",
+    "DNSRecordType",
+    "DNSManagerState",
     "DNS_MANAGER_IP_ADDRESS_NAME",
     "DNS_MANAGER_ZONE_NAME",
     "DNS_MANAGER_STATE_NAME",
     "DNSNotImplementedError",
     "DNSError",
+    "DNSConnectionError",
 ]
