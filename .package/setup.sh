@@ -80,6 +80,21 @@ else
     echo "Directory already exists: certs"
 fi
 
+# DNS_API_KEY
+if ! get_env_var "PDNS_API_KEY"; then
+    dns_api_key=$(openssl rand -hex 16)
+    sed -i "s|supersecretapikey|${dns_api_key}|g" recursor.conf
+    sed -i "s|supersecretapikey|${dns_api_key}|g" pdns.conf
+    add_env_var "PDNS_API_KEY" "$dns_api_key"
+fi
+
+# DNSDIST_API_KEY
+if ! get_env_var "PDNS_DIST_KEY"; then
+    dnsdist_key=$(openssl rand -base64 32)
+    sed -i "s|supersecretapikey|${dnsdist_key}|g" dnsdist.conf
+    add_env_var "PDNS_DIST_KEY" "$dnsdist_key"
+fi
+
 # HOST_MACHINE_NAME
 if ! get_env_var "HOST_MACHINE_NAME"; then
     host_machine_name=$(hostname)

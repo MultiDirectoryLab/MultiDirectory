@@ -1,0 +1,63 @@
+"""Enums for DNS module.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
+from enum import Enum, StrEnum
+
+
+class DNSdistCommandTypes(Enum):
+    """PDNSdist command types."""
+
+    GENERIC = "generic"
+    SHOW_RULES = "show_rules"
+    COMMANDS_DELTA = "commands_delta"
+
+
+class DNSRecordType(StrEnum):
+    """PowerDNS Record Types."""
+
+    A = "A"
+    AAAA = "AAAA"
+    CNAME = "CNAME"
+    MX = "MX"
+    TXT = "TXT"
+    NS = "NS"
+    SOA = "SOA"
+    SRV = "SRV"
+    PTR = "PTR"
+
+
+class PowerDNSZoneType(StrEnum):
+    """PowerDNS Zone Types."""
+
+    MASTER = "Master"
+    FORWARDED = "Forwarded"
+    NATIVE = "Native"
+    PRIMARY = "Primary"
+
+
+class PowerDNSRecordChangeType(StrEnum):
+    """PowerDNS Record Change Types."""
+
+    REPLACE = "REPLACE"
+    DELETE = "DELETE"
+    EXTEND = "EXTEND"
+    PRUNE = "PRUNE"
+
+
+class DNSForwarderServerStatus(StrEnum):
+    """Forwarder DNS server statuses."""
+
+    VALIDATED = "validated"
+    NOT_VALIDATED = "not validated"
+    NOT_FOUND = "not found"
+
+
+class DNSManagerState(StrEnum):
+    """DNSManager state enum."""
+
+    NOT_CONFIGURED = "0"
+    SELFHOSTED = "1"
+    HOSTED = "2"

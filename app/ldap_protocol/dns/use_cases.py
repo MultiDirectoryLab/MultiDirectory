@@ -10,18 +10,17 @@ from typing import ClassVar
 from abstract_service import AbstractService
 from config import Settings
 from enums import AuthorizationRules
-from ldap_protocol.dns.base import (
-    AbstractDNSManager,
-    DNSForwardServerStatus,
-    DNSForwardZone,
-    DNSManagerSettings,
-    DNSRecords,
-    DNSServerParam,
-    DNSZone,
-    DNSZoneParam,
-    DNSZoneType,
-)
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
+from ldap_protocol.dns.dto import (
+    DNSForwardServerStatus,
+    DNSForwardZoneDTO,
+    DNSMasterZoneDTO,
+    DNSRRSetDTO,
+    DNSSettingsDTO,
+)
+from ldap_protocol.dns.enums import DNSManagerState
+from ldap_protocol.dns.exceptions import DNSError, DNSSetupError
+from ldap_protocol.dns.managers.abstract_dns_manager import AbstractDNSManager
 
 
 class DNSUseCase(AbstractService):
@@ -31,7 +30,7 @@ class DNSUseCase(AbstractService):
         self,
         dns_manager: AbstractDNSManager,
         dns_gateway: DNSStateGateway,
-        dns_settings: DNSManagerSettings,
+        dns_settings: DNSSettingsDTO,
         settings: Settings,
     ) -> None:
         """Initialize DNS use case."""
@@ -40,116 +39,94 @@ class DNSUseCase(AbstractService):
         self._dns_settings = dns_settings
         self._dns_gateway = dns_gateway
 
-    async def setup_dns(
+    async def setup(
         self,
-        dns_status: str,
-        domain: str,
-        dns_ip_address: str | IPv4Address | IPv6Address | None,
-        tsig_key: str | None,
+        dns_settings: DNSSettingsDTO | None,
     ) -> None:
         """Set up DNS server and DNS manager."""
-        setup_data = await self._dns_manager.setup(
-            dns_status,
-            domain,
-            dns_ip_address or self._settings.DNS_BIND_HOST,
-            tsig_key,
-        )
-        if self._dns_settings.domain is not None:
-            await self._dns_gateway.update_settings(setup_data)
-        else:
-            await self._dns_gateway.create_settings(setup_data)
+        state = await self._dns_gateway.get_state()
 
-        await self._dns_gateway.setup_dns_state(dns_status)
+        if state == DNSManagerState.SELFHOSTED:
+            await self._dns_manager.setup(
+                self._dns_settings,
+            )
+        elif state == DNSManagerState.HOSTED:
+            if dns_settings is None:
+                raise DNSSetupError()
+            if self._dns_settings.dns_server_ip is None:
+                await self._dns_gateway.create_settings(dns_settings)
+            else:
+                await self._dns_gateway.update_settings(dns_settings)
+        else:
+            raise DNSSetupError()
 
     async def create_record(
         self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        ttl: int | None,
-        zone_name: str | None = None,
+        zone_id: str,
+        record: DNSRRSetDTO,
     ) -> None:
         """Create DNS record."""
-        await self._dns_manager.create_record(
-            hostname,
-            ip,
-            record_type,
-            ttl,
-            zone_name,
-        )
+        await self._dns_manager.create_record(zone_id, record)
 
-    async def delete_record(
-        self,
-        hostname: str,
-        ip: str,
-        record_type: str,
-        zone_name: str | None = None,
-    ) -> None:
-        """Delete DNS record."""
-        await self._dns_manager.delete_record(
-            hostname,
-            ip,
-            record_type,
-            zone_name,
-        )
-
-    async def update_record(
-        self,
-        hostname: str,
-        ip: str | None,
-        record_type: str,
-        ttl: int | None,
-        zone_name: str | None = None,
-    ) -> None:
-        """Update DNS record."""
-        await self._dns_manager.update_record(
-            hostname,
-            ip,
-            record_type,
-            ttl,
-            zone_name,
-        )
-
-    async def get_all_records(self) -> list[DNSRecords]:
+    async def get_records(self, zone_id: str) -> list[DNSRRSetDTO]:
         """Get all DNS records."""
-        return await self._dns_manager.get_all_records()
+        return await self._dns_manager.get_records(zone_id)
 
-    async def get_all_zones_records(self) -> list[DNSZone]:
+    async def update_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
+        """Update DNS record."""
+        await self._dns_manager.update_record(zone_id, record)
+
+    async def delete_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
+        """Delete DNS record."""
+        await self._dns_manager.delete_record(zone_id, record)
+
+    async def create_master_zone(self, zone: DNSMasterZoneDTO) -> None:
+        """Create DNS master zone."""
+        await self._dns_manager.create_master_zone(zone)
+
+    async def create_forward_zone(self, zone: DNSForwardZoneDTO) -> None:
+        """Create DNS forward zone."""
+        await self._dns_manager.create_forward_zone(zone)
+
+    async def get_master_zones(self) -> list[DNSMasterZoneDTO]:
         """Get all DNS zones."""
-        return await self._dns_manager.get_all_zones_records()
+        return await self._dns_manager.get_master_zones()
 
-    async def get_forward_zones(self) -> list[DNSForwardZone]:
+    async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Get all forward zones."""
         return await self._dns_manager.get_forward_zones()
 
-    async def create_zone(
-        self,
-        zone_name: str,
-        zone_type: DNSZoneType,
-        nameserver: str | None,
-        params: list[DNSZoneParam],
-    ) -> None:
-        """Create DNS zone."""
-        await self._dns_manager.create_zone(
-            zone_name,
-            zone_type,
-            nameserver,
-            params,
-        )
+    async def update_master_zone(self, zone: DNSMasterZoneDTO) -> None:
+        """Update DNS master zone."""
+        await self._dns_manager.update_master_zone(zone)
 
-    async def update_zone(
-        self,
-        zone_name: str,
-        params: list[DNSZoneParam] | None,
-    ) -> None:
-        """Update DNS zone."""
-        await self._dns_manager.update_zone(zone_name, params)
+    async def update_forward_zone(self, zone: DNSForwardZoneDTO) -> None:
+        """Update DNS forward zone."""
+        await self._dns_manager.update_forward_zone(zone)
 
-    async def delete_zone(self, zone_names: list[str]) -> None:
-        """Delete DNS zone."""
-        await self._dns_manager.delete_zone(zone_names)
+    async def delete_master_zones(self, zone_ids: list[str]) -> None:
+        """Delete DNS master zones."""
+        last_error = None
+        try:
+            for zone_id in zone_ids:
+                await self._dns_manager.delete_master_zone(zone_id)
+        except DNSError as e:
+            last_error = e
+        if last_error:
+            raise last_error
 
-    async def check_forward_dns_server(
+    async def delete_forward_zones(self, zone_ids: list[str]) -> None:
+        """Delete DNS forward zones."""
+        last_error = None
+        try:
+            for zone_id in zone_ids:
+                await self._dns_manager.delete_forward_zone(zone_id)
+        except DNSError as e:
+            last_error = e
+        if last_error:
+            raise last_error
+
+    async def check_forward_server(
         self,
         dns_server_ip: IPv4Address | IPv6Address,
         host_dns_servers: list[str],
@@ -160,40 +137,27 @@ class DNSUseCase(AbstractService):
             host_dns_servers,
         )
 
-    async def update_server_options(
-        self,
-        params: list[DNSServerParam],
-    ) -> None:
-        """Update DNS server options."""
-        await self._dns_manager.update_server_options(params)
-
-    async def restart_server(self) -> None:
-        """Restart DNS server."""
-        await self._dns_manager.restart_server()
-
-    async def reload_zone(self, zone_name: str) -> None:
-        """Reload DNS zone."""
-        await self._dns_manager.reload_zone(zone_name)
-
-    async def get_server_options(self) -> list[DNSServerParam]:
-        """Get DNS server options."""
-        return await self._dns_manager.get_server_options()
-
-    async def get_dns_status(self) -> dict[str, str | None]:
+    async def get_status(self) -> dict[str, str | None]:
         """Get DNS status."""
         return {
-            "dns_status": await self._dns_gateway.get_dns_state(),
-            "zone_name": self._dns_settings.zone_name,
-            "dns_server_ip": self._dns_settings.dns_server_ip,
+            "dns_status": await self._dns_gateway.get_state(),
+            "zone_name": self._dns_settings.domain,
+            "dns_server_ip": str(self._dns_settings.dns_server_ip)
+            if self._dns_settings.dns_server_ip is not None
+            else None,
         }
 
-    async def check_dns_forward_zone(
+    async def set_state(self, state: DNSManagerState) -> None:
+        """Set DNS manager state."""
+        await self._dns_gateway.set_state(state)
+
+    async def check_forward_zone(
         self,
         data: list[IPv4Address | IPv6Address],
     ) -> list[DNSForwardServerStatus]:
         """Check DNS forward zone for availability."""
         return [
-            await self.check_forward_dns_server(
+            await self.check_forward_server(
                 dns_server_ip,
                 self._settings.HOST_DNS_SERVERS,
             )
@@ -201,20 +165,20 @@ class DNSUseCase(AbstractService):
         ]
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
-        setup_dns.__name__: AuthorizationRules.DNS_SETUP_DNS,
+        setup.__name__: AuthorizationRules.DNS_SETUP_DNS,
         create_record.__name__: AuthorizationRules.DNS_CREATE_RECORD,
         delete_record.__name__: AuthorizationRules.DNS_DELETE_RECORD,
         update_record.__name__: AuthorizationRules.DNS_UPDATE_RECORD,
-        get_all_records.__name__: AuthorizationRules.DNS_GET_ALL_RECORDS,
-        get_dns_status.__name__: AuthorizationRules.DNS_GET_DNS_STATUS,
-        get_all_zones_records.__name__: AuthorizationRules.DNS_GET_ALL_ZONES_RECORDS,  # noqa: E501
-        get_forward_zones.__name__: AuthorizationRules.DNS_GET_FORWARD_ZONES,
-        create_zone.__name__: AuthorizationRules.DNS_CREATE_ZONE,
-        update_zone.__name__: AuthorizationRules.DNS_UPDATE_ZONE,
-        delete_zone.__name__: AuthorizationRules.DNS_DELETE_ZONE,
-        check_dns_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
-        reload_zone.__name__: AuthorizationRules.DNS_RELOAD_ZONE,
-        update_server_options.__name__: AuthorizationRules.DNS_UPDATE_SERVER_OPTIONS,  # noqa: E501
-        get_server_options.__name__: AuthorizationRules.DNS_GET_SERVER_OPTIONS,
-        restart_server.__name__: AuthorizationRules.DNS_RESTART_SERVER,
+        get_records.__name__: AuthorizationRules.DNS_GET_ALL_RECORDS,
+        get_status.__name__: AuthorizationRules.DNS_GET_DNS_STATUS,
+        delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
+        get_master_zones.__name__: AuthorizationRules.DNS_GET_MASTER_ZONES,
+        get_forward_zones.__name__: AuthorizationRules.DNS_GET_FWD_ZONES,
+        create_master_zone.__name__: AuthorizationRules.DNS_CREATE_MASTER_ZONE,
+        create_forward_zone.__name__: AuthorizationRules.DNS_CREATE_FWD_ZONE,
+        update_master_zone.__name__: AuthorizationRules.DNS_UPDATE_MASTER_ZONE,
+        update_forward_zone.__name__: AuthorizationRules.DNS_UPDATE_FWD_ZONE,
+        delete_master_zones.__name__: AuthorizationRules.DNS_DELETE_MASTER_ZONES,  # noqa: E501
+        delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
+        check_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
     }
