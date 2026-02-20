@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_column2
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
-    AttributeTypeUseCase,
+from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+    AttributeTypeUseCaseDeprecated,
 )
 
 # revision identifiers, used by Alembic.
@@ -52,9 +52,9 @@ def upgrade(container: AsyncContainer) -> None:
     async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
 
-        await at_type_use_case.false_all_is_included_anr()
+        await at_type_use_case.false_all_is_included_anr_deprecated()
         await session.flush()
 
     op.run_async(_set_attr_replication_flag1)
@@ -71,10 +71,10 @@ def upgrade(container: AsyncContainer) -> None:
     async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
 
         len_updated_attrs = (
-            await at_type_use_case.update_and_get_migration_f24ed(
+            await at_type_use_case.update_and_get_migration_f24ed_deprecated(
                 _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES,
             )
         )

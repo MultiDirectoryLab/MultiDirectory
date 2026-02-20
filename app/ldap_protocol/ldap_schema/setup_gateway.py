@@ -53,9 +53,6 @@ class CreateAttributeDirGateway:
         is_system: bool,
     ) -> None:
         """Create data recursively."""
-        print("SOSI")
-        print((await self.__session.execute(select(Directory))).all())
-
         if not self.__parent:
             self.__parent = (
                 await self.__session.execute(

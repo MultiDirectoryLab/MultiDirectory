@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DATAS
 from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+    AttributeTypeUseCaseDeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
@@ -62,11 +65,14 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             attribute_type_use_case = await cnt.get(AttributeTypeUseCase)
+            attribute_type_use_case_deprecated = await cnt.get(
+                AttributeTypeUseCaseDeprecated,
+            )
 
         if not await get_base_directories(session):
             return
 
-        ats = await attribute_type_use_case.get_all()
+        ats = await attribute_type_use_case_deprecated.get_all_deprecated()
         for _at in ats:
             await attribute_type_use_case.create(_at)
 

@@ -18,12 +18,14 @@ from sqlalchemy.orm import Session
 
 from entities import Attribute
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
+    AttributeTypeDAODeprecated,
+)
+from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+    AttributeTypeUseCaseDeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
-)
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
-    AttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
@@ -32,10 +34,6 @@ from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
-from ldap_protocol.ldap_schema.setup_gateway import CreateAttributeDirGateway
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -360,13 +358,13 @@ def upgrade(container: AsyncContainer) -> None:
     async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            attribute_type_dao = await cnt.get(AttributeTypeDAO)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
 
         for oid, name in (
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await attribute_type_dao.create_deprecated(
+            await at_type_use_case.create_deprecated(
                 AttributeTypeDTO(
                     oid=oid,
                     name=name,
@@ -391,24 +389,9 @@ def upgrade(container: AsyncContainer) -> None:
             attribute_type_system_flags_use_case = (
                 AttributeTypeSystemFlagsUseCase()
             )
-            attribute_type_use_case = AttributeTypeUseCase(
-                attribute_type_dao=AttributeTypeDAO(
+            attribute_type_use_case = AttributeTypeUseCaseDeprecated(
+                attribute_type_dao_deprecated=AttributeTypeDAODeprecated(
                     session=session,
-                    create_attribute_dir_gateway=CreateAttributeDirGateway(
-                        session=session,
-                        entity_type_dao=EntityTypeDAO(
-                            session=session,
-                            object_class_dao=object_class_dao,
-                            attribute_value_validator=attribute_value_validator,
-                        ),
-                        attribute_value_validator=attribute_value_validator,
-                        role_use_case=RoleUseCase(
-                            role_dao=RoleDAO(session=session),
-                            access_control_entry_dao=AccessControlEntryDAO(
-                                session=session,
-                            ),
-                        ),
-                    ),
                 ),
                 attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
                 object_class_dao=object_class_dao,

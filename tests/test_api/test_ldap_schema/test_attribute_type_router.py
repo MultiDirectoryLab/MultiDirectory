@@ -82,7 +82,7 @@ async def test_get_list_attribute_types_with_pagination(
 ) -> None:
     """Test retrieving a list of attribute types."""
     page_number = 1
-    page_size = 50
+    page_size = 3
     response = await http_client.get(
         f"/schema/attribute_types?page_number={page_number}&page_size={page_size}",
     )
@@ -173,10 +173,9 @@ async def test_delete_bulk_attribute_types(
     )
     assert response.status_code == dataset["status_code"]
 
-    # TODO раскомментируй это, чини
-    # if dataset["status_code"] == status.HTTP_200_OK:
-    #     for attribute_type_name in dataset["attribute_types_deleted"]:
-    #         response = await http_client.get(
-    #             f"/schema/attribute_type/{attribute_type_name}",
-    #         )
-    #         assert response.status_code == status.HTTP_400_BAD_REQUEST
+    if dataset["status_code"] == status.HTTP_200_OK:
+        for attribute_type_name in dataset["attribute_types_deleted"]:
+            response = await http_client.get(
+                f"/schema/attribute_type/{attribute_type_name}",
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST

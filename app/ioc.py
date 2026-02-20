@@ -77,6 +77,12 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
+from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
+    AttributeTypeDAODeprecated,
+)
+from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+    AttributeTypeUseCaseDeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
@@ -454,6 +460,10 @@ class MainProvider(Provider):
         scope=Scope.RUNTIME,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    attribute_type_dao_deprecated = provide(
+        AttributeTypeDAODeprecated,
+        scope=Scope.REQUEST,
+    )
     attribute_type_system_flags_use_case = provide(
         AttributeTypeSystemFlagsUseCase,
         scope=Scope.REQUEST,
@@ -464,6 +474,11 @@ class MainProvider(Provider):
         AttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
+    attribute_type_use_case_deprecated = provide(
+        AttributeTypeUseCaseDeprecated,
+        scope=Scope.REQUEST,
+    )
+
     create_attribute_dir_gateway = provide(
         CreateAttributeDirGateway,
         scope=Scope.REQUEST,

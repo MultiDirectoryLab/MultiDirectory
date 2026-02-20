@@ -47,18 +47,6 @@ async def get_one_attribute_type(
 
 
 @ldap_schema_router.get(
-    "/attribute_type/{attribute_type_name}/deprecated",
-    error_map=error_map,
-)
-async def get_one_attribute_type_deprecated(
-    attribute_type_name: str,
-    adapter: FromDishka[AttributeTypeFastAPIAdapter],
-) -> AttributeTypeSchema[int]:
-    """Retrieve a one Attribute Type."""
-    return await adapter.get_deprecated(attribute_type_name)
-
-
-@ldap_schema_router.get(
     "/attribute_types",
     error_map=error_map,
 )

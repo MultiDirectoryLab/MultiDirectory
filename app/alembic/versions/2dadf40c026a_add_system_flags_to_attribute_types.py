@@ -14,8 +14,8 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
-    AttributeTypeUseCase,
+from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+    AttributeTypeUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.exceptions import AttributeTypeNotFoundError
 
@@ -146,9 +146,9 @@ def upgrade(container: AsyncContainer) -> None:
     async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001   # TODO rename
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
 
-        await at_type_use_case.zero_all_replicated_flags()
+        await at_type_use_case.zero_all_replicated_flags_deprecated()
         await session.commit()
 
     op.run_async(_set_attr_replication_flag1)
@@ -156,11 +156,11 @@ def upgrade(container: AsyncContainer) -> None:
     async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001   # TODO rename
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
 
         for name in _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES:
             with contextlib.suppress(AttributeTypeNotFoundError):
-                await at_type_use_case.set_attr_replication_flag_depricated(
+                await at_type_use_case.set_attr_replication_flag_deprecated(
                     name,
                     need_to_replicate=False,
                 )

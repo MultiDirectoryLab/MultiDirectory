@@ -98,6 +98,12 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
+from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
+    AttributeTypeDAODeprecated,
+)
+from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+    AttributeTypeUseCaseDeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
@@ -305,6 +311,11 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    attribute_type_dao_deprecated = provide(
+        AttributeTypeDAODeprecated,
+        scope=Scope.REQUEST,
+    )
+
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
@@ -315,6 +326,11 @@ class TestProvider(Provider):
         AttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
+    attribute_type_use_case_deprecated = provide(
+        AttributeTypeUseCaseDeprecated,
+        scope=Scope.REQUEST,
+    )
+
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
     user_password_history_use_cases = provide(
@@ -1011,6 +1027,11 @@ async def setup_session(
 
     # TODO delete that
     # NOTE: after setup environment we need base DN to be created
+    attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
+        attribute_type_dao_deprecated=AttributeTypeDAODeprecated(session),
+        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
+        object_class_dao=object_class_dao,
+    )
     attribute_type_use_case = AttributeTypeUseCase(
         attribute_type_dao=AttributeTypeDAO(
             session,
@@ -1031,7 +1052,9 @@ async def setup_session(
         "userAccountControl",
         "cn",
     ):
-        _at = await attribute_type_use_case.get_depricated(attr_type_name)
+        _at = await attribute_type_use_case_deprecated.get_deprecated(
+            attr_type_name,
+        )
         if not _at:
             raise ValueError(
                 f"setup_session:: AttributeType {attr_type_name} not found",

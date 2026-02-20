@@ -39,18 +39,6 @@ class AttributeTypeSystemFlagsUseCase:
         attribute_type_dto: AttributeTypeDTO,
     ) -> bool:
         """Check if attribute is replicated based on system_flags."""
-        print(
-            bool(
-                attribute_type_dto.system_flags
-                & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
-            ),
-        )
-        print(
-            not bool(
-                attribute_type_dto.system_flags
-                & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
-            ),
-        )
         return not bool(
             attribute_type_dto.system_flags
             & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
