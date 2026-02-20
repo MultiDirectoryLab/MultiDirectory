@@ -12,7 +12,7 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
-from sqlalchemy import select
+from sqlalchemy import delete, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -67,6 +67,14 @@ class AttributeTypeDAODeprecated(AbstractDAO[AttributeTypeDTO, str]):
     async def update(self, _id: str, dto: AttributeTypeDTO) -> None: ...
 
     async def delete(self, _id: str) -> None: ...
+
+    async def delete_table_deprecated2(self) -> None:
+        await self.__session.execute(delete(AttributeType))
+
+    async def delete_table_deprecated(self) -> None:
+        await self.__session.execute(
+            text('DROP TABLE IF EXISTS "AttributeTypes" CASCADE'),
+        )
 
     async def get_deprecated(
         self,

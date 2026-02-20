@@ -21,6 +21,12 @@ from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     ForbiddenError,
 )
+from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+    AttributeTypeUseCaseDeprecated,
+)
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
@@ -33,6 +39,8 @@ class SetupUseCase:
 
     def __init__(
         self,
+        attribute_type_use_case_depr: AttributeTypeUseCaseDeprecated,
+        attribute_type_use_case: AttributeTypeUseCase,
         setup_gateway: SetupGateway,
         entity_type_use_case: EntityTypeUseCase,
         password_use_cases: PasswordPolicyUseCases,
@@ -52,6 +60,8 @@ class SetupUseCase:
         self._role_use_case = role_use_case
         self._audit_use_case = audit_use_case
         self._session = session
+        self._attribute_type_use_case_depr = attribute_type_use_case_depr
+        self._attribute_type_use_case = attribute_type_use_case
 
     async def setup(self, dto: SetupDTO) -> None:
         """Perform the initial setup of structure and policies.
@@ -137,7 +147,15 @@ class SetupUseCase:
                 dn=dto.domain,
                 is_system=True,
             )
-            # TODO
+            attrs = (
+                await self._attribute_type_use_case_depr.get_all_deprecated()
+            )
+            for attr in attrs:
+                await self._attribute_type_use_case.create(attr)
+
+            # TODO раскомментируй это после того как поправишь роли и вообще ВСЁ сделаешь
+            # await self._attribute_type_use_case_depr.delete_table_deprecated()
+
             await self._password_use_cases.create_default_domain_policy()
 
             errors = await (

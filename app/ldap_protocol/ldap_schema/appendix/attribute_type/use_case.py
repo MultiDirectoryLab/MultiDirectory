@@ -51,6 +51,9 @@ class AttributeTypeUseCaseDeprecated(AbstractService):
         """Create Attribute Type."""
         await self._attribute_type_dao.create_deprecated(dto)
 
+    async def delete_table_deprecated(self) -> None:
+        await self._attribute_type_dao.delete_table_deprecated()
+
     async def update_deprecated(
         self,
         name: str,

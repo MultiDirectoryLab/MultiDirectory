@@ -12,12 +12,14 @@ from sqlalchemy.orm import selectinload
 from abstract_dao import AbstractDAO
 from entities import Directory, EntityType
 from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.attribute_type_dir_gateway import (
+    CreateAttributeDirGateway,
+)
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeNotFoundError,
 )
-from ldap_protocol.ldap_schema.setup_gateway import CreateAttributeDirGateway
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 

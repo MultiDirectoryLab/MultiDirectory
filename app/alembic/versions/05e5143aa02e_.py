@@ -40,15 +40,15 @@ def upgrade(container: AsyncContainer) -> None:
             session = await cnt.get(AsyncSession)
             entity_type_use_case = await cnt.get(EntityTypeUseCase)
 
-        # if not await get_base_directories(session):
-        #     return
+        if not await get_base_directories(session):
+            return
 
         for entity_type_data in ENTITY_TYPE_DATAS:
             if entity_type_data["name"] in (
                 EntityTypeNames.CONFIGURATION,
                 EntityTypeNames.ATTRIBUTE_TYPE,
                 EntityTypeNames.OBJECT_CLASS,
-            ) and not await entity_type_use_case.get(entity_type_data["name"]):
+            ):
                 await entity_type_use_case.create(
                     EntityTypeDTO[None](
                         name=entity_type_data["name"],
@@ -81,18 +81,21 @@ def upgrade(container: AsyncContainer) -> None:
     async def _create_ldap_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+            object_class_use_case_deprecated = await cnt.get(
+                ObjectClassUseCase,
+            )
             object_class_use_case = await cnt.get(ObjectClassUseCase)
 
         if not await get_base_directories(session):
             return
 
-        ocs = await object_class_use_case.get_all()
+        ocs = await object_class_use_case_deprecated.get_all()
         for _oc in ocs:
             await object_class_use_case.create_ldap(_oc)  # type: ignore
 
         await session.commit()
 
-    # op.run_async(_update_entity_types)  # TODO раскоментить
+    op.run_async(_update_entity_types)
     op.run_async(_create_ldap_attributes)
     # op.run_async(_create_ldap_object_classes)   # noqa: ERA001
 

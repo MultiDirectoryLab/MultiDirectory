@@ -84,6 +84,9 @@ from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
     AttributeTypeUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_dir_gateway import (
+    CreateAttributeDirGateway,
+)
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
 )
@@ -97,7 +100,6 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
-from ldap_protocol.ldap_schema.setup_gateway import CreateAttributeDirGateway
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
