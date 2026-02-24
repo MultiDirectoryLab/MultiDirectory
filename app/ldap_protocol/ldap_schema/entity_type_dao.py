@@ -9,13 +9,14 @@ from typing import Iterable
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
+from entities_appendix import ObjectClass
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from entities import Attribute, Directory, EntityType, ObjectClass
+from entities import Attribute, Directory, EntityType
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,

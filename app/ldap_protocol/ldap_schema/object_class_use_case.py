@@ -6,8 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import ClassVar
 
+from entities_appendix import ObjectClass
+
 from abstract_service import AbstractService
-from entities import ObjectClass
 from enums import AuthorizationRules
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO

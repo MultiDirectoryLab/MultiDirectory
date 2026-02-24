@@ -30,6 +30,7 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
+from entities_appendix import AttributeType
 from fastapi import FastAPI, Request, Response
 from loguru import logger
 from multidirectory import _create_basic_app
@@ -64,7 +65,6 @@ from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
 from constants import ENTITY_TYPE_DATAS
-from entities import AttributeType
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.auth import AuthManager, MFAManager

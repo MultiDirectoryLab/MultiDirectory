@@ -1,0 +1,1 @@
+"""Deprecated DAO object class."""

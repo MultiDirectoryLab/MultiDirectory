@@ -4,11 +4,11 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from entities_appendix import AttributeType, ObjectClass
 from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import AttributeType, ObjectClass
 from repo.pg.tables import queryable_attr as qa
 
 

@@ -10,6 +10,7 @@ from functools import cached_property
 from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
+from entities_appendix import AttributeType, ObjectClass
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_, select
@@ -23,14 +24,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
-from entities import (
-    Attribute,
-    AttributeType,
-    Directory,
-    Group,
-    ObjectClass,
-    User,
-)
+from entities import Attribute, Directory, Group, User
 from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema

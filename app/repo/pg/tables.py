@@ -8,6 +8,7 @@ from __future__ import annotations
 import uuid
 from typing import Literal, TypeVar, cast
 
+from entities_appendix import AttributeType, ObjectClass
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -36,7 +37,6 @@ from sqlalchemy.sql.compiler import DDLCompiler
 from entities import (
     AccessControlEntry,
     Attribute,
-    AttributeType,
     AuditDestination,
     AuditPolicy,
     AuditPolicyTrigger,
@@ -46,7 +46,6 @@ from entities import (
     EntityType,
     Group,
     NetworkPolicy,
-    ObjectClass,
     PasswordBanWord,
     PasswordPolicy,
     Role,

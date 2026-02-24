@@ -12,13 +12,14 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
+from entities_appendix import AttributeType, ObjectClass
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from entities import AttributeType, EntityType, ObjectClass
+from entities import EntityType
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,

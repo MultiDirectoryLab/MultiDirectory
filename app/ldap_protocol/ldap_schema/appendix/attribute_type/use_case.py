@@ -6,8 +6,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import ClassVar, Iterable, Sequence
 
+from entities_appendix import AttributeType
+
 from abstract_service import AbstractService
-from entities import AttributeType
 from enums import AuthorizationRules
 from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
     AttributeTypeDAODeprecated,

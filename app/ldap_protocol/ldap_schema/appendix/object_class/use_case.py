@@ -1,0 +1,1 @@
+"""Deprecated UseCase object class."""

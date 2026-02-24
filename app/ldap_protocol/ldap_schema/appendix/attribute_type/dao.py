@@ -57,16 +57,19 @@ class AttributeTypeDAODeprecated(AbstractDAO[AttributeTypeDTO, str]):
         self.__session = session
 
     async def get(self, _id: str) -> AttributeTypeDTO:
-        return None
+        raise
 
     async def get_all(self) -> list[AttributeTypeDTO]:
-        return []
+        raise
 
-    async def create(self, dto: AttributeTypeDTO) -> None: ...
+    async def create(self, dto: AttributeTypeDTO) -> None:  # noqa: ARG002
+        raise
 
-    async def update(self, _id: str, dto: AttributeTypeDTO) -> None: ...
+    async def update(self, _id: str, dto: AttributeTypeDTO) -> None:  # noqa: ARG002
+        raise
 
-    async def delete(self, _id: str) -> None: ...
+    async def delete(self, _id: str) -> None:
+        raise
 
     async def delete_table_deprecated2(self) -> None:
         await self.__session.execute(delete(AttributeType))

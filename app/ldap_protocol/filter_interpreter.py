@@ -13,6 +13,7 @@ from datetime import datetime
 from operator import eq, ge, le, ne
 from typing import Callable, Protocol
 
+from entities_appendix import AttributeType
 from ldap_filter import Filter
 from sqlalchemy import BigInteger, and_, cast, func, not_, or_, select
 from sqlalchemy.sql.elements import (
@@ -22,14 +23,7 @@ from sqlalchemy.sql.elements import (
 )
 from sqlalchemy.sql.expression import false as sql_false
 
-from entities import (
-    Attribute,
-    AttributeType,
-    Directory,
-    EntityType,
-    Group,
-    User,
-)
+from entities import Attribute, Directory, EntityType, Group, User
 from ldap_protocol.utils.helpers import ft_to_dt
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from repo.pg.tables import (
