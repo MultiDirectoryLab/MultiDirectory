@@ -29,7 +29,6 @@ from dishka import (
     provide,
 )
 from dishka.integrations.fastapi import setup_dishka
-from entities_appendix import AttributeType
 from fastapi import FastAPI, Request, Response
 from loguru import logger
 from multidirectory import _create_basic_app
@@ -96,16 +95,16 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (
     AttributeTypeDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class.dao import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class.use_case import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
     ObjectClassUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
@@ -121,7 +120,7 @@ from ldap_protocol.ldap_schema.attribute_type_use_case import (
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.dto import EntityTypeDTO
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -1052,6 +1051,31 @@ async def setup_session(
         attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
         object_class_dao=object_class_dao,
     )
+
+    for _at_dto in (
+        AttributeTypeDTO[None](
+            oid="1.2.3.4.5.6.7.8",
+            name="attr_with_bvalue",
+            syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+            system_flags=0,
+            is_included_anr=False,
+        ),
+        AttributeTypeDTO[None](
+            oid="1.2.3.4.5.6.7.8.9",
+            name="testing_attr",
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+            system_flags=0,
+            is_included_anr=False,
+        ),
+    ):
+        await attribute_type_use_case.create(_at_dto)
+
     for attr_type_name in (  # TODO это для ролевки тестов, по идее нужное.
         "description",
         "posixEmail",
@@ -1083,26 +1107,6 @@ async def setup_session(
         ),
     )
 
-    session.add(
-        AttributeType(
-            oid="1.2.3.4.5.6.7.8",
-            name="attr_with_bvalue",
-            syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-        ),
-    )
-    session.add(
-        AttributeType(
-            oid="1.2.3.4.5.6.7.8.9",
-            name="testing_attr",
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-        ),
-    )
     await session.commit()
 
 

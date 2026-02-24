@@ -10,7 +10,7 @@ from entities_appendix import ObjectClass
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema.appendix.object_class.dao import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO

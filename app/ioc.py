@@ -82,16 +82,16 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (
     AttributeTypeDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class.dao import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class.use_case import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
     ObjectClassUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO

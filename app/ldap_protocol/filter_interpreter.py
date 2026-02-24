@@ -13,7 +13,6 @@ from datetime import datetime
 from operator import eq, ge, le, ne
 from typing import Callable, Protocol
 
-from entities_appendix import AttributeType
 from ldap_filter import Filter
 from sqlalchemy import BigInteger, and_, cast, func, not_, or_, select
 from sqlalchemy.sql.elements import (
@@ -24,6 +23,7 @@ from sqlalchemy.sql.elements import (
 from sqlalchemy.sql.expression import false as sql_false
 
 from entities import Attribute, Directory, EntityType, Group, User
+from enums import EntityTypeNames
 from ldap_protocol.utils.helpers import ft_to_dt
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from repo.pg.tables import (
@@ -152,8 +152,14 @@ class FilterInterpreterProtocol(Protocol):
             attributes_expr.append(
                 and_(
                     qa(Attribute.name).in_(
-                        select(qa(AttributeType.name))
-                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                        select(qa(Directory.name))
+                        .join(qa(Directory.entity_type))
+                        .join(qa(Directory.attributes))
+                        .where(
+                            qa(Attribute.name) == "is_included_anr",
+                            qa(Attribute.value) == "True",  # TODO это верно?
+                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
+                        ),
                     ),
                     qa(Attribute.value).ilike(vl),
                 ),
@@ -215,9 +221,14 @@ class FilterInterpreterProtocol(Protocol):
         attributes_expr.append(
             and_(
                 qa(Attribute.name).in_(
-                    select(qa(AttributeType.name)).where(
-                        qa(AttributeType.name) == "legacyExchangeDN",
-                        qa(AttributeType.is_included_anr).is_(True),
+                    select(qa(Directory.name))
+                    .join(qa(Directory.entity_type))
+                    .join(qa(Directory.attributes))
+                    .where(
+                        qa(Directory.name) == "legacyExchangeDN",
+                        qa(Attribute.name) == "is_included_anr",
+                        qa(Attribute.value) == "True",  # TODO это верно?
+                        qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                     ),
                 ),
                 qa(Attribute.value) == normalized.replace("=", ""),

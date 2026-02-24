@@ -18,13 +18,13 @@ from sqlalchemy.orm import Session
 
 from entities import Attribute
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (
     AttributeTypeDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class.use_case import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
     ObjectClassUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (

@@ -10,7 +10,7 @@ from entities_appendix import AttributeType
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (
     AttributeTypeDAODeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DATAS
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_use_case import (

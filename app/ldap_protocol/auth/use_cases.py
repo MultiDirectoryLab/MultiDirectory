@@ -23,7 +23,7 @@ from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     ForbiddenError,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
