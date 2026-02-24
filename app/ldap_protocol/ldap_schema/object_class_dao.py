@@ -296,10 +296,9 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
 
         if dto.attribute_types_must:
             must_query = await self.__session.scalars(
-                select(AttributeType).where(
-                    qa(AttributeType.name).in_(dto.attribute_types_must),
-                ),
-            )
+                select(AttributeType)
+                .where(qa(AttributeType.name).in_(dto.attribute_types_must)),
+            )  # fmt: skip
             obj.attribute_types_must.extend(must_query.all())
 
         attribute_types_may_filtered = [

@@ -1036,7 +1036,7 @@ async def setup_session(
     attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
         attribute_type_dao_deprecated=AttributeTypeDAODeprecated(session),
         attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
-        object_class_dao=object_class_dao,
+        object_class_dao_deprecated=ObjectClassDAODeprecated(session=session),
     )
     attribute_type_use_case = AttributeTypeUseCase(
         attribute_type_dao=AttributeTypeDAO(

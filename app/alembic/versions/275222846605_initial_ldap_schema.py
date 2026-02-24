@@ -24,6 +24,9 @@ from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_a
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
+    ObjectClassDAODeprecated,
+)
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
     ObjectClassUseCaseDeprecated,
 )
@@ -35,8 +38,6 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -401,7 +402,7 @@ def upgrade(container: AsyncContainer) -> None:
     async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            object_class_dao = ObjectClassDAO(session=session)
+            object_class_dao_depr = ObjectClassDAODeprecated(session=session)
             attribute_value_validator = AttributeValueValidator()
             attribute_type_system_flags_use_case = (
                 AttributeTypeSystemFlagsUseCase()
@@ -411,13 +412,13 @@ def upgrade(container: AsyncContainer) -> None:
                     session=session,
                 ),
                 attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
-                object_class_dao=object_class_dao,
+                object_class_dao_deprecated=object_class_dao_depr,
             )  # TODO либо merge либо инициализация DAO/use case прям тут
-            object_class_use_case = ObjectClassUseCase(
-                object_class_dao=object_class_dao,
+            object_class_use_case = ObjectClassUseCaseDeprecated(
+                object_class_dao=object_class_dao_depr,
                 entity_type_dao=EntityTypeDAO(
                     session=session,
-                    object_class_dao=object_class_dao,
+                    object_class_dao=object_class_dao_depr,  # TODO FIXIT  # noqa: E501
                     attribute_value_validator=attribute_value_validator,
                 ),
             )  # TODO либо merge либо инициализация DAO/use case прям тут
