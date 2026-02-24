@@ -11,8 +11,6 @@ services:
     command:
       - "--providers.file.filename=/traefik.yml"
     ports:
-      - "53:53"
-      - "53:53/udp"
       - "80:80"
       - "389:389"
       - "389:389/udp"
@@ -80,6 +78,8 @@ services:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_migrations
     restart: "no"
+    networks:
+      md_net:
     env_file:
       .env
     command: python multidirectory.py --migrate
@@ -376,6 +376,8 @@ services:
   pdns_auth:
     image: ghcr.io/multidirectorylab/multidirectory_pdns_auth:${VERSION:-latest}
     container_name: pdns_auth
+    cap_add:
+      - NET_ADMIN
     networks:
       default:
       md_net:
@@ -392,6 +394,8 @@ services:
   pdns_recursor:
     image: powerdns/pdns-recursor-51:5.1.7
     container_name: pdns_recursor
+    cap_add:
+      - NET_ADMIN
     networks:
       default:
       md_net:
@@ -407,6 +411,8 @@ services:
   pdnsdist:
     image: powerdns/dnsdist-19:1.9.11
     container_name: pdnsdist
+    cap_add:
+      - NET_ADMIN
     networks:
       default:
       md_net:
