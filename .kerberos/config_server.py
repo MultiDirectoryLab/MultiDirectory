@@ -256,21 +256,13 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str | None password: if None - uses randkey.
         :param list[str] | None algorithms: encryption algorithms
         """
-        if algorithms:
-            await self.loop.run_in_executor(
-                self.pool,
-                self.client.add_principal,
-                name,
-                password,
-                algorithms,
-            )
-        else:
-            await self.loop.run_in_executor(
-                self.pool,
-                self.client.add_principal,
-                name,
-                password,
-            )
+        await self.loop.run_in_executor(
+            self.pool,
+            self.client.add_principal,
+            name,
+            password,
+            algorithms,
+        )
 
         if password:
             # NOTE: add preauth, attributes == krbticketflags
@@ -368,29 +360,6 @@ class KAdminLocalManager(AbstractKRBManager):
         else:
             for princ in principals:
                 await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
-
-    async def _ktadd_with_randkey_via_subprocess(
-        self,
-        principal_name: str,
-        keytab_path: str,
-    ) -> None:
-        """Execute ktadd with randkey via subprocess."""
-        cmd = [
-            "kadmin.local",
-            "-q",
-            f"ktadd -k {keytab_path} -randkey {principal_name}",
-        ]
-
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        stdout, stderr = await proc.communicate()
-
-        if await proc.wait() != 0:
-            raise RuntimeError(f"ktadd failed: {stderr.decode()}")
 
     async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock princ.
