@@ -4,7 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from ipaddress import IPv4Address, IPv6Address
 from typing import final
 
 from dishka import AsyncContainer
@@ -12,7 +11,6 @@ from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from entities import Directory
-from ldap_protocol.dns import DNSManagerState, DNSZoneParam, DNSZoneType
 from ldap_protocol.filter_interpreter import (
     Filter,
     FilterInterpreterProtocol,
@@ -70,82 +68,28 @@ class KerberosSetupRequest(BaseModel):
     stash_password: SecretStr
 
 
-class DNSServiceSetupRequest(BaseModel):
-    """DNS setup request schema."""
+class PrincipalAddRequest(BaseModel):
+    """Request schema for POST /principal/add."""
 
-    dns_status: DNSManagerState
-    domain: str
-    dns_ip_address: IPv4Address | IPv6Address | None = None
-    tsig_key: str | None = None
-
-
-class DNSServiceRecordBaseRequest(BaseModel):
-    """DNS setup base schema."""
-
-    record_name: str
-    record_type: str
-    zone_name: str | None = None
+    principal_name: str
+    algorithms: list[str] | None = None
+    password: str | None = None
 
 
-class DNSServiceRecordCreateRequest(DNSServiceRecordBaseRequest):
-    """DNS create request schema."""
+class KtaddRequest(BaseModel):
+    """Request schema for POST /ktadd."""
 
-    record_value: str
-    ttl: int | None = None
-
-
-class DNSServiceRecordDeleteRequest(DNSServiceRecordBaseRequest):
-    """DNS delete request schema."""
-
-    record_value: str
+    names: list[str]
+    is_rand_key: bool = False
 
 
-class DNSServiceRecordUpdateRequest(DNSServiceRecordBaseRequest):
-    """DNS update request schema."""
+class ModifyPrincipalRequest(BaseModel):
+    """Request schema for PUT /principal (full modify)."""
 
-    record_value: str | None = None
-    ttl: int | None = None
-
-
-class DNSServiceZoneCreateRequest(BaseModel):
-    """DNS zone create request scheme."""
-
-    zone_name: str
-    zone_type: DNSZoneType
-    nameserver: str | None = None
-    params: list[DNSZoneParam]
-
-
-class DNSServiceZoneUpdateRequest(BaseModel):
-    """DNS zone update request scheme."""
-
-    zone_name: str
-    params: list[DNSZoneParam]
-
-
-class DNSServiceZoneDeleteRequest(BaseModel):
-    """DNS zone delete request scheme."""
-
-    zone_names: list[str]
-
-
-class DNSServiceReloadZoneRequest(BaseModel):
-    """DNS zone reload request scheme."""
-
-    zone_name: str
-
-
-class DNSServiceForwardZoneCheckRequest(BaseModel):
-    """Forwarder DNS server check request scheme."""
-
-    dns_server_ips: list[IPv4Address | IPv6Address]
-
-
-class DNSServiceOptionsUpdateRequest(BaseModel):
-    """DNS server options update request scheme."""
-
-    name: str
-    value: str | list[str] = ""
+    principal_name: str
+    new_name: str | None = None
+    algorithms: list[str] | None = None
+    password: str | None = None
 
 
 class PrimaryGroupRequest(BaseModel):
@@ -153,3 +97,9 @@ class PrimaryGroupRequest(BaseModel):
 
     directory_dn: GRANT_DN_STRING
     group_dn: GRANT_DN_STRING
+
+
+class PrimaryGroupPathDNResponse(BaseModel):
+    """Response schema for getting group path DN by primary group ID."""
+
+    path_dn: str

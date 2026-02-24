@@ -194,7 +194,6 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
             objects to create.
         """
         directory_cache = {}
-        new_aces = []
         for ace in dtos:
             cache_key = (ace.base_dn, ace.scope)
             if cache_key not in directory_cache:
@@ -221,9 +220,8 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
                 is_allow=ace.is_allow,
                 directories=directory_cache[cache_key],
             )
-            new_aces.append(new_ace)
+            self._session.add(new_ace)
 
-        self._session.add_all(new_aces)
         try:
             await self._session.flush()
         except IntegrityError:

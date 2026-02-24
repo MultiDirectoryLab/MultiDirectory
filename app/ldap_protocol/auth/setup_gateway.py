@@ -60,7 +60,7 @@ class SetupGateway:
         self,
         *,
         data: list,
-        is_system: bool,
+        is_system: bool = True,
         dn: str = "multifactor.dev",
     ) -> None:
         """Create directories and users for enviroment."""

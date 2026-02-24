@@ -53,7 +53,7 @@ async def update_krb5_config(
 
     base_dn_list = await get_base_directories(session)
     if not base_dn_list:
-        logger.error("No base directories found")
+        logger.warning("No base directories found")
         return
 
     base_dn = base_dn_list[0].path_dn

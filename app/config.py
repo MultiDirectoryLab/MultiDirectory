@@ -36,6 +36,7 @@ class Settings(BaseModel):
     """Settigns with database dsn."""
 
     DOMAIN: str
+    HOST_MACHINE_NAME: str
 
     DEBUG: bool = False
     AUTO_RELOAD: bool = False
@@ -188,7 +189,18 @@ class Settings(BaseModel):
         autoescape=True,
     )
 
-    DNS_BIND_HOST: str = "bind_dns"
+    PDNS_AUTH_SERVER_HOST: str = "pdns_auth"
+    PDNS_AUTH_SERVER_IP: str = "172.20.0.202"
+    PDNS_AUTH_SERVER_PORT: int = 8082
+    PDNS_RECURSOR_SERVER_HOST: str = "pdns_recursor"
+    PDNS_RECURSOR_SERVER_IP: str = "172.20.0.200"
+    PDNS_RECURSOR_SERVER_PORT: int = 8083
+    PDNS_DIST_IP: str = "172.20.0.201"
+    PDNS_DIST_PORT: int = 8084
+    PDNS_DIST_CONFIG_PATH: str = "/dnsdist/delta.conf"
+    PDNS_DIST_KEY: str
+    PDNS_API_KEY: str
+    DEFAULT_NAMESERVER: str
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
     PYTEST_XDIST_WORKER: str = "master"

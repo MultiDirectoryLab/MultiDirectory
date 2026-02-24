@@ -68,6 +68,7 @@ class KRBLDAPStructureManager:
 
         async with self._session.begin_nested():
             await self._role_use_case.create_kerberos_system_role()
+            await self._role_use_case.add_read_only_role_to_krbadmin_group()
             user_result = await anext(krb_user.handle(ctx))
             if user_result.result_code != 0:
                 raise KerberosConflictError("User error")

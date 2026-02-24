@@ -5,6 +5,8 @@ services:
   traefik:
     image: "mirror.gcr.io/traefik:v3.6.1"
     container_name: traefik
+    networks:
+      md_net:
     restart: unless-stopped
     command:
       - "--providers.file.filename=/traefik.yml"
@@ -42,6 +44,8 @@ services:
   traefik_certs_dumper:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: traefik_certs_dumper
+    networks:
+      md_net:
     restart: "on-failure"
     env_file:
       .env
@@ -56,6 +60,8 @@ services:
   interface:
     image: ghcr.io/multidirectorylab/multidirectory-web-admin:${VERSION:-latest}
     container_name: multidirectory_interface
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: interface
     environment:
@@ -83,6 +89,8 @@ services:
 
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: multidirectory-ldap
     env_file:
@@ -119,7 +127,7 @@ services:
       - traefik.tcp.routers.ldap.entrypoints=ldap
       - traefik.tcp.routers.ldap.service=ldap
       - traefik.tcp.services.ldap.loadbalancer.server.port=389
-      - traefik.tcp.services.ldap.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.ldap.loadbalancer.serversTransport=ldap_transport@file
 
       - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
@@ -127,10 +135,12 @@ services:
       - traefik.tcp.routers.ldaps.tls=true
       - traefik.tcp.routers.ldaps.tls.certResolver=md-resolver
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
-      - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.ldaps.loadbalancer.serversTransport=ldap_transport@file
 
   cldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    networks:
+      md_net:
     restart: unless-stopped
     environment:
       - SERVICE_NAME=cldap_server
@@ -166,6 +176,8 @@ services:
           cpus: "0.25"
           memory: 100M
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    networks:
+      md_net:
     restart: unless-stopped
     environment:
       - SERVICE_NAME=global_ldap_server
@@ -193,7 +205,7 @@ services:
       - traefik.tcp.routers.global_ldap.entrypoints=global_ldap
       - traefik.tcp.routers.global_ldap.service=global_ldap
       - traefik.tcp.services.global_ldap.loadbalancer.server.port=3268
-      - traefik.tcp.services.global_ldap.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.global_ldap.loadbalancer.serversTransport=ldap_transport@file
 
       - traefik.tcp.routers.global_ldap_tls.rule=HostSNI(`*`)
       - traefik.tcp.routers.global_ldap_tls.entrypoints=global_ldap_tls
@@ -201,11 +213,13 @@ services:
       - traefik.tcp.routers.global_ldap_tls.tls=true
       - traefik.tcp.routers.global_ldap_tls.tls.certresolver=md-resolver
       - traefik.tcp.services.global_ldap_tls.loadbalancer.server.port=3269
-      - traefik.tcp.services.global_ldap_tls.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.global_ldap_tls.loadbalancer.serversTransport=ldap_transport@file
 
   api_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_api
+    networks:
+      md_net:
     restart: unless-stopped
     env_file:
       .env
@@ -230,7 +244,6 @@ services:
       - "traefik.http.routers.api.service=api"
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
-      - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
 
     command: python multidirectory.py --http
     depends_on:
@@ -239,6 +252,8 @@ services:
 
   postgres:
     container_name: MD-postgres
+    networks:
+      md_net:
     image: mirror.gcr.io/postgres:16
     restart: unless-stopped
     env_file:
@@ -260,6 +275,8 @@ services:
   cert_check:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -268,6 +285,8 @@ services:
   maintence:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: md_maintence
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -292,6 +311,8 @@ services:
 
   kdc:
     container_name: kdc
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -308,6 +329,8 @@ services:
   kadmin_api:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
     container_name: kadmin_api
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -322,9 +345,12 @@ services:
         condition: service_started
     working_dir: /server
     command: ./entrypoint.sh
+
   kadmind:
     image: ghcr.io/multidirectorylab/multidirectory_kerberos:${VERSION:-latest}
     container_name: kadmind
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -347,27 +373,52 @@ services:
       - traefik.tcp.routers.kpasswd.service=kpasswd
       - traefik.tcp.services.kpasswd.loadbalancer.server.port=464
 
-  bind_dns:
-    image: ghcr.io/multidirectorylab/multidirectory_bind9:${VERSION:-latest}
-    container_name: bind9
-    hostname: bind9
-    restart: unless-stopped
+  pdns_auth:
+    image: ghcr.io/multidirectorylab/multidirectory_pdns_auth:${VERSION:-latest}
+    container_name: pdns_auth
+    networks:
+      default:
+      md_net:
+        ipv4_address: 172.20.0.202
+    expose:
+      - 8082
+      - 53/udp
+      - 53/tcp
     volumes:
-      - dns_server_file:/opt/
-      - dns_server_config:/etc/bind/
-    tty: true
-    env_file:
-      - .env
-    environment:
-      - USE_CONFIG_FILE_LOGGING=true
-    depends_on:
-      ldap_server:
-        condition: service_healthy
-        restart: true
-    labels:
-      - traefik.enable=true
-      - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
-      - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
+      - dns_lmdb:/var/lib/pdns-lmdb
+      - dns_config:/etc/powerdns
+
+
+  pdns_recursor:
+    image: powerdns/pdns-recursor-51:5.1.7
+    container_name: pdns_recursor
+    networks:
+      default:
+      md_net:
+        ipv4_address: 172.20.0.200
+    expose:
+      - 8083
+      - 53/udp
+      - 53/tcp
+    volumes:
+      - ./recursor.conf:/etc/powerdns/recursor.conf
+      - forward_zones:/etc/powerdns/recursor.d/
+
+  pdnsdist:
+    image: powerdns/dnsdist-19:1.9.11
+    container_name: pdnsdist
+    networks:
+      default:
+      md_net:
+        ipv4_address: 172.20.0.201
+    expose:
+      - 8084
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf
+      - dnsdist_confd:/etc/dnsdist/conf.d
 
   kea_dhcp4:
     image: ghcr.io/multidirectorylab/multidirectory_dhcp4:${VERSION:-latest}
@@ -389,6 +440,8 @@ services:
   kea_ctrl_agent:
     image: jonasal/kea-ctrl-agent:3.1.2-alpine
     container_name: kea_ctrl_agent
+    networks:
+      md_net:
     restart: unless-stopped
     command: -c /kea/config/kea-ctrl-agent.conf
     tty: true
@@ -403,6 +456,8 @@ services:
   dragonfly_mem:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - dragonflydata:/data
@@ -424,6 +479,8 @@ services:
   shadow_api:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: shadow_api
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     volumes:
@@ -440,6 +497,8 @@ services:
   event_handler:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: event_handler
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     env_file:
@@ -454,6 +513,8 @@ services:
   event_sender:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: event_sender
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     depends_on:
@@ -467,6 +528,14 @@ services:
     environment:
       HANDLER_NAME: event_sender-1
 
+networks:
+  md_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+
 volumes:
   postgres:
   kdc:
@@ -478,3 +547,7 @@ volumes:
   leases:
   sockets:
   dhcp:
+  dns_lmdb:
+  dns_config:
+  forward_zones:
+  dnsdist_confd:

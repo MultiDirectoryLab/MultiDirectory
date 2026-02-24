@@ -36,6 +36,7 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
+                "objectSid": 512,
             },
             {
                 "name": "developers",

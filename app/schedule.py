@@ -7,6 +7,7 @@ from dishka import AsyncContainer, Scope, make_async_container
 from loguru import logger
 
 from config import Settings
+from extra.scripts.add_domain_controller import add_domain_controller
 from extra.scripts.check_ldap_principal import check_ldap_principal
 from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
@@ -27,6 +28,7 @@ _TASKS: set[tuple[task_type, float]] = {
     (update_krb5_config, -1.0),
     (update_admin_permissions, -1.0),
     (update_status_process_events, 300.0),
+    (add_domain_controller, 600.0),
 }
 
 

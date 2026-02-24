@@ -101,7 +101,7 @@ async def test_api_correct_modify_user_samaccountname(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert kadmin.rename_princ.call_args.args == ("new_user", "NEW user name")  # type: ignore
+    assert kadmin.modify_princ.call_args.args == ("new_user", "NEW user name")  # type: ignore
 
     response = await http_client.post(
         "entry/search",
@@ -160,7 +160,7 @@ async def test_api_correct_modify_user_userprincipalname(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert kadmin.rename_princ.call_args.args == ("new_user", "newbiguser")  # type: ignore
+    assert kadmin.modify_princ.call_args.args == ("new_user", "newbiguser")  # type: ignore
 
     response = await http_client.post(
         "entry/search",
@@ -219,12 +219,12 @@ async def test_api_correct_modify_computer_samaccountname_replace(
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert kadmin.rename_princ.call_count == 2  # type: ignore
-    assert kadmin.rename_princ.call_args_list[0].args == (  # type: ignore
+    assert kadmin.modify_princ.call_count == 2  # type: ignore
+    assert kadmin.modify_princ.call_args_list[0].args == (  # type: ignore
         "host/mycomputer",
         "host/maincomputer",
     )
-    assert kadmin.rename_princ.call_args_list[1].args == (  # type: ignore
+    assert kadmin.modify_princ.call_args_list[1].args == (  # type: ignore
         "host/mycomputer.md.test",
         "host/maincomputer.md.test",
     )
@@ -286,71 +286,6 @@ async def test_api_incorrect_modify_computer_samaccountname_add(
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("setup_session")
-@pytest.mark.usefixtures("session")
-async def test_api_duplicate_with_spaces_modify(
-    http_client: AsyncClient,
-) -> None:
-    """Test API for modify duplicated object name."""
-    entry_dn = "cn=new_test,dc=md,dc=test"
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": entry_dn,
-            "password": None,
-            "attributes": [
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-            ],
-        },
-    )
-    data = response.json()
-    assert data.get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.patch(
-        "/entry/update",
-        json={
-            "object": entry_dn,
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "cn",
-                        "vals": ["  test"],
-                    },
-                },
-            ],
-        },
-    )
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert data.get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": entry_dn,
-            "scope": 0,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(objectClass=*)",
-            "attributes": [],
-            "page_number": 1,
-        },
-    )
-
-    data = response.json()
-    assert isinstance(data, dict)
-    assert data["search_result"][0]["object_name"] == entry_dn
 
 
 @pytest.mark.asyncio

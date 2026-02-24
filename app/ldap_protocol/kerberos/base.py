@@ -153,8 +153,9 @@ class AbstractKadmin(ABC):
     @abstractmethod
     async def add_principal(
         self,
-        name: str,
-        password: str | None,
+        principal_name: str,
+        password: str | None = None,
+        algorithms: list[str] | None = None,
         timeout: int | float = 1,
     ) -> None: ...
 
@@ -179,7 +180,13 @@ class AbstractKadmin(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def rename_princ(self, name: str, new_name: str) -> None: ...
+    async def modify_princ(
+        self,
+        name: str,
+        new_name: str | None,
+        algorithms: list[str] | None = None,
+        password: str | None = None,
+    ) -> None: ...
 
     @backoff.on_exception(
         backoff.constant,
@@ -202,7 +209,11 @@ class AbstractKadmin(ABC):
         return status
 
     @abstractmethod
-    async def ktadd(self, names: list[str]) -> httpx.Response: ...
+    async def ktadd(
+        self,
+        names: list[str],
+        is_rand_key: bool,
+    ) -> httpx.Response: ...
 
     @abstractmethod
     async def lock_principal(self, name: str) -> None: ...
@@ -221,14 +232,17 @@ class AbstractKadmin(ABC):
         if response.status_code == 200:
             return
 
-        response = await self.client.post("/principal", json={"name": name})
+        response = await self.client.post(
+            "/principal",
+            json={"principal_name": name},
+        )
         if response.status_code != 201:
             log.error(f"Error creating ldap principal: {response.text}")
             return
 
         response = await self.client.post(
             "/principal/ktadd",
-            json=[name],
+            json={"names": [name], "is_rand_key": False},
         )
         if response.status_code != 200:
             log.error(f"Error getting keytab: {response.text}")

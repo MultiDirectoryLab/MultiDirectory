@@ -2,6 +2,8 @@ services:
   traefik:
     image: "traefik:v3.6.1"
     container_name: traefik
+    networks:
+      md_net:
     restart: unless-stopped
     command:
       # - --metrics
@@ -42,6 +44,8 @@ services:
   traefik_certs_dumper:
     image: multidirectory
     container_name: traefik_certs_dumper
+    networks:
+      md_net:
     restart: "on-failure"
     volumes:
       - ./certs:/certs
@@ -54,6 +58,8 @@ services:
 
   interface:
     container_name: multidirectory_interface
+    networks:
+      md_net:
     # image: ghcr.io/multidirectorylab/multidirectory-web-admin::beta
     restart: unless-stopped
     build:
@@ -79,6 +85,8 @@ services:
   cert_check:
     image: multidirectory
     container_name: multidirectory_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -93,6 +101,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     environment:
       - SERVICE_NAME=cldap_server
@@ -129,6 +139,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     deploy:
       mode: replicated
@@ -166,7 +178,7 @@ services:
       - traefik.tcp.routers.global_ldap.entrypoints=global_ldap
       - traefik.tcp.routers.global_ldap.service=global_ldap
       - traefik.tcp.services.global_ldap.loadbalancer.server.port=3268
-      - traefik.tcp.services.global_ldap.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.global_ldap.loadbalancer.serversTransport=ldap_transport@file
 
       - traefik.tcp.routers.global_ldap_tls.rule=HostSNI(`*`)
       - traefik.tcp.routers.global_ldap_tls.entrypoints=global_ldap_tls
@@ -174,11 +186,13 @@ services:
       - traefik.tcp.routers.global_ldap_tls.tls=true
       - traefik.tcp.routers.global_ldap_tls.tls.certresolver=md-resolver
       - traefik.tcp.services.global_ldap_tls.loadbalancer.server.port=3269
-      - traefik.tcp.services.global_ldap_tls.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.global_ldap_tls.loadbalancer.serversTransport=ldap_transport@file
 
   cert_local_check:
     image: multidirectory
     container_name: multidirectory_local_certs_check
+    networks:
+      md_net:
     restart: "no"
     volumes:
       - ./certs:/certs
@@ -187,6 +201,8 @@ services:
   migrations:
     image: multidirectory
     container_name: multidirectory_migrations
+    networks:
+      md_net:
     restart: "no"
     command: python multidirectory.py --migrate
     env_file:
@@ -206,6 +222,8 @@ services:
         DOCKER_BUILDKIT: 1
       target: runtime
     image: multidirectory
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: multidirectory
     volumes:
@@ -237,7 +255,7 @@ services:
       - traefik.tcp.routers.ldap.entrypoints=ldap
       - traefik.tcp.routers.ldap.service=ldap
       - traefik.tcp.services.ldap.loadbalancer.server.port=389
-      - traefik.tcp.services.ldap.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.ldap.loadbalancer.serversTransport=ldap_transport@file
 
       - traefik.tcp.routers.ldaps.rule=HostSNI(`*`)
       - traefik.tcp.routers.ldaps.entrypoints=ldaps
@@ -245,7 +263,7 @@ services:
       - traefik.tcp.routers.ldaps.tls=true
       - traefik.tcp.routers.ldaps.tls.certresolver=md-resolver
       - traefik.tcp.services.ldaps.loadbalancer.server.port=636
-      - traefik.tcp.services.ldaps.loadbalancer.proxyprotocol.version=2
+      - traefik.tcp.services.ldaps.loadbalancer.serversTransport=ldap_transport@file
     healthcheck:
       test: ["CMD-SHELL", "nc -zv 127.0.0.1 389 636"]
       interval: 30s
@@ -261,6 +279,8 @@ services:
       USE_CORE_TLS: 1
       SERVICE_NAME: multidirectory_api
       KRB5_LDAP_URI: ldap://ldap_server
+    networks:
+      md_net:
     hostname: api_server
     env_file:
       local.env
@@ -279,7 +299,6 @@ services:
       - "traefik.http.routers.api.service=api"
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
-      - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
 
     command:  python multidirectory.py --http
     depends_on:
@@ -289,6 +308,8 @@ services:
   shadow_api:
     image: multidirectory
     container_name: shadow_api
+    networks:
+      md_net:
     restart: unless-stopped
     tty: true
     depends_on:
@@ -309,6 +330,8 @@ services:
   maintence:
     image: multidirectory
     container_name: md_maintence
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -333,6 +356,8 @@ services:
 
   postgres:
     container_name: MD-postgres
+    networks:
+      md_net:
     image: postgres:16
     restart: unless-stopped
     environment:
@@ -357,6 +382,8 @@ services:
       args:
         VERSION: beta
     container_name: kdc
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -376,6 +403,8 @@ services:
   kadmin_api:
     image: krb5md
     container_name: kadmin-api
+    networks:
+      md_net:
     restart: unless-stopped
     volumes:
       - ./certs:/certs
@@ -396,6 +425,8 @@ services:
 
   kadmind:
     container_name: kadmind
+    networks:
+      md_net:
     restart: unless-stopped
     hostname: kerberos
     volumes:
@@ -422,6 +453,8 @@ services:
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly
+    networks:
+      md_net:
     restart: always
     expose:
       - 6379
@@ -434,30 +467,99 @@ services:
           cpus: '0.25'
           memory: 0.5GiB
 
-  bind_dns:
+  kea_dhcp4:
+    image: kea_image:0.1
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
     build:
       context: .
-      dockerfile: ./.docker/bind9.Dockerfile
-    image: bind9md
-    container_name: bind9
-    hostname: bind9
+      dockerfile: ./.docker/kea.Dockerfile
+    container_name: kea_dhcp4
+    tty: true
     restart: unless-stopped
-    environment:
-      - DEFAULT_NAMESERVER=192.168.69.241
-      - USE_CONFIG_FILE_LOGGING=true
+    command: -c /kea/config/kea-dhcp4.conf
     volumes:
-      - dns_server_file:/opt/
-      - dns_server_config:/etc/bind/
-      - .dns/:/server/
+      - dhcp:/kea/config
+      - sockets:/kea/sockets
+      - leases:/kea/leases
+
+  kea_ctrl_agent:
+    image: jonasal/kea-ctrl-agent:3.1.2-alpine
+    container_name: kea_ctrl_agent
+    networks:
+      md_net:
+    restart: unless-stopped
+    command: -c /kea/config/kea-ctrl-agent.conf
     tty: true
     depends_on:
-      ldap_server:
-        condition: service_healthy
-        restart: true
-    labels:
-      - traefik.enable=true
-      - traefik.udp.routers.bind_dns_udp.entrypoints=bind_dns_udp
-      - traefik.udp.services.bind_dns_udp.loadbalancer.server.port=53
+      kea_dhcp4:
+        condition: service_started
+    volumes:
+      - ./.package/kea-ctrl-agent.conf:/kea/config/kea-ctrl-agent.conf
+      - sockets:/kea/sockets
+      - leases:/kea/leases
+
+  pdns_auth:
+    build:
+      context: .
+      dockerfile: ./.docker/pdns_auth.Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
+    image: pdns_auth_md
+    container_name: pdns_auth
+    networks:
+      default:
+      md_net:
+        ipv4_address: 172.20.0.202
+    expose:
+      - 8082
+      - 53/udp
+      - 53/tcp
+    volumes:
+      - dns_lmdb:/var/lib/pdns-lmdb
+      - dns_config:/etc/powerdns
+
+
+  pdnsdist:
+    image: powerdns/dnsdist-19:1.9.11
+    container_name: pdnsdist
+    networks:
+      default:
+      md_net:
+        ipv4_address: 172.20.0.201
+    expose:
+      - 8084
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf
+      - dnsdist_confd:/etc/dnsdist/conf.d
+
+
+  pdns_recursor:
+    image: powerdns/pdns-recursor-51:5.1.7
+    container_name: pdns_recursor
+    networks:
+      default:
+      md_net:
+        ipv4_address: 172.20.0.200
+    expose:
+      - 8083
+      - 53/udp
+      - 53/tcp
+    volumes:
+      - ./.package/recursor.conf:/etc/powerdns/recursor.conf
+      - forward_zones:/etc/powerdns/recursor.d/
+
+networks:
+  md_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
 
   event_handler:
     image: multidirectory

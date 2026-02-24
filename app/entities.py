@@ -156,6 +156,7 @@ class Directory:
         "objectguid",
         "objectsid",
         "entitytypename",
+        "name",
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
