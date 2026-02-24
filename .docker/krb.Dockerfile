@@ -7,12 +7,13 @@ ENV VIRTUAL_ENV=/venvs/.venv \
     PATH="/venvs/.venv/bin:$PATH"
 
 WORKDIR /venvs
+COPY .kerberos/kadmin_local-0.1.1.tar.gz /
 
 RUN python -m venv .venv
 RUN pip install \
     fastapi \
     uvicorn \
-    https://github.com/xianglei/python-kadmv/releases/download/0.1.7/python-kadmV-0.1.7.tar.gz
+    /kadmin_local-0.1.1.tar.gz
 
 
 FROM ghcr.io/multidirectorylab/krb5_base:${VERSION} AS runtime
