@@ -23,25 +23,6 @@ class AttributeType:
     # see section 3.1.1.2.3 `searchFlags` (fANR) for details
     is_included_anr: bool = False
 
-    def get_raw_definition(self) -> str:
-        if not self.oid or not self.name or not self.syntax:
-            raise ValueError(
-                f"{self}: Fields 'oid', 'name', "
-                "and 'syntax' are required for LDAP definition.",
-            )
-        chunks = [
-            "(",
-            self.oid,
-            f"NAME '{self.name}'",
-            f"SYNTAX '{self.syntax}'",
-        ]
-        if self.single_value:
-            chunks.append("SINGLE-VALUE")
-        if self.no_user_modification:
-            chunks.append("NO-USER-MODIFICATION")
-        chunks.append(")")
-        return " ".join(chunks)
-
 
 @dataclass
 class ObjectClass:
@@ -62,32 +43,3 @@ class ObjectClass:
         default_factory=list,
         repr=False,
     )
-
-    def get_raw_definition(self) -> str:
-        if not self.oid or not self.name or not self.kind:
-            raise ValueError(
-                f"{self}: Fields 'oid', 'name', and 'kind'"
-                " are required for LDAP definition.",
-            )
-        chunks = ["(", self.oid, f"NAME '{self.name}'"]
-        if self.superior_name:
-            chunks.append(f"SUP {self.superior_name}")
-        chunks.append(self.kind)
-        if self.attribute_type_names_must:
-            chunks.append(
-                f"MUST ({' $ '.join(self.attribute_type_names_must)} )",
-            )
-        if self.attribute_type_names_may:
-            chunks.append(
-                f"MAY ({' $ '.join(self.attribute_type_names_may)} )",
-            )
-        chunks.append(")")
-        return " ".join(chunks)
-
-    @property
-    def attribute_type_names_must(self) -> list[str]:
-        return [a.name for a in self.attribute_types_must]
-
-    @property
-    def attribute_type_names_may(self) -> list[str]:
-        return [a.name for a in self.attribute_types_may]

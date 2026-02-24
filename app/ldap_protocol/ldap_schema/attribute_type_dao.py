@@ -13,7 +13,7 @@ from abstract_dao import AbstractDAO
 from entities import Directory, EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_type_dir_gateway import (
-    CreateAttributeDirGateway,
+    CreateDirectoryLikeAsAttributeTypeGateway,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -47,12 +47,12 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
     """Attribute Type DAO."""
 
     __session: AsyncSession
-    __create_attribute_dir_gateway: CreateAttributeDirGateway
+    __create_attribute_dir_gateway: CreateDirectoryLikeAsAttributeTypeGateway
 
     def __init__(
         self,
         session: AsyncSession,
-        create_attribute_dir_gateway: CreateAttributeDirGateway,
+        create_attribute_dir_gateway: CreateDirectoryLikeAsAttributeTypeGateway,
     ) -> None:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
@@ -127,7 +127,7 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
                 + f" '{dto.name}' already exists.",
             )
 
-    # TODO сделай обновление пачки update bulk 100 times
+    # TODO сделай обновление пачки update bulk 100 times. а зачем? я забыл
 
     async def update(self, name: str, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type.
@@ -230,9 +230,8 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
 
         await self.__session.execute(
             delete(Directory).where(
-                qa(Directory.entity_type).has(
-                    qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
-                ),
+                qa(Directory.entity_type)
+                .has(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
                 qa(Directory.name).in_(names),
                 qa(Directory.is_system).is_(False),
             ),

@@ -104,9 +104,15 @@ from ldap_protocol.ldap_schema.appendix.attribute_type.dao import (
 from ldap_protocol.ldap_schema.appendix.attribute_type.use_case import (
     AttributeTypeUseCaseDeprecated,
 )
+from ldap_protocol.ldap_schema.appendix.object_class.dao import (
+    ObjectClassDAODeprecated,
+)
+from ldap_protocol.ldap_schema.appendix.object_class.use_case import (
+    ObjectClassUseCaseDeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.attribute_type_dir_gateway import (
-    CreateAttributeDirGateway,
+    CreateDirectoryLikeAsAttributeTypeGateway,
 )
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
@@ -309,7 +315,7 @@ class TestProvider(Provider):
         weakref.finalize(resolver, resolver.close)
 
     create_attribute_dir_gateway = provide(
-        CreateAttributeDirGateway,
+        CreateDirectoryLikeAsAttributeTypeGateway,
         scope=Scope.REQUEST,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
@@ -319,6 +325,10 @@ class TestProvider(Provider):
     )
 
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    object_class_dao_deprecated = provide(
+        ObjectClassDAODeprecated,
+        scope=Scope.REQUEST,
+    )
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
         AttributeTypeSystemFlagsUseCase,
@@ -334,6 +344,10 @@ class TestProvider(Provider):
     )
 
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
+    object_class_use_case_deprecated = provide(
+        ObjectClassUseCaseDeprecated,
+        scope=Scope.REQUEST,
+    )
 
     user_password_history_use_cases = provide(
         UserPasswordHistoryUseCases,
@@ -1037,7 +1051,7 @@ async def setup_session(
     attribute_type_use_case = AttributeTypeUseCase(
         attribute_type_dao=AttributeTypeDAO(
             session,
-            create_attribute_dir_gateway=CreateAttributeDirGateway(
+            create_attribute_dir_gateway=CreateDirectoryLikeAsAttributeTypeGateway(
                 session=session,
                 entity_type_dao=entity_type_dao,
                 attribute_value_validator=attribute_value_validator,
@@ -1263,7 +1277,7 @@ async def attribute_type_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.REQUEST) as container:
         session = await container.get(AsyncSession)
-        gw = await container.get(CreateAttributeDirGateway)
+        gw = await container.get(CreateDirectoryLikeAsAttributeTypeGateway)
         yield AttributeTypeDAO(session, create_attribute_dir_gateway=gw)
 
 

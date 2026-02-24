@@ -5,9 +5,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest
-from entities_appendix import ObjectClass
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.ldap_schema.attribute_type_raw_display import (
+    AttributeTypeRawDisplay,
+)
+from ldap_protocol.ldap_schema.object_class_raw_display import (
+    ObjectClassRawDisplay,
+)
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -38,8 +43,12 @@ test_ldap3_parse_attribute_types_dataset = [
 async def test_ldap3_parse_attribute_types(test_dataset: list[str]) -> None:
     """Test parse ldap3 attribute types."""
     for raw_definition in test_dataset:
-        attribute_type = RDParser.create_attribute_type_by_raw(raw_definition)
-        assert raw_definition == attribute_type.get_raw_definition()
+        attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(
+            raw_definition,
+        )
+        assert raw_definition == AttributeTypeRawDisplay.get_raw_definition(
+            attribute_type_dto,
+        )
 
 
 test_ldap3_parse_object_classes_dataset = [
@@ -65,9 +74,11 @@ async def test_ldap3_parse_object_classes(
         object_class_info = RDParser.get_object_class_info(
             raw_definition=raw_definition,
         )
-        object_class: ObjectClass = await RDParser.create_object_class_by_info(
+        object_class_dto = await RDParser.collect_object_class_dto_from_raw(
             session=session,
             object_class_info=object_class_info,
         )
 
-        assert raw_definition == object_class.get_raw_definition()
+        assert raw_definition == ObjectClassRawDisplay.get_raw_definition(
+            object_class_dto,
+        )

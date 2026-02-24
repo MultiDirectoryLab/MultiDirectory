@@ -19,7 +19,7 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 from repo.pg.tables import queryable_attr as qa
 
 
-class CreateAttributeDirGateway:
+class CreateDirectoryLikeAsAttributeTypeGateway:
     """Setup use case."""
 
     __session: AsyncSession
@@ -87,7 +87,7 @@ class CreateAttributeDirGateway:
             attrs = chain(
                 data["attributes"].items(),
                 [("objectClass", [dir_.object_class])],
-            )
+            )  # TODO ну и урод этот однострчник, сделай потом проще
 
             for name, values in attrs:
                 for value in values:

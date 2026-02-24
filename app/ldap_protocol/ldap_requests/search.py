@@ -10,7 +10,6 @@ from functools import cached_property
 from math import ceil
 from typing import Any, AsyncGenerator, ClassVar
 
-from entities_appendix import AttributeType, ObjectClass
 from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_, select
@@ -40,6 +39,16 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
+from ldap_protocol.ldap_schema.attribute_type_raw_display import (
+    AttributeTypeRawDisplay,
+)
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
+from ldap_protocol.ldap_schema.object_class_raw_display import (
+    ObjectClassRawDisplay,
+)
+from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.rootdse.netlogon import NetLogonAttributeHandler
@@ -188,28 +197,27 @@ class SearchRequest(BaseRequest):
             attributes=[field.value for field in attributes.value],
         )
 
-    async def _get_subschema(self, session: AsyncSession) -> SearchResultEntry:
+    async def _get_subschema(
+        self,
+        attribute_type_use_case: AttributeTypeUseCase,
+        object_class_use_case: ObjectClassUseCase,
+    ) -> SearchResultEntry:
         attrs: dict[str, list[str]] = defaultdict(list)
 
         attrs["name"].append("Schema")
         attrs["objectClass"].append("subSchema")
         attrs["objectClass"].append("top")
 
-        attribute_types = await session.scalars(select(AttributeType))  # TODO
+        attribute_type_dtos = await attribute_type_use_case.get_all()
         attrs["attributeTypes"] = [
-            attribute_type.get_raw_definition()
-            for attribute_type in attribute_types
+            AttributeTypeRawDisplay.get_raw_definition(attribute_type_dto)
+            for attribute_type_dto in attribute_type_dtos
         ]
 
-        object_classes = await session.scalars(
-            select(ObjectClass).options(
-                selectinload(qa(ObjectClass.attribute_types_must)),
-                selectinload(qa(ObjectClass.attribute_types_may)),
-            ),
-        )
+        object_class_dtos = await object_class_use_case.get_all()
         attrs["objectClasses"] = [
-            object_class.get_raw_definition()
-            for object_class in object_classes
+            ObjectClassRawDisplay.get_raw_definition(object_class_dto)
+            for object_class_dto in object_class_dtos
         ]
 
         return SearchResultEntry(
@@ -272,7 +280,10 @@ class SearchRequest(BaseRequest):
 
         if self.scope == Scope.BASE_OBJECT and (is_root_dse or is_schema):
             if is_schema:
-                yield await self._get_subschema(ctx.session)
+                yield await self._get_subschema(
+                    ctx.attribute_type_use_case,
+                    ctx.object_class_use_case,
+                )
             elif is_netlogon:
                 nl_attr = await self._get_netlogon(ctx)
                 yield SearchResultEntry(

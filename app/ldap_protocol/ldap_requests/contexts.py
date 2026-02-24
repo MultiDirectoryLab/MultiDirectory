@@ -11,10 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import AbstractKadmin
+from ldap_protocol.ldap_schema.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.multifactor import LDAPMultiFactorAPI
 from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
@@ -79,6 +83,8 @@ class LDAPSearchRequestContext:
     settings: Settings
     access_manager: AccessManager
     rootdse_rd: RootDSEReader
+    attribute_type_use_case: AttributeTypeUseCase
+    object_class_use_case: ObjectClassUseCase
 
 
 @dataclass

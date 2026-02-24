@@ -169,7 +169,8 @@ async def test_modify_one_object_class(
     )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
-    response.json()
+    object_class = response.json()
+    object_class
     # TODO это надо включить
     # assert set(object_class.get("attribute_type_names_must")) == set(
     #     new_statement.get("attribute_type_names_must"),
