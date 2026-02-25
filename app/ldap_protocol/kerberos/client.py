@@ -118,7 +118,7 @@ class KerberosMDAPIClient(AbstractKadmin):
     async def ktadd(
         self,
         names: list[str],
-        is_rand_key: bool,
+        keep_old: bool,
     ) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
@@ -128,7 +128,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         request = self.client.build_request(
             "POST",
             "/principal/ktadd",
-            json={"names": names, "is_rand_key": is_rand_key},
+            json={"names": names, "keep_old": keep_old},
         )
 
         response = await self.client.send(request, stream=True)

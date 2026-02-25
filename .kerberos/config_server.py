@@ -91,7 +91,7 @@ class KtaddRequest(BaseModel):
     """Request model for ktadd."""
 
     names: list[str]
-    is_rand_key: bool = Field(default=False)
+    keep_old: bool = Field(default=False)
 
 
 class ModifyPrincipalRequest(BaseModel):
@@ -165,13 +165,13 @@ class AbstractKRBManager(ABC):
         self,
         names: list[str],
         fn: str,
-        is_rand_key: bool = False,
+        keep_old: bool = False,
     ) -> None:
         """Create or write to keytab.
 
         :param list[str] names: principals
         :param str fn: filename
-        :param bool is_rand_key: generate random key
+        :param bool keep_old: keep valid old keytab files
         """
 
     @abstractmethod
@@ -335,13 +335,13 @@ class KAdminLocalManager(AbstractKRBManager):
         self,
         names: list[str],
         fn: str,
-        is_rand_key: bool = False,
+        keep_old: bool = False,
     ) -> None:
         """Create or write to keytab.
 
         :param list[str] names: principals
         :param str fn: filename
-        :param bool is_rand_key: generate random key
+        :param bool keep_old: keep valid old keytab files
         :raises PrincipalNotFoundError: on not found princ
         """
         principals = [await self._get_raw_principal(name) for name in names]
@@ -353,7 +353,7 @@ class KAdminLocalManager(AbstractKRBManager):
                 self.pool,
                 princ.ktadd,
                 fn,
-                is_rand_key,
+                keep_old,
             )
 
     async def lock_princ(self, name: str, **dbargs) -> None:
@@ -673,11 +673,11 @@ async def ktadd(
     :param KtaddRequest request: request data
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
-    if request.is_rand_key:
+    if request.keep_old:
         await kadmin.ktadd(
             request.names,
             filename,
-            is_rand_key=request.is_rand_key,
+            keep_old=request.keep_old,
         )
     else:
         await kadmin.ktadd(

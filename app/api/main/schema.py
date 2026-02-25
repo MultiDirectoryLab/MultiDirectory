@@ -80,7 +80,7 @@ class KtaddRequest(BaseModel):
     """Request schema for POST /ktadd."""
 
     names: list[str]
-    is_rand_key: bool = False
+    keep_old: bool = False
 
 
 class ModifyPrincipalRequest(BaseModel):
