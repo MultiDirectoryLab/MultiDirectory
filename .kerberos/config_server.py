@@ -348,18 +348,13 @@ class KAdminLocalManager(AbstractKRBManager):
         if not all(principals):
             raise PrincipalNotFoundError("Principal not found")
 
-        if is_rand_key:
-            for princ in principals:
-                await self.loop.run_in_executor(
-                    self.pool,
-                    princ.ktadd,
-                    fn,
-                    True,
-                )
-
-        else:
-            for princ in principals:
-                await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
+        for princ in principals:
+            await self.loop.run_in_executor(
+                self.pool,
+                princ.ktadd,
+                fn,
+                is_rand_key,
+            )
 
     async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock princ.
