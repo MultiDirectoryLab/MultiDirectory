@@ -229,7 +229,6 @@ services:
       - dns_server_file:/DNS_server_file/
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
-      - ./resolv.conf:/resolv.conf
       - dnsdist_confd:/dnsdist
     hostname: api_server
     environment:
