@@ -212,7 +212,7 @@ class AbstractKadmin(ABC):
     async def ktadd(
         self,
         names: list[str],
-        keep_old: bool,
+        is_rand_key: bool,
     ) -> httpx.Response: ...
 
     @abstractmethod
@@ -242,7 +242,7 @@ class AbstractKadmin(ABC):
 
         response = await self.client.post(
             "/principal/ktadd",
-            json={"names": [name], "keep_old": False},
+            json={"names": [name], "is_rand_key": False},
         )
         if response.status_code != 200:
             log.error(f"Error getting keytab: {response.text}")

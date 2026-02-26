@@ -118,7 +118,7 @@ class KerberosFastAPIAdapter(BaseAdapter[KerberosService]):
         """
         aiter_bytes, task_struct = await self._service.ktadd(
             data.names,
-            keep_old=data.keep_old,
+            is_rand_key=data.is_rand_key,
         )
         task = BackgroundTask(
             task_struct.func,

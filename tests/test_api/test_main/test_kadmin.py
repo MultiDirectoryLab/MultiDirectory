@@ -214,7 +214,7 @@ async def test_ktadd(
     names = ["test1", "test2"]
     response = await http_client.post(
         "/kerberos/ktadd",
-        json={"names": names, "keep_old": False},
+        json={"names": names, "is_rand_key": False},
     )
 
     kadmin.ktadd.assert_called()  # type: ignore
@@ -245,7 +245,7 @@ async def test_ktadd_400(
     names = ["test1", "test2"]
     response = await http_client.post(
         "/kerberos/ktadd",
-        json={"names": names, "keep_old": False},
+        json={"names": names, "is_rand_key": False},
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST

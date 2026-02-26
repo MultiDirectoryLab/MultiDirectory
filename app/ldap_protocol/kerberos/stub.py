@@ -55,7 +55,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def ktadd(self, names: list[str], keep_old: bool) -> NoReturn:  # noqa: ARG002
+    async def ktadd(self, names: list[str], is_rand_key: bool) -> NoReturn:  # noqa: ARG002
         raise KRBAPIPrincipalNotFoundError
 
     @logger_wraps(is_stub=True)

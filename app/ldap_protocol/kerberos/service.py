@@ -427,17 +427,17 @@ class KerberosService(AbstractService):
     async def ktadd(
         self,
         names: list[str],
-        keep_old: bool,
+        is_rand_key: bool,
     ) -> tuple[AsyncIterator[bytes], TaskStruct]:
         """Generate keytab and return (aiter_bytes, TaskStruct).
 
         :param list[str] names: List of principal names.
-        :param bool keep_old: If True, keep valid old keytab files.
+        :param bool is_rand_key: If True, generate new principal keys.
         :raises KerberosNotFoundError: If principal not found.
         :return tuple: (aiter_bytes, (func, args, kwargs)).
         """
         try:
-            response = await self._kadmin.ktadd(names, keep_old)
+            response = await self._kadmin.ktadd(names, is_rand_key)
         except KRBAPIPrincipalNotFoundError:
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
