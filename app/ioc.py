@@ -65,6 +65,9 @@ from ldap_protocol.dns import (
     RemoteDNSManager,
     StubDNSManager,
 )
+from ldap_protocol.dns.managers.bind_to_pdns_migration_manager import (
+    BindToPDNSMigrationManager,
+)
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -315,6 +318,25 @@ class MainProvider(Provider):
             yield RemoteDNSManager(settings=dns_settings)
         else:
             yield StubDNSManager(settings=dns_settings)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dns_mgrt_mngr(
+        self,
+        dns_settings: DNSSettingsDTO,
+        power_dns_auth_client: PowerDNSAuthHTTPClient,
+        power_dns_recursor_client: PowerDNSRecursorHTTPClient,
+        power_dns_dist_client: PowerDNSDistClient,
+    ) -> AsyncIterator[BindToPDNSMigrationManager]:
+        """Get migration manager class."""
+        yield BindToPDNSMigrationManager(
+            PowerDNSManager(
+                settings=dns_settings,
+                power_dns_auth_client=power_dns_auth_client,
+                power_dns_recursor_client=power_dns_recursor_client,
+                dnsdist_client=power_dns_dist_client,
+            ),
+            dns_settings=dns_settings,
+        )
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(

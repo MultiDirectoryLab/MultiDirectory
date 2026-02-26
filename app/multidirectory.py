@@ -50,6 +50,9 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dependency import resolve_deps
+from ldap_protocol.dns.managers.bind_to_pdns_migration_manager import (
+    BindToPDNSMigrationManager,
+)
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
@@ -287,6 +290,19 @@ async def event_sender_factory(settings: Settings) -> None:
         await asyncio.gather(manager.run())
 
 
+async def migrate_dns_factory(settings: Settings) -> None:
+    """Run DNS migration."""
+    main_container = make_async_container(
+        MainProvider(),
+        EventSenderProvider(),
+        context={Settings: settings},
+    )
+
+    async with main_container(scope=Scope.REQUEST) as container:
+        manager = await container.get(BindToPDNSMigrationManager)
+        await asyncio.gather(manager.migrate())
+
+
 ldap = partial(run_entrypoint, factory=ldap_factory)
 cldap = partial(run_entrypoint, factory=cldap_factory)
 global_ldap_server = partial(
@@ -297,6 +313,7 @@ scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 event_handler = partial(run_entrypoint, factory=event_handler_factory)
 event_sender = partial(run_entrypoint, factory=event_sender_factory)
+dns_migration = partial(run_entrypoint, factory=migrate_dns_factory)
 
 
 if __name__ == "__main__":
@@ -333,6 +350,11 @@ if __name__ == "__main__":
         "--migrate",
         action="store_true",
         help="Make migrations",
+    )
+    group.add_argument(
+        "--migrate_dns",
+        action="store_true",
+        help="Migrate DNS",
     )
 
     args = parser.parse_args()
@@ -376,3 +398,5 @@ if __name__ == "__main__":
         dump_acme_cert()
     elif args.migrate:
         command.upgrade(Config("alembic.ini"), "head")
+    elif args.migrate_dns:
+        dns_migration(settings=settings)
