@@ -118,9 +118,9 @@ class RIDManagerSetupUseCase:
     async def setup(self) -> None:
         """Create RID Manager."""
         rid_manager_dir = await self._gateway.set_rid_manager()
-        # await self.grant_domain_admins_read_to_rid_manager(
-        #     rid_manager_dir,
-        # )
+        await self.inherit_aces(
+            rid_manager_dir,
+        )
 
         qword = create_qword(self.RID_USER_MIN, RID_AVAILABLE_MAX)
 
@@ -138,7 +138,7 @@ class RIDManagerSetupUseCase:
             self.RID_USER_MIN,
         )
 
-    async def grant_domain_admins_read_to_rid_manager(
+    async def inherit_aces(
         self,
         rid_manager_dir: Directory,
     ) -> None:
