@@ -12,7 +12,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory, Group, NetworkPolicy, User
-from enums import EntityTypeNames
+from enums import EntityTypeNames, SidPrefix
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -20,8 +20,8 @@ from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
+from ldap_protocol.rid_manager.use_cases import RIDManagerUseCase
 from ldap_protocol.utils.async_cache import base_directories_cache
-from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
 from password_utils import PasswordUtils
 from repo.pg.tables import queryable_attr as qa
@@ -37,6 +37,7 @@ class SetupGateway:
         entity_type_use_case: EntityTypeUseCase,
         attribute_value_validator: AttributeValueValidator,
         directory_dao: DirectoryDAO,
+        rid_manager_use_case: RIDManagerUseCase,
     ) -> None:
         """Initialize Setup use case.
 
@@ -49,6 +50,7 @@ class SetupGateway:
         self._entity_type_use_case = entity_type_use_case
         self._attribute_value_validator = attribute_value_validator
         self._directory_dao = directory_dao
+        self._rid_manager_use_case = rid_manager_use_case
 
     async def is_setup(self) -> bool:
         """Check if setup is performed.
@@ -67,21 +69,9 @@ class SetupGateway:
         *,
         data: list,
         is_system: bool = True,
-        dn: str = "multifactor.dev",
+        domain: Directory,
     ) -> None:
         """Create directories and users for enviroment."""
-        cat_result = await self._session.execute(select(Directory))
-        if cat_result.scalar_one_or_none():
-            logger.warning("dev data already set up")
-            return
-
-        domain = Directory(name=dn, object_class="domain")
-        domain.is_system = True
-        domain.object_sid = generate_domain_sid()
-        domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
-        domain.depth = len(domain.path)
-        domain.rdname = ""
-
         async with self._session.begin_nested():
             self._session.add(domain)
             self._session.add(
@@ -132,6 +122,28 @@ class SetupGateway:
             logger.error(traceback.format_exc())
             raise
 
+    async def is_base_domain_created(self) -> bool:
+        """Check if base domain is created."""
+        cat_result = await self._session.execute(select(Directory))
+        if cat_result.scalar_one_or_none():
+            logger.warning("dev data already set up")
+            return True
+        return False
+
+    async def create_base_domain(
+        self,
+        dn: str = "multifactor.dev",
+    ) -> Directory:
+        """Create base domain."""
+        domain = Directory(name=dn, object_class="domain")
+        domain.is_system = True
+        domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
+        domain.depth = len(domain.path)
+        domain.rdname = ""
+        self._session.add(domain)
+        await self._session.flush()
+        return domain
+
     async def create_dir(
         self,
         data: dict,
@@ -161,11 +173,12 @@ class SetupGateway:
             ),
         )
 
-        dir_.object_sid = create_object_sid(
-            domain,
-            rid=data.get("objectSid", dir_.id),
-            reserved="objectSid" in data,
-        )
+        if "objectSid" in data:
+            await self._rid_manager_use_case.set_object_sid(
+                directory=dir_,
+                rid=int(data["objectSid"]),
+                sid_prefix=SidPrefix.BUILT_IN_DOMAIN,
+            )
 
         if dir_.object_class == "group":
             group = Group(directory_id=dir_.id)

@@ -132,7 +132,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import functools
 import hashlib
-import random
 import re
 import struct
 import time
@@ -299,34 +298,6 @@ def string_to_sid(sid_string: str) -> bytes:
         sid += struct.pack("<I", sub_auth)
 
     return sid
-
-
-def create_object_sid(
-    domain: Directory,
-    rid: int,
-    reserved: bool = False,
-) -> str:
-    """Generate the objectSid attribute for an object.
-
-    :param domain: domain directory
-    :param int rid: relative identifier
-    :param bool reserved: A flag indicating whether the RID is reserved.
-                          If `True`, the given RID is used directly. If
-                          `False`, 1000 is added to the given RID to generate
-                          the final RID
-    :return str: the complete objectSid as a string
-    """
-    return domain.object_sid + f"-{rid if reserved else 1000 + rid}"
-
-
-def generate_domain_sid() -> str:
-    """Generate domain objectSid attr."""
-    sub_authorities = [
-        random.randint(1000000000, (1 << 32) - 1),
-        random.randint(1000000000, (1 << 32) - 1),
-        random.randint(100000000, 999999999),
-    ]
-    return "S-1-5-21-" + "-".join(str(part) for part in sub_authorities)
 
 
 def create_user_name(directory_id: int) -> str:

@@ -145,7 +145,6 @@ directory_table = Table(
         key="updated_at",
     ),
     Column("depth", Integer, nullable=True),
-    Column("objectSid", String, nullable=True, key="object_sid"),
     Column(
         "objectGUID",
         PG_UUID(as_uuid=True),
@@ -783,7 +782,6 @@ mapper_registry.map_imperatively(
         ),
         "objectclass": synonym("object_class"),
         "objectguid": synonym("object_guid"),
-        "objectsid": synonym("object_sid"),
         "whencreated": synonym("created_at"),
         "whenchanged": synonym("updated_at"),
     },

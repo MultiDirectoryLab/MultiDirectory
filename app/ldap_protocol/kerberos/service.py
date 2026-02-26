@@ -121,14 +121,12 @@ class KerberosService(AbstractService):
         try:
             await self._ldap_manager.create_kerberos_structure(
                 add_requests.group,
-                add_requests.services,
                 add_requests.krb_user,
                 ctx,
             )
         except Exception:
             await self._ldap_manager.rollback_kerberos_structure(
                 dns.krbadmin_dn,
-                dns.services_container_dn,
                 dns.krbadmin_group_dn,
             )
             await self._session.commit()
@@ -188,11 +186,6 @@ class KerberosService(AbstractService):
             },
             is_system=True,
         )
-        services = AddRequest.from_dict(
-            dns.services_container_dn,
-            {"objectClass": ["organizationalUnit", "top", "container"]},
-            is_system=True,
-        )
         krb_user = AddRequest.from_dict(
             dns.krbadmin_dn,
             password=krbadmin_password.get_secret_value(),
@@ -229,7 +222,6 @@ class KerberosService(AbstractService):
         )
         return AddRequestsDTO(
             group=group,
-            services=services,
             krb_user=krb_user,
         )
 
@@ -283,7 +275,6 @@ class KerberosService(AbstractService):
         ) as err:
             await self._ldap_manager.rollback_kerberos_structure(
                 context.krbadmin,
-                context.services_container,
                 context.krbgroup,
             )
             await self._kadmin.reset_setup()

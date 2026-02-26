@@ -1111,8 +1111,9 @@ async def setup_session(
     await session.flush()
 
     await audit_use_case.create_policies()
+    domain = await setup_gateway.create_base_domain()
     await setup_gateway.setup_enviroment(
-        dn="md.test",
+        domain=domain,
         data=TEST_DATA,
         is_system=False,
     )

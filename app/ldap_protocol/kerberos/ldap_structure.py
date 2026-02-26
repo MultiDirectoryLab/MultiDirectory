@@ -39,28 +39,17 @@ class KRBLDAPStructureManager:
     async def create_kerberos_structure(
         self,
         group: AddRequest,
-        services: AddRequest,
         krb_user: AddRequest,
         ctx: LDAPAddRequestContext,
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
         :param AddRequest group: AddRequest for Kerberos group.
-        :param AddRequest services: AddRequest for services container.
         :param AddRequest krb_user: AddRequest for Kerberos admin user.
-        :param LDAPSession ldap_session: LDAP session.
-        :param AbstractKadmin kadmin: Kerberos admin interface.
-        :param EntityTypeDAO entity_type_dao: DAO for entity types.
-        :param str services_container: DN for services container.
-        :param str krbgroup: DN for Kerberos group.
+        :param LDAPAddRequestContext ctx: LDAP request context.
         :raises Exception: On structure creation error.
         :return None.
         """
-        async with self._session.begin_nested():
-            service_result = await anext(services.handle(ctx))
-            if service_result.result_code != 0:
-                raise KerberosConflictError("Service error")
-
         async with self._session.begin_nested():
             group_result = await anext(group.handle(ctx))
             if group_result.result_code != 0:
@@ -76,20 +65,17 @@ class KRBLDAPStructureManager:
     async def rollback_kerberos_structure(
         self,
         krbadmin: str,
-        services_container: str,
         krbgroup: str,
     ) -> None:
         """Rollback Kerberos structure in the LDAP directory.
 
         :param str krbadmin: DN for Kerberos admin user.
-        :param str services_container: DN for services container.
         :param str krbgroup: DN for Kerberos group.
         :return None.
         """
         directories_query = select(Directory).where(
             or_(
                 get_filter_from_path(krbadmin),
-                get_filter_from_path(services_container),
                 get_filter_from_path(krbgroup),
             ),
         )

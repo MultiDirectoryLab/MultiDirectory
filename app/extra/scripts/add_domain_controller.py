@@ -11,14 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
-from enums import SamAccountTypeCodes
+from enums import SamAccountTypeCodes, SecurityPrincipalRid
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
 from ldap_protocol.objects import UserAccountControlFlag
+from ldap_protocol.rid_manager.use_cases import RIDManagerUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.helpers import create_object_sid
-from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -27,8 +26,8 @@ async def _add_domain_controller(
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
     settings: Settings,
-    domain: Directory,
     dc_ou_dir: Directory,
+    rid_manager_use_case: RIDManagerUseCase,
 ) -> None:
     dc_directory = Directory(
         object_class="",
@@ -40,7 +39,10 @@ async def _add_domain_controller(
     await session.flush()
 
     dc_directory.parent_id = dc_ou_dir.id
-    dc_directory.object_sid = create_object_sid(domain, dc_directory.id)
+    await rid_manager_use_case.set_object_sid(
+        directory=dc_directory,
+        rid=SecurityPrincipalRid.DOMAIN_CONTROLLERS,
+    )
     await session.flush()
 
     attributes = [
@@ -103,13 +105,9 @@ async def add_domain_controller(
     settings: Settings,
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
+    rid_manager_use_case: RIDManagerUseCase,
 ) -> None:
     logger.info("Adding domain controller.")
-
-    domains = await get_base_directories(session)
-    if not domains:
-        logger.debug("Cannot get base directory")
-        return
 
     domain_controllers_ou = await session.scalar(
         select(Directory).where(
@@ -140,8 +138,8 @@ async def add_domain_controller(
         role_use_case=role_use_case,
         entity_type_use_case=entity_type_use_case,
         settings=settings,
-        domain=domains[0],
         dc_ou_dir=domain_controllers_ou,
+        rid_manager_use_case=rid_manager_use_case,
     )
 
     logger.debug("Domain controller added.")

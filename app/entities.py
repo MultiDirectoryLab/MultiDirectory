@@ -140,7 +140,6 @@ class Directory:
     search_fields: ClassVar[dict[str, str]] = {
         "name": "name",
         "objectguid": "objectGUID",
-        "objectsid": "objectSid",
     }
     ro_fields: ClassVar[set[str]] = {
         "uid",
@@ -186,12 +185,18 @@ class Directory:
 
     @property
     def relative_id(self) -> str:
-        """Get RID from objectSid.
+        """Get RID from objectSid attribute.
 
         Relative Identifier (RID) is the last sub-authority value of a SID.
         """
-        if "-" in self.object_sid:
-            return self.object_sid.split("-")[-1]
+        attrs = self.__dict__.get("attributes")
+        if not attrs:
+            return ""
+
+        for attr in attrs:
+            if attr.name and attr.name.lower() == "objectsid" and attr.value:
+                if "-" in attr.value:
+                    return attr.value.split("-")[-1]
         return ""
 
     @property

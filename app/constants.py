@@ -4,13 +4,14 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from enums import EntityTypeNames, SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes, SecurityPrincipalRid
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 
 CONFIGURATION_DIR_NAME = "Configuration"
 GROUPS_CONTAINER_NAME = "Groups"
 COMPUTERS_CONTAINER_NAME = "Computers"
 USERS_CONTAINER_NAME = "Users"
+SYSTEM_CONTAINER_NAME = "System"
 DOMAIN_CONTROLLERS_OU_NAME = "Domain Controllers"
 
 READ_ONLY_GROUP_NAME = "read-only"
@@ -325,6 +326,14 @@ FIRST_SETUP_DATA = [
         "attributes": {"objectClass": ["top", "configuration"]},
     },
     {
+        "name": SYSTEM_CONTAINER_NAME,
+        "object_class": "organizationalUnit",
+        "attributes": {
+            "objectClass": ["top", "container"],
+        },
+        "children": [],
+    },
+    {
         "name": GROUPS_CONTAINER_NAME,
         "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
@@ -347,7 +356,7 @@ FIRST_SETUP_DATA = [
                     ],
                     "gidNumber": ["512"],
                 },
-                "objectSid": 512,
+                "objectSid": SecurityPrincipalRid.DOMAIN_ADMINS,
             },
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
@@ -363,7 +372,7 @@ FIRST_SETUP_DATA = [
                     ],
                     "gidNumber": ["513"],
                 },
-                "objectSid": 513,
+                "objectSid": SecurityPrincipalRid.DOMAIN_USERS,
             },
             {
                 "name": READ_ONLY_GROUP_NAME,
@@ -379,7 +388,7 @@ FIRST_SETUP_DATA = [
                     ],
                     "gidNumber": ["521"],
                 },
-                "objectSid": 521,
+                "objectSid": SecurityPrincipalRid.DOMAIN_READ_ONLY,
             },
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
@@ -395,7 +404,7 @@ FIRST_SETUP_DATA = [
                     ],
                     "gidNumber": ["515"],
                 },
-                "objectSid": 515,
+                "objectSid": SecurityPrincipalRid.DOMAIN_COMPUTERS,
             },
         ],
     },

@@ -178,6 +178,12 @@ from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     UserPasswordHistoryUseCases,
 )
+from ldap_protocol.rid_manager import (
+    RIDManagerGateway,
+    RIDManagerSetupGateway,
+    RIDManagerSetupUseCase,
+    RIDManagerUseCase,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.migrations_ace_dao import (
@@ -640,6 +646,17 @@ class MainProvider(Provider):
     )
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
+
+    rid_manager_gateway = provide(RIDManagerGateway, scope=Scope.REQUEST)
+    rid_manager_setup_gateway = provide(
+        RIDManagerSetupGateway,
+        scope=Scope.REQUEST,
+    )
+    rid_manager_use_case = provide(RIDManagerUseCase, scope=Scope.REQUEST)
+    rid_manager_setup_use_case = provide(
+        RIDManagerSetupUseCase,
+        scope=Scope.REQUEST,
+    )
 
 
 class LDAPContextProvider(Provider):

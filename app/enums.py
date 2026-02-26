@@ -72,6 +72,8 @@ class EntityTypeNames(StrEnum):
     KRB_CONTAINER = "KRB Container"
     KRB_PRINCIPAL = "KRB Principal"
     KRB_REALM_CONTAINER = "KRB Realm Container"
+    RID_MANAGER = "RID Manager"
+    RID_SET = "RID Set"
 
 
 class KindType(StrEnum):
@@ -288,8 +290,13 @@ class SidPrefix(StrEnum):
     BUILT_IN_DOMAIN = "S-1-5-32"
 
 
-class GroupRid(IntEnum):
-    ADMINISTRATORS = 544
-    USERS = 545
-    GUESTS = 546
-    POWER_USERS = 547
+class SecurityPrincipalRid(IntEnum):
+    ADMINISTRATOR = 500
+    GUESTS = 501
+    KRBTGT = 502
+    DOMAIN_ADMINS = 512
+    DOMAIN_USERS = 513
+    DOMAIN_GUESTS = 514
+    DOMAIN_COMPUTERS = 515
+    DOMAIN_CONTROLLERS = 516
+    DOMAIN_READ_ONLY = 521

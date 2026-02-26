@@ -38,8 +38,11 @@ class SearchRequest(LDAPSearchRequest):
         )
 
     @staticmethod
-    def get_directory_sid(directory: Directory) -> str:  # type: ignore
-        return directory.object_sid
+    def get_directory_sid(directory: Directory) -> str | None:  # type: ignore
+        for attr in getattr(directory, "attributes", []):
+            if attr.name and attr.name.lower() == "objectsid" and attr.value:
+                return attr.value
+        return None
 
     @staticmethod
     def get_directory_guid(directory: Directory) -> str:  # type: ignore

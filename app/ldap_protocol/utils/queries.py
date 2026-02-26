@@ -21,7 +21,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.expression import ColumnElement
 
 from entities import Attribute, Directory, Group, User
-from enums import SamAccountTypeCodes
+from enums import SamAccountTypeCodes, SidPrefix
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -36,7 +36,6 @@ from .async_cache import base_directories_cache
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
     create_integer_hash,
-    create_object_sid,
     dn_is_base_directory,
     ft_now,
     validate_entry,
@@ -190,16 +189,16 @@ async def get_directory_by_rid(
     rid: str,
     session: AsyncSession,
 ) -> Directory | None:
-    """Get directory by relative ID (rid).
-
-    :param str rid: relative ID
-    :param AsyncSession session: SA session
-    :return Directory | None: directory or None
-    """
     query = (
         select(Directory)
-        .options(joinedload(qa(Directory.group)))
-        .filter(qa(Directory.object_sid).endswith(f"-{rid}"))
+        .join(Attribute)  # связь Directory.id == Attribute.directory_id
+        .options(
+            joinedload(qa(Directory.group)),
+        )
+        .filter(
+            qa(Attribute.name) == "objectSid",
+            qa(Attribute.value).endswith(f"-{rid}"),
+        )
     )
     return await session.scalar(query)
 
@@ -386,10 +385,12 @@ async def create_group(
     dir_.create_path(parent)
     session.add(group)
 
-    dir_.object_sid = create_object_sid(
-        base_dn_list[0],
-        rid=sid or dir_.id,
-        reserved=bool(sid),
+    session.add(
+        Attribute(
+            name="objectSid",
+            value=f"{SidPrefix.BUILT_IN_DOMAIN}-{sid or dir_.id}",
+            directory_id=dir_.id,
+        ),
     )
 
     await session.flush()
@@ -559,9 +560,13 @@ async def get_group_path_dn_by_primary_group_id(
     """
     query = (
         select(Directory)
+        .join(Attribute)
         .join(qa(Directory.group))
         .options(contains_eager(qa(Directory.group)))
-        .filter(qa(Directory.object_sid).endswith(f"-{primary_group_id}"))
+        .filter(
+            qa(Attribute.name) == "objectSid",
+            qa(Attribute.value).endswith(f"-{primary_group_id}"),
+        )
     )
 
     directory = await session.scalar(query)

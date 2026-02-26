@@ -19,7 +19,7 @@ from constants import (
     FIRST_SETUP_DATA,
     USERS_CONTAINER_NAME,
 )
-from enums import EntityTypeNames, SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes, SecurityPrincipalRid
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.identity.exceptions import (
@@ -44,6 +44,7 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
+from ldap_protocol.rid_manager.use_cases import RIDManagerSetupUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import create_integer_hash, ft_now
 
@@ -64,6 +65,7 @@ class SetupUseCase:
         audit_use_case: AuditUseCase,
         session: AsyncSession,
         settings: Settings,
+        rid_manager_setup_use_case: RIDManagerSetupUseCase,
     ) -> None:
         """Initialize Setup manager.
 
@@ -82,6 +84,7 @@ class SetupUseCase:
         self._object_class_use_case_legacy = object_class_use_case_legacy
         self._object_class_use_case = object_class_use_case
         self._settings = settings
+        self._rid_manager_setup_use_case = rid_manager_setup_use_case
 
     async def setup(self, dto: SetupDTO) -> None:
         """Perform the initial setup of structure and policies.
@@ -123,6 +126,7 @@ class SetupUseCase:
                     "name": self._settings.HOST_MACHINE_SHORT_NAME,
                     "entity_type_name": EntityTypeNames.COMPUTER,
                     "object_class": "computer",
+                    "objectSid": SecurityPrincipalRid.DOMAIN_CONTROLLERS,
                     "attributes": {
                         "objectClass": ["top"],
                         "userAccountControl": [
@@ -186,7 +190,7 @@ class SetupUseCase:
                             str(SamAccountTypeCodes.SAM_USER_OBJECT),
                         ],
                     },
-                    "objectSid": 500,
+                    "objectSid": SecurityPrincipalRid.ADMINISTRATOR,
                 },
             ],
         }
@@ -199,10 +203,14 @@ class SetupUseCase:
         :return: None.
         """
         try:
+            if await self._setup_gateway.is_base_domain_created():
+                return
+            domain = await self._setup_gateway.create_base_domain(dto.domain)
+            await self._rid_manager_setup_use_case.create_domain_identifier()
             await self._setup_gateway.setup_enviroment(
                 data=data,
-                dn=dto.domain,
                 is_system=True,
+                domain=domain,
             )
 
             attrs = await self._attribute_type_use_case_legacy.get_all()
@@ -237,6 +245,8 @@ class SetupUseCase:
             await self._role_use_case.create_domain_admins_role()
             await self._role_use_case.create_read_only_role()
             await self._audit_use_case.create_policies()
+            await self._rid_manager_setup_use_case.setup()
+
             await self._session.commit()
         except IntegrityError:
             await self._session.rollback()
