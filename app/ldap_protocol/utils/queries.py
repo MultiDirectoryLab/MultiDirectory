@@ -191,7 +191,7 @@ async def get_directory_by_rid(
 ) -> Directory | None:
     query = (
         select(Directory)
-        .join(Attribute)  # связь Directory.id == Attribute.directory_id
+        .join(Attribute)
         .options(
             joinedload(qa(Directory.group)),
         )
