@@ -32,7 +32,7 @@ from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "552b4eafb1aa"
-down_revision: None | str = "ebf19750805e"
+down_revision: None | str = "19d86e660cf2"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
