@@ -195,8 +195,7 @@ class Directory:
 
         for attr in attrs:
             if attr.name and attr.name.lower() == "objectsid" and attr.value:
-                if "-" in attr.value:
-                    return attr.value.split("-")[-1]
+                return attr.value.split("-")[-1]
         return ""
 
     @property

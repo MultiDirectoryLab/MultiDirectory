@@ -10,15 +10,14 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Directory
-from enums import AceType, RoleConstants, RoleScope, SidPrefix
+from enums import SidPrefix
 from ldap_protocol.rid_manager.gateways import (
     RIDManagerGateway,
     RIDManagerSetupGateway,
 )
 from ldap_protocol.rid_manager.utils import create_qword
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.dataclasses import AccessControlEntryDTO
-from ldap_protocol.roles.role_dao import RoleDAO
+from ldap_protocol.roles.role_use_case import RoleUseCase
 
 RID_AVAILABLE_MAX = 1073741822  # 30-bit max (2^30 - 2)
 
@@ -46,6 +45,10 @@ class RIDManagerUseCase:
         """Get object SID for directory."""
         return await self._gateway.get_object_sid(directory)
 
+    async def get_rid_set(self) -> Directory | None:
+        """Get RID Set directory."""
+        return await self._gateway.get_rid_set()
+
     async def set_object_sid(
         self,
         directory: Directory,
@@ -56,6 +59,8 @@ class RIDManagerUseCase:
         async with self._lock, await self._session.begin_nested():
             if rid is None:
                 rid_set = await self._gateway.get_rid_set()
+                if not rid_set:
+                    raise ValueError("RID Set directory not found")
                 next_rid = await self._gateway.get_next_rid(rid_set)
                 rid = next_rid + 1
                 await self._gateway.update_next_rid(rid_set, rid)
@@ -98,23 +103,24 @@ class RIDManagerSetupUseCase:
     def __init__(
         self,
         rid_manager_setup_gateway: RIDManagerSetupGateway,
-        role_dao: RoleDAO,
+        role_use_case: RoleUseCase,
         access_control_entry_dao: AccessControlEntryDAO,
     ) -> None:
         """Initialize RID Manager setup use case.
 
         :param rid_manager_setup_gateway: Gateway for setup operations
+        :param role_use_case: Role use case
         """
         self._gateway = rid_manager_setup_gateway
-        self._role_dao = role_dao
+        self._role_use_case = role_use_case
         self._access_control_entry_dao = access_control_entry_dao
 
     async def setup(self) -> None:
         """Create RID Manager."""
         rid_manager_dir = await self._gateway.set_rid_manager()
-        await self.grant_domain_admins_read_to_rid_manager(
-            rid_manager_dir,
-        )
+        # await self.grant_domain_admins_read_to_rid_manager(
+        #     rid_manager_dir,
+        # )
 
         qword = create_qword(self.RID_USER_MIN, RID_AVAILABLE_MAX)
 
@@ -136,21 +142,17 @@ class RIDManagerSetupUseCase:
         self,
         rid_manager_dir: Directory,
     ) -> None:
-        """Grant READ access on RID Manager to Domain Admins Role."""
-        role = await self._role_dao.get_by_name(
-            RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
-        )
+        """Inherit ACEs from domain root to RID Manager directory.
 
-        await self._access_control_entry_dao.create(
-            AccessControlEntryDTO(
-                role_id=role.get_id(),
-                ace_type=AceType.READ,
-                scope=RoleScope.BASE_OBJECT,
-                base_dn=rid_manager_dir.path_dn,
-                attribute_type_id=None,
-                entity_type_id=None,
-                is_allow=True,
-            ),
+        Instead of creating a special ACE or role for RID Manager,
+        we reuse the existing ACL model: all ACEs that apply to the
+        domain root (including Domain Admins) are inherited by the
+        `CN=RID Manager$` directory, similar to how it is done in
+        migration `ebf19750805e_add_domain_controllers_ou`.
+        """
+        await self._role_use_case.inherit_parent_aces(
+            parent_directory=await self._gateway.get_system_container(),
+            directory=rid_manager_dir,
         )
 
     async def create_domain_identifier(self) -> None:

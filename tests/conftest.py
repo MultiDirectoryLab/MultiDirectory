@@ -64,6 +64,7 @@ from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
 from constants import ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2
+from entities import Directory
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.auth import AuthManager, MFAManager
@@ -173,6 +174,14 @@ from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     UserPasswordHistoryUseCases,
+)
+from ldap_protocol.rid_manager.gateways import (
+    RIDManagerGateway,
+    RIDManagerSetupGateway,
+)
+from ldap_protocol.rid_manager.use_cases import (
+    RIDManagerSetupUseCase,
+    RIDManagerUseCase,
 )
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -819,6 +828,16 @@ class TestProvider(Provider):
     )
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
+    rid_manager_gateway = provide(RIDManagerGateway, scope=Scope.REQUEST)
+    rid_manager_use_case = provide(RIDManagerUseCase, scope=Scope.REQUEST)
+    rid_manager_setup_gateway = provide(
+        RIDManagerSetupGateway,
+        scope=Scope.REQUEST,
+    )
+    rid_manager_setup_use_case = provide(
+        RIDManagerSetupUseCase,
+        scope=Scope.REQUEST,
+    )
 
 
 @dataclass
@@ -1025,6 +1044,7 @@ async def setup_session(
     session: AsyncSession,
     raw_audit_manager: RawAuditManager,
     password_utils: PasswordUtils,
+    settings: Settings,
 ) -> None:
     """Get session and acquire after completion."""
     role_dao = RoleDAO(session)
@@ -1098,25 +1118,55 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
+    rid_manager_gateway = RIDManagerGateway(session)
+    rid_manager_use_case = RIDManagerUseCase(
+        rid_manager_gateway,
+        session,
+    )
+    rid_manager_setup_gateway = RIDManagerSetupGateway(
+        session=session,
+        entity_type_dao=entity_type_dao,
+        settings=settings,
+    )
+    role_dao = RoleDAO(session)
+    ace_dao = AccessControlEntryDAO(session)
+    role_use_case = RoleUseCase(role_dao, ace_dao)
+    rid_manager_setup_use_case = RIDManagerSetupUseCase(
+        rid_manager_setup_gateway=rid_manager_setup_gateway,
+        role_use_case=role_use_case,
+        access_control_entry_dao=AccessControlEntryDAO(session),
+    )
     setup_gateway = SetupGateway(
         session,
         password_utils,
         entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
         directory_dao=directory_dao,
+        rid_manager_use_case=rid_manager_use_case,
     )
-
     for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
         await entity_type_use_case.create_not_safe(entity_type_dto)
     await session.flush()
-
     await audit_use_case.create_policies()
-    domain = await setup_gateway.create_base_domain()
+    domain = await setup_gateway.create_base_domain("md.test")
+    await rid_manager_setup_use_case.create_domain_identifier()
+
     await setup_gateway.setup_enviroment(
         domain=domain,
         data=TEST_DATA,
         is_system=False,
     )
+    dc_directory = Directory(
+        name=settings.HOST_MACHINE_NAME,
+        object_class="computer",
+        is_system=True,
+    )
+    dc_directory.create_path(domain, "cn")
+    session.add(dc_directory)
+    await session.flush()
+    dc_directory.parent_id = domain.id
+    await session.refresh(dc_directory, ["id"])
+    await session.flush()
 
     for _at_dto in (
         AttributeTypeDTO[None](
@@ -1185,10 +1235,14 @@ async def setup_session(
         ]
         await object_class_use_case.create(_oc_dto)  # type: ignore
 
+    await audit_use_case.create_policies()
+
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
 
     await role_use_case.create_domain_admins_role()
+
+    await rid_manager_setup_use_case.setup()
 
     await role_use_case._role_dao.create(  # noqa: SLF001
         dto=RoleDTO(
@@ -1201,6 +1255,17 @@ async def setup_session(
     )
 
     await session.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_manager_use_case(
+    container: AsyncContainer,
+) -> AsyncIterator[RIDManagerUseCase]:
+    """Provide RIDManagerUseCase for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        gateway = RIDManagerGateway(session)
+        yield RIDManagerUseCase(gateway, session)
 
 
 @pytest_asyncio.fixture(scope="function")

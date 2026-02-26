@@ -10,9 +10,10 @@ from constants import (
     DOMAIN_COMPUTERS_GROUP_NAME,
     DOMAIN_USERS_GROUP_NAME,
     GROUPS_CONTAINER_NAME,
+    SYSTEM_CONTAINER_NAME,
     USERS_CONTAINER_NAME,
 )
-from enums import EntityTypeNames, SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes, SecurityPrincipalRid
 from ldap_protocol.objects import UserAccountControlFlag
 
 user_data_dict = {
@@ -66,7 +67,7 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
-                "objectSid": 512,
+                "objectSid": SecurityPrincipalRid.DOMAIN_ADMINS,
             },
             {
                 "name": "developers",
@@ -82,6 +83,7 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
+                "objectSid": SecurityPrincipalRid.DOMAIN_ADMINS,
             },
             {
                 "name": "admin login only",
@@ -96,6 +98,7 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
+                "objectSid": SecurityPrincipalRid.DOMAIN_ADMINS,
             },
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
@@ -110,6 +113,7 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
+                "objectSid": SecurityPrincipalRid.DOMAIN_USERS,
             },
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
@@ -124,6 +128,7 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
+                "objectSid": SecurityPrincipalRid.DOMAIN_COMPUTERS,
             },
         ],
     },
@@ -464,6 +469,13 @@ TEST_DATA = [
         "entity_type_name": EntityTypeNames.CONFIGURATION,
         "object_class": "container",
         "attributes": {"objectClass": ["top", "configuration"]},
+    },
+    {
+        "name": SYSTEM_CONTAINER_NAME,
+        "object_class": "organizationalUnit",
+        "attributes": {
+            "objectClass": ["top", "container"],
+        },
         "children": [],
     },
 ]

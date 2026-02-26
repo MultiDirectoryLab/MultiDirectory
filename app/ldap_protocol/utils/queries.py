@@ -191,8 +191,8 @@ async def get_directory_by_rid(
 ) -> Directory | None:
     query = (
         select(Directory)
-        .join(Attribute)
         .options(
+            selectinload(qa(Directory.attributes)),
             joinedload(qa(Directory.group)),
         )
         .filter(

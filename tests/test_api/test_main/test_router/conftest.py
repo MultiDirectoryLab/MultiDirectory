@@ -19,6 +19,7 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
+from ldap_protocol.rid_manager.use_cases import RIDManagerUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from password_utils import PasswordUtils
 from tests.constants import TEST_SYSTEM_ADMIN_DATA
@@ -29,6 +30,7 @@ async def add_system_administrator(
     session: AsyncSession,
     password_utils: PasswordUtils,
     setup_session: None,  # noqa: ARG001
+    rid_manager_use_case: RIDManagerUseCase,
 ) -> None:
     """Create system administrator user for tests that require it."""
     attribute_value_validator = AttributeValueValidator()
@@ -51,6 +53,7 @@ async def add_system_administrator(
         entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
         directory_dao=directory_dao,
+        rid_manager_use_case=rid_manager_use_case,
     )
 
     domain = (await get_base_directories(session))[0]

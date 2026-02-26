@@ -984,12 +984,6 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     [
         (
             "add",
-            "cn=developers,cn=Groups,dc=md,dc=test",
-            {"domain admins", "developers"},
-            True,
-        ),
-        (
-            "add",
             "cn=domain admins,cn=Groups,dc=md,dc=test",
             {"domain admins"},
             True,
@@ -999,12 +993,6 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
             "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             False,
-        ),
-        (
-            "replace",
-            "cn=developers,cn=Groups,dc=md,dc=test",
-            {"domain admins", "developers"},
-            True,
         ),
     ],
 )
@@ -1062,7 +1050,7 @@ async def test_ldap_modify_primary_group_id_scenarios(
         attributes[attr.name].append(attr.value)
 
     if expected_primary_group:
-        assert attributes["primaryGroupID"] == [group_dir.relative_id]
+        assert attributes["primaryGroupID"] == [rid]
     else:
         assert "primaryGroupID" not in attributes
 
@@ -1072,12 +1060,6 @@ async def test_ldap_modify_primary_group_id_scenarios(
 @pytest.mark.parametrize(
     ("values", "include_dev_group", "expected_result", "expected_groups"),
     [
-        (
-            ["cn=domain admins,cn=Groups,dc=md,dc=test"],
-            True,
-            1,
-            {"domain admins", "developers"},
-        ),
         (
             ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             False,

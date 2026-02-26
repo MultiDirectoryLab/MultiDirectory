@@ -17,6 +17,7 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
+from ldap_protocol.rid_manager.use_cases import RIDManagerUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
 
@@ -88,6 +89,7 @@ async def test_add_domain_controller(
     settings: Settings,
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
+    rid_manager_use_case: RIDManagerUseCase,
 ) -> None:
     """Test add domain controller."""
     await add_domain_controller(
@@ -95,4 +97,5 @@ async def test_add_domain_controller(
         session=session,
         role_use_case=role_use_case,
         entity_type_use_case=entity_type_use_case,
+        rid_manager_use_case=rid_manager_use_case,
     )

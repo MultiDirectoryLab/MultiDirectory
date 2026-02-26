@@ -93,7 +93,7 @@ class RIDManagerGateway:
 
         return query.value
 
-    async def get_rid_set(self) -> Directory:
+    async def get_rid_set(self) -> Directory | None:
         """Get RID Set directory.
 
         :return: RID Set directory
@@ -102,8 +102,6 @@ class RIDManagerGateway:
         rid_set = await self._session.scalar(
             select(Directory).where(qa(Directory.name) == "RID Set"),
         )
-        if not rid_set:
-            raise ValueError("RID Set directory not found")
 
         return rid_set
 
