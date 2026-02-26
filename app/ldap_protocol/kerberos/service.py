@@ -432,7 +432,7 @@ class KerberosService(AbstractService):
         """Generate keytab and return (aiter_bytes, TaskStruct).
 
         :param list[str] names: List of principal names.
-        :param bool is_rand_key: If True, generate random key.
+        :param bool is_rand_key: If True, generate new principal keys.
         :raises KerberosNotFoundError: If principal not found.
         :return tuple: (aiter_bytes, (func, args, kwargs)).
         """
