@@ -91,7 +91,7 @@ class KtaddRequest(BaseModel):
     """Request model for ktadd."""
 
     names: list[str]
-    keep_old: bool = Field(default=False)
+    is_rand_key: bool = Field(default=False)
 
 
 class ModifyPrincipalRequest(BaseModel):
@@ -165,13 +165,13 @@ class AbstractKRBManager(ABC):
         self,
         names: list[str],
         fn: str,
-        keep_old: bool = False,
+        is_rand_key: bool = False,
     ) -> None:
         """Create or write to keytab.
 
         :param list[str] names: principals
         :param str fn: filename
-        :param bool keep_old: keep valid old keytab files
+        :param bool is_rand_key: generate new principal keys
         """
 
     @abstractmethod
@@ -335,13 +335,13 @@ class KAdminLocalManager(AbstractKRBManager):
         self,
         names: list[str],
         fn: str,
-        keep_old: bool = False,
+        is_rand_key: bool = True,
     ) -> None:
         """Create or write to keytab.
 
         :param list[str] names: principals
         :param str fn: filename
-        :param bool keep_old: keep valid old keytab files
+        :param bool is_rand_key: generate new principal keys
         :raises PrincipalNotFoundError: on not found princ
         """
         principals = [await self._get_raw_principal(name) for name in names]
@@ -353,7 +353,7 @@ class KAdminLocalManager(AbstractKRBManager):
                 self.pool,
                 princ.ktadd,
                 fn,
-                keep_old,
+                is_rand_key,
             )
 
     async def lock_princ(self, name: str, **dbargs) -> None:
@@ -673,17 +673,12 @@ async def ktadd(
     :param KtaddRequest request: request data
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
-    if request.keep_old:
-        await kadmin.ktadd(
-            request.names,
-            filename,
-            keep_old=request.keep_old,
-        )
-    else:
-        await kadmin.ktadd(
-            request.names,
-            filename,
-        )
+    await kadmin.ktadd(
+        request.names,
+        filename,
+        request.is_rand_key,
+    )
+
     return FileResponse(
         filename,
         background=BackgroundTask(os.unlink, filename),
