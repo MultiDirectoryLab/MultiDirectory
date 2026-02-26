@@ -17,10 +17,10 @@ services:
       - "443:443"
       - "389:389"
       - "389:389/udp"
+      - "3268:3268"
+      - "3269:3269"
       - "636:636"
       - "749:749"
-      - "53:53"
-      - "53:53/udp"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./certs:/letsencrypt
@@ -299,6 +299,7 @@ services:
       - "traefik.http.routers.api.service=api"
       - "traefik.http.routers.api.middlewares=api_strip"
       - "traefik.http.middlewares.api_strip.stripprefix.prefixes=/api"
+      - "traefik.http.middlewares.api_strip.stripprefix.forceslash=false"
 
     command:  python multidirectory.py --http
     depends_on:
@@ -553,14 +554,6 @@ services:
       - ./.package/recursor.conf:/etc/powerdns/recursor.conf
       - forward_zones:/etc/powerdns/recursor.d/
 
-networks:
-  md_net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
-          gateway: 172.20.0.1
-
   event_handler:
     image: multidirectory
     container_name: event_handler
@@ -594,7 +587,13 @@ networks:
     environment:
       HANDLER_NAME: event_sender-1
 
-
+networks:
+  md_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
 
 volumes:
   postgres:
@@ -603,5 +602,13 @@ volumes:
   kdc:
   dns_server_file:
   dns_server_config:
+  kea_ctrl_agent:
   ldap_keytab:
   dragonflydata:
+  dnsdist_confd:
+  dns_lmdb:
+  dns_config:
+  dhcp:
+  sockets:
+  leases:
+  forward_zones:
