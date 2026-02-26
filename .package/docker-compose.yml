@@ -230,6 +230,7 @@ services:
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
       - ./resolv.conf:/resolv.conf
+      - dnsdist_confd:/dnsdist
     hostname: api_server
     environment:
       USE_CORE_TLS: 1
