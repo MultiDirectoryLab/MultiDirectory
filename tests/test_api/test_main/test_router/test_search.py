@@ -99,14 +99,11 @@ async def test_api_root_dse_return_one_attr(http_client: AsyncClient) -> None:
         key=lambda x: x["type"],
     )
 
-    aquired_attrs = [attr["type"] for attr in attrs]
-
-    root_attrs = [
-        "namingContexts",
-    ]
+    aquired_attrs = {attr["type"] for attr in attrs}
+    root_attrs = {"namingContexts"}
 
     assert data["search_result"][0]["object_name"] == ""
-    assert all(attr in root_attrs for attr in aquired_attrs)
+    assert aquired_attrs == root_attrs
 
 
 @pytest.mark.asyncio
