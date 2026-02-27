@@ -155,6 +155,7 @@ async def test_api_modify_dn_with_level_down(
 @pytest.mark.usefixtures("session")
 async def test_api_modify_dn_with_level_up(
     http_client: AsyncClient,
+    session: AsyncSession,
 ) -> None:
     """Test API for updating DN.
 
@@ -180,6 +181,8 @@ async def test_api_modify_dn_with_level_up(
         data["search_result"][0]["object_name"]
         == "cn=testGroup2,ou=testModifyDn1,dc=md,dc=test"
     )
+
+    session.expire_all()
 
     response = await http_client.put(
         "/entry/update/dn",
