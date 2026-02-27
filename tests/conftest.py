@@ -1258,17 +1258,6 @@ async def setup_session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def rid_manager_use_case(
-    container: AsyncContainer,
-) -> AsyncIterator[RIDManagerUseCase]:
-    """Provide RIDManagerUseCase for tests that request it explicitly."""
-    async with container(scope=Scope.SESSION) as container:
-        session = await container.get(AsyncSession)
-        gateway = RIDManagerGateway(session)
-        yield RIDManagerUseCase(gateway, session)
-
-
-@pytest_asyncio.fixture(scope="function")
 async def ldap_session(
     container: AsyncContainer,
 ) -> AsyncIterator[LDAPSession]:

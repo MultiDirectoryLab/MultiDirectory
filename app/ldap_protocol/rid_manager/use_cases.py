@@ -61,6 +61,7 @@ class RIDManagerUseCase:
                 rid_set = await self._gateway.get_rid_set()
                 if not rid_set:
                     raise ValueError("RID Set directory not found")
+
                 next_rid = await self._gateway.get_next_rid(rid_set)
                 rid = next_rid + 1
                 await self._gateway.update_next_rid(rid_set, rid)
@@ -118,9 +119,6 @@ class RIDManagerSetupUseCase:
     async def setup(self) -> None:
         """Create RID Manager."""
         rid_manager_dir = await self._gateway.set_rid_manager()
-        await self.inherit_aces(
-            rid_manager_dir,
-        )
 
         qword = create_qword(self.RID_USER_MIN, RID_AVAILABLE_MAX)
 
@@ -136,6 +134,9 @@ class RIDManagerSetupUseCase:
         await self._gateway.set_next_rid(
             rid_set_dir,
             self.RID_USER_MIN,
+        )
+        await self.inherit_aces(
+            rid_manager_dir,
         )
 
     async def inherit_aces(
@@ -153,6 +154,12 @@ class RIDManagerSetupUseCase:
         await self._role_use_case.inherit_parent_aces(
             parent_directory=await self._gateway.get_system_container(),
             directory=rid_manager_dir,
+        )
+
+        domain_controller = await self._gateway.get_domain_controller()
+        await self._role_use_case.inherit_parent_aces(
+            parent_directory=domain_controller,
+            directory=await self._gateway.get_rid_set(domain_controller),
         )
 
     async def create_domain_identifier(self) -> None:
