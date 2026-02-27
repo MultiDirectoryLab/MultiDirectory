@@ -1062,19 +1062,15 @@ async def test_ldap_modify_primary_group_id_scenarios(
     [
         (
             ["cn=domain admins,cn=Groups,dc=md,dc=test"],
+            True,
+            1,
+            {"domain admins", "developers"},
+        ),
+        (
+            ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             False,
             0,
             {"domain admins"},
-        ),
-        (
-            [
-                "cn=domain admins,cn=Groups,dc=md,dc=test",
-                "cn=developers,cn=Groups,dc=md,dc=test",
-                "cn=domain computers,cn=Groups,dc=md,dc=test",
-            ],
-            True,
-            0,
-            {"domain admins", "developers", "domain computers"},
         ),
     ],
 )

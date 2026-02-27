@@ -83,7 +83,7 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
-                "objectSid": SecurityPrincipalRid.DOMAIN_ADMINS,
+                "objectSid": 999,
             },
             {
                 "name": "admin login only",
@@ -98,7 +98,6 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
-                "objectSid": SecurityPrincipalRid.DOMAIN_ADMINS,
             },
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
@@ -113,7 +112,6 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
-                "objectSid": SecurityPrincipalRid.DOMAIN_USERS,
             },
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
@@ -128,7 +126,6 @@ TEST_DATA = [
                         str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
                     ],
                 },
-                "objectSid": SecurityPrincipalRid.DOMAIN_COMPUTERS,
             },
         ],
     },
