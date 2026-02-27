@@ -75,6 +75,42 @@ async def test_api_root_dse(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
+async def test_api_root_dse_return_one_attr(http_client: AsyncClient) -> None:
+    """Test api root dse."""
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": "",
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": ["namingContexts"],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+
+    attrs = sorted(
+        data["search_result"][0]["partial_attributes"],
+        key=lambda x: x["type"],
+    )
+
+    aquired_attrs = [attr["type"] for attr in attrs]
+
+    root_attrs = [
+        "namingContexts",
+    ]
+
+    assert data["search_result"][0]["object_name"] == ""
+    assert all(attr in root_attrs for attr in aquired_attrs)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
 async def test_api_search(http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
