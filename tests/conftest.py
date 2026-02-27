@@ -1764,6 +1764,27 @@ async def ctx_search(
         yield await c.get(LDAPSearchRequestContext)
 
 
+@pytest_asyncio.fixture(scope="function")
+async def rid_manager_gateway(
+    container: AsyncContainer,
+) -> AsyncIterator[RIDManagerGateway]:
+    """Get RID Manager gateway."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDManagerGateway(session)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_manager_use_case(
+    container: AsyncContainer,
+    rid_manager_gateway: RIDManagerGateway,
+) -> AsyncIterator[RIDManagerUseCase]:
+    """Provide RIDManagerUseCase for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDManagerUseCase(rid_manager_gateway, session)
+
+
 def pytest_configure(config: pytest.Config) -> None:
     """Pytest hook to limit xdist workers based on Dragonfly DBs.
 

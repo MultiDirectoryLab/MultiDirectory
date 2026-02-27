@@ -1,10 +1,6 @@
 """Tests for RID Manager."""
 
-from typing import AsyncIterator
-
 import pytest
-import pytest_asyncio
-from dishka import AsyncContainer, Scope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -15,27 +11,6 @@ from ldap_protocol.rid_manager.gateways import RIDManagerGateway
 from ldap_protocol.rid_manager.use_cases import RIDManagerUseCase
 from ldap_protocol.utils.queries import get_filter_from_path
 from repo.pg.tables import queryable_attr as qa
-
-
-@pytest_asyncio.fixture(scope="function")
-async def rid_manager_gateway(
-    container: AsyncContainer,
-) -> AsyncIterator[RIDManagerGateway]:
-    """Get RID Manager gateway."""
-    async with container(scope=Scope.SESSION) as container:
-        session = await container.get(AsyncSession)
-        yield RIDManagerGateway(session)
-
-
-@pytest_asyncio.fixture(scope="function")
-async def rid_manager_use_case(
-    container: AsyncContainer,
-    rid_manager_gateway: RIDManagerGateway,
-) -> AsyncIterator[RIDManagerUseCase]:
-    """Provide RIDManagerUseCase for tests that request it explicitly."""
-    async with container(scope=Scope.SESSION) as container:
-        session = await container.get(AsyncSession)
-        yield RIDManagerUseCase(rid_manager_gateway, session)
 
 
 @pytest.mark.asyncio
@@ -66,7 +41,9 @@ async def test_set_object_sid(
     next_before = await rid_manager_gateway.get_next_rid(rid_set)
 
     await rid_manager_use_case.set_object_sid(
-        directory, rid=None, sid_prefix=sid_prefix
+        directory,
+        rid=None,
+        sid_prefix=sid_prefix,
     )
     await session.commit()
 
