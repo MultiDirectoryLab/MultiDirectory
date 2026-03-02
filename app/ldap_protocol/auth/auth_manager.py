@@ -11,11 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_service import AbstractService
-from api.auth.schemas import LoginResponse, OAuth2Form
 from config import Settings
 from entities import User
-from enums import AuthorizationRules, MFAFlags
-from ldap_protocol.auth.dto import SetupDTO
+from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
+from ldap_protocol.auth.dto import LoginRequestDTO, LoginResponseDTO, SetupDTO
 from ldap_protocol.auth.mfa_manager import MFAManager
 from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.auth.utils import authenticate_user
@@ -100,11 +99,11 @@ class AuthManager(AbstractService):
 
     async def login(
         self,
-        form: OAuth2Form,
+        form: LoginRequestDTO,
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> LoginResponse:
+    ) -> LoginResponseDTO:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
@@ -169,8 +168,8 @@ class AuthManager(AbstractService):
                 )
             if request_2fa:
                 (
-                    mfa_challenge,
-                    key,
+                    mfa_challenge_dto,
+                    session_key,
                 ) = await self._mfa_manager.two_factor_protocol(
                     user=user,
                     network_policy=network_policy,
@@ -178,9 +177,9 @@ class AuthManager(AbstractService):
                     ip=ip,
                     user_agent=user_agent,
                 )
-                return LoginResponse(
-                    session_key=key,
-                    mfa_challenge=mfa_challenge,
+                return LoginResponseDTO[MFAChallengeStatuses](
+                    session_key=session_key,
+                    mfa_challenge=mfa_challenge_dto,
                 )
 
         session_key = await self._repository.create_session_key(
@@ -189,7 +188,9 @@ class AuthManager(AbstractService):
             user_agent,
             self.key_ttl,
         )
-        return LoginResponse(session_key=session_key, mfa_challenge=None)
+        return LoginResponseDTO[None](
+            session_key=session_key,
+        )
 
     async def _update_password(
         self,

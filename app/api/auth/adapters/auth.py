@@ -12,7 +12,7 @@ from fastapi import Request
 from api.auth.schemas import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.base_adapter import BaseAdapter
 from ldap_protocol.auth import AuthManager
-from ldap_protocol.auth.dto import SetupDTO
+from ldap_protocol.auth.dto import LoginRequestDTO, SetupDTO
 from ldap_protocol.dialogue import UserSchema
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
@@ -41,7 +41,10 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         :return: None
         """
         login_dto = await self._service.login(
-            form=form,
+            form=LoginRequestDTO(
+                username=form.username,
+                password=form.password,
+            ),
             url=request.url_for("callback_mfa"),
             ip=ip,
             user_agent=user_agent,
@@ -50,7 +53,11 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
             self._service.set_new_session_key(
                 login_dto.session_key,
             )
-        return login_dto.mfa_challenge
+        if login_dto.mfa_challenge is not None:
+            return MFAChallengeResponse(
+                status=login_dto.mfa_challenge.status,
+                message=login_dto.mfa_challenge.message,
+            )
 
     async def reset_password(
         self,

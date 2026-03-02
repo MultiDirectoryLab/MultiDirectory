@@ -14,6 +14,7 @@ from starlette.datastructures import URL
 
 from config import Settings
 from entities import User
+from ldap_protocol.auth.dto import LoginRequestDTO
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -34,7 +35,6 @@ from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.dataclasses import OAuth2FormDTO
 from ldap_protocol.policies.audit.events.factory import (
     RawAuditEventBuilderRedis,
 )
@@ -224,7 +224,7 @@ class AuditMonitorUseCase:
     def wrap_login(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_login(
-            form: OAuth2FormDTO,
+            form: LoginRequestDTO,
             url: URL,
             ip: IPv4Address | IPv6Address,
             user_agent: str,

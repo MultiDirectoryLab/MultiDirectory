@@ -15,14 +15,6 @@ from ldap_protocol.objects import OperationEvent
 
 
 @dataclass
-class OAuth2FormDTO:
-    """OAuth2 form data transfer object."""
-
-    username: str
-    password: str
-
-
-@dataclass
 class AuditPolicyTriggerDTO:
     """Audit policy trigger data transfer object."""
 

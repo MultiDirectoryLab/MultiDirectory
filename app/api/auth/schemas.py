@@ -83,12 +83,5 @@ class MFAGetResponse(BaseModel):
 class MFAChallengeResponse(BaseModel):
     """MFA Challenge state."""
 
-    status: str
-    message: str
-
-
-class LoginResponse(BaseModel):
-    """Login response."""
-
-    session_key: str | None
-    mfa_challenge: MFAChallengeResponse | None
+    status: str | None
+    message: str | None
