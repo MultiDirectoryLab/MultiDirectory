@@ -24,6 +24,9 @@ from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_a
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
+from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (
+    EntityTypeDAODeprecated,
+)
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
@@ -37,7 +40,6 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -416,9 +418,9 @@ def upgrade(container: AsyncContainer) -> None:
             )  # TODO либо merge либо инициализация DAO/use case прям тут
             object_class_use_case = ObjectClassUseCaseDeprecated(
                 object_class_dao=object_class_dao_depr,
-                entity_type_dao=EntityTypeDAO(
+                entity_type_dao=EntityTypeDAODeprecated(
                     session=session,
-                    object_class_dao=object_class_dao_depr,  # TODO FIXIT  # noqa: E501
+                    object_class_dao=object_class_dao_depr,
                     attribute_value_validator=attribute_value_validator,
                 ),
             )  # TODO либо merge либо инициализация DAO/use case прям тут

@@ -980,6 +980,8 @@ async def setup_session(
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
+    attribute_value_validator = AttributeValueValidator()
+
     # TODO delete that
     # NOTE: after setup environment we need base DN to be created
     attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
@@ -987,33 +989,34 @@ async def setup_session(
         attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
         object_class_dao_deprecated=ObjectClassDAODeprecated(session=session),
     )
-    attribute_value_validator = AttributeValueValidator()
+
     entity_type_dao = EntityTypeDAO(
         session,
-        object_class_dao=object_class_dao,  # TODO ALARM
         attribute_value_validator=attribute_value_validator,
+    )
+    # object_class_dao =
+    entity_type_use_case = EntityTypeUseCase(
+        entity_type_dao=entity_type_dao,
+        object_class_dao=object_class_dao,
     )
     create_attribute_dir_gateway = CreateDirectoryLikeAsAttributeTypeGateway(
         session=session,
-        entity_type_dao=entity_type_dao,
+        entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
         role_use_case=role_use_case,
     )
-    create_objclass_dir_gateway = CreateDirectoryLikeAsObjectClassGateway(
-        session=session,
-        entity_type_dao=entity_type_dao,
-        attribute_value_validator=attribute_value_validator,
-        role_use_case=role_use_case,
-    )
-
     attribute_type_dao = AttributeTypeDAO(
         session,
         create_attribute_dir_gateway=create_attribute_dir_gateway,
     )
-
+    create_objclass_dir_gateway = CreateDirectoryLikeAsObjectClassGateway(
+        session=session,
+        entity_type_use_case=entity_type_use_case,
+        attribute_value_validator=attribute_value_validator,
+        role_use_case=role_use_case,
+    )
     object_class_dao = ObjectClassDAO(
         session,
-        attribute_type_dao=attribute_type_dao,
         create_objclass_dir_gateway=create_objclass_dir_gateway,
     )
 
@@ -1197,13 +1200,11 @@ async def entity_type_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        object_class_dao = ObjectClassDAO(session)
         attribute_value_validator = await container.get(
             AttributeValueValidator,
         )
         yield EntityTypeDAO(
             session,
-            object_class_dao,
             attribute_value_validator=attribute_value_validator,
         )
 

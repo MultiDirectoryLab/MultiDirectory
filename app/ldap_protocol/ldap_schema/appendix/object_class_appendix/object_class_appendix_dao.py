@@ -18,7 +18,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from abstract_dao import AbstractDAO
 from entities import EntityType
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -45,7 +44,7 @@ _converter = get_converter(
 )
 
 
-class ObjectClassDAODeprecated(AbstractDAO[ObjectClassDTO, str]):
+class ObjectClassDAODeprecated:
     """Object Class DAO."""
 
     def __init__(self, session: AsyncSession) -> None:

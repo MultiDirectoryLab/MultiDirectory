@@ -297,7 +297,7 @@ class ModifyRequest(BaseRequest):
                 )
 
             if "objectclass" in names:
-                await ctx.entity_type_dao.attach_entity_type_to_directory(
+                await ctx.entity_type_use_case.attach_entity_type_to_directory(
                     directory=directory,
                     is_system_entity_type=False,
                 )

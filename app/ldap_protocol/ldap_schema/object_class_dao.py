@@ -18,10 +18,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from abstract_dao import AbstractDAO
 from entities import Directory, EntityType
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.object_class_dir_gateway import (
     CreateDirectoryLikeAsObjectClassGateway,
 )
@@ -51,23 +49,20 @@ _converter = get_converter(
 )
 
 
-class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
+class ObjectClassDAO:
     """Object Class DAO."""
 
     __session: AsyncSession
     __create_objclass_dir_gateway: CreateDirectoryLikeAsObjectClassGateway
-    __attribute_type_dao: AttributeTypeDAO
 
     def __init__(
         self,
         session: AsyncSession,
         create_objclass_dir_gateway: CreateDirectoryLikeAsObjectClassGateway,
-        attribute_type_dao: AttributeTypeDAO,
     ) -> None:
         """Initialize Object Class DAO with session."""
         self.__session = session
         self.__create_objclass_dir_gateway = create_objclass_dir_gateway
-        self.__attribute_type_dao = attribute_type_dao
 
     async def get_all(self) -> list[ObjectClassDTO[int, AttributeTypeDTO]]:
         """Get all Object Classes."""
@@ -167,30 +162,6 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
                         "not found in schema.",
                     )
 
-            attribute_types_may_filtered = [
-                name
-                for name in dto.attribute_types_may
-                if name not in dto.attribute_types_must
-            ]
-
-            if dto.attribute_types_must:
-                attribute_types_must = (
-                    await self.__attribute_type_dao.get_all_names_by_names(
-                        dto.attribute_types_must,
-                    )
-                )
-            else:
-                attribute_types_must = []
-
-            if attribute_types_may_filtered:
-                attribute_types_may = (
-                    await self.__attribute_type_dao.get_all_names_by_names(
-                        attribute_types_may_filtered,
-                    )
-                )
-            else:
-                attribute_types_may = []
-
             await self.__create_objclass_dir_gateway.create_dir(
                 data={
                     "name": dto.name,
@@ -202,8 +173,8 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
                         "superior_name": [str(dto.superior_name)],
                         "kind": [str(dto.kind)],
                         "is_system": [str(dto.is_system)],  # TODO asd223edfsda
-                        "attribute_types_must": attribute_types_must,
-                        "attribute_types_may": attribute_types_may,
+                        "attribute_types_must": dto.attribute_types_must,
+                        "attribute_types_may": dto.attribute_types_may,
                     },
                     "children": [],
                 },

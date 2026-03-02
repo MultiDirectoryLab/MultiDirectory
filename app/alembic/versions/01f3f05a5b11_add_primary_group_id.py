@@ -22,6 +22,7 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
     create_group,
@@ -46,6 +47,7 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             entity_type_dao = await cnt.get(EntityTypeDAO)
+            entity_type_use_case = await cnt.get(EntityTypeUseCase)
             role_use_case = await cnt.get(RoleUseCase)
 
         base_dn_list = await get_base_directories(session)
@@ -104,7 +106,10 @@ def upgrade(container: AsyncContainer) -> None:
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await entity_type_dao.attach_entity_type_to_directory(dir_, False)
+            await entity_type_use_case.attach_entity_type_to_directory(
+                dir_,
+                False,
+            )
             await role_use_case.inherit_parent_aces(
                 parent_directory=parent,
                 directory=dir_,

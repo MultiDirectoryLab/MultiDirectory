@@ -9,7 +9,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from abstract_dao import AbstractDAO
 from entities import Directory, EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_type_dir_gateway import (
@@ -43,7 +42,7 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO:
     )
 
 
-class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
+class AttributeTypeDAO:
     """Attribute Type DAO."""
 
     __session: AsyncSession

@@ -10,6 +10,7 @@ from entities_appendix import ObjectClass
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
@@ -21,10 +22,12 @@ class ObjectClassUseCase(AbstractService):
 
     def __init__(
         self,
+        attribute_type_dao: AttributeTypeDAO,
         object_class_dao: ObjectClassDAO,
         entity_type_dao: EntityTypeDAO,
     ) -> None:
         """Init ObjectClassUseCase."""
+        self._attribute_type_dao = attribute_type_dao
         self._object_class_dao = object_class_dao
         self._entity_type_dao = entity_type_dao
 
@@ -45,6 +48,30 @@ class ObjectClassUseCase(AbstractService):
 
     async def create(self, dto: ObjectClassDTO[None, str]) -> None:
         """Create a new Object Class."""
+        attribute_types_may_filtered = [
+            name
+            for name in dto.attribute_types_may
+            if name not in dto.attribute_types_must
+        ]
+
+        if dto.attribute_types_must:
+            dto.attribute_types_must = (
+                await self._attribute_type_dao.get_all_names_by_names(
+                    dto.attribute_types_must,
+                )
+            )
+        else:
+            dto.attribute_types_must = []
+
+        if attribute_types_may_filtered:
+            dto.attribute_types_may = (
+                await self._attribute_type_dao.get_all_names_by_names(
+                    attribute_types_may_filtered,
+                )
+            )
+        else:
+            dto.attribute_types_may = []
+
         await self._object_class_dao.create(dto)
 
     async def create_ldap(self, dto: ObjectClassDTO[None, str]) -> None:

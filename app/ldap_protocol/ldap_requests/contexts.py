@@ -18,6 +18,7 @@ from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.multifactor import LDAPMultiFactorAPI
 from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
@@ -36,7 +37,7 @@ class LDAPAddRequestContext:
     session: AsyncSession
     ldap_session: LDAPSession
     kadmin: AbstractKadmin
-    entity_type_dao: EntityTypeDAO
+    entity_type_use_case: EntityTypeUseCase
     password_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
     access_manager: AccessManager
@@ -53,7 +54,7 @@ class LDAPModifyRequestContext:
     session_storage: SessionStorage
     kadmin: AbstractKadmin
     settings: Settings
-    entity_type_dao: EntityTypeDAO
+    entity_type_use_case: EntityTypeUseCase
     access_manager: AccessManager
     password_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils

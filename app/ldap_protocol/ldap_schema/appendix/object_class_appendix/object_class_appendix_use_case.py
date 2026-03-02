@@ -10,11 +10,13 @@ from entities_appendix import ObjectClass
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
+from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (
+    EntityTypeDAODeprecated,
+)
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 
@@ -24,7 +26,7 @@ class ObjectClassUseCaseDeprecated(AbstractService):
     def __init__(
         self,
         object_class_dao: ObjectClassDAODeprecated,
-        entity_type_dao: EntityTypeDAO,
+        entity_type_dao: EntityTypeDAODeprecated,
     ) -> None:
         """Init ObjectClassUseCase."""
         self._object_class_dao = object_class_dao

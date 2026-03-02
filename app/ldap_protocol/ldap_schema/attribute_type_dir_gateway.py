@@ -14,7 +14,7 @@ from entities import Attribute, Directory, Group
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from repo.pg.tables import queryable_attr as qa
 
@@ -23,7 +23,7 @@ class CreateDirectoryLikeAsAttributeTypeGateway:
     """Setup use case."""
 
     __session: AsyncSession
-    __entity_type_dao: EntityTypeDAO
+    __entity_type_use_case: EntityTypeUseCase
     __attribute_value_validator: AttributeValueValidator
     __role_use_case: RoleUseCase
     __parent: Directory | None
@@ -31,7 +31,7 @@ class CreateDirectoryLikeAsAttributeTypeGateway:
     def __init__(
         self,
         session: AsyncSession,
-        entity_type_dao: EntityTypeDAO,
+        entity_type_use_case: EntityTypeUseCase,
         attribute_value_validator: AttributeValueValidator,
         role_use_case: RoleUseCase,
     ) -> None:
@@ -42,7 +42,7 @@ class CreateDirectoryLikeAsAttributeTypeGateway:
         return: None.
         """
         self.__session = session
-        self.__entity_type_dao = entity_type_dao
+        self.__entity_type_use_case = entity_type_use_case
         self.__attribute_value_validator = attribute_value_validator
         self.__role_use_case = role_use_case
         self.__parent = None
@@ -106,7 +106,7 @@ class CreateDirectoryLikeAsAttributeTypeGateway:
             instance=dir_,
             attribute_names=["attributes"],
         )
-        await self.__entity_type_dao.attach_entity_type_to_directory(
+        await self.__entity_type_use_case.attach_entity_type_to_directory(
             directory=dir_,
             is_system_entity_type=True,
         )

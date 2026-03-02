@@ -12,7 +12,7 @@ from config import Settings
 from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
 from enums import SamAccountTypeCodes
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import create_object_sid
@@ -23,7 +23,7 @@ from repo.pg.tables import queryable_attr as qa
 async def _add_domain_controller(
     session: AsyncSession,
     role_use_case: RoleUseCase,
-    entity_type_dao: EntityTypeDAO,
+    entity_type_use_case: EntityTypeUseCase,
     settings: Settings,
     domain: Directory,
     dc_ou_dir: Directory,
@@ -88,7 +88,7 @@ async def _add_domain_controller(
         parent_directory=dc_ou_dir,
         directory=dc_directory,
     )
-    await entity_type_dao.attach_entity_type_to_directory(
+    await entity_type_use_case.attach_entity_type_to_directory(
         directory=dc_directory,
         is_system_entity_type=False,
         object_class_names={"top", "computer"},
@@ -100,7 +100,7 @@ async def add_domain_controller(
     session: AsyncSession,
     settings: Settings,
     role_use_case: RoleUseCase,
-    entity_type_dao: EntityTypeDAO,
+    entity_type_use_case: EntityTypeUseCase,
 ) -> None:
     logger.info("Adding domain controller.")
 
@@ -136,7 +136,7 @@ async def add_domain_controller(
     await _add_domain_controller(
         session=session,
         role_use_case=role_use_case,
-        entity_type_dao=entity_type_dao,
+        entity_type_use_case=entity_type_use_case,
         settings=settings,
         domain=domains[0],
         dc_ou_dir=domain_controllers_ou,

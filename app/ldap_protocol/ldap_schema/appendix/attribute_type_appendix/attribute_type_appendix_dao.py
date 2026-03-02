@@ -16,7 +16,6 @@ from sqlalchemy import delete, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from abstract_dao import AbstractDAO
 from entities import AttributeType
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -44,7 +43,7 @@ _convert_dto_to_model = get_converter(
 )
 
 
-class AttributeTypeDAODeprecated(AbstractDAO[AttributeTypeDTO, str]):
+class AttributeTypeDAODeprecated:
     """Attribute Type DAO."""
 
     __session: AsyncSession

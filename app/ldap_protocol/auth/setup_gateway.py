@@ -15,7 +15,7 @@ from entities import Attribute, Directory, Group, NetworkPolicy, User
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.utils.async_cache import base_directories_cache
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
@@ -30,7 +30,7 @@ class SetupGateway:
         self,
         session: AsyncSession,
         password_utils: PasswordUtils,
-        entity_type_dao: EntityTypeDAO,
+        entity_type_use_case: EntityTypeUseCase,
         attribute_value_validator: AttributeValueValidator,
     ) -> None:
         """Initialize Setup use case.
@@ -41,7 +41,7 @@ class SetupGateway:
         """
         self._session = session
         self._password_utils = password_utils
-        self._entity_type_dao = entity_type_dao
+        self._entity_type_use_case = entity_type_use_case
         self._attribute_value_validator = attribute_value_validator
 
     async def is_setup(self) -> bool:
@@ -96,7 +96,7 @@ class SetupGateway:
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await self._entity_type_dao.attach_entity_type_to_directory(
+            await self._entity_type_use_case.attach_entity_type_to_directory(
                 directory=domain,
                 is_system_entity_type=True,
             )
@@ -216,7 +216,7 @@ class SetupGateway:
             attribute_names=["attributes", "user"],
             with_for_update=None,
         )
-        await self._entity_type_dao.attach_entity_type_to_directory(
+        await self._entity_type_use_case.attach_entity_type_to_directory(
             directory=dir_,
             is_system_entity_type=True,
         )

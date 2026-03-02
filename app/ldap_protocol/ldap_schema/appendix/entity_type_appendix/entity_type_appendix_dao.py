@@ -4,6 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import contextlib
 from typing import Iterable
 
 from adaptix import P
@@ -15,6 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, EntityType
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
+    ObjectClassDAODeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -41,19 +45,22 @@ _convert = get_converter(
 )
 
 
-class EntityTypeDAO:
+class EntityTypeDAODeprecated:
     """Entity Type DAO."""
 
     __session: AsyncSession
+    __object_class_dao: ObjectClassDAODeprecated
     __attribute_value_validator: AttributeValueValidator
 
     def __init__(
         self,
         session: AsyncSession,
+        object_class_dao: ObjectClassDAODeprecated,
         attribute_value_validator: AttributeValueValidator,
     ) -> None:
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
+        self.__object_class_dao = object_class_dao
         self.__attribute_value_validator = attribute_value_validator
 
     async def get_all(self) -> list[EntityTypeDTO[int]]:
@@ -85,6 +92,10 @@ class EntityTypeDAO:
         entity_type = await self._get_one_raw_by_name(name)
 
         try:
+            await self.__object_class_dao.is_all_object_classes_exists(
+                dto.object_class_names,
+            )
+
             entity_type.name = dto.name
 
             # Sort object_class_names to ensure a
@@ -286,3 +297,74 @@ class EntityTypeDAO:
             ),
         )  # fmt: skip
         await self.__session.flush()
+
+    async def attach_entity_type_to_directories(self) -> None:
+        """Find all Directories without an Entity Type and attach it to them.
+
+        :return None.
+        """
+        result = await self.__session.execute(
+            select(Directory)
+            .where(qa(Directory.entity_type_id).is_(None))
+            .options(
+                selectinload(qa(Directory.attributes)),
+                selectinload(qa(Directory.entity_type)),
+            ),
+        )
+
+        for directory in result.scalars():
+            await self.attach_entity_type_to_directory(
+                directory=directory,
+                is_system_entity_type=False,
+            )
+
+        await self.__session.flush()
+
+    async def attach_entity_type_to_directory(
+        self,
+        directory: Directory,
+        is_system_entity_type: bool,
+        entity_type: EntityType | None = None,
+        object_class_names: set[str] | None = None,
+    ) -> None:
+        """Try to find the Entity Type, attach it to the Directory.
+
+        :param Directory directory: Directory to attach Entity Type.
+        :param bool is_system_entity_type: Is system Entity Type.
+        :param EntityType | None entity_type: Predefined Entity Type.
+        :param set[str] | None object_class_names: Predefined object
+            class names.
+        :return None.
+        """
+        if entity_type:
+            directory.entity_type = entity_type
+            return
+
+        if object_class_names is None:
+            object_class_names = directory.object_class_names_set
+
+        await self.__object_class_dao.is_all_object_classes_exists(
+            object_class_names,
+        )
+
+        entity_type = await self.get_entity_type_by_object_class_names(
+            object_class_names,
+        )
+        if not entity_type:
+            entity_type_name = EntityType.generate_entity_type_name(
+                directory=directory,
+            )
+            with contextlib.suppress(EntityTypeAlreadyExistsError):
+                await self.create(
+                    EntityTypeDTO[None](
+                        name=entity_type_name,
+                        object_class_names=list(object_class_names),
+                        is_system=is_system_entity_type,
+                    ),
+                )
+
+            entity_type = await self.get_entity_type_by_object_class_names(
+                object_class_names,
+            )
+
+        directory.entity_type = entity_type

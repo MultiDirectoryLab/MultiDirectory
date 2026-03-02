@@ -160,10 +160,8 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        entity_type = (
-            await ctx.entity_type_dao.get_entity_type_by_object_class_names(
-                object_class_names=self.object_class_names,
-            )
+        entity_type = await ctx.entity_type_use_case.get_entity_type_by_object_class_names(
+            object_class_names=self.object_class_names,
         )
         if entity_type and entity_type.name == EntityTypeNames.CONTAINER:
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
@@ -477,7 +475,7 @@ class AddRequest(BaseRequest):
             ctx.session.add_all(items_to_add)
             await ctx.session.flush()
 
-            await ctx.entity_type_dao.attach_entity_type_to_directory(
+            await ctx.entity_type_use_case.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
                 entity_type=entity_type,
