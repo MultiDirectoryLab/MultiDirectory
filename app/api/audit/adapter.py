@@ -49,7 +49,7 @@ class AuditPoliciesAdapter(BaseAdapter[AuditService]):
         """Get all audit destinations."""
         return [
             AuditDestinationResponse(
-                id=destination.id,  # type: ignore
+                id=destination.id,
                 name=destination.name,
                 service_type=destination.service_type.name.lower(),
                 host=destination.host,
