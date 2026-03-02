@@ -36,11 +36,11 @@ RUN mkdir /build && \
       --with-modules='' \
       --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) && \
     make clean && \
-    make $MAKEFLAGS -C ext &&\
-    make $MAKEFLAGS -C modules &&\
-    make $MAKEFLAGS -C pdns && \
-    make -C pdns install DESTDIR=/build &&\ 
-    make -C modules install DESTDIR=/build &&\ 
+    make -j$(($(nproc) / 2)) -C ext &&\
+    make -j$(($(nproc) / 2)) -C modules &&\
+    make -j$(($(nproc) / 2)) -C pdns && \
+    make -j$(($(nproc) / 2)) -C pdns install DESTDIR=/build &&\ 
+    make -j$(($(nproc) / 2)) -C modules install DESTDIR=/build &&\ 
     make clean && \
     strip /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so
     
