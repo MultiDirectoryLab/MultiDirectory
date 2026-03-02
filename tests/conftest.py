@@ -124,6 +124,9 @@ from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
+from ldap_protocol.ldap_schema.object_class_dir_gateway import (
+    CreateDirectoryLikeAsObjectClassGateway,
+)
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
@@ -974,13 +977,52 @@ async def setup_session(
     password_utils: PasswordUtils,
 ) -> None:
     """Get session and acquire after completion."""
-    object_class_dao = ObjectClassDAO(session)
+    role_dao = RoleDAO(session)
+    ace_dao = AccessControlEntryDAO(session)
+    role_use_case = RoleUseCase(role_dao, ace_dao)
+    # TODO delete that
+    # NOTE: after setup environment we need base DN to be created
+    attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
+        attribute_type_dao_deprecated=AttributeTypeDAODeprecated(session),
+        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
+        object_class_dao_deprecated=ObjectClassDAODeprecated(session=session),
+    )
     attribute_value_validator = AttributeValueValidator()
     entity_type_dao = EntityTypeDAO(
         session,
-        object_class_dao=object_class_dao,
+        object_class_dao=object_class_dao,  # TODO ALARM
         attribute_value_validator=attribute_value_validator,
     )
+    create_attribute_dir_gateway = CreateDirectoryLikeAsAttributeTypeGateway(
+        session=session,
+        entity_type_dao=entity_type_dao,
+        attribute_value_validator=attribute_value_validator,
+        role_use_case=role_use_case,
+    )
+    create_objclass_dir_gateway = CreateDirectoryLikeAsObjectClassGateway(
+        session=session,
+        entity_type_dao=entity_type_dao,
+        attribute_value_validator=attribute_value_validator,
+        role_use_case=role_use_case,
+    )
+
+    attribute_type_dao = AttributeTypeDAO(
+        session,
+        create_attribute_dir_gateway=create_attribute_dir_gateway,
+    )
+
+    object_class_dao = ObjectClassDAO(
+        session,
+        attribute_type_dao=attribute_type_dao,
+        create_objclass_dir_gateway=create_objclass_dir_gateway,
+    )
+
+    attribute_type_use_case = AttributeTypeUseCase(
+        attribute_type_dao=attribute_type_dao,
+        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
+        object_class_dao=object_class_dao,
+    )
+
     for entity_type_data in ENTITY_TYPE_DATAS:
         await entity_type_dao.create(
             dto=EntityTypeDTO(
@@ -1025,31 +1067,6 @@ async def setup_session(
         dn="md.test",
         data=TEST_DATA,
         is_system=False,
-    )
-
-    role_dao = RoleDAO(session)
-    ace_dao = AccessControlEntryDAO(session)
-    role_use_case = RoleUseCase(role_dao, ace_dao)
-
-    # TODO delete that
-    # NOTE: after setup environment we need base DN to be created
-    attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
-        attribute_type_dao_deprecated=AttributeTypeDAODeprecated(session),
-        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
-        object_class_dao_deprecated=ObjectClassDAODeprecated(session=session),
-    )
-    attribute_type_use_case = AttributeTypeUseCase(
-        attribute_type_dao=AttributeTypeDAO(
-            session,
-            create_attribute_dir_gateway=CreateDirectoryLikeAsAttributeTypeGateway(
-                session=session,
-                entity_type_dao=entity_type_dao,
-                attribute_value_validator=attribute_value_validator,
-                role_use_case=role_use_case,
-            ),
-        ),
-        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
-        object_class_dao=object_class_dao,
     )
 
     for _at_dto in (

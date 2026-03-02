@@ -71,6 +71,21 @@ class AttributeTypeDAO(AbstractDAO[AttributeTypeDTO, str]):
         dir_ = res.first()
         return dir_
 
+    async def get_all_names_by_names(
+        self,
+        names: list[str],
+    ) -> list[str]:
+        res = await self.__session.scalars(
+            select(qa(Directory.name))
+            .join(qa(Directory.entity_type))
+            .filter(
+                qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
+                qa(Directory.name).in_(names),
+            )
+            .options(selectinload(qa(Directory.attributes))),
+        )
+        return list(res.all())
+
     async def get(self, name: str) -> AttributeTypeDTO:
         """Get Attribute Type by name."""
         dir_ = await self.get_dir(name)

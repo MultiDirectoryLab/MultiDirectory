@@ -19,7 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
-from entities import EntityType
+from entities import Directory, EntityType
+from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.object_class_dir_gateway import (
+    CreateDirectoryLikeAsObjectClassGateway,
+)
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
@@ -49,9 +54,20 @@ _converter = get_converter(
 class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
     """Object Class DAO."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    __session: AsyncSession
+    __create_objclass_dir_gateway: CreateDirectoryLikeAsObjectClassGateway
+    __attribute_type_dao: AttributeTypeDAO
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        create_objclass_dir_gateway: CreateDirectoryLikeAsObjectClassGateway,
+        attribute_type_dao: AttributeTypeDAO,
+    ) -> None:
         """Initialize Object Class DAO with session."""
         self.__session = session
+        self.__create_objclass_dir_gateway = create_objclass_dir_gateway
+        self.__attribute_type_dao = attribute_type_dao
 
     async def get_all(self) -> list[ObjectClassDTO[int, AttributeTypeDTO]]:
         """Get all Object Classes."""
@@ -111,6 +127,19 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             session=self.__session,
         )
 
+    async def get_dir(self, name: str) -> Directory | None:
+        res = await self.__session.scalars(
+            select(Directory)
+            .join(qa(Directory.entity_type))
+            .filter(
+                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+                qa(Directory.name) == name,
+            )
+            .options(selectinload(qa(Directory.attributes))),
+        )
+        dir_ = res.first()
+        return dir_
+
     async def create(
         self,
         dto: ObjectClassDTO[None, str],
@@ -130,16 +159,13 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
         try:
             superior = None
             if dto.superior_name:
-                superior = await self.__session.scalar(
-                    select(ObjectClass)
-                    .filter_by(name=dto.superior_name),
-                )  # fmt: skip
+                superior = self.get_dir(dto.superior_name)
 
-            if dto.superior_name and not superior:
-                raise ObjectClassNotFoundError(
-                    f"Superior (parent) Object class {dto.superior_name} "
-                    "not found in schema.",
-                )
+                if not superior:
+                    raise ObjectClassNotFoundError(
+                        f"Superior (parent) Object class {dto.superior_name} "
+                        "not found in schema.",
+                    )
 
             attribute_types_may_filtered = [
                 name
@@ -148,36 +174,41 @@ class ObjectClassDAO(AbstractDAO[ObjectClassDTO, str]):
             ]
 
             if dto.attribute_types_must:
-                res = await self.__session.scalars(
-                    select(AttributeType)
-                    .where(qa(AttributeType.name).in_(dto.attribute_types_must)),
-                )  # fmt: skip
-                attribute_types_must = list(res.all())
-
+                attribute_types_must = (
+                    await self.__attribute_type_dao.get_all_names_by_names(
+                        dto.attribute_types_must,
+                    )
+                )
             else:
                 attribute_types_must = []
 
             if attribute_types_may_filtered:
-                res = await self.__session.scalars(
-                    select(AttributeType)
-                    .where(
-                        qa(AttributeType.name).in_(attribute_types_may_filtered),
-                    ),
-                )  # fmt: skip
-                attribute_types_may = list(res.all())
+                attribute_types_may = (
+                    await self.__attribute_type_dao.get_all_names_by_names(
+                        attribute_types_may_filtered,
+                    )
+                )
             else:
                 attribute_types_may = []
 
-            object_class = ObjectClass(
-                oid=dto.oid,
-                name=dto.name,
-                superior=superior,
-                kind=dto.kind,
-                is_system=dto.is_system,
-                attribute_types_must=attribute_types_must,
-                attribute_types_may=attribute_types_may,
+            await self.__create_objclass_dir_gateway.create_dir(
+                data={
+                    "name": dto.name,
+                    "object_class": "",
+                    "attributes": {
+                        "objectClass": ["top", "classSchema"],
+                        "oid": [str(dto.oid)],
+                        "name": [str(dto.name)],
+                        "superior_name": [str(dto.superior_name)],
+                        "kind": [str(dto.kind)],
+                        "is_system": [str(dto.is_system)],  # TODO asd223edfsda
+                        "attribute_types_must": attribute_types_must,
+                        "attribute_types_may": attribute_types_may,
+                    },
+                    "children": [],
+                },
+                is_system=dto.is_system,  # TODO asd223edfsda связать два поля
             )
-            self.__session.add(object_class)
             await self.__session.flush()
         except IntegrityError:
             raise ObjectClassAlreadyExistsError(
