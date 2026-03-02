@@ -5,11 +5,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import os
+from typing import Any
 
 import dns.zone
 
-from app.ldap_protocol.dns.dto import DNSSettingsDTO
-from app.ldap_protocol.dns.managers.power_dns_manager import PowerDNSManager
+from ldap_protocol.dns.dto import DNSSettingsDTO
+from ldap_protocol.dns.managers.power_dns_manager import PowerDNSManager
 
 
 class BindToPDNSMigrationManager:
@@ -24,9 +25,9 @@ class BindToPDNSMigrationManager:
         self.pdns_manager = pdns_manager
         self.dns_settings = dns_settings
 
-    def parse_bind_config_file(self) -> dict[str, list[str]]:
+    def parse_bind_config_file(self) -> dict[str, list[Any]]:
         """Parse BIND configuration files to extract zone information."""
-        zones = {"master": [], "forward": []}
+        zones: dict[str, list[Any]] = {"master": [], "forward": []}
 
         with open(
             os.path.join(self.bind_config_files_dir, "named.conf.local"),
@@ -48,10 +49,13 @@ class BindToPDNSMigrationManager:
 
     def parse_zones_records(
         self,
-        zones: dict[str, list[str]],
+        zones: dict[str, list[Any]],
     ) -> dict[str, list[dict]]:
         """Parse zone files to extract DNS records."""
-        records = {"master": {}, "forward": {}}
+        records: dict[str, dict[str, list[dict]]] = {
+            "master": {},
+            "forward": {},
+        }
 
         for zone_type, zone_names in zones.items():
             for zone_name in zone_names:
@@ -72,7 +76,7 @@ class BindToPDNSMigrationManager:
 
         return zones
 
-    async def get_bind_zones(self) -> dict[str, list[str]]:
+    async def get_bind_zones(self) -> dict[str, list[Any]]:
         """Get zones from BIND."""
         zones = self.parse_bind_config_file()
         zones = self.parse_zones_records(zones)
@@ -84,7 +88,7 @@ class BindToPDNSMigrationManager:
         bind_zones = await self.get_bind_zones()
 
         for zone in bind_zones["master"]:
-            await self.pdns_manager.create_master_zone(zone)
+            await self.pdns_manager.create_master_zone(zone, is_empty=True)
 
         for zone in bind_zones["forward"]:
             await self.pdns_manager.create_forward_zone(zone)
