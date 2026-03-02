@@ -13,7 +13,7 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.adapters import AuthFastAPIAdapter
-from api.auth.schemas import OAuth2Form, SetupRequest
+from api.auth.schemas import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.error_routing import (
     ERROR_MAP_TYPE,
@@ -28,7 +28,6 @@ from ldap_protocol.auth.exceptions.mfa import (
     MFARequiredError,
     MissingMFACredentialsError,
 )
-from ldap_protocol.auth.schemas import MFAChallengeResponse
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,

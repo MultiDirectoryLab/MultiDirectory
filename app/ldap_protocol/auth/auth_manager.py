@@ -11,13 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_service import AbstractService
-from api.auth.schemas import OAuth2Form
+from api.auth.schemas import LoginResponse, OAuth2Form
 from config import Settings
 from entities import User
 from enums import AuthorizationRules, MFAFlags
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.mfa_manager import MFAManager
-from ldap_protocol.auth.schemas import LoginDTO
 from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
@@ -105,7 +104,7 @@ class AuthManager(AbstractService):
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> LoginDTO:
+    ) -> LoginResponse:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
@@ -179,7 +178,10 @@ class AuthManager(AbstractService):
                     ip=ip,
                     user_agent=user_agent,
                 )
-                return LoginDTO(key, mfa_challenge)
+                return LoginResponse(
+                    session_key=key,
+                    mfa_challenge=mfa_challenge,
+                )
 
         session_key = await self._repository.create_session_key(
             user,
@@ -187,7 +189,7 @@ class AuthManager(AbstractService):
             user_agent,
             self.key_ttl,
         )
-        return LoginDTO(session_key, None)
+        return LoginResponse(session_key=session_key, mfa_challenge=None)
 
     async def _update_password(
         self,
