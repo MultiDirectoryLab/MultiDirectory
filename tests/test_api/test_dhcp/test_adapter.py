@@ -10,6 +10,11 @@ from unittest.mock import Mock
 import pytest
 
 from api.dhcp.adapter import DHCPAdapter
+from api.dhcp.schemas import (
+    DHCPLeaseSchemaRequest,
+    DHCPReservationSchemaRequest,
+    DHCPSubnetSchemaAddRequest,
+)
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from ldap_protocol.dhcp.dataclasses import (
     DHCPLease,
@@ -17,11 +22,6 @@ from ldap_protocol.dhcp.dataclasses import (
     DHCPPool,
     DHCPReservation,
     DHCPSubnet,
-)
-from ldap_protocol.dhcp.schemas import (
-    DHCPLeaseSchemaRequest,
-    DHCPReservationSchemaRequest,
-    DHCPSubnetSchemaAddRequest,
 )
 
 
