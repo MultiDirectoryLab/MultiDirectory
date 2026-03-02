@@ -9,9 +9,19 @@ import secrets
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
 from entities import Attribute, Directory
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.rid_manager.exceptions import (
+    RIDManagerAvailablePoolNotFoundError,
+    RIDManagerDomainControllerNotFoundError,
+    RIDManagerDomainIdentifierNotFoundError,
+    RIDManagerDomainNotFoundError,
+    RIDManagerNextRIDNotFoundError,
+    RIDManagerNotFoundError,
+    RIDManagerObjectSidNotFoundError,
+    RIDManagerRidSetNotFoundError,
+    RIDManagerSystemContainerNotFoundError,
+)
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
@@ -40,19 +50,20 @@ class RIDManagerGateway:
 
         :param domain: Domain directory object
         :return: QWORD value of rIDAvailablePool
-        :raises ValueError: if attribute not found
         """
-        query = select(Attribute).where(
-            qa(Attribute.directory_id) == domain.id,
-            qa(Attribute.name) == "rIDAvailablePool",
+        query = await self._session.scalar(
+            select(Attribute).where(
+                qa(Attribute.directory_id) == domain.id,
+                qa(Attribute.name) == "rIDAvailablePool",
+            ),
         )
 
-        attr = await self._session.scalar(query)
+        if not query or not query.value:
+            raise RIDManagerAvailablePoolNotFoundError(
+                "rIDAvailablePool attribute not found",
+            )
 
-        if not attr or not attr.value:
-            raise ValueError("rIDAvailablePool attribute not found")
-
-        return int(attr.value)
+        return int(query.value)
 
     async def get_next_rid(self, domain: Directory) -> int:
         """Get next RID attribute from domain.
@@ -64,21 +75,24 @@ class RIDManagerGateway:
         :return: Last issued RID or None if not set
         """
         query = await self._session.scalar(
-            select(Attribute).where(
+            select(Attribute)
+            .where(
                 qa(Attribute.directory_id) == domain.id,
                 qa(Attribute.name) == "rIDNextRID",
-            ),
+            )
+            .with_for_update(),
         )
 
         if not query or not query.value:
-            raise ValueError("next RID attribute not found")
+            raise RIDManagerNextRIDNotFoundError(
+                "next RID attribute not found",
+            )
         return int(query.value)
 
     async def get_domain_identifier(self, domain: Directory) -> str:
         """Get domain identifier.
 
         :return: Domain identifier
-        :raises ValueError: if domain identifier not found
         """
         query = await self._session.scalar(
             select(Attribute).where(
@@ -88,7 +102,9 @@ class RIDManagerGateway:
         )
 
         if not query or not query.value:
-            raise ValueError("domain identifier not found")
+            raise RIDManagerDomainIdentifierNotFoundError(
+                "domain identifier not found",
+            )
 
         return query.value
 
@@ -96,13 +112,10 @@ class RIDManagerGateway:
         """Get RID Set directory.
 
         :return: RID Set directory
-        :raises ValueError: if RID Set directory not found
         """
-        rid_set = await self._session.scalar(
+        return await self._session.scalar(
             select(Directory).where(qa(Directory.name) == "RID Set"),
         )
-
-        return rid_set
 
     async def update_next_rid(self, rid_set: Directory, next_rid: int) -> None:
         """Update next RID attribute in RID Set directory.
@@ -123,13 +136,12 @@ class RIDManagerGateway:
         """Get RID Manager directory.
 
         :return: RID Manager directory
-        :raises ValueError: if RID Manager directory not found
         """
         rid_manager = await self._session.scalar(
             select(Directory).where(qa(Directory.name) == "RID Manager$"),
         )
         if not rid_manager:
-            raise ValueError("RID Manager directory not found")
+            raise RIDManagerNotFoundError("RID Manager directory not found")
 
         return rid_manager
 
@@ -186,20 +198,19 @@ class RIDManagerGateway:
             ),
         )
         if not query or not query.value:
-            raise ValueError("object SID not found")
+            raise RIDManagerObjectSidNotFoundError("object SID not found")
         return query.value
 
     async def get_base_domain(self) -> Directory:
         """Get base domain directory.
 
         :return: Base domain directory
-        :raises ValueError: if base domain not found
         """
         base_domain = await self._session.scalar(
             select(Directory).where(qa(Directory.object_class) == "domain"),
         )
         if not base_domain:
-            raise ValueError("base domain not found")
+            raise RIDManagerDomainNotFoundError("base domain not found")
         return base_domain
 
 
@@ -210,27 +221,24 @@ class RIDManagerSetupGateway:
         self,
         session: AsyncSession,
         entity_type_dao: EntityTypeDAO,
-        settings: Settings,
     ) -> None:
         """Initialize RID Manager setup gateway."""
         self._session = session
         self._entity_type_dao = entity_type_dao
-        self._settings = settings
 
-    async def get_domain_controller(self) -> Directory:
+    async def get_domain_controller(self, host_machine_name: str) -> Directory:
         """Get domain controller directory.
 
         :return: Domain controller directory
-        :raises ValueError: if domain controller not found
         """
         dc = await self._session.scalar(
             select(Directory).where(
-                qa(Directory.name) == self._settings.HOST_MACHINE_NAME,
+                qa(Directory.name) == host_machine_name,
             ),
         )
 
         if not dc:
-            raise ValueError(
+            raise RIDManagerDomainControllerNotFoundError(
                 "Domain controller not found",
             )
 
@@ -240,11 +248,8 @@ class RIDManagerSetupGateway:
         """Get System container directory.
 
         :return: System container directory
-        :raises ValueError: if System container not found
         """
         base_dn_list = await get_base_directories(self._session)
-        if not base_dn_list:
-            raise ValueError("Domain not found")
 
         domain = base_dn_list[0]
 
@@ -256,18 +261,15 @@ class RIDManagerSetupGateway:
         system_container = await self._session.scalar(query)
 
         if not system_container:
-            raise ValueError("System container not found")
+            raise RIDManagerSystemContainerNotFoundError(
+                "System container not found",
+            )
 
         return system_container
 
     async def set_rid_manager(self) -> Directory:
         """Create RID Manager directory."""
         system_container = await self.get_system_container()
-
-        base_dn_list = await get_base_directories(self._session)
-        if not base_dn_list:
-            raise ValueError("Domain not found")
-        base_dn_list[0]
 
         rid_manager_dir = Directory(
             is_system=True,
@@ -331,11 +333,6 @@ class RIDManagerSetupGateway:
         :param domain_controller: Domain Controller directory object
         :return: Created RID Set directory
         """
-        base_dn_list = await get_base_directories(self._session)
-        if not base_dn_list:
-            raise ValueError("Domain not found")
-        base_dn_list[0]
-
         rid_set_dir = Directory(
             is_system=True,
             name="RID Set",
@@ -460,7 +457,7 @@ class RIDManagerSetupGateway:
             ),
         )
         if not domain:
-            raise ValueError("Domain not found")
+            raise RIDManagerDomainNotFoundError("Domain not found")
 
         self._session.add(
             Attribute(
@@ -479,7 +476,7 @@ class RIDManagerSetupGateway:
             ),
         )
         if not domain or not domain.value:
-            raise ValueError("Domain not found")
+            raise RIDManagerDomainIdentifierNotFoundError("Domain not found")
         return domain.value
 
     async def get_rid_set(self, domain_controller: Directory) -> Directory:
@@ -487,7 +484,6 @@ class RIDManagerSetupGateway:
 
         :param domain_controller: Domain controller directory
         :return: RID Set directory
-        :raises ValueError: if RID Set directory not found
         """
         rid_set = await self._session.scalar(
             select(Directory).where(
@@ -496,5 +492,5 @@ class RIDManagerSetupGateway:
             ),
         )
         if not rid_set:
-            raise ValueError("RID Set directory not found")
+            raise RIDManagerRidSetNotFoundError("RID Set directory not found")
         return rid_set

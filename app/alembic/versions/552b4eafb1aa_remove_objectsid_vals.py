@@ -16,17 +16,13 @@ from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
-from ldap_protocol.rid_manager.gateways import (
-    RIDManagerGateway,
-    RIDManagerSetupGateway,
-)
+from ldap_protocol.rid_manager.exceptions import RIDManagerNotFoundError
+from ldap_protocol.rid_manager.gateways import RIDManagerGateway
 from ldap_protocol.rid_manager.use_cases import (
     RID_AVAILABLE_MAX,
     RIDManagerSetupUseCase,
 )
 from ldap_protocol.rid_manager.utils import create_qword
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
-from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
@@ -133,22 +129,16 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
         """Initialize RID Manager and RID Set for existing data."""
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-        rid_setup_gateway = await cnt.get(RIDManagerSetupGateway)
-        rid_setup_use_case = RIDManagerSetupUseCase(
-            rid_manager_setup_gateway=rid_setup_gateway,
-            role_use_case=await cnt.get(RoleUseCase),
-            access_control_entry_dao=await cnt.get(AccessControlEntryDAO),
-        )
-        rid_gateway = RIDManagerGateway(session)
+        rid_setup_use_case = await cnt.get(RIDManagerSetupUseCase)
+        rid_gateway = await cnt.get(RIDManagerGateway)
 
         if not await get_base_directories(session):
             return
 
         try:
             await rid_gateway.get_rid_manager()
-        except ValueError:
+        except RIDManagerNotFoundError:
             await rid_setup_use_case.setup()
-            await session.commit()
             await rid_gateway.get_rid_manager()
 
         rid_set_dir = await rid_gateway.get_rid_set()

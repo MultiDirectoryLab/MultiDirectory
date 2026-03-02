@@ -1126,7 +1126,6 @@ async def setup_session(
     rid_manager_setup_gateway = RIDManagerSetupGateway(
         session=session,
         entity_type_dao=entity_type_dao,
-        settings=settings,
     )
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
@@ -1135,6 +1134,7 @@ async def setup_session(
         rid_manager_setup_gateway=rid_manager_setup_gateway,
         role_use_case=role_use_case,
         access_control_entry_dao=AccessControlEntryDAO(session),
+        settings=settings,
     )
     setup_gateway = SetupGateway(
         session,

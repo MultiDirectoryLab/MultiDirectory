@@ -9,8 +9,10 @@ import asyncio
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from entities import Directory
 from enums import SidPrefix
+from ldap_protocol.rid_manager.exceptions import RIDManagerRidSetNotFoundError
 from ldap_protocol.rid_manager.gateways import (
     RIDManagerGateway,
     RIDManagerSetupGateway,
@@ -60,7 +62,9 @@ class RIDManagerUseCase:
             if rid is None:
                 rid_set = await self._gateway.get_rid_set()
                 if not rid_set:
-                    raise ValueError("RID Set directory not found")
+                    raise RIDManagerRidSetNotFoundError(
+                        "RID Set directory not found",
+                    )
 
                 next_rid = await self._gateway.get_next_rid(rid_set)
                 rid = next_rid + 1
@@ -106,6 +110,7 @@ class RIDManagerSetupUseCase:
         rid_manager_setup_gateway: RIDManagerSetupGateway,
         role_use_case: RoleUseCase,
         access_control_entry_dao: AccessControlEntryDAO,
+        settings: Settings,
     ) -> None:
         """Initialize RID Manager setup use case.
 
@@ -115,6 +120,7 @@ class RIDManagerSetupUseCase:
         self._gateway = rid_manager_setup_gateway
         self._role_use_case = role_use_case
         self._access_control_entry_dao = access_control_entry_dao
+        self._settings = settings
 
     async def setup(self) -> None:
         """Create RID Manager."""
@@ -126,7 +132,9 @@ class RIDManagerSetupUseCase:
             rid_manager_dir,
             qword,
         )
-        domain_controller = await self._gateway.get_domain_controller()
+        domain_controller = await self._gateway.get_domain_controller(
+            self._settings.HOST_MACHINE_NAME,
+        )
 
         rid_set_dir = await self._gateway.create_rid_set(
             domain_controller,
@@ -156,7 +164,9 @@ class RIDManagerSetupUseCase:
             directory=rid_manager_dir,
         )
 
-        domain_controller = await self._gateway.get_domain_controller()
+        domain_controller = await self._gateway.get_domain_controller(
+            self._settings.HOST_MACHINE_NAME,
+        )
         await self._role_use_case.inherit_parent_aces(
             parent_directory=domain_controller,
             directory=await self._gateway.get_rid_set(domain_controller),
