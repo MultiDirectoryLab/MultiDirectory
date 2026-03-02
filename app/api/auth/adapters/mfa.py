@@ -9,10 +9,10 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import status
 from fastapi.responses import RedirectResponse
 
+from api.auth.schemas import MFACreateRequest, MFAGetResponse
 from api.base_adapter import BaseAdapter
 from ldap_protocol.auth import MFAManager
 from ldap_protocol.auth.exceptions.mfa import MFATokenError
-from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 

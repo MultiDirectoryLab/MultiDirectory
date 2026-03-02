@@ -9,14 +9,11 @@ from ipaddress import IPv4Address, IPv6Address
 from adaptix.conversion import get_converter
 from fastapi import Request
 
+from api.auth.schemas import OAuth2Form, SetupRequest
 from api.base_adapter import BaseAdapter
 from ldap_protocol.auth import AuthManager
 from ldap_protocol.auth.dto import SetupDTO
-from ldap_protocol.auth.schemas import (
-    MFAChallengeResponse,
-    OAuth2Form,
-    SetupRequest,
-)
+from ldap_protocol.auth.schemas import MFAChallengeResponse
 from ldap_protocol.dialogue import UserSchema
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)

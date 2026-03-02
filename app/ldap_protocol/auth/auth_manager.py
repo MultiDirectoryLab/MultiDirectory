@@ -11,12 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import URL
 
 from abstract_service import AbstractService
+from api.auth.schemas import OAuth2Form
 from config import Settings
 from entities import User
 from enums import AuthorizationRules, MFAFlags
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.mfa_manager import MFAManager
-from ldap_protocol.auth.schemas import LoginDTO, OAuth2Form
+from ldap_protocol.auth.schemas import LoginDTO
 from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
