@@ -83,5 +83,5 @@ class MFAGetResponse(BaseModel):
 class MFAChallengeResponse(BaseModel):
     """MFA Challenge state."""
 
-    status: str | None
-    message: str | None
+    status: str
+    message: str
