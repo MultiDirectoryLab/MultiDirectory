@@ -13,7 +13,7 @@ from starlette.datastructures import URL
 from abstract_service import AbstractService
 from config import Settings
 from entities import User
-from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
+from enums import AuthorizationRules, MFAFlags
 from ldap_protocol.auth.dto import LoginRequestDTO, LoginResponseDTO, SetupDTO
 from ldap_protocol.auth.mfa_manager import MFAManager
 from ldap_protocol.auth.use_cases import SetupUseCase
@@ -177,7 +177,7 @@ class AuthManager(AbstractService):
                     ip=ip,
                     user_agent=user_agent,
                 )
-                return LoginResponseDTO[MFAChallengeStatuses](
+                return LoginResponseDTO(
                     session_key=session_key,
                     mfa_challenge=mfa_challenge_dto,
                 )
@@ -188,8 +188,9 @@ class AuthManager(AbstractService):
             user_agent,
             self.key_ttl,
         )
-        return LoginResponseDTO[None](
+        return LoginResponseDTO(
             session_key=session_key,
+            mfa_challenge=None,
         )
 
     async def _update_password(

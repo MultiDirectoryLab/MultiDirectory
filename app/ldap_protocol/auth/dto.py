@@ -5,15 +5,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from dataclasses import dataclass
-from typing import Generic, TypeVar
 
 from enums import MFAChallengeStatuses
-
-_MfaChallengeStatuses = TypeVar(
-    "_MfaChallengeStatuses",
-    MFAChallengeStatuses,
-    None,
-)
 
 
 @dataclass
@@ -45,11 +38,11 @@ class MFAChallengeResponseDTO:
 
 
 @dataclass
-class LoginResponseDTO(Generic[_MfaChallengeStatuses]):
+class LoginResponseDTO:
     """Login response DTO."""
 
     session_key: str | None
-    mfa_challenge: MFAChallengeResponseDTO = None  # type: ignore[assignment]
+    mfa_challenge: MFAChallengeResponseDTO | None
 
 
 @dataclass

@@ -38,7 +38,7 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         :raises HTTPException: 403 if access is forbidden
             (e.g. not in admins, disabled, expired, or policy failed)
         :raises HTTPException: 426 if MFA is required
-        :return: None
+        :return: MFAChallengeResponse | None
         """
         login_dto = await self._service.login(
             form=LoginRequestDTO(
@@ -58,6 +58,7 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
                 status=login_dto.mfa_challenge.status,
                 message=login_dto.mfa_challenge.message,
             )
+        return None
 
     async def reset_password(
         self,
