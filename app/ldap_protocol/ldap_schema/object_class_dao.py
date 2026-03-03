@@ -145,29 +145,18 @@ class ObjectClassDAO:
         :param list[str] names: Object Class names.
         :return int.
         """
-        # count_query = (
-        #     select(func.count())
-        #     .select_from(Directory)
-        #     .join(qa(Directory.entity_type))
-        #     .filter(
-        #         qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-        #         func.lower(qa(Directory.name)).in_(names),
-        #     )
-        # )
-        # result = await self.__session.scalars(count_query)
-
-        q = await self.__session.scalars(
-            select(Directory)
+        count_query = (
+            select(func.count())
+            .select_from(Directory)
             .join(qa(Directory.entity_type))
             .filter(
-                qa(Directory.name).in_(names),
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+                func.lower(qa(Directory.name)).in_(names),
             )
-            .options(selectinload(qa(Directory.attributes))),
         )
-        rs = q.all()
-        print(f"SOSI: {rs}")
-        return len(rs)
+
+        result = await self.__session.scalar(count_query)
+        return int(result or 0)
 
     async def is_all_object_classes_exists(
         self,
@@ -278,10 +267,11 @@ class ObjectClassDAO:
         )  # fmt: skip
 
         await self.__session.execute(
-            delete(ObjectClass)
+            delete(Directory)
             .where(
-                qa(ObjectClass.name).in_(names),
-                qa(ObjectClass.is_system).is_(False),
-                ~qa(ObjectClass.name).in_(subq),
+                qa(Directory.entity_type).has(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS),  # noqa: E501
+                qa(Directory.name).in_(names),
+                qa(Directory.is_system).is_(False),
+                ~qa(Directory.name).in_(subq),
             ),
         )  # fmt: skip

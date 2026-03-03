@@ -59,7 +59,7 @@ async def test_create_one_object_class(
     response = await http_client.get(
         f"/schema/object_class/{dataset['object_class']['name']}",
     )
-    print(response.text)
+    print("SOSAI", response.text)
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
 

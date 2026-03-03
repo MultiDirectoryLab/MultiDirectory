@@ -16,7 +16,7 @@ from constants import (
     FIRST_SETUP_DATA,
     USERS_CONTAINER_NAME,
 )
-from enums import SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.identity.exceptions import (
@@ -96,6 +96,7 @@ class SetupUseCase:
     def _create_domain_controller_data(self) -> dict:
         return {
             "name": DOMAIN_CONTROLLERS_OU_NAME,
+            "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
             "object_class": "organizationalUnit",
             "attributes": {
                 "objectClass": ["top", "container"],
@@ -103,6 +104,7 @@ class SetupUseCase:
             "children": [
                 {
                     "name": self._settings.HOST_MACHINE_NAME,
+                    "entity_type_name": EntityTypeNames.COMPUTER,
                     "object_class": "computer",
                     "attributes": {
                         "objectClass": ["top"],
@@ -129,11 +131,13 @@ class SetupUseCase:
         """
         return {
             "name": USERS_CONTAINER_NAME,
+            "entity_type_name": EntityTypeNames.CONTAINER,
             "object_class": "container",
             "attributes": {"objectClass": ["top"]},
             "children": [
                 {
                     "name": dto.username,
+                    "entity_type_name": EntityTypeNames.USER,
                     "object_class": "user",
                     "organizationalPerson": {
                         "sam_account_name": dto.username,

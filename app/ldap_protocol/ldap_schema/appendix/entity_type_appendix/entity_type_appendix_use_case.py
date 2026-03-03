@@ -39,11 +39,18 @@ class EntityTypeUseCase(AbstractService):
         self._entity_type_dao = entity_type_dao
         self._object_class_dao = object_class_dao
 
-    async def create(self, dto: EntityTypeDTO) -> None:
+    async def create(
+        self,
+        dto: EntityTypeDTO,
+        *,
+        skip_object_class_validation: bool = False,
+    ) -> None:
         """Create Entity Type."""
-        await self._object_class_dao.is_all_object_classes_exists(
-            dto.object_class_names,
-        )
+        if not skip_object_class_validation:
+            await self._object_class_dao.is_all_object_classes_exists(
+                dto.object_class_names,
+            )
+
         await self._entity_type_dao.create(dto)
 
     async def update(self, name: str, dto: EntityTypeDTO) -> None:
@@ -100,6 +107,7 @@ class EntityTypeUseCase(AbstractService):
                     ),
                     is_system=True,
                 ),
+                skip_object_class_validation=True,
             )
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {

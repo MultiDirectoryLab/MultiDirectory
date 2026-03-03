@@ -42,11 +42,23 @@ class EntityTypeUseCase(AbstractService):
         self._entity_type_dao = entity_type_dao
         self._object_class_dao = object_class_dao
 
-    async def create(self, dto: EntityTypeDTO) -> None:
-        """Create Entity Type."""
-        await self._object_class_dao.is_all_object_classes_exists(
-            dto.object_class_names,
-        )
+    async def create(
+        self,
+        dto: EntityTypeDTO,
+        *,
+        skip_object_class_validation: bool = False,
+    ) -> None:
+        """Create Entity Type.
+
+        :param EntityTypeDTO dto: Entity Type data.
+        :param bool skip_object_class_validation: Skip checking related
+            Object Classes exist (used during first setup seeding).
+        """
+        if not skip_object_class_validation:
+            await self._object_class_dao.is_all_object_classes_exists(
+                dto.object_class_names,
+            )
+
         await self._entity_type_dao.create(dto)
 
     async def update(self, name: str, dto: EntityTypeDTO) -> None:
@@ -72,6 +84,9 @@ class EntityTypeUseCase(AbstractService):
     async def get(self, name: str) -> EntityTypeDTO:
         """Get Entity Type by name."""
         return await self._entity_type_dao.get(name)
+
+    async def get_one_raw_by_name(self, name: str) -> EntityType:
+        return await self._entity_type_dao.get_one_raw_by_name(name)
 
     async def _validate_name(
         self,
@@ -111,6 +126,7 @@ class EntityTypeUseCase(AbstractService):
                     ),
                     is_system=True,
                 ),
+                skip_object_class_validation=True,
             )
 
     async def attach_entity_type_to_directories(self) -> None:

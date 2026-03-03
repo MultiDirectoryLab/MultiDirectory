@@ -102,10 +102,8 @@ class SetupGateway:
             # коллизия: для создания директории1 нужна директория2,
             # но для дир2 нужна дир1
 
-            entity_type = (
-                await self._entity_type_use_case._get_one_raw_by_name(
-                    EntityTypeNames.DOMAIN,
-                )
+            entity_type = await self._entity_type_use_case.get_one_raw_by_name(
+                EntityTypeNames.DOMAIN,
             )
             await self._entity_type_use_case.attach_entity_type_to_directory(
                 directory=domain,
@@ -233,7 +231,7 @@ class SetupGateway:
         # коллизия: для создания директории1 нужна директория2,
         # но для дир2 нужна дир1
 
-        entity_type = await self._entity_type_use_case._get_one_raw_by_name(
+        entity_type = await self._entity_type_use_case.get_one_raw_by_name(
             data["entity_type_name"],
         )
         await self._entity_type_use_case.attach_entity_type_to_directory(

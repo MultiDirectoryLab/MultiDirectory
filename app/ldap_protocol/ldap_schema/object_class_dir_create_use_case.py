@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from constants import CONFIGURATION_DIR_NAME
 from entities import Attribute, Directory, Group
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -109,14 +110,18 @@ class CreateDirectoryLikeAsObjectClassUseCase:
             instance=dir_,
             attribute_names=["attributes"],
         )
-        # TODO каво блять.
-        # await self.__entity_type_use_case.attach_entity_type_to_directory(
-        #     directory=dir_,
-        #     is_system_entity_type=True,
-        # )
-        # if not self.__attribute_value_validator.is_directory_valid(dir_):
-        #     raise ValueError("Invalid directory attribute values")
-        # await self.__session.flush()
+        # TODO FIXME каво блять.
+        entity_type = await self.__entity_type_use_case.get_one_raw_by_name(
+            EntityTypeNames.OBJECT_CLASS,
+        )
+        await self.__entity_type_use_case.attach_entity_type_to_directory(
+            directory=dir_,
+            is_system_entity_type=True,
+            entity_type=entity_type,
+        )
+        if not self.__attribute_value_validator.is_directory_valid(dir_):
+            raise ValueError("Invalid directory attribute values")
+        await self.__session.flush()
 
         await self.__role_use_case.inherit_parent_aces(
             parent_directory=self.__parent,

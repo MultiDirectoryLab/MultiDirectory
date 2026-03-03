@@ -308,11 +308,13 @@ ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
 FIRST_SETUP_DATA = [
     {
         "name": CONFIGURATION_DIR_NAME,
+        "entity_type_name": EntityTypeNames.CONFIGURATION,
         "object_class": "container",
         "attributes": {"objectClass": ["top", "configuration"]},
     },
     {
         "name": GROUPS_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
         "attributes": {
             "objectClass": ["top"],
@@ -321,6 +323,7 @@ FIRST_SETUP_DATA = [
         "children": [
             {
                 "name": DOMAIN_ADMIN_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -336,6 +339,7 @@ FIRST_SETUP_DATA = [
             },
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -351,6 +355,7 @@ FIRST_SETUP_DATA = [
             },
             {
                 "name": READ_ONLY_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -366,6 +371,7 @@ FIRST_SETUP_DATA = [
             },
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -383,6 +389,7 @@ FIRST_SETUP_DATA = [
     },
     {
         "name": COMPUTERS_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
         "attributes": {"objectClass": ["top"]},
         "children": [],

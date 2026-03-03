@@ -59,27 +59,47 @@ _convert_schema_to_dto = get_converter(
 )
 
 
-def _converter_new(dir_: Directory) -> ObjectClassSchema[int]:
+def _convert_dto_to_schema(
+    dir_or_dto: ObjectClassDTO | Directory,
+) -> ObjectClassSchema[int]:
+    """Map DAO/DTO objects to API schema with explicit attribute name fields."""
+    if isinstance(dir_or_dto, Directory):
+        return ObjectClassSchema(
+            oid=dir_or_dto.attributes_dict.get("oid")[0],  # type: ignore
+            name=dir_or_dto.name,
+            superior_name=dir_or_dto.attributes_dict.get("superior_name")[0],  # type: ignore
+            kind=dir_or_dto.attributes_dict.get("kind")[0],  # type: ignore
+            is_system=dir_or_dto.is_system,
+            attribute_type_names_must=dir_or_dto.attributes_dict.get(
+                "attribute_types_must",
+                [],
+            ),
+            attribute_type_names_may=dir_or_dto.attributes_dict.get(
+                "attribute_types_may",
+                [],
+            ),
+            id=dir_or_dto.id,
+            entity_type_names=set(),  # TODO fix me
+        )
+
+    attr_type_names_must = [
+        getattr(attr, "name", attr) for attr in dir_or_dto.attribute_types_must
+    ]
+    attr_type_names_may = [
+        getattr(attr, "name", attr) for attr in dir_or_dto.attribute_types_may
+    ]
+
     return ObjectClassSchema(
-        oid=dir_.attributes_dict.get("oid")[0],  # type: ignore
-        name=dir_.name,
-        superior_name=dir_.attributes_dict.get("superior_name")[0],  # type: ignore
-        kind=dir_.attributes_dict.get("kind")[0],  # type: ignore
-        is_system=dir_.is_system,
-        attribute_types_must=dir_.attributes_dict.get(
-            "attribute_types_must",
-            [],
-        ),
-        attribute_types_may=dir_.attributes_dict.get(
-            "attribute_types_may",
-            [],
-        ),
-        id=dir_.id,
-        entity_type_names=set(),  # TODO fix me
+        oid=dir_or_dto.oid,
+        name=dir_or_dto.name,
+        superior_name=dir_or_dto.superior_name,
+        kind=dir_or_dto.kind,
+        is_system=dir_or_dto.is_system,
+        attribute_type_names_must=attr_type_names_must,
+        attribute_type_names_may=attr_type_names_may,
+        id=dir_or_dto.id,
+        entity_type_names=dir_or_dto.entity_type_names or set(),
     )
-
-
-_convert_dto_to_schema = _converter_new
 
 
 class ObjectClassFastAPIAdapter(

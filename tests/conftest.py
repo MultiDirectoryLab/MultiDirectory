@@ -1088,7 +1088,19 @@ async def setup_session(
         is_system=False,
     )
 
-    for _obj_class_name in ("top", "domain", "domaindns"):
+    for _obj_class_name in (
+        "top",
+        "person",
+        "organizationalPerson",
+        "user",
+        "domain",
+        "container",
+        "organization",
+        "domainDNS",
+        "group",
+        "inetOrgPerson",
+        "posixAccount",
+    ):
         _oc_dto = await object_class_dao_deprecated.get(_obj_class_name)
         _oc_dto.attribute_types_may = [
             x.name  # type: ignore
@@ -1099,6 +1111,8 @@ async def setup_session(
             for x in _oc_dto.attribute_types_must
         ]
         await object_class_use_case.create(_oc_dto)  # type: ignore
+
+    await session.flush()
 
     for _at_dto in (
         AttributeTypeDTO[None](
@@ -1235,6 +1249,15 @@ async def entity_type_dao(
             session,
             attribute_value_validator=attribute_value_validator,
         )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def entity_type_use_case(
+    container: AsyncContainer,
+) -> AsyncIterator[EntityTypeUseCase]:
+    """Get entity type use case."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(EntityTypeUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")

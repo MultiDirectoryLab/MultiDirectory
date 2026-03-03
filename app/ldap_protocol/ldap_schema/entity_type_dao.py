@@ -82,7 +82,7 @@ class EntityTypeDAO:
 
     async def update(self, name: str, dto: EntityTypeDTO[int]) -> None:
         """Update an Entity Type."""
-        entity_type = await self._get_one_raw_by_name(name)
+        entity_type = await self.get_one_raw_by_name(name)
 
         try:
             entity_type.name = dto.name
@@ -146,7 +146,7 @@ class EntityTypeDAO:
 
     async def delete(self, name: str) -> None:
         """Delete an Entity Type."""
-        entity_type = await self._get_one_raw_by_name(name)
+        entity_type = await self.get_one_raw_by_name(name)
         await self.__session.delete(entity_type)
         await self.__session.flush()
 
@@ -173,7 +173,7 @@ class EntityTypeDAO:
             session=self.__session,
         )
 
-    async def _get_one_raw_by_name(self, name: str) -> EntityType:
+    async def get_one_raw_by_name(self, name: str) -> EntityType:
         """Get single Entity Type by name.
 
         :param str name: Entity Type name.
@@ -198,7 +198,7 @@ class EntityTypeDAO:
         :raise EntityTypeNotFoundError: If Entity Type not found.
         :return EntityType: Instance of Entity Type.
         """
-        return _convert(await self._get_one_raw_by_name(name))
+        return _convert(await self.get_one_raw_by_name(name))
 
     async def get_entity_type_by_object_class_names(
         self,
@@ -241,7 +241,7 @@ class EntityTypeDAO:
         :param str entity_type_name: Entity Type name.
         :return list[str]: List of attribute names.
         """
-        entity_type = await self._get_one_raw_by_name(name)
+        entity_type = await self.get_one_raw_by_name(name)
 
         if not entity_type.object_class_names:
             return []
