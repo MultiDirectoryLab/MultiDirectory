@@ -17,13 +17,9 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from entities import Directory, EntityType
+from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
-from ldap_protocol.utils.pagination import (
-    PaginationParams,
-    PaginationResult,
-    build_paginated_search_query,
-)
+from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 
 from .dto import AttributeTypeDTO, ObjectClassDTO
@@ -87,7 +83,7 @@ class ObjectClassDAO:
             )
         ]
 
-    async def get_object_class_names_include_attribute_type(
+    async def get_object_class_names_include_attribute_type1(
         self,
         attribute_type_name: str,
     ) -> set[str]:
@@ -103,6 +99,24 @@ class ObjectClassDAO:
         )  # fmt: skip
         return set(row[0] for row in result.fetchall())
 
+    async def get_object_class_names_include_attribute_type(
+        self,
+        attribute_type_name: str,
+    ) -> set[str]:
+        """Get all Object Class names include Attribute Type name."""
+        result = await self.__session.scalars(
+            select(qa(Directory.name))
+            .select_from(qa(Directory))
+            .join(qa(Directory.entity_type))
+            .join(qa(Directory.attributes))
+            .filter(
+                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+                qa(Attribute.name).in_(("attribute_types_must","attribute_types_may")),
+                func.lower(qa(Attribute.value)) == attribute_type_name.lower(),
+            ),
+        )  # fmt: skip
+        return set(result.all())
+
     async def delete(self, name: str) -> None:
         """Delete Object Class."""
         object_class = await self.get_dir(name)
@@ -112,51 +126,30 @@ class ObjectClassDAO:
     async def get_paginator(
         self,
         params: PaginationParams,
-    ) -> PaginationResult[ObjectClass, ObjectClassDTO]:
+    ) -> PaginationResult[Directory, ObjectClassDTO]:
         """Retrieve paginated Object Classes.
 
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Object Classes and metadata.
         """
-        query = build_paginated_search_query(
-            model=ObjectClass,
-            order_by_field=qa(ObjectClass.id),
-            params=params,
-            search_field=qa(ObjectClass.name),
-            load_params=(
-                selectinload(qa(ObjectClass).attribute_types_may),
-                selectinload(qa(ObjectClass).attribute_types_must),
-            ),
+        filters = [
+            qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+        ]
+
+        query = (
+            select(Directory)
+            .join(qa(Directory.entity_type))
+            .filter(*filters)
+            .options(selectinload(qa(Directory.attributes)))
+            .order_by(qa(Directory.id))
         )
 
-        return await PaginationResult[ObjectClass, ObjectClassDTO].get(
+        return await PaginationResult[Directory, ObjectClassDTO].get(
             params=params,
             query=query,
-            converter=_converter,
+            converter=_converter_new,
             session=self.__session,
         )
-
-    async def _count_exists_object_class_by_names(
-        self,
-        names: Iterable[str],
-    ) -> int:
-        """Count exists Object Class by names.
-
-        :param list[str] names: Object Class names.
-        :return int.
-        """
-        count_query = (
-            select(func.count())
-            .select_from(Directory)
-            .join(qa(Directory.entity_type))
-            .filter(
-                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                func.lower(qa(Directory.name)).in_(names),
-            )
-        )
-
-        result = await self.__session.scalar(count_query)
-        return int(result or 0)
 
     async def is_all_object_classes_exists(
         self,
@@ -170,9 +163,18 @@ class ObjectClassDAO:
         """
         names = set(object_class.lower() for object_class in names)
 
-        count_ = await self._count_exists_object_class_by_names(
-            names,
+        count_query = (
+            select(func.count())
+            .select_from(Directory)
+            .join(qa(Directory.entity_type))
+            .filter(
+                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+                func.lower(qa(Directory.name)).in_(names),
+            )
         )
+
+        result = await self.__session.scalar(count_query)
+        count_ = int(result or 0)
 
         if count_ != len(names):
             raise ObjectClassNotFoundError(
@@ -213,14 +215,15 @@ class ObjectClassDAO:
         :return list[ObjectClassDTO]: List of Object Classes.
         """
         query = await self.__session.scalars(
-            select(ObjectClass)
-            .where(qa(ObjectClass.name).in_(names))
-            .options(
-                selectinload(qa(ObjectClass.attribute_types_must)),
-                selectinload(qa(ObjectClass.attribute_types_may)),
-            ),
-        )  # fmt: skip
-        return list(map(_converter, query.all()))
+            select(Directory)
+            .join(qa(Directory.entity_type))
+            .filter(
+                qa(Directory.name).in_(names),
+                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+            )
+            .options(selectinload(qa(Directory.attributes))),
+        )
+        return list(map(_converter_new, query.all()))
 
     async def update(self, name: str, dto: ObjectClassDTO[None, str]) -> None:
         """Update Object Class."""

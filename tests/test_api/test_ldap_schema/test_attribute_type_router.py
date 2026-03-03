@@ -11,17 +11,17 @@ from .test_attribute_type_router_datasets import (
     test_modify_one_attribute_type_dataset,
 )
 
-# TODO это тоже надо чинить
-# @pytest.mark.asyncio
-# async def test_get_one_extended_attribute_type(
-#     http_client: AsyncClient,
-# ) -> None:
-#     """Test getting a single extended attribute type."""
-#     response = await http_client.get("/schema/attribute_type/objectClass")
-#     assert response.status_code == status.HTTP_200_OK
-#     data = response.json()
-#     assert isinstance(data, dict)
-#     assert data.get("object_class_names") == ["top"]
+
+@pytest.mark.asyncio
+async def test_get_one_extended_attribute_type(
+    http_client: AsyncClient,
+) -> None:
+    """Test getting a single extended attribute type."""
+    response = await http_client.get("/schema/attribute_type/objectClass")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("object_class_names") == ["top"]
 
 
 @pytest.mark.asyncio

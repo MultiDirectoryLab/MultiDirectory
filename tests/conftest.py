@@ -95,19 +95,19 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (  # noqa: E501
     AttributeTypeDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (
+from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (  # noqa: E501
     EntityTypeDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (  # noqa: E501
     ObjectClassDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
     ObjectClassUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
@@ -992,27 +992,27 @@ async def setup_session(
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
     attribute_value_validator = AttributeValueValidator()
-
-    # TODO delete that
+    attribute_type_dao = AttributeTypeDAO(session)
+    attribute_type_system_flags_use_case = AttributeTypeSystemFlagsUseCase()
     object_class_dao_deprecated = ObjectClassDAODeprecated(session=session)
-    # NOTE: after setup environment we need base DN to be created
+
     attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
         attribute_type_dao_deprecated=AttributeTypeDAODeprecated(session),
-        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
+        attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
         object_class_dao_deprecated=object_class_dao_deprecated,
     )
 
+    object_class_dao = ObjectClassDAO(session)
     entity_type_dao = EntityTypeDAO(
         session,
         attribute_value_validator=attribute_value_validator,
     )
-    object_class_dao = ObjectClassDAO(session)
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,
     )
     object_class_use_case = ObjectClassUseCase(
-        attribute_type_dao=AttributeTypeDAO(session),
+        attribute_type_dao=attribute_type_dao,
         object_class_dao=object_class_dao,
         entity_type_dao=entity_type_dao,
         create_objclass_dir_use_case=CreateDirectoryLikeAsObjectClassUseCase(
@@ -1029,11 +1029,9 @@ async def setup_session(
         role_use_case=role_use_case,
     )
 
-    attribute_type_dao = AttributeTypeDAO(session)
-
     attribute_type_use_case = AttributeTypeUseCase(
         attribute_type_dao=attribute_type_dao,
-        attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
+        attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
         object_class_dao=object_class_dao,
         create_attribute_dir_use_case=create_attribute_dir_use_case,
     )
@@ -1088,32 +1086,6 @@ async def setup_session(
         is_system=False,
     )
 
-    for _obj_class_name in (
-        "top",
-        "person",
-        "organizationalPerson",
-        "user",
-        "domain",
-        "container",
-        "organization",
-        "domainDNS",
-        "group",
-        "inetOrgPerson",
-        "posixAccount",
-    ):
-        _oc_dto = await object_class_dao_deprecated.get(_obj_class_name)
-        _oc_dto.attribute_types_may = [
-            x.name  # type: ignore
-            for x in _oc_dto.attribute_types_may
-        ]
-        _oc_dto.attribute_types_must = [
-            x.name  # type: ignore
-            for x in _oc_dto.attribute_types_must
-        ]
-        await object_class_use_case.create(_oc_dto)  # type: ignore
-
-    await session.flush()
-
     for _at_dto in (
         AttributeTypeDTO[None](
             oid="1.2.3.4.5.6.7.8",
@@ -1138,12 +1110,13 @@ async def setup_session(
     ):
         await attribute_type_use_case.create(_at_dto)
 
-    for attr_type_name in (  # TODO это для ролевки тестов, по идее нужное.
+    for attr_type_name in (
         "description",
         "posixEmail",
         "userPrincipalName",
         "userAccountControl",
         "cn",
+        "objectClass",
     ):
         _at = await attribute_type_use_case_deprecated.get_deprecated(
             attr_type_name,
@@ -1153,6 +1126,30 @@ async def setup_session(
                 f"setup_session:: AttributeType {attr_type_name} not found",
             )
         await attribute_type_use_case.create(_at)
+
+    for _obj_class_name in (
+        "top",
+        "person",
+        "organizationalPerson",
+        "user",
+        "domain",
+        "container",
+        "organization",
+        "domainDNS",
+        "group",
+        "inetOrgPerson",
+        "posixAccount",
+    ):
+        _oc_dto = await object_class_dao_deprecated.get(_obj_class_name)
+        _oc_dto.attribute_types_may = [
+            x.name  # type: ignore
+            for x in _oc_dto.attribute_types_may
+        ]
+        _oc_dto.attribute_types_must = [
+            x.name  # type: ignore
+            for x in _oc_dto.attribute_types_must
+        ]
+        await object_class_use_case.create(_oc_dto)  # type: ignore
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()

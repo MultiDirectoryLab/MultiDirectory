@@ -59,7 +59,6 @@ async def test_create_one_object_class(
     response = await http_client.get(
         f"/schema/object_class/{dataset['object_class']['name']}",
     )
-    print("SOSAI", response.text)
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
 
@@ -125,7 +124,7 @@ async def test_get_list_object_classes_with_pagination(
 ) -> None:
     """Test retrieving a list of object classes."""
     page_number = 1
-    page_size = 25
+    page_size = 7
     response = await http_client.get(
         f"/schema/object_classes?page_number={page_number}&page_size={page_size}",
     )

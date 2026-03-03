@@ -74,6 +74,16 @@ class AttributeTypeDAO:
         )
         return list(res.all())
 
+    async def get_all(self) -> list[AttributeTypeDTO]:
+        res = await self.__session.scalars(
+            select(qa(Directory))
+            .join(qa(Directory.entity_type))
+            .filter(
+                qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
+            ),
+        )
+        return list(map(_convert_model_to_dto, res.all()))
+
     async def get(self, name: str) -> AttributeTypeDTO:
         """Get Attribute Type by name."""
         dir_ = await self.get_dir(name)
@@ -81,22 +91,7 @@ class AttributeTypeDAO:
             raise AttributeTypeNotFoundError(
                 f"Attribute Type with name '{name}' not found.",
             )
-        dto = AttributeTypeDTO[int](
-            id=dir_.id,
-            name=dir_.name,
-            oid=dir_.attributes_dict["oid"][0],
-            syntax=dir_.attributes_dict["syntax"][0],
-            single_value=dir_.attributes_dict["single_value"][0] == "True",
-            no_user_modification=dir_.attributes_dict["no_user_modification"][
-                0
-            ]
-            == "True",
-            is_system=dir_.attributes_dict["is_system"][0] == "True",
-            system_flags=int(dir_.attributes_dict["system_flags"][0]),
-            is_included_anr=dir_.attributes_dict["is_included_anr"][0]
-            == "True",
-        )
-        return dto
+        return _convert_model_to_dto(dir_)
 
     # TODO сделай обновление пачки update bulk 100 times. а зачем? я забыл
 
@@ -151,12 +146,6 @@ class AttributeTypeDAO:
                 attr.value = str(dto.system_flags)
 
         await self.__session.flush()
-
-    async def delete(self, name: str) -> None:
-        return None
-
-    async def get_all(self) -> list[AttributeTypeDTO]:
-        return []
 
     async def get_paginator(
         self,

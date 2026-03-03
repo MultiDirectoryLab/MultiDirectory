@@ -73,7 +73,6 @@ async def test_role_search_2(
     )
 
 
-# TODO
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_3(
@@ -209,7 +208,6 @@ async def test_role_search_5(
     )
 
 
-# TODO
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_6(
@@ -260,7 +258,6 @@ async def test_role_search_6(
     )
 
 
-# TODO
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_7(
@@ -322,7 +319,6 @@ async def test_role_search_7(
     )
 
 
-# TODO
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_8(
@@ -384,7 +380,6 @@ async def test_role_search_8(
     )
 
 
-# TODO
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_9(
