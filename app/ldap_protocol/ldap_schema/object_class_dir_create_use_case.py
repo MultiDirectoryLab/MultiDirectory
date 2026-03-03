@@ -127,7 +127,6 @@ class CreateDirectoryLikeAsObjectClassUseCase:
             parent_directory=self.__parent,
             directory=dir_,
         )
-        print(f"SOSAL ObjClass {data['name']}")
 
     async def _get_group(self, name: str) -> Group:
         """Get group by name.
