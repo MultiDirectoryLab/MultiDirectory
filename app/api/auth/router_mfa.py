@@ -14,6 +14,7 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.adapters import MFAFastAPIAdapter
+from api.auth.schemas import MFACreateRequest, MFAGetResponse
 from api.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
@@ -35,7 +36,6 @@ from ldap_protocol.auth.exceptions.mfa import (
     NetworkPolicyError,
     NotFoundError,
 )
-from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 translator = DomainErrorTranslator(DomainCodes.MFA)

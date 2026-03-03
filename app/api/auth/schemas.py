@@ -1,25 +1,14 @@
-"""Schemas for auth module.
+"""Auth schemas.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import re
-from dataclasses import dataclass
-from datetime import datetime
-from ipaddress import IPv4Address, IPv6Address
-from typing import Literal
 
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    SecretStr,
-    computed_field,
-    field_validator,
-)
+from pydantic import BaseModel, SecretStr, computed_field, field_validator
 
 from ldap_protocol.utils.const import EmailStr
 
@@ -96,23 +85,3 @@ class MFAChallengeResponse(BaseModel):
 
     status: str
     message: str
-
-
-@dataclass
-class LoginDTO:
-    """Login Data Transfer Object."""
-
-    session_key: str | None
-    mfa_challenge: MFAChallengeResponse | None
-
-
-class SessionContentSchema(BaseModel):
-    """Session content schema."""
-
-    model_config = ConfigDict(extra="allow")
-
-    id: int
-    sign: str = Field("", description="Session signature")
-    issued: datetime
-    ip: IPv4Address | IPv6Address
-    protocol: Literal["ldap", "http"] = "http"

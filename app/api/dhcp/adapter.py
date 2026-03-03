@@ -7,8 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address
 
 from api.base_adapter import BaseAdapter
-from ldap_protocol.dhcp import (
-    AbstractDHCPManager,
+from api.dhcp.schemas import (
     DHCPChangeStateSchemaRequest,
     DHCPLeaseSchemaRequest,
     DHCPLeaseSchemaResponse,
@@ -19,6 +18,7 @@ from ldap_protocol.dhcp import (
     DHCPSubnetSchemaAddRequest,
     DHCPSubnetSchemaResponse,
 )
+from ldap_protocol.dhcp import AbstractDHCPManager
 from ldap_protocol.dhcp.dataclasses import (
     DHCPLease,
     DHCPOptionData,

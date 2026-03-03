@@ -17,6 +17,12 @@ from .dataclasses import (
     DHCPReservation,
     DHCPSubnet,
 )
+from .dtos import (
+    KeaDHCPAPILeaseRequest,
+    KeaDHCPAPIReservationRequest,
+    KeaDHCPAPISubnetRequest,
+    KeaDHCPBaseAPIRequest,
+)
 from .enums import KeaDHCPCommands, KeaDHCPResultCodes
 from .exceptions import (
     DHCPAPIError,
@@ -39,12 +45,6 @@ from .retorts import (
     list_subnet_retort,
     release_lease_retort,
     update_subnet_retort,
-)
-from .schemas import (
-    KeaDHCPAPILeaseRequest,
-    KeaDHCPAPIReservationRequest,
-    KeaDHCPAPISubnetRequest,
-    KeaDHCPBaseAPIRequest,
 )
 
 

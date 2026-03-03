@@ -10,14 +10,14 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+from api.audit.schemas import (
+    AuditDestinationSchemaRequest,
+    AuditPolicySchemaRequest,
+)
 from enums import AuditDestinationProtocolType, AuditDestinationServiceType
 from ldap_protocol.policies.audit.dataclasses import (
     AuditDestinationDTO,
     AuditPolicyDTO,
-)
-from ldap_protocol.policies.audit.schemas import (
-    AuditDestinationSchemaRequest,
-    AuditPolicySchemaRequest,
 )
 
 

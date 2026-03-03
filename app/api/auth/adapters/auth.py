@@ -9,14 +9,10 @@ from ipaddress import IPv4Address, IPv6Address
 from adaptix.conversion import get_converter
 from fastapi import Request
 
+from api.auth.schemas import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.base_adapter import BaseAdapter
 from ldap_protocol.auth import AuthManager
-from ldap_protocol.auth.dto import SetupDTO
-from ldap_protocol.auth.schemas import (
-    MFAChallengeResponse,
-    OAuth2Form,
-    SetupRequest,
-)
+from ldap_protocol.auth.dto import LoginRequestDTO, SetupDTO
 from ldap_protocol.dialogue import UserSchema
 
 _convert_request_to_dto = get_converter(SetupRequest, SetupDTO)
@@ -42,10 +38,13 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         :raises HTTPException: 403 if access is forbidden
             (e.g. not in admins, disabled, expired, or policy failed)
         :raises HTTPException: 426 if MFA is required
-        :return: None
+        :return: MFAChallengeResponse | None
         """
         login_dto = await self._service.login(
-            form=form,
+            form=LoginRequestDTO(
+                username=form.username,
+                password=form.password,
+            ),
             url=request.url_for("callback_mfa"),
             ip=ip,
             user_agent=user_agent,
@@ -54,7 +53,12 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
             self._service.set_new_session_key(
                 login_dto.session_key,
             )
-        return login_dto.mfa_challenge
+        if login_dto.mfa_challenge is not None:
+            return MFAChallengeResponse(
+                status=login_dto.mfa_challenge.status,
+                message=login_dto.mfa_challenge.message,
+            )
+        return None
 
     async def reset_password(
         self,

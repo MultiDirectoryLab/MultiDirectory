@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from adaptix import Retort, name_mapping
 
 from .dataclasses import DHCPLease, DHCPReservation, DHCPSubnet
-from .schemas import (
+from .dtos import (
     KeaDHCPAPILeaseRequest,
     KeaDHCPAPISubnetRequest,
     KeaDHCPBaseAPIRequest,
