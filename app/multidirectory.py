@@ -354,7 +354,7 @@ if __name__ == "__main__":
     group.add_argument(
         "--migrate_dns",
         action="store_true",
-        help="Migrate DNS",
+        help="Migrate DNS from BIND to PowerDNS",
     )
 
     args = parser.parse_args()

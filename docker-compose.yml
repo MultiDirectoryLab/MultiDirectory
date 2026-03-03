@@ -50,6 +50,8 @@ services:
         condition: service_completed_successfully
       cert_local_check:
         condition: service_completed_successfully
+      dns_migration:
+        condition: service_completed_successfully
     deploy:
       mode: replicated
       replicas: 2
@@ -107,6 +109,8 @@ services:
         condition: service_completed_successfully
       cert_local_check:
         condition: service_completed_successfully
+      dns_migration:
+        condition: service_completed_successfully
     deploy:
       resources:
         reservations:
@@ -152,6 +156,8 @@ services:
       migrations:
         condition: service_completed_successfully
       cert_local_check:
+        condition: service_completed_successfully
+      dns_migration:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "nc -zv 127.0.0.1 3268 3269"]
@@ -204,6 +210,8 @@ services:
     depends_on:
       migrations:
         condition: service_completed_successfully
+      dns_migration:
+        condition: service_completed_successfully
 
     deploy:
       mode: global
@@ -226,6 +234,28 @@ services:
       postgres:
         condition: service_healthy
         restart: true
+
+  dns_migration:
+    image: multidirectory
+    container_name: multidirectory_dns_migration
+    networks:
+      md_net:
+    restart: "no"
+    volumes:
+      - ./app:/app
+      - dns_server_file:/opt/
+      - dns_server_config:/etc/bind/
+    env_file: local.env
+    command: python multidirectory.py --migrate_dns
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      pdns_auth:
+        condition: service_started
+      pdns_recursor:
+        condition: service_started
+      pdnsdist:
+        condition: service_started
 
   cert_check:
     image: multidirectory
@@ -369,7 +399,6 @@ services:
       ldap_server:
         condition: service_healthy
         restart: true
-
 
   kadmind:
     container_name: kadmind
@@ -570,7 +599,6 @@ services:
       - dns_lmdb:/var/lib/pdns-lmdb
       - dns_config:/etc/powerdns
 
-
   pdnsdist:
     image: powerdns/dnsdist-19:1.9.11
     container_name: pdnsdist
@@ -586,7 +614,6 @@ services:
       - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf
       - dnsdist_confd:/etc/dnsdist/conf.d
 
-
   pdns_recursor:
     image: powerdns/pdns-recursor-51:5.1.7
     container_name: pdns_recursor
@@ -601,6 +628,7 @@ services:
       - ./.package/recursor.conf:/etc/powerdns/recursor.conf
       - forward_zones:/etc/powerdns/recursor.d/
 
+
 networks:
   md_net:
     driver: bridge
@@ -608,6 +636,7 @@ networks:
       config:
         - subnet: 172.20.0.0/24
           gateway: 172.20.0.1
+
 
 volumes:
   postgres:
