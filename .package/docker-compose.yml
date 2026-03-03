@@ -87,6 +87,28 @@ services:
       postgres:
         condition: service_healthy
 
+  dns_migration:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: multidirectory_dns_migration
+    networks:
+      md_net:
+    restart: "no"
+    volumes:
+      - ./app:/app
+      - dns_server_file:/opt/
+      - dns_server_config:/etc/bind/
+    env_file: local.env
+    command: python multidirectory.py --migrate_dns
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      pdns_auth:
+        condition: service_started
+      pdns_recursor:
+        condition: service_started
+      pdnsdist:
+        condition: service_started
+
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     networks:
