@@ -4,16 +4,16 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from api.base_adapter import BaseAdapter
-from ldap_protocol.policies.audit.dataclasses import (
-    AuditDestinationDTO,
-    AuditPolicyDTO,
-)
-from ldap_protocol.policies.audit.schemas import (
+from api.audit.schemas import (
     AuditDestinationResponse,
     AuditDestinationSchemaRequest,
     AuditPolicyResponse,
     AuditPolicySchemaRequest,
+)
+from api.base_adapter import BaseAdapter
+from ldap_protocol.policies.audit.dataclasses import (
+    AuditDestinationDTO,
+    AuditPolicyDTO,
 )
 from ldap_protocol.policies.audit.service import AuditService
 
@@ -49,7 +49,7 @@ class AuditPoliciesAdapter(BaseAdapter[AuditService]):
         """Get all audit destinations."""
         return [
             AuditDestinationResponse(
-                id=destination.id,  # type: ignore
+                id=destination.id,
                 name=destination.name,
                 service_type=destination.service_type.name.lower(),
                 host=destination.host,
