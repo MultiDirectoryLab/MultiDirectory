@@ -96,6 +96,7 @@ services:
     volumes:
       - dns_server_file:/opt/
       - dns_server_config:/etc/bind/
+      - dnsdist_confd:/dnsdist
     env_file: .env
     command: python multidirectory.py --migrate_dns
     depends_on:

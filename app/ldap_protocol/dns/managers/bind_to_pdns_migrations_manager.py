@@ -155,7 +155,7 @@ class BindToPDNSMigrationManager:
             return
 
         logger.info("Starting BIND to PowerDNS migration...")
-        await self.pdns_manager.setup(self.dns_settings)
+        await self.pdns_manager.setup(self.dns_settings, is_migration=True)
 
         await self.migrate_from_bind()
         logger.info("Migration successful")

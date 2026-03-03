@@ -38,6 +38,7 @@ class AbstractDNSManager:
     async def setup(
         self,
         dns_settings: DNSSettingsDTO,
+        is_migration: bool = False,
     ) -> None: ...
 
     @abstractmethod

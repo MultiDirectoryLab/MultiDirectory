@@ -23,6 +23,7 @@ class StubDNSManager(AbstractDNSManager):
     async def setup(
         self,
         dns_settings: DNSSettingsDTO,
+        is_migration: bool = False,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
