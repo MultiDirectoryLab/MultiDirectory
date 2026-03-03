@@ -15,6 +15,9 @@ from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
+    ObjectClassUseCaseDeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
@@ -28,9 +31,6 @@ revision: None | str = "759d196145ae"
 down_revision: None | str = "19d86e660cf2"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
-
-
-get_base_directories
 
 
 def upgrade(container: AsyncContainer) -> None:
@@ -83,7 +83,7 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             object_class_use_case_deprecated = await cnt.get(
-                ObjectClassUseCase,
+                ObjectClassUseCaseDeprecated,
             )
             object_class_use_case = await cnt.get(ObjectClassUseCase)
 
@@ -92,13 +92,18 @@ def upgrade(container: AsyncContainer) -> None:
 
         ocs = await object_class_use_case_deprecated.get_all()
         for _oc in ocs:
-            await object_class_use_case.create_ldap(_oc)  # type: ignore
+            _oc.attribute_types_may = [x.name for x in _oc.attribute_types_may]  # type: ignore
+            _oc.attribute_types_must = [
+                x.name  # type: ignore
+                for x in _oc.attribute_types_must
+            ]
+            await object_class_use_case.create(_oc)  # type: ignore
 
         await session.commit()
 
     op.run_async(_update_entity_types)
     op.run_async(_create_ldap_attributes)
-    # op.run_async(_create_ldap_object_classes)   # noqa: ERA001
+    op.run_async(_create_ldap_object_classes)
 
 
 def downgrade(container: AsyncContainer) -> None:

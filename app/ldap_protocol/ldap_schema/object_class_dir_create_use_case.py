@@ -19,7 +19,7 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 from repo.pg.tables import queryable_attr as qa
 
 
-class CreateDirectoryLikeAsObjectClassGateway:
+class CreateDirectoryLikeAsObjectClassUseCase:
     """Setup use case."""
 
     __session: AsyncSession
@@ -46,6 +46,9 @@ class CreateDirectoryLikeAsObjectClassGateway:
         self.__attribute_value_validator = attribute_value_validator
         self.__role_use_case = role_use_case
         self.__parent = None
+
+    async def flush(self) -> None:
+        await self.__session.flush()
 
     async def create_dir(
         self,
@@ -106,18 +109,20 @@ class CreateDirectoryLikeAsObjectClassGateway:
             instance=dir_,
             attribute_names=["attributes"],
         )
-        await self.__entity_type_use_case.attach_entity_type_to_directory(
-            directory=dir_,
-            is_system_entity_type=True,
-        )
-        if not self.__attribute_value_validator.is_directory_valid(dir_):
-            raise ValueError("Invalid directory attribute values")
-        await self.__session.flush()
+        # TODO каво блять.
+        # await self.__entity_type_use_case.attach_entity_type_to_directory(
+        #     directory=dir_,
+        #     is_system_entity_type=True,
+        # )
+        # if not self.__attribute_value_validator.is_directory_valid(dir_):
+        #     raise ValueError("Invalid directory attribute values")
+        # await self.__session.flush()
 
         await self.__role_use_case.inherit_parent_aces(
             parent_directory=self.__parent,
             directory=dir_,
         )
+        print(f"SOSAL ObjClass {data['name']}")
 
     async def _get_group(self, name: str) -> Group:
         """Get group by name.

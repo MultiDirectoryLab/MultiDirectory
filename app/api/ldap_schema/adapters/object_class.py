@@ -16,9 +16,10 @@ from api.ldap_schema.schema import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
+from entities import Directory
 from enums import KindType
 from ldap_protocol.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
-from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
+from ldap_protocol.ldap_schema.dto import ObjectClassDTO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 
 
@@ -57,20 +58,28 @@ _convert_schema_to_dto = get_converter(
     ],
 )
 
-_convert_dto_to_schema = get_converter(
-    ObjectClassDTO[int, AttributeTypeDTO],
-    ObjectClassSchema[int],
-    recipe=[
-        link_function(
-            lambda dto: [attr.name for attr in dto.attribute_types_must],
-            P[ObjectClassSchema].attribute_type_names_must,
+
+def _converter_new(dir_: Directory) -> ObjectClassSchema[int]:
+    return ObjectClassSchema(
+        oid=dir_.attributes_dict.get("oid")[0],  # type: ignore
+        name=dir_.name,
+        superior_name=dir_.attributes_dict.get("superior_name")[0],  # type: ignore
+        kind=dir_.attributes_dict.get("kind")[0],  # type: ignore
+        is_system=dir_.is_system,
+        attribute_types_must=dir_.attributes_dict.get(
+            "attribute_types_must",
+            [],
         ),
-        link_function(
-            lambda dto: [attr.name for attr in dto.attribute_types_may],
-            P[ObjectClassSchema].attribute_type_names_may,
+        attribute_types_may=dir_.attributes_dict.get(
+            "attribute_types_may",
+            [],
         ),
-    ],
-)
+        id=dir_.id,
+        entity_type_names=set(),  # TODO fix me
+    )
+
+
+_convert_dto_to_schema = _converter_new
 
 
 class ObjectClassFastAPIAdapter(

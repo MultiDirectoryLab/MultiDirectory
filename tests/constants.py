@@ -12,15 +12,16 @@ from constants import (
     GROUPS_CONTAINER_NAME,
     USERS_CONTAINER_NAME,
 )
-from enums import SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.objects import UserAccountControlFlag
 
 TEST_DATA = [
     {
         "name": GROUPS_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
         "attributes": {
-            "objectClass": ["top"],
+            "objectClass": ["top", "container"],
             "sAMAccountName": ["groups"],
         },
         "children": [

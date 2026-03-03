@@ -5,20 +5,13 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from sqlalchemy import delete, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Directory, EntityType
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.attribute_type_dir_gateway import (
-    CreateDirectoryLikeAsAttributeTypeGateway,
-)
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.ldap_schema.exceptions import (
-    AttributeTypeAlreadyExistsError,
-    AttributeTypeNotFoundError,
-)
+from ldap_protocol.ldap_schema.exceptions import AttributeTypeNotFoundError
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 
@@ -46,16 +39,13 @@ class AttributeTypeDAO:
     """Attribute Type DAO."""
 
     __session: AsyncSession
-    __create_attribute_dir_gateway: CreateDirectoryLikeAsAttributeTypeGateway
 
     def __init__(
         self,
         session: AsyncSession,
-        create_attribute_dir_gateway: CreateDirectoryLikeAsAttributeTypeGateway,
     ) -> None:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
-        self.__create_attribute_dir_gateway = create_attribute_dir_gateway
 
     async def get_dir(self, name: str) -> Directory | None:
         res = await self.__session.scalars(
@@ -80,8 +70,7 @@ class AttributeTypeDAO:
             .filter(
                 qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                 qa(Directory.name).in_(names),
-            )
-            .options(selectinload(qa(Directory.attributes))),
+            ),
         )
         return list(res.all())
 
@@ -108,38 +97,6 @@ class AttributeTypeDAO:
             == "True",
         )
         return dto
-
-    async def create(self, dto: AttributeTypeDTO[None]) -> None:
-        """Create Attribute Type."""
-        try:
-            await self.__create_attribute_dir_gateway.create_dir(
-                data={
-                    "name": dto.name,
-                    "object_class": "",
-                    "attributes": {
-                        "objectClass": ["top", "attributeSchema"],
-                        "oid": [str(dto.oid)],
-                        "name": [str(dto.name)],
-                        "syntax": [str(dto.syntax)],
-                        "single_value": [str(dto.single_value)],
-                        "no_user_modification": [
-                            str(dto.no_user_modification),
-                        ],
-                        "is_system": [str(dto.is_system)],  # TODO asd223edfsda
-                        "system_flags": [str(dto.system_flags)],
-                        "is_included_anr": [str(dto.is_included_anr)],
-                    },
-                    "children": [],
-                },
-                is_system=dto.is_system,  # TODO asd223edfsda связать два поля
-            )
-            await self.__session.flush()
-
-        except IntegrityError:
-            raise AttributeTypeAlreadyExistsError(
-                f"Attribute Type with oid '{dto.oid}' and name"
-                + f" '{dto.name}' already exists.",
-            )
 
     # TODO сделай обновление пачки update bulk 100 times. а зачем? я забыл
 

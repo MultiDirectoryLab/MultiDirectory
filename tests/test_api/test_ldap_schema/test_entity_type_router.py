@@ -32,17 +32,20 @@ async def test_create_one_entity_type(
             "/schema/object_class",
             json=object_class_data,
         )
+        print(response.json())
         assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
         "/schema/entity_type",
         json=dataset["entity_type"],
     )
+    print(response.json())
     assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.get(
         f"/schema/entity_type/{dataset['entity_type']['name']}",
     )
+    print(response.json())
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
 

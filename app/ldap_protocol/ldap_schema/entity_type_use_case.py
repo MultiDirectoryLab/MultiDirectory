@@ -158,12 +158,14 @@ class EntityTypeUseCase(AbstractService):
         if object_class_names is None:
             object_class_names = directory.object_class_names_set
 
-        await self.__object_class_dao.is_all_object_classes_exists(
+        await self._object_class_dao.is_all_object_classes_exists(
             object_class_names,
         )
 
-        entity_type = await self.get_entity_type_by_object_class_names(
-            object_class_names,
+        entity_type = (
+            await self._entity_type_dao.get_entity_type_by_object_class_names(
+                object_class_names,
+            )
         )
         if not entity_type:
             entity_type_name = EntityType.generate_entity_type_name(
@@ -178,7 +180,7 @@ class EntityTypeUseCase(AbstractService):
                     ),
                 )
 
-            entity_type = await self.get_entity_type_by_object_class_names(
+            entity_type = await self._entity_type_dao.get_entity_type_by_object_class_names(
                 object_class_names,
             )
 

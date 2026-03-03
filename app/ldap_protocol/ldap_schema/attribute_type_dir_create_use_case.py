@@ -19,7 +19,7 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 from repo.pg.tables import queryable_attr as qa
 
 
-class CreateDirectoryLikeAsAttributeTypeGateway:
+class CreateDirectoryLikeAsAttributeTypeUseCase:
     """Setup use case."""
 
     __session: AsyncSession
@@ -46,6 +46,9 @@ class CreateDirectoryLikeAsAttributeTypeGateway:
         self.__attribute_value_validator = attribute_value_validator
         self.__role_use_case = role_use_case
         self.__parent = None
+
+    async def flush(self) -> None:
+        await self.__session.flush()
 
     async def create_dir(
         self,

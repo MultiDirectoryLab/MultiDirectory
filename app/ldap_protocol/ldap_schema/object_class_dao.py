@@ -14,15 +14,11 @@ from adaptix.conversion import (
 )
 from entities_appendix import AttributeType, ObjectClass
 from sqlalchemy import delete, func, or_, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Directory, EntityType
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.object_class_dir_gateway import (
-    CreateDirectoryLikeAsObjectClassGateway,
-)
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
@@ -31,11 +27,7 @@ from ldap_protocol.utils.pagination import (
 from repo.pg.tables import queryable_attr as qa
 
 from .dto import AttributeTypeDTO, ObjectClassDTO
-from .exceptions import (
-    ObjectClassAlreadyExistsError,
-    ObjectClassCantModifyError,
-    ObjectClassNotFoundError,
-)
+from .exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
 
 _converter = get_converter(
     ObjectClass,
@@ -49,27 +41,49 @@ _converter = get_converter(
 )
 
 
+def _converter_new(dir_: Directory) -> ObjectClassDTO[int, str]:
+    return ObjectClassDTO(
+        oid=dir_.attributes_dict.get("oid")[0],  # type: ignore
+        name=dir_.name,
+        superior_name=dir_.attributes_dict.get("superior_name")[0],  # type: ignore
+        kind=dir_.attributes_dict.get("kind")[0],  # type: ignore
+        is_system=dir_.is_system,
+        attribute_types_must=dir_.attributes_dict.get(
+            "attribute_types_must",
+            [],
+        ),
+        attribute_types_may=dir_.attributes_dict.get(
+            "attribute_types_may",
+            [],
+        ),
+        id=dir_.id,
+        entity_type_names=set(),  # TODO fix me
+    )
+
+
 class ObjectClassDAO:
     """Object Class DAO."""
 
     __session: AsyncSession
-    __create_objclass_dir_gateway: CreateDirectoryLikeAsObjectClassGateway
 
     def __init__(
         self,
         session: AsyncSession,
-        create_objclass_dir_gateway: CreateDirectoryLikeAsObjectClassGateway,
     ) -> None:
         """Initialize Object Class DAO with session."""
         self.__session = session
-        self.__create_objclass_dir_gateway = create_objclass_dir_gateway
 
-    async def get_all(self) -> list[ObjectClassDTO[int, AttributeTypeDTO]]:
+    async def get_all(self) -> list[ObjectClassDTO[int, str]]:
         """Get all Object Classes."""
         return [
-            _converter(object_class)
+            _converter_new(object_class)
             for object_class in await self.__session.scalars(
-                select(ObjectClass),
+                select(Directory)
+                .join(qa(Directory.entity_type))
+                .filter(
+                    qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+                )
+                .options(selectinload(qa(Directory.attributes))),
             )
         ]
 
@@ -91,7 +105,7 @@ class ObjectClassDAO:
 
     async def delete(self, name: str) -> None:
         """Delete Object Class."""
-        object_class = await self._get_one_raw_by_name(name)
+        object_class = await self.get_dir(name)
         await self.__session.delete(object_class)
         await self.__session.flush()
 
@@ -122,76 +136,6 @@ class ObjectClassDAO:
             session=self.__session,
         )
 
-    async def get_dir(self, name: str) -> Directory | None:
-        res = await self.__session.scalars(
-            select(Directory)
-            .join(qa(Directory.entity_type))
-            .filter(
-                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                qa(Directory.name) == name,
-            )
-            .options(selectinload(qa(Directory.attributes))),
-        )
-        dir_ = res.first()
-        return dir_
-
-    async def create(
-        self,
-        dto: ObjectClassDTO[None, str],
-    ) -> None:
-        """Create a new Object Class.
-
-        :param str oid: OID.
-        :param str name: Name.
-        :param str | None superior_name: Parent Object Class.
-        :param KindType kind: Kind.
-        :param bool is_system: Object Class is system.
-        :param list[str] attribute_type_names_must: Attribute Types must.
-        :param list[str] attribute_type_names_may: Attribute Types may.
-        :raise ObjectClassNotFoundError: If superior Object Class not found.
-        :return None.
-        """
-        try:
-            superior = None
-            if dto.superior_name:
-                superior = self.get_dir(dto.superior_name)
-
-                if not superior:
-                    raise ObjectClassNotFoundError(
-                        f"Superior (parent) Object class {dto.superior_name} "
-                        "not found in schema.",
-                    )
-
-            await self.__create_objclass_dir_gateway.create_dir(
-                data={
-                    "name": dto.name,
-                    "object_class": "",
-                    "attributes": {
-                        "objectClass": ["top", "classSchema"],
-                        "oid": [str(dto.oid)],
-                        "name": [str(dto.name)],
-                        "superior_name": [str(dto.superior_name)],
-                        "kind": [str(dto.kind)],
-                        "is_system": [str(dto.is_system)],  # TODO asd223edfsda
-                        "attribute_types_must": dto.attribute_types_must,
-                        "attribute_types_may": dto.attribute_types_may,
-                    },
-                    "children": [],
-                },
-                is_system=dto.is_system,  # TODO asd223edfsda связать два поля
-            )
-            await self.__session.flush()
-        except IntegrityError:
-            raise ObjectClassAlreadyExistsError(
-                f"Object Class with oid '{dto.oid}' and name"
-                + f" '{dto.name}' already exists.",
-            )
-
-    async def create_ldap(
-        self,
-        dto: ObjectClassDTO[None, str],
-    ) -> None: ...  # TODO
-
     async def _count_exists_object_class_by_names(
         self,
         names: Iterable[str],
@@ -201,13 +145,29 @@ class ObjectClassDAO:
         :param list[str] names: Object Class names.
         :return int.
         """
-        count_query = (
-            select(func.count())
-            .select_from(ObjectClass)
-            .where(func.lower(ObjectClass.name).in_(names))
+        # count_query = (
+        #     select(func.count())
+        #     .select_from(Directory)
+        #     .join(qa(Directory.entity_type))
+        #     .filter(
+        #         qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+        #         func.lower(qa(Directory.name)).in_(names),
+        #     )
+        # )
+        # result = await self.__session.scalars(count_query)
+
+        q = await self.__session.scalars(
+            select(Directory)
+            .join(qa(Directory.entity_type))
+            .filter(
+                qa(Directory.name).in_(names),
+                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+            )
+            .options(selectinload(qa(Directory.attributes))),
         )
-        result = await self.__session.scalars(count_query)
-        return result.one()
+        rs = q.all()
+        print(f"SOSI: {rs}")
+        return len(rs)
 
     async def is_all_object_classes_exists(
         self,
@@ -228,43 +188,31 @@ class ObjectClassDAO:
         if count_ != len(names):
             raise ObjectClassNotFoundError(
                 f"Not all Object Classes\
-                    with names {names} found.",
+                    with names {names} ( != {count_} ) found.",
             )
 
         return True
 
-    async def _get_one_raw_by_name(self, name: str) -> ObjectClass:
-        """Get single Object Class by name.
-
-        :param str name: Object Class name.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return ObjectClass: Instance of Object Class.
-        """
-        object_class = await self.__session.scalar(
-            select(ObjectClass)
-            .filter_by(name=name)
-            .options(selectinload(qa(ObjectClass.attribute_types_may)))
-            .options(selectinload(qa(ObjectClass.attribute_types_must))),
-        )  # fmt: skip
-
-        if not object_class:
+    async def get(self, name: str) -> ObjectClassDTO:
+        dir_ = await self.get_dir(name)
+        if not dir_:
             raise ObjectClassNotFoundError(
                 f"Object Class with name '{name}' not found.",
             )
-        return object_class
+        return _converter_new(dir_)
 
-    async def get_raw_by_name(self, name: str) -> ObjectClass:
-        """Get Object Class by name without related data."""
-        return await self._get_one_raw_by_name(name)
-
-    async def get(self, name: str) -> ObjectClassDTO:
-        """Get single Object Class by name.
-
-        :param str name: Object Class name.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return ObjectClass: Instance of Object Class.
-        """
-        return _converter(await self._get_one_raw_by_name(name))
+    async def get_dir(self, name: str) -> Directory | None:
+        res = await self.__session.scalars(
+            select(Directory)
+            .join(qa(Directory.entity_type))
+            .filter(
+                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+                qa(Directory.name) == name,
+            )
+            .options(selectinload(qa(Directory.attributes))),
+        )
+        dir_ = res.first()
+        return dir_
 
     async def get_all_by_names(
         self,
@@ -287,7 +235,7 @@ class ObjectClassDAO:
 
     async def update(self, name: str, dto: ObjectClassDTO[None, str]) -> None:
         """Update Object Class."""
-        obj = await self._get_one_raw_by_name(name)
+        obj = await self.get(name)
         if obj.is_system:
             raise ObjectClassCantModifyError(
                 "System Object Class cannot be modified.",

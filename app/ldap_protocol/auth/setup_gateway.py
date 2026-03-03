@@ -12,6 +12,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory, Group, NetworkPolicy, User
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -96,9 +97,20 @@ class SetupGateway:
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
+
+            # TODO FIXME утаскивай это наружу, после всего ферст сетапа, иначе
+            # коллизия: для создания директории1 нужна директория2,
+            # но для дир2 нужна дир1
+
+            entity_type = (
+                await self._entity_type_use_case._get_one_raw_by_name(
+                    EntityTypeNames.DOMAIN,
+                )
+            )
             await self._entity_type_use_case.attach_entity_type_to_directory(
                 directory=domain,
                 is_system_entity_type=True,
+                entity_type=entity_type,
             )
             if not self._attribute_value_validator.is_directory_valid(domain):
                 raise ValueError(
@@ -216,12 +228,22 @@ class SetupGateway:
             attribute_names=["attributes", "user"],
             with_for_update=None,
         )
+
+        # TODO FIXME утаскивай это наружу, после всего ферст сетапа, иначе
+        # коллизия: для создания директории1 нужна директория2,
+        # но для дир2 нужна дир1
+
+        entity_type = await self._entity_type_use_case._get_one_raw_by_name(
+            data["entity_type_name"],
+        )
         await self._entity_type_use_case.attach_entity_type_to_directory(
             directory=dir_,
             is_system_entity_type=True,
+            entity_type=entity_type,
         )
         if not self._attribute_value_validator.is_directory_valid(dir_):
             raise ValueError("Invalid directory attribute values")
+
         await self._session.flush()
 
         if "children" in data:

@@ -450,6 +450,7 @@ async def test_admin_update_password_another_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
+@pytest.mark.usefixtures("setup_session")
 async def test_auth_disabled_user(
     http_client: AsyncClient,
     kadmin: AbstractKadmin,

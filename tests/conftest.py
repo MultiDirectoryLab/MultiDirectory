@@ -101,6 +101,9 @@ from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_a
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
+from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (
+    EntityTypeDAODeprecated,
+)
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
@@ -108,8 +111,8 @@ from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appen
     ObjectClassUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.attribute_type_dir_gateway import (
-    CreateDirectoryLikeAsAttributeTypeGateway,
+from ldap_protocol.ldap_schema.attribute_type_dir_create_use_case import (
+    CreateDirectoryLikeAsAttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
@@ -124,8 +127,8 @@ from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.object_class_dir_gateway import (
-    CreateDirectoryLikeAsObjectClassGateway,
+from ldap_protocol.ldap_schema.object_class_dir_create_use_case import (
+    CreateDirectoryLikeAsObjectClassUseCase,
 )
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.master_check_use_case import (
@@ -307,8 +310,12 @@ class TestProvider(Provider):
         """Get DNS manager's settings."""
         yield await dns_state_gateway.get_dns_manager_settings(settings)
 
+    create_objclass_dir_use_case = provide(
+        CreateDirectoryLikeAsObjectClassUseCase,
+        scope=Scope.REQUEST,
+    )
     create_attribute_dir_gateway = provide(
-        CreateDirectoryLikeAsAttributeTypeGateway,
+        CreateDirectoryLikeAsAttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
@@ -333,6 +340,10 @@ class TestProvider(Provider):
     )
     attribute_type_use_case_deprecated = provide(
         AttributeTypeUseCaseDeprecated,
+        scope=Scope.REQUEST,
+    )
+    entity_type_dao_deprecated = provide(
+        EntityTypeDAODeprecated,
         scope=Scope.REQUEST,
     )
 
@@ -983,47 +994,48 @@ async def setup_session(
     attribute_value_validator = AttributeValueValidator()
 
     # TODO delete that
+    object_class_dao_deprecated = ObjectClassDAODeprecated(session=session)
     # NOTE: after setup environment we need base DN to be created
     attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
         attribute_type_dao_deprecated=AttributeTypeDAODeprecated(session),
         attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
-        object_class_dao_deprecated=ObjectClassDAODeprecated(session=session),
+        object_class_dao_deprecated=object_class_dao_deprecated,
     )
 
     entity_type_dao = EntityTypeDAO(
         session,
         attribute_value_validator=attribute_value_validator,
     )
-    # object_class_dao =
+    object_class_dao = ObjectClassDAO(session)
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,
     )
-    create_attribute_dir_gateway = CreateDirectoryLikeAsAttributeTypeGateway(
+    object_class_use_case = ObjectClassUseCase(
+        attribute_type_dao=AttributeTypeDAO(session),
+        object_class_dao=object_class_dao,
+        entity_type_dao=entity_type_dao,
+        create_objclass_dir_use_case=CreateDirectoryLikeAsObjectClassUseCase(
+            session=session,
+            entity_type_use_case=entity_type_use_case,
+            attribute_value_validator=attribute_value_validator,
+            role_use_case=role_use_case,
+        ),
+    )
+    create_attribute_dir_use_case = CreateDirectoryLikeAsAttributeTypeUseCase(
         session=session,
         entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
         role_use_case=role_use_case,
     )
-    attribute_type_dao = AttributeTypeDAO(
-        session,
-        create_attribute_dir_gateway=create_attribute_dir_gateway,
-    )
-    create_objclass_dir_gateway = CreateDirectoryLikeAsObjectClassGateway(
-        session=session,
-        entity_type_use_case=entity_type_use_case,
-        attribute_value_validator=attribute_value_validator,
-        role_use_case=role_use_case,
-    )
-    object_class_dao = ObjectClassDAO(
-        session,
-        create_objclass_dir_gateway=create_objclass_dir_gateway,
-    )
+
+    attribute_type_dao = AttributeTypeDAO(session)
 
     attribute_type_use_case = AttributeTypeUseCase(
         attribute_type_dao=attribute_type_dao,
         attribute_type_system_flags_use_case=AttributeTypeSystemFlagsUseCase(),
         object_class_dao=object_class_dao,
+        create_attribute_dir_use_case=create_attribute_dir_use_case,
     )
 
     for entity_type_data in ENTITY_TYPE_DATAS:
@@ -1059,10 +1071,14 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
+    entity_type_use_case = EntityTypeUseCase(
+        entity_type_dao=entity_type_dao,
+        object_class_dao=object_class_dao,
+    )
     setup_gateway = SetupGateway(
         session,
         password_utils,
-        entity_type_dao,
+        entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
     )
     await audit_use_case.create_policies()
@@ -1071,6 +1087,18 @@ async def setup_session(
         data=TEST_DATA,
         is_system=False,
     )
+
+    for _obj_class_name in ("top", "domain", "domaindns"):
+        _oc_dto = await object_class_dao_deprecated.get(_obj_class_name)
+        _oc_dto.attribute_types_may = [
+            x.name  # type: ignore
+            for x in _oc_dto.attribute_types_may
+        ]
+        _oc_dto.attribute_types_must = [
+            x.name  # type: ignore
+            for x in _oc_dto.attribute_types_must
+        ]
+        await object_class_use_case.create(_oc_dto)  # type: ignore
 
     for _at_dto in (
         AttributeTypeDTO[None](
@@ -1290,8 +1318,7 @@ async def attribute_type_dao(
     """Get session and acquire after completion."""
     async with container(scope=Scope.REQUEST) as container:
         session = await container.get(AsyncSession)
-        gw = await container.get(CreateDirectoryLikeAsAttributeTypeGateway)
-        yield AttributeTypeDAO(session, create_attribute_dir_gateway=gw)
+        yield AttributeTypeDAO(session)
 
 
 @pytest_asyncio.fixture(scope="function")

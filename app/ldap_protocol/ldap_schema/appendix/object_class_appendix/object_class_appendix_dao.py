@@ -256,7 +256,7 @@ class ObjectClassDAODeprecated:
         """Get Object Class by name without related data."""
         return await self._get_one_raw_by_name(name)
 
-    async def get(self, name: str) -> ObjectClassDTO:
+    async def get(self, name: str) -> ObjectClassDTO[int, AttributeTypeDTO]:
         """Get single Object Class by name.
 
         :param str name: Object Class name.
