@@ -157,17 +157,22 @@ class PowerDNSManager(AbstractDNSManager):
             raise DNSRecordDeleteError(f"Failed to delete DNS record: {e}")
 
     @logger_wraps()
-    async def create_master_zone(self, zone: DNSMasterZoneDTO) -> None:
+    async def create_master_zone(
+        self,
+        zone: DNSMasterZoneDTO,
+        is_empty: bool = False,
+    ) -> None:
         """Create a master DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
 
-        zone.nameservers.append(f"ns1.{zone.name}")
+        if not is_empty:
+            zone.nameservers.append(f"ns1.{zone.name}")
 
-        records = await create_initial_zone_records(
-            zone.name,
-            self._dns_settings.default_nameserver,
-        )
-        zone.rrsets.extend(records)
+            records = await create_initial_zone_records(
+                zone.name,
+                self._dns_settings.default_nameserver,
+            )
+            zone.rrsets.extend(records)
 
         try:
             await self._power_dns_auth_client.create_master_zone(zone)

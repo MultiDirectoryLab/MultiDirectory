@@ -78,8 +78,20 @@ class BindToPDNSMigrationManager:
                 self.bind_zone_file_dir,
                 f"{zone.name}.zone",
             )
-            zone_obj = dns.zone.from_file(zone_file_path, origin=zone.name)
+            zone_obj = dns.zone.from_file(
+                zone_file_path,
+                origin=zone.name,
+                relativize=False,
+            )
             for name, ttl, rdata in zone_obj.iterate_rdatas():
+                try:
+                    DNSRecordType(rdata.rdtype.name)
+                except ValueError:
+                    logger.warning(
+                        f"Unsupported DNS record type {rdata.rdtype.name} in zone '{zone.name}'",  # noqa: E501
+                    )
+                    continue
+
                 zone_rrsets.append(
                     DNSRRSetDTO(
                         name=name.to_text(),
@@ -144,7 +156,7 @@ class BindToPDNSMigrationManager:
 
         logger.info("Starting BIND to PowerDNS migration...")
         await self.pdns_manager.setup(self.dns_settings)
-        logger.info(f"{self.dns_settings}")
 
         await self.migrate_from_bind()
+        logger.info("Migration successful")
         return

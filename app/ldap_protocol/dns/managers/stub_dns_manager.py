@@ -65,6 +65,7 @@ class StubDNSManager(AbstractDNSManager):
     async def create_master_zone(
         self,
         zone: DNSMasterZoneDTO,
+        is_empty: bool = False,
     ) -> None: ...
 
     @logger_wraps(is_stub=True)

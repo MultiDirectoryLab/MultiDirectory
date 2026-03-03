@@ -94,10 +94,9 @@ services:
       md_net:
     restart: "no"
     volumes:
-      - ./app:/app
       - dns_server_file:/opt/
       - dns_server_config:/etc/bind/
-    env_file: local.env
+    env_file: .env
     command: python multidirectory.py --migrate_dns
     depends_on:
       migrations:

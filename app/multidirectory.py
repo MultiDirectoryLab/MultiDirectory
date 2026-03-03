@@ -294,13 +294,12 @@ async def migrate_dns_factory(settings: Settings) -> None:
     """Run DNS migration."""
     main_container = make_async_container(
         MainProvider(),
-        EventSenderProvider(),
         context={Settings: settings},
     )
 
     async with main_container(scope=Scope.REQUEST) as container:
         manager = await container.get(BindToPDNSMigrationManager)
-        await asyncio.gather(manager.migrate())
+        await manager.migrate()
 
 
 ldap = partial(run_entrypoint, factory=ldap_factory)

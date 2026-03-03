@@ -338,14 +338,14 @@ class MainProvider(Provider):
             yield StubDNSManager(settings=dns_settings)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dns_mgrt_mngr(
+    async def get_dns_migration_manager(
         self,
         dns_settings: DNSSettingsDTO,
         power_dns_auth_client: PowerDNSAuthHTTPClient,
         power_dns_recursor_client: PowerDNSRecursorHTTPClient,
         power_dns_dist_client: PowerDNSDistClient,
     ) -> AsyncIterator[BindToPDNSMigrationManager]:
-        """Get migration manager class."""
+        """Get DNS migration manager class."""
         yield BindToPDNSMigrationManager(
             PowerDNSManager(
                 settings=dns_settings,
