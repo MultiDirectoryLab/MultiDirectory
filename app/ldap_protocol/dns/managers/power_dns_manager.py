@@ -225,7 +225,16 @@ class PowerDNSManager(AbstractDNSManager):
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Retrieve all forward DNS zones."""
         try:
-            return await self._power_dns_recursor_client.get_forward_zones()
+            forward_zones = (
+                await self._power_dns_recursor_client.get_forward_zones()
+            )
+            return [
+                zone
+                for zone in forward_zones
+                if "in-addr.arpa" not in zone.name
+                and "ip6.arpa" not in zone.name
+                and zone.name != "."
+            ]
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
