@@ -50,8 +50,8 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.dns.managers.bind_to_pdns_migrations_manager import (
-    BindToPDNSMigrationManager,
+from ldap_protocol.dns.bind_to_pdns_migration_use_case import (
+    BindToPDNSMigrationUseCase,
 )
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
@@ -298,8 +298,8 @@ async def migrate_dns_factory(settings: Settings) -> None:
     )
 
     async with main_container(scope=Scope.REQUEST) as container:
-        manager = await container.get(BindToPDNSMigrationManager)
-        await manager.migrate()
+        usecase = await container.get(BindToPDNSMigrationUseCase)
+        await usecase.migrate()
 
 
 ldap = partial(run_entrypoint, factory=ldap_factory)

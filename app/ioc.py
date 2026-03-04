@@ -65,8 +65,8 @@ from ldap_protocol.dns import (
     RemoteDNSManager,
     StubDNSManager,
 )
-from ldap_protocol.dns.managers.bind_to_pdns_migrations_manager import (
-    BindToPDNSMigrationManager,
+from ldap_protocol.dns.bind_to_pdns_migration_use_case import (
+    BindToPDNSMigrationUseCase,
 )
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
@@ -338,15 +338,15 @@ class MainProvider(Provider):
             yield StubDNSManager(settings=dns_settings)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dns_migration_manager(
+    async def get_dns_migration_usecase(
         self,
         dns_settings: DNSSettingsDTO,
         power_dns_auth_client: PowerDNSAuthHTTPClient,
         power_dns_recursor_client: PowerDNSRecursorHTTPClient,
         power_dns_dist_client: PowerDNSDistClient,
-    ) -> AsyncIterator[BindToPDNSMigrationManager]:
+    ) -> AsyncIterator[BindToPDNSMigrationUseCase]:
         """Get DNS migration manager class."""
-        yield BindToPDNSMigrationManager(
+        yield BindToPDNSMigrationUseCase(
             PowerDNSManager(
                 settings=dns_settings,
                 power_dns_auth_client=power_dns_auth_client,
