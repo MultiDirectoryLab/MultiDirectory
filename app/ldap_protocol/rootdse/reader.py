@@ -60,7 +60,8 @@ class RootDSEReader:
             "supportedControl": [
                 "2.16.840.1.113730.3.4.4",  # password expire policy
             ],
-            "domainFunctionality": ["0"],
+            "domainFunctionality": ["7"],
+            "forestFunctionality": ["7"],
             "supportedLDAPPolicies": [
                 "MaxConnIdleTime",
                 "MaxPageSize",
