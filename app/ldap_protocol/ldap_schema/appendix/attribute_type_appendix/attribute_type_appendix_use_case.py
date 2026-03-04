@@ -10,10 +10,10 @@ from entities_appendix import AttributeType
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (
+from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (  # noqa: E501
     AttributeTypeDAODeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (  # noqa: E501
     ObjectClassDAODeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
@@ -41,7 +41,7 @@ class AttributeTypeUseCaseDeprecated(AbstractService):
     async def get_deprecated(self, name: str) -> AttributeTypeDTO:
         """Get Attribute Type by name."""
         dto = await self._attribute_type_dao_depr.get_deprecated(name)
-        dto.object_class_names = await self._object_class_dao_depr.get_object_class_names_include_attribute_type(  # noqa: E501
+        dto.object_class_names = await self._attribute_type_dao_depr.get_object_class_names_include_attribute_type(  # noqa: E501
             dto.name,
         )
         return dto
@@ -56,14 +56,6 @@ class AttributeTypeUseCaseDeprecated(AbstractService):
 
     async def delete_table_deprecated(self) -> None:
         await self._attribute_type_dao_depr.delete_table_deprecated()
-
-    async def update_deprecated(
-        self,
-        name: str,
-        dto: AttributeTypeDTO,
-    ) -> None:
-        """Update Attribute Type."""
-        await self._attribute_type_dao_depr.update_deprecated(name, dto)
 
     async def update_and_get_migration_f24ed_deprecated(
         self,
@@ -109,7 +101,7 @@ class AttributeTypeUseCaseDeprecated(AbstractService):
         names: list[str] | set[str],
     ) -> Sequence[AttributeType]:
         """Get list of Attribute Types by names."""
-        return await self._attribute_type_dao_depr.get_all_raw_by_names_deprecated(
+        return await self._attribute_type_dao_depr.get_all_raw_by_names_deprecated(  # noqa: E501
             names,
         )
 
@@ -129,15 +121,4 @@ class AttributeTypeUseCaseDeprecated(AbstractService):
             dto,
         )
 
-    async def get_all_by_names_deprecated(
-        self,
-        names: list[str] | set[str],
-    ) -> list[AttributeTypeDTO]:
-        """Get list of Attribute Types by names."""
-        return await self._attribute_type_dao_depr.get_all_by_names_deprecated(
-            names,
-        )
-
-    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
-        set_attr_replication_flag_deprecated.__name__: AuthorizationRules.ATTRIBUTE_TYPE_SET_ATTR_REPLICATION_FLAG,  # noqa: E501
-    }
+    PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {}

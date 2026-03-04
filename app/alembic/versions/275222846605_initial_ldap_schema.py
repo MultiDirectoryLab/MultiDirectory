@@ -24,9 +24,6 @@ from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_a
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (
-    EntityTypeDAODeprecated,
-)
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
@@ -367,11 +364,10 @@ def upgrade(container: AsyncContainer) -> None:
 
             object_class_dto = (
                 await RDParser.collect_object_class_dto_from_raw(
-                    session=session,
                     object_class_info=object_class_info,
                 )
             )
-            await oc_use_case.create_deprecated(object_class_dto)
+            await oc_use_case.create(object_class_dto)
 
         oc_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
             "objectClasses"
@@ -391,11 +387,10 @@ def upgrade(container: AsyncContainer) -> None:
 
             object_class_dto = (
                 await RDParser.collect_object_class_dto_from_raw(
-                    session=session,
                     object_class_info=object_class_info,
                 )
             )
-            await oc_use_case.create_deprecated(object_class_dto)
+            await oc_use_case.create(object_class_dto)
 
         await session.commit()
 
@@ -405,7 +400,7 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             object_class_dao_depr = ObjectClassDAODeprecated(session=session)
-            attribute_value_validator = AttributeValueValidator()
+            AttributeValueValidator()
             attribute_type_system_flags_use_case = (
                 AttributeTypeSystemFlagsUseCase()
             )
@@ -415,15 +410,10 @@ def upgrade(container: AsyncContainer) -> None:
                 ),
                 attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
                 object_class_dao_deprecated=object_class_dao_depr,
-            )  # TODO либо merge либо инициализация DAO/use case прям тут
+            )
             object_class_use_case = ObjectClassUseCaseDeprecated(
                 object_class_dao=object_class_dao_depr,
-                entity_type_dao=EntityTypeDAODeprecated(
-                    session=session,
-                    object_class_dao=object_class_dao_depr,
-                    attribute_value_validator=attribute_value_validator,
-                ),
-            )  # TODO либо merge либо инициализация DAO/use case прям тут
+            )
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
@@ -436,14 +426,11 @@ def upgrade(container: AsyncContainer) -> None:
             if not object_class:
                 continue
 
-            # object_class = await session.merge(object_class)  # TODO либо merge либо инициализация DAO/use case прям тут
-
             attribute_types = (
                 await attribute_type_use_case.get_all_raw_by_names_deprecated(
                     at_names,
                 )
             )
-            # attribute_types = [await session.merge(at) for at in attribute_types]  # TODO либо merge либо инициализация DAO/use case прям тут
 
             object_class.attribute_types_may.extend(attribute_types)
 

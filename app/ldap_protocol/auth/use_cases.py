@@ -190,6 +190,7 @@ class SetupUseCase:
             )
             for attr in attrs:
                 await self._attribute_type_use_case.create(attr)
+            # TODO а обжект классы тут надо добавлять?
 
             # TODO раскомментируй это после того как поправишь роли и вообще ВСЁ сделаешь
             # await self._attribute_type_use_case_depr.delete_table_deprecated()

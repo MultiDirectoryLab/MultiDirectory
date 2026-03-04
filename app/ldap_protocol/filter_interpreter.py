@@ -108,24 +108,17 @@ class FilterInterpreterProtocol(Protocol):
 
         if is_first_char_equal:
             vl = normalized.replace("=", "")
-            # attributes_expr.append(
-            #     and_(
-            #         qa(Attribute.name).in_(
-            #             select(qa(AttributeType.name))
-            #             .where(qa(AttributeType.is_included_anr).is_(True)),
-            #         ),
-            #         func.lower(Attribute.value) == vl,
-            #     ),
-            # )  # fmt: skip
 
             attributes_expr.append(
                 and_(
                     qa(Attribute.name).in_(
                         select(qa(Directory.name))
+                        .join(qa(Directory.entity_type))
                         .join(qa(Directory.attributes))
                         .where(
                             qa(Attribute.name) == "is_included_anr",
-                            qa(Attribute.value) == "True",  # TODO это верно?
+                            qa(Attribute.value) == "True",
+                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
                         ),
                     ),
                     func.lower(Attribute.value) == vl,
@@ -157,7 +150,7 @@ class FilterInterpreterProtocol(Protocol):
                         .join(qa(Directory.attributes))
                         .where(
                             qa(Attribute.name) == "is_included_anr",
-                            qa(Attribute.value) == "True",  # TODO это верно?
+                            qa(Attribute.value) == "True",
                             qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
                         ),
                     ),
@@ -227,7 +220,7 @@ class FilterInterpreterProtocol(Protocol):
                     .where(
                         qa(Directory.name) == "legacyExchangeDN",
                         qa(Attribute.name) == "is_included_anr",
-                        qa(Attribute.value) == "True",  # TODO это верно?
+                        qa(Attribute.value) == "True",
                         qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                     ),
                 ),

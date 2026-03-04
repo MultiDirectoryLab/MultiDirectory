@@ -38,7 +38,7 @@ class AttributeTypeUseCase(AbstractService):
         attribute_type_dao: AttributeTypeDAO,
         attribute_type_system_flags_use_case: AttributeTypeSystemFlagsUseCase,
         object_class_dao: ObjectClassDAO,
-        create_attribute_dir_use_case: CreateDirectoryLikeAsAttributeTypeUseCase,
+        create_attribute_dir_use_case: CreateDirectoryLikeAsAttributeTypeUseCase,  # noqa: E501
     ) -> None:
         """Init AttributeTypeUseCase."""
         self.__attribute_type_dao = attribute_type_dao

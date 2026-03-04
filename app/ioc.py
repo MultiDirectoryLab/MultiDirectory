@@ -88,9 +88,6 @@ from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_a
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (
-    EntityTypeDAODeprecated,
-)
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (
     ObjectClassDAODeprecated,
 )
@@ -542,10 +539,6 @@ class MainProvider(Provider):
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
     object_class_use_case_deprecated = provide(
         ObjectClassUseCaseDeprecated,
-        scope=Scope.REQUEST,
-    )
-    entity_type_dao_deprecated = provide(
-        EntityTypeDAODeprecated,
         scope=Scope.REQUEST,
     )
 

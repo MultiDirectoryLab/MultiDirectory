@@ -62,7 +62,7 @@ _convert_schema_to_dto = get_converter(
 def _convert_dto_to_schema(
     dir_or_dto: ObjectClassDTO | Directory,
 ) -> ObjectClassSchema[int]:
-    """Map DAO/DTO objects to API schema with explicit attribute name fields."""
+    """Map DAO/DTO objects to API schema with explicit attribute name fields."""  # noqa: E501
     if isinstance(dir_or_dto, Directory):
         return ObjectClassSchema(
             oid=dir_or_dto.attributes_dict.get("oid")[0],  # type: ignore
@@ -98,7 +98,7 @@ def _convert_dto_to_schema(
         attribute_type_names_must=attr_type_names_must,
         attribute_type_names_may=attr_type_names_may,
         id=dir_or_dto.id,
-        entity_type_names=dir_or_dto.entity_type_names or set(),
+        entity_type_names=dir_or_dto.entity_type_names,
     )
 
 

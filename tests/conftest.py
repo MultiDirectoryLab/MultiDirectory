@@ -101,9 +101,6 @@ from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_a
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.entity_type_appendix.entity_type_appendix_dao import (  # noqa: E501
-    EntityTypeDAODeprecated,
-)
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (  # noqa: E501
     ObjectClassDAODeprecated,
 )
@@ -183,7 +180,12 @@ from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
 from repo.pg.master_gateway import PGMasterGateway
-from tests.constants import TEST_DATA
+from tests.constants import (
+    TEST_DATA,
+    admin_user_data_dict,
+    user_data_dict,
+    user_with_login_perm_data_dict,
+)
 
 
 class TestProvider(Provider):
@@ -340,10 +342,6 @@ class TestProvider(Provider):
     )
     attribute_type_use_case_deprecated = provide(
         AttributeTypeUseCaseDeprecated,
-        scope=Scope.REQUEST,
-    )
-    entity_type_dao_deprecated = provide(
-        EntityTypeDAODeprecated,
         scope=Scope.REQUEST,
     )
 
@@ -1533,12 +1531,6 @@ def creds(user: dict) -> TestCreds:
 
 
 @pytest.fixture
-def user() -> dict:
-    """Get user data."""
-    return TEST_DATA[1]["children"][0]["organizationalPerson"]  # type: ignore
-
-
-@pytest.fixture
 def creds_with_login_perm(user_with_login_perm: dict) -> TestCreds:
     """Get creds from test data."""
     return TestCreds(
@@ -1557,15 +1549,21 @@ def admin_creds(admin_user: dict) -> TestAdminCreds:
 
 
 @pytest.fixture
-def user_with_login_perm() -> dict:
+def user() -> dict:
     """Get user data."""
-    return TEST_DATA[1]["children"][2]["organizationalPerson"]  # type: ignore  # TODO REAL SHIT
+    return user_data_dict
 
 
 @pytest.fixture
 def admin_user() -> dict:
     """Get admin user data."""
-    return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore  # TODO REAL SHIT
+    return admin_user_data_dict
+
+
+@pytest.fixture
+def user_with_login_perm() -> dict:
+    """Get user data."""
+    return user_with_login_perm_data_dict
 
 
 @pytest.fixture

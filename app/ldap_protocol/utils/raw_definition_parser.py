@@ -93,7 +93,6 @@ class RawDefinitionParser:
 
     @staticmethod
     async def collect_object_class_dto_from_raw(
-        session: AsyncSession,
         object_class_info: ObjectClassInfo,
     ) -> ObjectClassDTO:
         """Create Object Class by ObjectClassInfo."""

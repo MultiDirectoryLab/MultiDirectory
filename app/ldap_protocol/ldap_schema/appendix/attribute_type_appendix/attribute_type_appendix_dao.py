@@ -12,11 +12,11 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
-from sqlalchemy import delete, select, text
+from entities_appendix import AttributeType, ObjectClass
+from sqlalchemy import or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import AttributeType
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
@@ -55,24 +55,6 @@ class AttributeTypeDAODeprecated:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
 
-    async def get(self, _id: str) -> AttributeTypeDTO:
-        raise
-
-    async def get_all(self) -> list[AttributeTypeDTO]:
-        raise
-
-    async def create(self, dto: AttributeTypeDTO) -> None:  # noqa: ARG002
-        raise
-
-    async def update(self, _id: str, dto: AttributeTypeDTO) -> None:  # noqa: ARG002
-        raise
-
-    async def delete(self, _id: str) -> None:
-        raise
-
-    async def delete_table_deprecated2(self) -> None:
-        await self.__session.execute(delete(AttributeType))
-
     async def delete_table_deprecated(self) -> None:
         await self.__session.execute(
             text('DROP TABLE IF EXISTS "AttributeTypes" CASCADE'),
@@ -83,6 +65,22 @@ class AttributeTypeDAODeprecated:
         name: str,
     ) -> AttributeTypeDTO:
         return _convert_model_to_dto(await self._get_one_raw_by_name(name))
+
+    async def get_object_class_names_include_attribute_type(
+        self,
+        attribute_type_name: str,
+    ) -> set[str]:
+        """Get all Object Class names include Attribute Type name."""
+        result = await self.__session.execute(
+            select(qa(ObjectClass.name))
+            .where(
+                or_(
+                    qa(ObjectClass.attribute_types_must).any(name=attribute_type_name),
+                    qa(ObjectClass.attribute_types_may).any(name=attribute_type_name),
+                ),
+            ),
+        )  # fmt: skip
+        return set(row[0] for row in result.fetchall())
 
     async def update_deprecated(
         self,
@@ -184,9 +182,3 @@ class AttributeTypeDAODeprecated:
             .where(qa(AttributeType.name).in_(names)),
         )  # fmt: skip
         return list(map(_convert_model_to_dto, query.all()))
-
-    async def delete_deprecated(self, name: str) -> None:
-        """Delete Attribute Type."""
-        attribute_type = await self._get_one_raw_by_name(name)
-        await self.__session.delete(attribute_type)
-        await self.__session.flush()

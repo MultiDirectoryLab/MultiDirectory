@@ -15,6 +15,34 @@ from constants import (
 from enums import EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.objects import UserAccountControlFlag
 
+user_data_dict = {
+    "sam_account_name": "user0",
+    "user_principal_name": "user0",
+    "mail": "user0@mail.com",
+    "display_name": "user0",
+    "password": "password",
+    "groups": [DOMAIN_ADMIN_GROUP_NAME],
+}
+
+admin_user_data_dict = {
+    "sam_account_name": "user_admin",
+    "user_principal_name": "user_admin",
+    "mail": "user_admin@mail.com",
+    "display_name": "user_admin",
+    "password": "password",
+    "groups": [DOMAIN_ADMIN_GROUP_NAME],
+}
+
+user_with_login_perm_data_dict = {
+    "sam_account_name": "user_admin_for_roles",
+    "user_principal_name": "user_admin_for_roles",
+    "mail": "user_admin_for_roles@mail.com",
+    "display_name": "user_admin_for_roles",
+    "password": "password",
+    "groups": ["admin login only"],
+}
+
+
 TEST_DATA = [
     {
         "name": GROUPS_CONTAINER_NAME,
@@ -109,14 +137,7 @@ TEST_DATA = [
                 "name": "user0",
                 "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
-                "organizationalPerson": {
-                    "sam_account_name": "user0",
-                    "user_principal_name": "user0",
-                    "mail": "user0@mail.com",
-                    "display_name": "user0",
-                    "password": "password",
-                    "groups": [DOMAIN_ADMIN_GROUP_NAME],
-                },
+                "organizationalPerson": user_data_dict,
                 "attributes": {
                     "givenName": ["John"],
                     "surname": ["Lennon"],
@@ -140,14 +161,7 @@ TEST_DATA = [
                 "name": "user_admin",
                 "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
-                "organizationalPerson": {
-                    "sam_account_name": "user_admin",
-                    "user_principal_name": "user_admin",
-                    "mail": "user_admin@mail.com",
-                    "display_name": "user_admin",
-                    "password": "password",
-                    "groups": [DOMAIN_ADMIN_GROUP_NAME],
-                },
+                "organizationalPerson": admin_user_data_dict,
                 "attributes": {
                     "objectClass": [
                         "top",
@@ -168,14 +182,7 @@ TEST_DATA = [
                 "name": "user_admin_for_roles",
                 "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
-                "organizationalPerson": {
-                    "sam_account_name": "user_admin_for_roles",
-                    "user_principal_name": "user_admin_for_roles",
-                    "mail": "user_admin_for_roles@mail.com",
-                    "display_name": "user_admin_for_roles",
-                    "password": "password",
-                    "groups": ["admin login only"],
-                },
+                "organizationalPerson": user_with_login_perm_data_dict,
                 "attributes": {
                     "objectClass": [
                         "top",

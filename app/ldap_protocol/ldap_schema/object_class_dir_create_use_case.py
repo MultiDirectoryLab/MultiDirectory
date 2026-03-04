@@ -4,8 +4,6 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from itertools import chain
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -88,12 +86,7 @@ class CreateDirectoryLikeAsObjectClassUseCase:
         )
 
         if "attributes" in data:
-            attrs = chain(
-                data["attributes"].items(),
-                [("objectClass", [dir_.object_class])],
-            )  # TODO ну и урод этот однострчник, сделай потом проще
-
-            for name, values in attrs:
+            for name, values in data["attributes"].items():
                 for value in values:
                     self.__session.add(
                         Attribute(
@@ -104,13 +97,22 @@ class CreateDirectoryLikeAsObjectClassUseCase:
                         ),
                     )
 
+            self.__session.add(
+                Attribute(
+                    directory_id=dir_.id,
+                    name="objectClass",
+                    value=dir_.object_class if isinstance(value, str) else None,  # noqa: E501
+                    bvalue=None,
+                ),
+            )  # fmt: skip
+
         await self.__session.flush()
 
         await self.__session.refresh(
             instance=dir_,
             attribute_names=["attributes"],
         )
-        # TODO FIXME каво блять.
+
         entity_type = await self.__entity_type_use_case.get_one_raw_by_name(
             EntityTypeNames.OBJECT_CLASS,
         )

@@ -98,10 +98,6 @@ class SetupGateway:
                 with_for_update=None,
             )
 
-            # TODO FIXME утаскивай это наружу, после всего ферст сетапа, иначе
-            # коллизия: для создания директории1 нужна директория2,
-            # но для дир2 нужна дир1
-
             entity_type = await self._entity_type_use_case.get_one_raw_by_name(
                 EntityTypeNames.DOMAIN,
             )
@@ -226,10 +222,6 @@ class SetupGateway:
             attribute_names=["attributes", "user"],
             with_for_update=None,
         )
-
-        # TODO FIXME утаскивай это наружу, после всего ферст сетапа, иначе
-        # коллизия: для создания директории1 нужна директория2,
-        # но для дир2 нужна дир1
 
         entity_type = await self._entity_type_use_case.get_one_raw_by_name(
             data["entity_type_name"],

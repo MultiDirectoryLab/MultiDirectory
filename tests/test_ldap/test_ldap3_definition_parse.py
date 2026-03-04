@@ -5,7 +5,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.ldap_schema.attribute_type_raw_display import (
     AttributeTypeRawDisplay,
@@ -66,7 +65,6 @@ test_ldap3_parse_object_classes_dataset = [
 )
 @pytest.mark.asyncio
 async def test_ldap3_parse_object_classes(
-    session: AsyncSession,
     test_dataset: list[str],
 ) -> None:
     """Test parse ldap3 object classes."""
@@ -75,7 +73,6 @@ async def test_ldap3_parse_object_classes(
             raw_definition=raw_definition,
         )
         object_class_dto = await RDParser.collect_object_class_dto_from_raw(
-            session=session,
             object_class_info=object_class_info,
         )
 

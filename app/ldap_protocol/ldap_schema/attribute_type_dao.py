@@ -93,8 +93,6 @@ class AttributeTypeDAO:
             )
         return _convert_model_to_dto(dir_)
 
-    # TODO сделай обновление пачки update bulk 100 times. а зачем? я забыл
-
     async def update(self, name: str, dto: AttributeTypeDTO) -> None:
         """Update Attribute Type.
 

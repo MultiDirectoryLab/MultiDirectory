@@ -49,7 +49,7 @@ def upgrade(container: AsyncContainer) -> None:
         sa.Column("is_included_anr", sa.Boolean(), nullable=True),
     )
 
-    async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename
+    async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename. зачем тут два метода?
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
@@ -68,7 +68,7 @@ def upgrade(container: AsyncContainer) -> None:
         nullable=True,
     )
 
-    async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename
+    async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename. зачем тут два метода?
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
