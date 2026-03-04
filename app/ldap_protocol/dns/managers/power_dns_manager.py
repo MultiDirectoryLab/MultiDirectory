@@ -14,7 +14,10 @@ from ldap_protocol.dns.clients import (
     PowerDNSDistClient,
     PowerDNSRecursorHTTPClient,
 )
-from ldap_protocol.dns.constants import DNS_FIRST_SETUP_RECORDS
+from ldap_protocol.dns.constants import (
+    DEFAULT_FORWARD_ZONE_NAMES,
+    DNS_FIRST_SETUP_RECORDS,
+)
 from ldap_protocol.dns.dto import (
     DNSForwardServerStatus,
     DNSForwardZoneDTO,
@@ -231,9 +234,7 @@ class PowerDNSManager(AbstractDNSManager):
             return [
                 zone
                 for zone in forward_zones
-                if "in-addr.arpa" not in zone.name
-                and "ip6.arpa" not in zone.name
-                and zone.name != "."
+                if zone.name not in DEFAULT_FORWARD_ZONE_NAMES
             ]
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
