@@ -11,8 +11,6 @@ services:
     command:
       - "--providers.file.filename=/traefik.yml"
     ports:
-      - "53:53"
-      - "53:53/udp"
       - "80:80"
       - "389:389"
       - "389:389/udp"
@@ -80,12 +78,36 @@ services:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
     container_name: multidirectory_migrations
     restart: "no"
+    networks:
+      md_net:
     env_file:
       .env
     command: python multidirectory.py --migrate
     depends_on:
       postgres:
         condition: service_healthy
+
+  dns_migration:
+    image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
+    container_name: multidirectory_dns_migration
+    networks:
+      md_net:
+    restart: "no"
+    volumes:
+      - dns_server_file:/opt/
+      - dns_server_config:/etc/bind/
+      - dnsdist_confd:/dnsdist
+    env_file: .env
+    command: python multidirectory.py --migrate_dns
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      pdns_auth:
+        condition: service_started
+      pdns_recursor:
+        condition: service_started
+      pdnsdist:
+        condition: service_started
 
   ldap_server:
     image: ghcr.io/multidirectorylab/multidirectory:${VERSION:-latest}
@@ -230,6 +252,7 @@ services:
       - dns_server_config:/DNS_server_configs/
       - ldap_keytab:/LDAP_keytab/
       - ./resolv.conf:/resolv.conf
+      - dnsdist_confd:/dnsdist
     hostname: api_server
     environment:
       USE_CORE_TLS: 1
@@ -376,6 +399,8 @@ services:
   pdns_auth:
     image: ghcr.io/multidirectorylab/multidirectory_pdns_auth:${VERSION:-latest}
     container_name: pdns_auth
+    cap_add:
+      - NET_ADMIN
     networks:
       default:
       md_net:
@@ -386,12 +411,14 @@ services:
       - 53/tcp
     volumes:
       - dns_lmdb:/var/lib/pdns-lmdb
-      - dns_config:/etc/powerdns
+      - ./pdns.conf:/etc/powerdns/pdns.conf
 
 
   pdns_recursor:
     image: powerdns/pdns-recursor-51:5.1.7
     container_name: pdns_recursor
+    cap_add:
+      - NET_ADMIN
     networks:
       default:
       md_net:
@@ -407,6 +434,8 @@ services:
   pdnsdist:
     image: powerdns/dnsdist-19:1.9.11
     container_name: pdnsdist
+    cap_add:
+      - NET_ADMIN
     networks:
       default:
       md_net:

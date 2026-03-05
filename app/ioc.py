@@ -65,6 +65,9 @@ from ldap_protocol.dns import (
     RemoteDNSManager,
     StubDNSManager,
 )
+from ldap_protocol.dns.bind_to_pdns_migration_use_case import (
+    BindToPDNSMigrationUseCase,
+)
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -322,10 +325,13 @@ class MainProvider(Provider):
         self,
         dns_state_gateway: DNSStateGateway,
         settings: Settings,
+        root_dse_gw: DomainReadProtocol,
     ) -> AsyncIterator[DNSSettingsDTO]:
         """Get DNS manager's settings."""
+        domain = await root_dse_gw.get_domain()
         dns_settings = await dns_state_gateway.get_dns_manager_settings(
             settings,
+            domain.name,
         )
         yield dns_settings
 
@@ -351,6 +357,25 @@ class MainProvider(Provider):
             yield RemoteDNSManager(settings=dns_settings)
         else:
             yield StubDNSManager(settings=dns_settings)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dns_migration_usecase(
+        self,
+        dns_settings: DNSSettingsDTO,
+        power_dns_auth_client: PowerDNSAuthHTTPClient,
+        power_dns_recursor_client: PowerDNSRecursorHTTPClient,
+        power_dns_dist_client: PowerDNSDistClient,
+    ) -> AsyncIterator[BindToPDNSMigrationUseCase]:
+        """Get DNS migration manager class."""
+        yield BindToPDNSMigrationUseCase(
+            PowerDNSManager(
+                settings=dns_settings,
+                power_dns_auth_client=power_dns_auth_client,
+                power_dns_recursor_client=power_dns_recursor_client,
+                dnsdist_client=power_dns_dist_client,
+            ),
+            dns_settings=dns_settings,
+        )
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(

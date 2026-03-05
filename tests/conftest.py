@@ -308,9 +308,14 @@ class TestProvider(Provider):
         self,
         dns_state_gateway: DNSStateGateway,
         settings: Settings,
+        root_dse_gw: DomainReadProtocol,
     ) -> AsyncIterator["DNSSettingsDTO"]:
         """Get DNS manager's settings."""
-        yield await dns_state_gateway.get_dns_manager_settings(settings)
+        domain = await root_dse_gw.get_domain()
+        yield await dns_state_gateway.get_dns_manager_settings(
+            settings,
+            domain.name,
+        )
 
     create_objclass_dir_use_case = provide(
         CreateDirectoryLikeAsObjectClassUseCase,

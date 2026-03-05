@@ -50,6 +50,7 @@ class RemoteDNSManager(AbstractDNSManager):
     async def setup(
         self,
         dns_settings: DNSSettingsDTO,  # noqa: ARG002
+        is_migration: bool = False,  # noqa: ARG002
     ) -> None:
         """Set up DNS server and DNS manager."""
         raise DNSNotImplementedError
@@ -150,6 +151,7 @@ class RemoteDNSManager(AbstractDNSManager):
     async def create_master_zone(
         self,
         zone: DNSMasterZoneDTO,  # noqa: ARG002
+        is_empty: bool = False,  # noqa: ARG002
     ) -> None:
         raise DNSNotImplementedError
 

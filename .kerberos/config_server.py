@@ -171,7 +171,7 @@ class AbstractKRBManager(ABC):
 
         :param list[str] names: principals
         :param str fn: filename
-        :param bool is_rand_key: generate random key
+        :param bool is_rand_key: generate new principal keys
         """
 
     @abstractmethod
@@ -256,21 +256,13 @@ class KAdminLocalManager(AbstractKRBManager):
         :param str | None password: if None - uses randkey.
         :param list[str] | None algorithms: encryption algorithms
         """
-        if algorithms:
-            await self.loop.run_in_executor(
-                self.pool,
-                self.client.add_principal,
-                name,
-                password,
-                algorithms,
-            )
-        else:
-            await self.loop.run_in_executor(
-                self.pool,
-                self.client.add_principal,
-                name,
-                password,
-            )
+        await self.loop.run_in_executor(
+            self.pool,
+            self.client.add_principal,
+            name,
+            password,
+            algorithms,
+        )
 
         if password:
             # NOTE: add preauth, attributes == krbticketflags
@@ -343,54 +335,26 @@ class KAdminLocalManager(AbstractKRBManager):
         self,
         names: list[str],
         fn: str,
-        is_rand_key: bool = False,
+        is_rand_key: bool = True,
     ) -> None:
         """Create or write to keytab.
 
         :param list[str] names: principals
         :param str fn: filename
-        :param bool is_rand_key: generate random key
+        :param bool is_rand_key: generate new principal keys
         :raises PrincipalNotFoundError: on not found princ
         """
         principals = [await self._get_raw_principal(name) for name in names]
         if not all(principals):
             raise PrincipalNotFoundError("Principal not found")
 
-        if is_rand_key:
-            for princ in principals:
-                await self.loop.run_in_executor(
-                    self.pool,
-                    princ.ktadd,
-                    fn,
-                    True,
-                )
-
-        else:
-            for princ in principals:
-                await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
-
-    async def _ktadd_with_randkey_via_subprocess(
-        self,
-        principal_name: str,
-        keytab_path: str,
-    ) -> None:
-        """Execute ktadd with randkey via subprocess."""
-        cmd = [
-            "kadmin.local",
-            "-q",
-            f"ktadd -k {keytab_path} -randkey {principal_name}",
-        ]
-
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        stdout, stderr = await proc.communicate()
-
-        if await proc.wait() != 0:
-            raise RuntimeError(f"ktadd failed: {stderr.decode()}")
+        for princ in principals:
+            await self.loop.run_in_executor(
+                self.pool,
+                princ.ktadd,
+                fn,
+                is_rand_key,
+            )
 
     async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock princ.
@@ -709,17 +673,12 @@ async def ktadd(
     :param KtaddRequest request: request data
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
-    if request.is_rand_key:
-        await kadmin.ktadd(
-            request.names,
-            filename,
-            is_rand_key=request.is_rand_key,
-        )
-    else:
-        await kadmin.ktadd(
-            request.names,
-            filename,
-        )
+    await kadmin.ktadd(
+        request.names,
+        filename,
+        request.is_rand_key,
+    )
+
     return FileResponse(
         filename,
         background=BackgroundTask(os.unlink, filename),

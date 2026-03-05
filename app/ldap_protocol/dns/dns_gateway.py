@@ -125,6 +125,7 @@ class DNSStateGateway:
     async def get_dns_manager_settings(
         self,
         app_settings: Settings,
+        domain: str,
     ) -> DNSSettingsDTO:
         """Get DNS manager settings."""
         power_dns_settings = PowerDNSSettingsDTO(
@@ -132,7 +133,7 @@ class DNSStateGateway:
             recursor_server_ip=app_settings.PDNS_RECURSOR_SERVER_IP,
         )
         dns_settings = DNSSettingsDTO(
-            domain=app_settings.DOMAIN,
+            domain=domain,
             dns_server_ip=None,
             tsig_key=None,
             default_nameserver=app_settings.DEFAULT_NAMESERVER,

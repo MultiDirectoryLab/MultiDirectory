@@ -1,10 +1,8 @@
-"""Audit policies schemas module.
+"""Audit schemas.
 
 Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
-
-from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 
@@ -20,8 +18,7 @@ class AuditPolicySchemaRequest(BaseModel):
     severity: str
 
 
-@dataclass
-class AuditPolicyResponse:
+class AuditPolicyResponse(BaseModel):
     """Audit policy schema."""
 
     id: int
@@ -44,8 +41,7 @@ class AuditDestinationSchemaRequest(BaseModel):
         use_enum_values = True
 
 
-@dataclass
-class AuditDestinationResponse:
+class AuditDestinationResponse(BaseModel):
     """Audit destination schema."""
 
     id: int

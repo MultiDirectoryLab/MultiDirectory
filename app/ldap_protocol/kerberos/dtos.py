@@ -11,7 +11,7 @@ from ldap_protocol.ldap_requests import AddRequest
 
 
 @dataclass
-class KerberosAdminDnGroup:
+class KerberosAdminDnGroupDTO:
     """Kerberos admin, services container, and admin group DNs."""
 
     krbadmin_dn: str
@@ -20,8 +20,8 @@ class KerberosAdminDnGroup:
 
 
 @dataclass
-class AddRequests:
-    """AddRequests for Kerberos admin structure: group, services, krb_user."""
+class AddRequestsDTO:
+    """AddRequestsDTO for Kerberos admin structure."""
 
     group: AddRequest
     services: AddRequest
@@ -29,7 +29,7 @@ class AddRequests:
 
 
 @dataclass
-class KDCContext:
+class KDCContextDTO:
     """Kerberos KDC configuration context."""
 
     base_dn: str
@@ -43,7 +43,7 @@ class KDCContext:
 
 
 @dataclass
-class TaskStruct:
+class TaskStructDTO:
     """Structure for background task: function, args, kwargs."""
 
     func: Callable[..., Any]

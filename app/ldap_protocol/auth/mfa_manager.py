@@ -21,6 +21,11 @@ from abstract_service import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
 from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
+from ldap_protocol.auth.dto import (
+    MFAChallengeResponseDTO,
+    MFACreateRequestDTO,
+    MFAGetResponseDTO,
+)
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -30,11 +35,6 @@ from ldap_protocol.auth.exceptions.mfa import (
     MFATokenError,
     MissingMFACredentialsError,
     NetworkPolicyError,
-)
-from ldap_protocol.auth.schemas import (
-    MFAChallengeResponse,
-    MFACreateRequest,
-    MFAGetResponse,
 )
 from ldap_protocol.auth.utils import get_user
 from ldap_protocol.identity import IdentityProvider
@@ -102,10 +102,10 @@ class MFAManager(AbstractService):
             return self._monitor.wrap_proxy_request(attr)
         return attr
 
-    async def setup_mfa(self, mfa: MFACreateRequest) -> bool:
+    async def setup_mfa(self, mfa: MFACreateRequestDTO) -> bool:
         """Create or update MFA keys.
 
-        :param mfa: MFACreateRequest
+        :param mfa: MFACreateRequestDTO
         :return: bool
         """
         async with self._session.begin_nested():
@@ -151,12 +151,12 @@ class MFAManager(AbstractService):
         self,
         mfa_creds: MFA_HTTP_Creds | None,
         mfa_creds_ldap: MFA_LDAP_Creds | None,
-    ) -> MFAGetResponse:
+    ) -> MFAGetResponseDTO:
         """Get MFA keys for http and ldap.
 
         :param mfa_creds: MFA_HTTP_Creds or None
         :param mfa_creds_ldap: MFA_LDAP_Creds or None
-        :return: MFAGetResponse
+        :return: MFAGetResponseDTO
         """
         if not mfa_creds:
             mfa_creds = MFA_HTTP_Creds(Creds(None, None))
@@ -164,7 +164,7 @@ class MFAManager(AbstractService):
         if not mfa_creds_ldap:
             mfa_creds_ldap = MFA_LDAP_Creds(Creds(None, None))
 
-        return MFAGetResponse(
+        return MFAGetResponseDTO(
             mfa_key=mfa_creds.key,
             mfa_secret=mfa_creds.secret,
             mfa_key_ldap=mfa_creds_ldap.key,
@@ -219,14 +219,14 @@ class MFAManager(AbstractService):
         message: str,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[MFAChallengeResponse, str | None]:
+    ) -> tuple[MFAChallengeResponseDTO, str | None]:
         """Create session key and response.
 
         :param user: User
         :param message: str
         :param ip: IPv4Address | IPv6Address
         :param user_agent: str
-        :return: tuple[MFAChallengeResponse, str | None]
+        :return: tuple[MFAChallengeResponseDTO, str | None]
         """
         key = await self._repository.create_session_key(
             user,
@@ -235,7 +235,7 @@ class MFAManager(AbstractService):
             self.key_ttl,
         )
         return (
-            MFAChallengeResponse(
+            MFAChallengeResponseDTO(
                 status=MFAChallengeStatuses.BYPASS,
                 message=message,
             ),
@@ -249,7 +249,7 @@ class MFAManager(AbstractService):
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> tuple[MFAChallengeResponse, str | None]:
+    ) -> tuple[MFAChallengeResponseDTO, str | None]:
         """Initiate two-factor protocol with application.
 
         :param user: User
@@ -258,7 +258,7 @@ class MFAManager(AbstractService):
         :param ip: IP address
         :param user_agent: User-Agent string
         :return:
-            tuple[MFAChallengeResponse, str | None] (session key | None)
+            tuple[MFAChallengeResponseDTO, str | None] (session key | None)
         :raises MissingMFACredentialsError: if MFA is not initialized
         :raises InvalidCredentialsError: if credentials are invalid
         :raises NetworkPolicyError: if network policy is not passed
@@ -300,7 +300,7 @@ class MFAManager(AbstractService):
             weakref.finalize(bypass_coro, bypass_coro.close)
 
         return (
-            MFAChallengeResponse(
+            MFAChallengeResponseDTO(
                 status=MFAChallengeStatuses.PENDING,
                 message=redirect_url,
             ),

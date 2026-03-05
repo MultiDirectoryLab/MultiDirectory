@@ -9,6 +9,12 @@ from fastapi import Depends, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
+from api.audit.schemas import (
+    AuditDestinationResponse,
+    AuditDestinationSchemaRequest,
+    AuditPolicyResponse,
+    AuditPolicySchemaRequest,
+)
 from api.auth.utils import verify_auth
 from api.error_routing import (
     ERROR_MAP_TYPE,
@@ -20,12 +26,6 @@ from enums import DomainCodes
 from ldap_protocol.policies.audit.exception import (
     AuditAlreadyExistsError,
     AuditNotFoundError,
-)
-from ldap_protocol.policies.audit.schemas import (
-    AuditDestinationResponse,
-    AuditDestinationSchemaRequest,
-    AuditPolicyResponse,
-    AuditPolicySchemaRequest,
 )
 
 from .adapter import AuditPoliciesAdapter

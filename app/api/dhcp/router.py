@@ -12,6 +12,17 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
+from api.dhcp.schemas import (
+    DHCPChangeStateSchemaRequest,
+    DHCPLeaseSchemaRequest,
+    DHCPLeaseSchemaResponse,
+    DHCPLeaseToReservationErrorResponse,
+    DHCPReservationSchemaRequest,
+    DHCPReservationSchemaResponse,
+    DHCPStateSchemaResponse,
+    DHCPSubnetSchemaAddRequest,
+    DHCPSubnetSchemaResponse,
+)
 from api.error_routing import (
     ERROR_MAP_TYPE,
     DishkaErrorAwareRoute,
@@ -26,17 +37,6 @@ from ldap_protocol.dhcp.exceptions import (
     DHCPEntryUpdateError,
     DHCPOperationError,
     DHCPValidationError,
-)
-from ldap_protocol.dhcp.schemas import (
-    DHCPChangeStateSchemaRequest,
-    DHCPLeaseSchemaRequest,
-    DHCPLeaseSchemaResponse,
-    DHCPLeaseToReservationErrorResponse,
-    DHCPReservationSchemaRequest,
-    DHCPReservationSchemaResponse,
-    DHCPStateSchemaResponse,
-    DHCPSubnetSchemaAddRequest,
-    DHCPSubnetSchemaResponse,
 )
 
 from .adapter import DHCPAdapter

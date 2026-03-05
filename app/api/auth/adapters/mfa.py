@@ -9,10 +9,11 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import status
 from fastapi.responses import RedirectResponse
 
+from api.auth.schemas import MFACreateRequest, MFAGetResponse
 from api.base_adapter import BaseAdapter
 from ldap_protocol.auth import MFAManager
+from ldap_protocol.auth.dto import MFACreateRequestDTO
 from ldap_protocol.auth.exceptions.mfa import MFATokenError
-from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 
@@ -25,7 +26,15 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
         :param mfa: MFACreateRequest
         :return: bool
         """
-        return await self._service.setup_mfa(mfa)
+        return await self._service.setup_mfa(
+            MFACreateRequestDTO(
+                mfa_key=mfa.mfa_key,
+                mfa_secret=mfa.mfa_secret,
+                is_ldap_scope=mfa.is_ldap_scope,
+                key_name=mfa.key_name,
+                secret_name=mfa.secret_name,
+            ),
+        )
 
     async def remove_mfa(self, scope: str) -> None:
         """Delete MFA keys by scope.
@@ -46,7 +55,16 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
         :param mfa_creds_ldap: MFA_LDAP_Creds
         :return: MFAGetResponse
         """
-        return await self._service.get_mfa(mfa_creds, mfa_creds_ldap)
+        mfa_get_response = await self._service.get_mfa(
+            mfa_creds,
+            mfa_creds_ldap,
+        )
+        return MFAGetResponse(
+            mfa_key=mfa_get_response.mfa_key,
+            mfa_secret=mfa_get_response.mfa_secret,
+            mfa_key_ldap=mfa_get_response.mfa_key_ldap,
+            mfa_secret_ldap=mfa_get_response.mfa_secret_ldap,
+        )
 
     async def callback_mfa(
         self,

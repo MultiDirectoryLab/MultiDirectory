@@ -38,6 +38,7 @@ class AbstractDNSManager:
     async def setup(
         self,
         dns_settings: DNSSettingsDTO,
+        is_migration: bool = False,
     ) -> None: ...
 
     @abstractmethod
@@ -77,6 +78,7 @@ class AbstractDNSManager:
     async def create_master_zone(
         self,
         zone: DNSMasterZoneDTO,
+        is_empty: bool = False,
     ) -> None: ...
 
     @abstractmethod

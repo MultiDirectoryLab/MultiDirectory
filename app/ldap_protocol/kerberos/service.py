@@ -30,6 +30,12 @@ from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 from password_utils import PasswordUtils
 
 from .base import AbstractKadmin
+from .dtos import (
+    AddRequestsDTO,
+    KDCContextDTO,
+    KerberosAdminDnGroupDTO,
+    TaskStructDTO,
+)
 from .exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
@@ -42,7 +48,6 @@ from .exceptions import (
     KRBAPIStatusNotFoundError,
 )
 from .ldap_structure import KRBLDAPStructureManager
-from .schemas import AddRequests, KDCContext, KerberosAdminDnGroup, TaskStruct
 from .template_render import KRBTemplateRenderer
 from .utils import (
     KerberosState,
@@ -138,17 +143,20 @@ class KerberosService(AbstractService):
             )
         return base_dn_list[0].path_dn, base_dn_list[0].name
 
-    def _build_kerberos_admin_dns(self, base_dn: str) -> KerberosAdminDnGroup:
+    def _build_kerberos_admin_dns(
+        self,
+        base_dn: str,
+    ) -> KerberosAdminDnGroupDTO:
         """Build DN strings for Kerberos admin, services, and group.
 
         :param str base_dn: Base DN.
-        :return KerberosAdminDnGroup:
+        :return KerberosAdminDnGroupDTO:
             dataclass with DN for krbadmin, services_container, krbadmin_group.
         """
         krbadmin = f"cn=krbadmin,cn=Users,{base_dn}"
         services_container = get_system_container_dn(base_dn)
         krbgroup = f"cn=krbadmin,cn=Groups,{base_dn}"
-        return KerberosAdminDnGroup(
+        return KerberosAdminDnGroupDTO(
             krbadmin_dn=krbadmin,
             services_container_dn=services_container,
             krbadmin_group_dn=krbgroup,
@@ -156,17 +164,17 @@ class KerberosService(AbstractService):
 
     def _build_add_requests(
         self,
-        dns: KerberosAdminDnGroup,
+        dns: KerberosAdminDnGroupDTO,
         mail: str,
         krbadmin_password: SecretStr,
-    ) -> AddRequests:
+    ) -> AddRequestsDTO:
         """Build AddRequest objects for group, services, and admin user.
 
-        :param KerberosAdminDnGroup dns:
+        :param KerberosAdminDnGroupDTO dns:
             DNs for krbadmin, services container, and group.
         :param str mail: Email for krbadmin.
         :param SecretStr krbadmin_password: Password for krbadmin.
-        :return AddRequests:
+        :return AddRequestsDTO:
             dataclass of AddRequest for group, services, and user.
         """
         group = AddRequest.from_dict(
@@ -219,7 +227,7 @@ class KerberosService(AbstractService):
             },
             is_system=True,
         )
-        return AddRequests(
+        return AddRequestsDTO(
             group=group,
             services=services,
             krb_user=krb_user,
@@ -232,8 +240,8 @@ class KerberosService(AbstractService):
         stash_password: str,
         user: UserSchema,
         request: Request,
-    ) -> TaskStruct:
-        """Set up KDC, generate configs, and return TaskStruct.
+    ) -> TaskStructDTO:
+        """Set up KDC, generate configs, and return TaskStructDTO.
 
         Args:
             krbadmin_password (str): Password for krbadmin.
@@ -289,17 +297,17 @@ class KerberosService(AbstractService):
                 admin_password,
             )
 
-    async def _get_kdc_context(self) -> KDCContext:
+    async def _get_kdc_context(self) -> KDCContextDTO:
         """Build and return context for KDC setup/config rendering.
 
         :raises Exception: If base DN cannot be retrieved.
-        :return KDCContext: dataclass with all required KDC context fields.
+        :return KDCContextDTO: dataclass with all required KDC context fields.
         """
         base_dn, domain = await self._get_base_dn()
         krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
         krbgroup = f"cn=krbadmin,cn=groups,{base_dn}"
         services_container = get_system_container_dn(base_dn)
-        return KDCContext(
+        return KDCContextDTO(
             base_dn=base_dn,
             domain=domain,
             krbadmin=krbadmin,
@@ -335,7 +343,7 @@ class KerberosService(AbstractService):
         request: Request,
         user: UserSchema,
         password: str,
-    ) -> TaskStruct:
+    ) -> TaskStructDTO:
         """Schedule background task for principal creation after KDC setup.
 
         :param Request request: FastAPI request (for DI container).
@@ -356,7 +364,7 @@ class KerberosService(AbstractService):
             user.user_principal_name.split("@")[0],
             password,
         )
-        return TaskStruct(func=func, args=args)
+        return TaskStructDTO(func=func, args=args)
 
     async def add_principal(
         self,
@@ -428,11 +436,11 @@ class KerberosService(AbstractService):
         self,
         names: list[str],
         is_rand_key: bool,
-    ) -> tuple[AsyncIterator[bytes], TaskStruct]:
-        """Generate keytab and return (aiter_bytes, TaskStruct).
+    ) -> tuple[AsyncIterator[bytes], TaskStructDTO]:
+        """Generate keytab and return (aiter_bytes, TaskStructDTO).
 
         :param list[str] names: List of principal names.
-        :param bool is_rand_key: If True, generate random key.
+        :param bool is_rand_key: If True, generate new principal keys.
         :raises KerberosNotFoundError: If principal not found.
         :return tuple: (aiter_bytes, (func, args, kwargs)).
         """
@@ -442,7 +450,7 @@ class KerberosService(AbstractService):
             raise KerberosNotFoundError("Principal not found")
         aiter_bytes = response.aiter_bytes()
         func = response.aclose
-        return aiter_bytes, TaskStruct(func=func)
+        return aiter_bytes, TaskStructDTO(func=func)
 
     async def get_status(self) -> KerberosState:
         """Get Kerberos server state (db + actual server).

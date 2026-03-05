@@ -26,7 +26,7 @@ from ldap_protocol.identity.exceptions import (
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
     ObjectClassUseCaseDeprecated,
 )
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
@@ -111,7 +111,7 @@ class SetupUseCase:
             },
             "children": [
                 {
-                    "name": self._settings.HOST_MACHINE_NAME,
+                    "name": self._settings.HOST_MACHINE_SHORT_NAME,
                     "entity_type_name": EntityTypeNames.COMPUTER,
                     "object_class": "computer",
                     "attributes": {
@@ -124,7 +124,9 @@ class SetupUseCase:
                         "sAMAccountType": [
                             str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
                         ],
-                        "sAMAccountName": [self._settings.HOST_MACHINE_NAME],
+                        "sAMAccountName": [
+                            self._settings.HOST_MACHINE_SHORT_NAME,
+                        ],
                         "ipHostNumber": [self._settings.DEFAULT_NAMESERVER],
                     },
                 },
@@ -213,8 +215,8 @@ class SetupUseCase:
                 await self._object_class_use_case.create(obj_class)  # type: ignore
 
             # TODO раскомментируй это после того как поправишь роли и вообще ВСЁ сделаешь  # noqa: E501
-            # await self._attribute_type_use_case_depr.delete_table_deprecated()  # noqa: E501
-            # await self._object_class_use_case_depr.delete_table_deprecated()  # noqa: E501
+            # await self._attribute_type_use_case_depr.delete_table_deprecated()  # noqa: E501, ERA001
+            # await self._object_class_use_case_depr.delete_table_deprecated()  # noqa: E501, ERA001
 
             await self._password_use_cases.create_default_domain_policy()
 

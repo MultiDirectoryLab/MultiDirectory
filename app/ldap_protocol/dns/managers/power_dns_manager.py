@@ -14,7 +14,10 @@ from ldap_protocol.dns.clients import (
     PowerDNSDistClient,
     PowerDNSRecursorHTTPClient,
 )
-from ldap_protocol.dns.constants import DNS_FIRST_SETUP_RECORDS
+from ldap_protocol.dns.constants import (
+    DEFAULT_FORWARD_ZONE_NAMES,
+    DNS_FIRST_SETUP_RECORDS,
+)
 from ldap_protocol.dns.dto import (
     DNSForwardServerStatus,
     DNSForwardZoneDTO,
@@ -70,28 +73,33 @@ class PowerDNSManager(AbstractDNSManager):
         return name if name.endswith(".") else f"{name}."
 
     @logger_wraps()
-    async def setup(self, dns_settings: DNSSettingsDTO) -> None:
+    async def setup(
+        self,
+        dns_settings: DNSSettingsDTO,
+        is_migration: bool = False,
+    ) -> None:
         """Set up DNS server and DNS manager."""
         records = []
         if dns_settings.power_dns_settings is None:
             raise DNSSetupError("PowerDNS settings is not set.")
 
-        for record in DNS_FIRST_SETUP_RECORDS:
-            records.append(
-                DNSRRSetDTO(
-                    name=f"{record['name']}{self._dns_settings.domain}.",
-                    type=DNSRecordType(record["type"]),
-                    records=[
-                        DNSRecordDTO(
-                            content=f"{record['value']}{self._dns_settings.domain}.",
-                            disabled=False,
-                            modified_at=None,
-                        ),
-                    ],
-                    changetype=PowerDNSRecordChangeType.EXTEND,
-                    ttl=3600,
-                ),
-            )
+        if not is_migration:
+            for record in DNS_FIRST_SETUP_RECORDS:
+                records.append(
+                    DNSRRSetDTO(
+                        name=f"{record['name']}{self._dns_settings.domain}.",
+                        type=DNSRecordType(record["type"]),
+                        records=[
+                            DNSRecordDTO(
+                                content=f"{record['value']}{self._dns_settings.domain}.",
+                                disabled=False,
+                                modified_at=None,
+                            ),
+                        ],
+                        changetype=PowerDNSRecordChangeType.EXTEND,
+                        ttl=3600,
+                    ),
+                )
 
         try:
             self._dnsdist_client.setup_dnsdist(
@@ -101,14 +109,15 @@ class PowerDNSManager(AbstractDNSManager):
                 dns_settings.power_dns_settings.auth_server_ip,
                 "master",
             )
-            await self.create_master_zone(
-                DNSMasterZoneDTO(
-                    id=self._dns_settings.domain,
-                    name=self._dns_settings.domain,
-                    dnssec=False,
-                    rrsets=records,
-                ),
-            )
+            if not is_migration:
+                await self.create_master_zone(
+                    DNSMasterZoneDTO(
+                        id=self._dns_settings.domain,
+                        name=self._dns_settings.domain,
+                        dnssec=False,
+                        rrsets=records,
+                    ),
+                )
         except DNSZoneCreateError as e:
             raise DNSSetupError(f"Failed to set up DNS: {e}")
 
@@ -157,17 +166,22 @@ class PowerDNSManager(AbstractDNSManager):
             raise DNSRecordDeleteError(f"Failed to delete DNS record: {e}")
 
     @logger_wraps()
-    async def create_master_zone(self, zone: DNSMasterZoneDTO) -> None:
+    async def create_master_zone(
+        self,
+        zone: DNSMasterZoneDTO,
+        is_empty: bool = False,
+    ) -> None:
         """Create a master DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
 
-        zone.nameservers.append(f"ns1.{zone.name}")
+        if not is_empty:
+            zone.nameservers.append(f"ns1.{zone.name}")
 
-        records = await create_initial_zone_records(
-            zone.name,
-            self._dns_settings.default_nameserver,
-        )
-        zone.rrsets.extend(records)
+            records = await create_initial_zone_records(
+                zone.name,
+                self._dns_settings.default_nameserver,
+            )
+            zone.rrsets.extend(records)
 
         try:
             await self._power_dns_auth_client.create_master_zone(zone)
@@ -214,7 +228,14 @@ class PowerDNSManager(AbstractDNSManager):
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Retrieve all forward DNS zones."""
         try:
-            return await self._power_dns_recursor_client.get_forward_zones()
+            forward_zones = (
+                await self._power_dns_recursor_client.get_forward_zones()
+            )
+            return [
+                zone
+                for zone in forward_zones
+                if zone.name not in DEFAULT_FORWARD_ZONE_NAMES
+            ]
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
