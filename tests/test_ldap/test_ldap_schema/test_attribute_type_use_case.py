@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO

@@ -107,27 +107,35 @@ from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appen
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
     ObjectClassUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.attribute_type_dir_create_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
+    AttributeTypeDAO,
+)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dir_create_use_case import (  # noqa: E501
     CreateDirectoryLikeAsAttributeTypeUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.object_class_dir_create_use_case import (
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_dir_create_use_case import (  # noqa: E501
     CreateDirectoryLikeAsObjectClassUseCase,
 )
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
+    ObjectClassUseCase,
+)
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
@@ -1014,21 +1022,20 @@ async def setup_session(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,
     )
+    create_objclass_dir_use_case = CreateDirectoryLikeAsObjectClassUseCase(
+        session=session,
+        entity_type_use_case=entity_type_use_case,
+        role_use_case=role_use_case,
+    )
     object_class_use_case = ObjectClassUseCase(
         attribute_type_dao=attribute_type_dao,
         object_class_dao=object_class_dao,
         entity_type_dao=entity_type_dao,
-        create_objclass_dir_use_case=CreateDirectoryLikeAsObjectClassUseCase(
-            session=session,
-            entity_type_use_case=entity_type_use_case,
-            attribute_value_validator=attribute_value_validator,
-            role_use_case=role_use_case,
-        ),
+        create_objclass_dir_use_case=create_objclass_dir_use_case,
     )
     create_attribute_dir_use_case = CreateDirectoryLikeAsAttributeTypeUseCase(
         session=session,
         entity_type_use_case=entity_type_use_case,
-        attribute_value_validator=attribute_value_validator,
         role_use_case=role_use_case,
     )
 

@@ -8,8 +8,10 @@ import pytest
 
 from config import Settings
 from enums import AceType, EntityTypeNames, RoleScope
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
+    AttributeTypeDAO,
+)
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from tests.conftest import TestCreds
@@ -85,7 +87,7 @@ async def test_role_search_3(
 
     User with a custom role should see the group and user entries.
     """
-    return
+    return  # TODO
     ace = AccessControlEntryDTO(
         role_id=custom_role.get_id(),
         ace_type=AceType.READ,
@@ -222,7 +224,7 @@ async def test_role_search_6(
 
     User with a custom role should see only the posixEmail attribute.
     """
-    return
+    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
@@ -272,7 +274,7 @@ async def test_role_search_7(
 
     User with a custom role should see all attributes except description.
     """
-    return
+    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
@@ -333,7 +335,7 @@ async def test_role_search_8(
 
     User with a custom role should see only the description attribute.
     """
-    return
+    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
@@ -394,7 +396,7 @@ async def test_role_search_9(
 
     User with a custom role should see only the posixEmail attribute.
     """
-    return
+    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 

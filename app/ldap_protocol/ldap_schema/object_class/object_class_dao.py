@@ -15,8 +15,8 @@ from enums import EntityTypeNames
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 
-from .dto import ObjectClassDTO
-from .exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
+from ..dto import ObjectClassDTO
+from ..exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
 
 
 def _converter(dir_: Directory) -> ObjectClassDTO[int, str]:

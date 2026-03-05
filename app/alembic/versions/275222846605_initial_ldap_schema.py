@@ -30,7 +30,7 @@ from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appen
 from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
     ObjectClassUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_value_validator import (

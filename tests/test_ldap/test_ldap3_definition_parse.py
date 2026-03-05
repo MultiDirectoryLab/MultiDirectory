@@ -6,10 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
-from ldap_protocol.ldap_schema.attribute_type_raw_display import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_raw_display import (
     AttributeTypeRawDisplay,
 )
-from ldap_protocol.ldap_schema.object_class_raw_display import (
+from ldap_protocol.ldap_schema.object_class.object_class_raw_display import (
     ObjectClassRawDisplay,
 )
 from ldap_protocol.utils.raw_definition_parser import (

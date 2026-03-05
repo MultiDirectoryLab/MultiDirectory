@@ -171,7 +171,6 @@ async def test_modify_one_object_class(
     assert isinstance(response.json(), dict)
     object_class = response.json()
 
-    # return  # TODO
     assert set(object_class.get("attribute_type_names_must")) == set(
         new_statement.get("attribute_type_names_must"),
     )

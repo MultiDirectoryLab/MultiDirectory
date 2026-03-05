@@ -11,9 +11,13 @@ from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
 from ldap_protocol.utils.queries import get_base_directories
 from password_utils import PasswordUtils
 from tests.constants import TEST_SYSTEM_ADMIN_DATA

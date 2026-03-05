@@ -39,16 +39,18 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
-from ldap_protocol.ldap_schema.attribute_type_raw_display import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_raw_display import (
     AttributeTypeRawDisplay,
 )
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
-from ldap_protocol.ldap_schema.object_class_raw_display import (
+from ldap_protocol.ldap_schema.object_class.object_class_raw_display import (
     ObjectClassRawDisplay,
 )
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
+    ObjectClassUseCase,
+)
 from ldap_protocol.objects import DerefAliases, ProtocolRequests, Scope
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.rootdse.netlogon import NetLogonAttributeHandler

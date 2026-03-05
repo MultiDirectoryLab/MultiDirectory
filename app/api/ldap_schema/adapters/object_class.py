@@ -19,7 +19,9 @@ from api.ldap_schema.schema import (
 )
 from enums import KindType
 from ldap_protocol.ldap_schema.dto import ObjectClassDTO
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
+    ObjectClassUseCase,
+)
 
 
 def _convert_update_schema_to_dto(

@@ -15,13 +15,15 @@ from constants import ENTITY_TYPE_DATAS
 from entities import Directory, EntityType
 from enums import AuthorizationRules, EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeAlreadyExistsError,
     EntityTypeCantModifyError,
     EntityTypeNotFoundError,
 )
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 

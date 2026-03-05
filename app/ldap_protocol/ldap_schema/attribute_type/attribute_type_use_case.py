@@ -10,18 +10,22 @@ from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.attribute_type_dir_create_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
+    AttributeTypeDAO,
+)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dir_create_use_case import (  # noqa: E501
     CreateDirectoryLikeAsAttributeTypeUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
 )
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 
@@ -83,7 +87,6 @@ class AttributeTypeUseCase(AbstractService):
                 },
                 is_system=dto.is_system,
             )
-            await self.__create_attribute_dir_gateway.flush()
 
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(

@@ -98,15 +98,6 @@ class ObjectClassDAODeprecated:
             else:
                 attribute_types_may = []
 
-            # TODO uncomment
-            # if len(attribute_types_may_filtered) != len(
-            #     attribute_types_may,
-            # ) or len(dto.attribute_types_must) != len(attribute_types_must):
-            #     raise ObjectClassNotFoundError(
-            #         "Not all Attribute Types specified in Object Class "
-            #         "definition found in schema.",
-            #     )
-
             object_class = ObjectClass(
                 oid=dto.oid,
                 name=dto.name,

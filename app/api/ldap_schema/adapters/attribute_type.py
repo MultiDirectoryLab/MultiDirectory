@@ -27,7 +27,7 @@ from api.ldap_schema.schema import (
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO

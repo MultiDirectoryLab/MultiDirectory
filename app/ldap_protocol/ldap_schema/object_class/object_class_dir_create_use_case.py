@@ -10,10 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from constants import CONFIGURATION_DIR_NAME
 from entities import Attribute, Directory
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
 )
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from repo.pg.tables import queryable_attr as qa
 
@@ -23,7 +22,6 @@ class CreateDirectoryLikeAsObjectClassUseCase:
 
     __session: AsyncSession
     __entity_type_use_case: EntityTypeUseCase
-    __attribute_value_validator: AttributeValueValidator
     __role_use_case: RoleUseCase
     __parent: Directory | None
 
@@ -31,7 +29,6 @@ class CreateDirectoryLikeAsObjectClassUseCase:
         self,
         session: AsyncSession,
         entity_type_use_case: EntityTypeUseCase,
-        attribute_value_validator: AttributeValueValidator,
         role_use_case: RoleUseCase,
     ) -> None:
         """Initialize Setup use case.
@@ -42,12 +39,8 @@ class CreateDirectoryLikeAsObjectClassUseCase:
         """
         self.__session = session
         self.__entity_type_use_case = entity_type_use_case
-        self.__attribute_value_validator = attribute_value_validator
         self.__role_use_case = role_use_case
         self.__parent = None
-
-    async def flush(self) -> None:
-        await self.__session.flush()
 
     async def create_dir(
         self,
@@ -119,11 +112,10 @@ class CreateDirectoryLikeAsObjectClassUseCase:
             is_system_entity_type=True,
             entity_type=entity_type,
         )
-        if not self.__attribute_value_validator.is_directory_valid(dir_):
-            raise ValueError("Invalid directory attribute values")
         await self.__session.flush()
 
         await self.__role_use_case.inherit_parent_aces(
             parent_directory=self.__parent,
             directory=dir_,
         )
+        await self.__session.flush()

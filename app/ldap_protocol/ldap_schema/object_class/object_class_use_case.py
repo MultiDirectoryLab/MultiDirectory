@@ -10,15 +10,19 @@ from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
+    AttributeTypeDAO,
+)
 from ldap_protocol.ldap_schema.dto import ObjectClassDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
     ObjectClassNotFoundError,
 )
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.object_class_dir_create_use_case import (
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_dir_create_use_case import (  # noqa: E501
     CreateDirectoryLikeAsObjectClassUseCase,
 )
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
@@ -112,7 +116,6 @@ class ObjectClassUseCase(AbstractService):
                 },
                 is_system=dto.is_system,
             )
-            await self.__create_objclass_dir_use_case.flush()
         except IntegrityError:
             raise ObjectClassAlreadyExistsError(
                 f"Object Class with oid '{dto.oid}' and name"
