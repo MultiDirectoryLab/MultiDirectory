@@ -46,12 +46,14 @@ class ObjectClassDAODeprecated:
 
     async def get_all(self) -> list[ObjectClassDTO[int, AttributeTypeDTO]]:
         """Get all Object Classes."""
-        return [
-            _converter(object_class)
-            for object_class in await self.__session.scalars(
-                select(ObjectClass),
-            )
-        ]
+        obj_classes = await self.__session.scalars(
+            select(ObjectClass)
+            .options(
+                selectinload(qa(ObjectClass.attribute_types_may)),
+                selectinload(qa(ObjectClass.attribute_types_must)),
+            ),
+        )  # fmt: skip
+        return [_converter(object_class) for object_class in obj_classes]
 
     async def create(
         self,

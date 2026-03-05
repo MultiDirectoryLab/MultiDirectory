@@ -105,13 +105,12 @@ class ObjectClassUseCase(AbstractService):
                         "name": [str(dto.name)],
                         "superior_name": [str(dto.superior_name)],
                         "kind": [str(dto.kind)],
-                        "is_system": [str(dto.is_system)],  # TODO asd223edfsda
                         "attribute_types_must": dto.attribute_types_must,
                         "attribute_types_may": dto.attribute_types_may,
                     },
                     "children": [],
                 },
-                is_system=dto.is_system,  # TODO asd223edfsda связать два поля
+                is_system=dto.is_system,
             )
             await self.__create_objclass_dir_use_case.flush()
         except IntegrityError:

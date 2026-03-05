@@ -26,10 +26,14 @@ from ldap_protocol.identity.exceptions import (
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
     AttributeTypeUseCaseDeprecated,
 )
+from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (
+    ObjectClassUseCaseDeprecated,
+)
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
@@ -44,6 +48,8 @@ class SetupUseCase:
         self,
         attribute_type_use_case_depr: AttributeTypeUseCaseDeprecated,
         attribute_type_use_case: AttributeTypeUseCase,
+        object_class_use_case_depr: ObjectClassUseCaseDeprecated,
+        object_class_use_case: ObjectClassUseCase,
         setup_gateway: SetupGateway,
         entity_type_use_case: EntityTypeUseCase,
         password_use_cases: PasswordPolicyUseCases,
@@ -66,6 +72,8 @@ class SetupUseCase:
         self._session = session
         self._attribute_type_use_case_depr = attribute_type_use_case_depr
         self._attribute_type_use_case = attribute_type_use_case
+        self._object_class_use_case_depr = object_class_use_case_depr
+        self._object_class_use_case = object_class_use_case
         self._settings = settings
 
     async def setup(self, dto: SetupDTO) -> None:
@@ -185,15 +193,28 @@ class SetupUseCase:
                 dn=dto.domain,
                 is_system=True,
             )
+
             attrs = (
                 await self._attribute_type_use_case_depr.get_all_deprecated()
             )
             for attr in attrs:
                 await self._attribute_type_use_case.create(attr)
-            # TODO а обжект классы тут надо добавлять?
+
+            obj_classes = await self._object_class_use_case_depr.get_all()
+            for obj_class in obj_classes:
+                obj_class.attribute_types_may = [
+                    i.name  # type: ignore
+                    for i in obj_class.attribute_types_may
+                ]
+                obj_class.attribute_types_must = [
+                    i.name  # type: ignore
+                    for i in obj_class.attribute_types_must
+                ]
+                await self._object_class_use_case.create(obj_class)  # type: ignore
 
             # TODO раскомментируй это после того как поправишь роли и вообще ВСЁ сделаешь  # noqa: E501
             # await self._attribute_type_use_case_depr.delete_table_deprecated()  # noqa: E501
+            # await self._object_class_use_case_depr.delete_table_deprecated()  # noqa: E501
 
             await self._password_use_cases.create_default_domain_policy()
 

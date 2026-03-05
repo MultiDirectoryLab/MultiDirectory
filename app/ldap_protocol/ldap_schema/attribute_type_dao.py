@@ -27,11 +27,11 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO:
             0
         ]
         == "True",
-        is_system=directory.attributes_dict["is_system"][0] == "True",
+        is_system=directory.is_system,
         system_flags=int(directory.attributes_dict["system_flags"][0]),
         is_included_anr=directory.attributes_dict["is_included_anr"][0]
         == "True",
-        object_class_names=set(),
+        object_class_names=set(),  # TODO
     )
 
 
@@ -78,9 +78,7 @@ class AttributeTypeDAO:
         res = await self.__session.scalars(
             select(qa(Directory))
             .join(qa(Directory.entity_type))
-            .filter(
-                qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
-            ),
+            .filter(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
         )
         return list(map(_convert_model_to_dto, res.all()))
 

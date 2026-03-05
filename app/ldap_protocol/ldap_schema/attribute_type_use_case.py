@@ -76,13 +76,12 @@ class AttributeTypeUseCase(AbstractService):
                         "no_user_modification": [
                             str(dto.no_user_modification),
                         ],
-                        "is_system": [str(dto.is_system)],  # TODO asd223edfsda
                         "system_flags": [str(dto.system_flags)],
                         "is_included_anr": [str(dto.is_included_anr)],
                     },
                     "children": [],
                 },
-                is_system=dto.is_system,  # TODO asd223edfsda связать два поля
+                is_system=dto.is_system,
             )
             await self.__create_attribute_dir_gateway.flush()
 

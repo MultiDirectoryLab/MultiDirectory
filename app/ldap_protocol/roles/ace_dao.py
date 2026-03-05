@@ -51,8 +51,6 @@ _convert = get_converter(
 class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
     """Access control entry DAO."""
 
-    # TODO спроси у Руслана че по атрибутам и ролевке
-
     _session: AsyncSession
 
     def __init__(self, session: AsyncSession) -> None:
