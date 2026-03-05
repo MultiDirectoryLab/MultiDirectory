@@ -30,7 +30,7 @@ async def _add_domain_controller(
 ) -> None:
     dc_directory = Directory(
         object_class="",
-        name=settings.HOST_MACHINE_NAME,
+        name=settings.HOST_MACHINE_SHORT_NAME,
         is_system=True,
     )
     dc_directory.create_path(dc_ou_dir)
@@ -54,7 +54,7 @@ async def _add_domain_controller(
         ),
         Attribute(
             name="sAMAccountName",
-            value=settings.HOST_MACHINE_NAME,
+            value=settings.HOST_MACHINE_SHORT_NAME,
             directory_id=dc_directory.id,
         ),
         Attribute(
@@ -76,7 +76,7 @@ async def _add_domain_controller(
         ),
         Attribute(
             name="cn",
-            value=settings.HOST_MACHINE_NAME,
+            value=settings.HOST_MACHINE_SHORT_NAME,
             directory_id=dc_directory.id,
         ),
     ]

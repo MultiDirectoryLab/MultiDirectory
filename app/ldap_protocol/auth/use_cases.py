@@ -92,7 +92,7 @@ class SetupUseCase:
             },
             "children": [
                 {
-                    "name": self._settings.HOST_MACHINE_NAME,
+                    "name": self._settings.HOST_MACHINE_SHORT_NAME,
                     "object_class": "computer",
                     "attributes": {
                         "objectClass": ["top"],
@@ -104,7 +104,9 @@ class SetupUseCase:
                         "sAMAccountType": [
                             str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
                         ],
-                        "sAMAccountName": [self._settings.HOST_MACHINE_NAME],
+                        "sAMAccountName": [
+                            self._settings.HOST_MACHINE_SHORT_NAME,
+                        ],
                         "ipHostNumber": [self._settings.DEFAULT_NAMESERVER],
                     },
                 },
