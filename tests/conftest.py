@@ -286,9 +286,14 @@ class TestProvider(Provider):
         self,
         dns_state_gateway: DNSStateGateway,
         settings: Settings,
+        root_dse_gw: DomainReadProtocol,
     ) -> AsyncIterator["DNSSettingsDTO"]:
         """Get DNS manager's settings."""
-        yield await dns_state_gateway.get_dns_manager_settings(settings)
+        domain = await root_dse_gw.get_domain()
+        yield await dns_state_gateway.get_dns_manager_settings(
+            settings,
+            domain.name,
+        )
 
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
