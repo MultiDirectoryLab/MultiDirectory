@@ -5,7 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import contextlib
-from typing import ClassVar
+from typing import ClassVar, Iterable
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -107,6 +107,17 @@ class EntityTypeUseCase(AbstractService):
     async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get entity type attributes."""
         return await self._entity_type_dao.get_entity_type_attributes(name)
+
+    async def get_entity_type_by_object_class_names(
+        self,
+        object_class_names: Iterable[str],
+    ) -> EntityType | None:
+        """Get Entity Type by object class names."""
+        return (
+            await self._entity_type_dao.get_entity_type_by_object_class_names(
+                object_class_names,
+            )
+        )
 
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete all Entity Types by names."""

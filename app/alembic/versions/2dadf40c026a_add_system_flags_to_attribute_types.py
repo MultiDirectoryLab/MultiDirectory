@@ -6,8 +6,6 @@ Create Date: 2026-02-04 09:33:33.218126
 
 """
 
-import contextlib
-
 import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
@@ -17,7 +15,6 @@ from sqlalchemy.orm import Session
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
     AttributeTypeUseCaseDeprecated,
 )
-from ldap_protocol.ldap_schema.exceptions import AttributeTypeNotFoundError
 
 # revision identifiers, used by Alembic.
 revision: None | str = "2dadf40c026a"
@@ -26,7 +23,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-_NON_REPLICATED_ATTRIBUTES_TYPE_NAMES = (
+_NON_REPLICATED_ATTRIBUTES_TYPE_NAMES: tuple[str, ...] = (
     "badPasswordTime",
     "badPwdCount",
     "bridgeheadServerListBL",
@@ -143,7 +140,7 @@ def upgrade(container: AsyncContainer) -> None:
         ),
     )
 
-    async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001   # TODO rename. зачем тут два метода?
+    async def _zero_all_replicated_flags(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
@@ -151,23 +148,21 @@ def upgrade(container: AsyncContainer) -> None:
         await at_type_use_case.zero_all_replicated_flags_deprecated()
         await session.commit()
 
-    op.run_async(_set_attr_replication_flag1)
+    op.run_async(_zero_all_replicated_flags)
 
-    async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001   # TODO rename. зачем тут два метода?
+    async def _set_attr_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
 
-        for name in _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES:
-            with contextlib.suppress(AttributeTypeNotFoundError):
-                await at_type_use_case.set_attr_replication_flag_deprecated(
-                    name,
-                    need_to_replicate=False,
-                )
+        await at_type_use_case.set_attrs_replication_flag_deprecated(
+            _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES,
+            need_to_replicate=False,
+        )
 
         await session.commit()
 
-    op.run_async(_set_attr_replication_flag2)
+    op.run_async(_set_attr_replication_flag)
 
     op.alter_column("AttributeTypes", "system_flags", nullable=False)
 

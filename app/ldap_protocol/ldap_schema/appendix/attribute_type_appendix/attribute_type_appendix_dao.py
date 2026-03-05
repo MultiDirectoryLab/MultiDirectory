@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from adaptix import P
 from adaptix.conversion import (
@@ -13,7 +13,7 @@ from adaptix.conversion import (
     link_function,
 )
 from entities_appendix import AttributeType, ObjectClass
-from sqlalchemy import or_, select, text
+from sqlalchemy import or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -131,6 +131,46 @@ class AttributeTypeDAODeprecated:
                 f"Attribute Type with oid '{dto.oid}' and name"
                 + f" '{dto.name}' already exists.",
             )
+
+    async def zero_all_replicated_flags_deprecated(self) -> None:
+        """Set replication flag to False for all Attribute Types."""
+        await self.__session.execute(
+            update(AttributeType)
+            .values({"system_flags": 0}),
+        )  # fmt: skip
+
+    async def set_attrs_replication_flag_deprecated(
+        self,
+        names: tuple[str, ...],
+        need_to_replicate: bool,
+    ) -> None:
+        """Set replication flag in systemFlags."""
+        flag_value = 1 if need_to_replicate else 0
+        await self.__session.execute(
+            update(AttributeType)
+            .where(qa(AttributeType.name).in_(names))
+            .values({"system_flags": flag_value}),
+        )
+
+    async def false_all_is_included_anr_deprecated(self) -> None:
+        """Set is_included_anr to False for all Attribute Types."""
+        await self.__session.execute(
+            update(AttributeType)
+            .values({"is_included_anr": False}),
+        )  # fmt: skip
+
+    async def update_and_get_migration_f24ed_deprecated(
+        self,
+        names: Iterable[str],
+    ) -> list[str]:
+        """Update Attribute Types and return updated AttrType names."""
+        result = await self.__session.scalars(
+            update(AttributeType)
+            .where(qa(AttributeType.name).in_(names))
+            .values({"is_included_anr": True})
+            .returning(qa(AttributeType.name)),
+        )
+        return list(result.all())
 
     async def update_sys_flags_deprecated(
         self,

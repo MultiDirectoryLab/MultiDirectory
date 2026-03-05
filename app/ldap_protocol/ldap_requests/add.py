@@ -160,7 +160,7 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        entity_type = await ctx.entity_type_use_case._entity_type_dao.get_entity_type_by_object_class_names(  # noqa: E501
+        entity_type = await ctx.entity_type_use_case.get_entity_type_by_object_class_names(  # noqa: E501
             object_class_names=self.object_class_names,
         )
         if entity_type and entity_type.name == EntityTypeNames.CONTAINER:

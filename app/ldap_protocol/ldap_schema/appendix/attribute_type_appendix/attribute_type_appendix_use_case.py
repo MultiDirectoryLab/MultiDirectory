@@ -57,44 +57,33 @@ class AttributeTypeUseCaseDeprecated(AbstractService):
     async def delete_table_deprecated(self) -> None:
         await self._attribute_type_dao_depr.delete_table_deprecated()
 
+    async def zero_all_replicated_flags_deprecated(self) -> None:
+        """Set replication flag to False for all Attribute Types."""
+        await self._attribute_type_dao_depr.zero_all_replicated_flags_deprecated()  # noqa: E501
+
+    async def set_attrs_replication_flag_deprecated(
+        self,
+        names: tuple[str, ...],
+        need_to_replicate: bool,
+    ) -> None:
+        """Set replication flag in systemFlags."""
+        await self._attribute_type_dao_depr.set_attrs_replication_flag_deprecated(  # noqa: E501
+            names,
+            need_to_replicate,
+        )
+
     async def update_and_get_migration_f24ed_deprecated(
         self,
         names: Iterable[str],
-    ) -> list[AttributeTypeDTO]:
+    ) -> list[str]:
         """Update Attribute Types and return updated DTOs."""
-        attribute_types = (
-            await self._attribute_type_dao_depr.get_all_by_names_deprecated(
-                list(names),
-            )
+        return await self._attribute_type_dao_depr.update_and_get_migration_f24ed_deprecated(  # noqa: E501
+            names,
         )
-        for at in attribute_types:
-            at.is_included_anr = True
-            await self._attribute_type_dao_depr.update_deprecated(at.name, at)
-        return attribute_types
-
-    async def zero_all_replicated_flags_deprecated(self) -> None:
-        """Set replication flag to False for all Attribute Types."""
-        attribute_types = (
-            await self._attribute_type_dao_depr.get_all_deprecated()
-        )
-        for at in attribute_types:
-            at = self._attribute_type_system_flags_use_case.set_attr_replication_flag(  # noqa: E501
-                at,
-                need_to_replicate=True,
-            )
-            await self._attribute_type_dao_depr.update_sys_flags_deprecated(
-                at.name,
-                at,
-            )
 
     async def false_all_is_included_anr_deprecated(self) -> None:
         """Set is_included_anr to False for all Attribute Types."""
-        attribute_types = (
-            await self._attribute_type_dao_depr.get_all_deprecated()
-        )
-        for at in attribute_types:
-            at.is_included_anr = False
-            await self._attribute_type_dao_depr.update_deprecated(at.name, at)
+        await self._attribute_type_dao_depr.false_all_is_included_anr_deprecated()  # noqa: E501
 
     async def get_all_raw_by_names_deprecated(
         self,

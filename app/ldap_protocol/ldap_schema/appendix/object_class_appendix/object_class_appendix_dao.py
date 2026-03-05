@@ -84,20 +84,26 @@ class ObjectClassDAODeprecated:
                     .where(qa(AttributeType.name).in_(dto.attribute_types_must)),
                 )  # fmt: skip
                 attribute_types_must = list(res.all())
-
             else:
                 attribute_types_must = []
 
             if attribute_types_may_filtered:
                 res = await self.__session.scalars(
                     select(AttributeType)
-                    .where(
-                        qa(AttributeType.name).in_(attribute_types_may_filtered),
-                    ),
+                    .where(qa(AttributeType.name).in_(attribute_types_may_filtered)),
                 )  # fmt: skip
                 attribute_types_may = list(res.all())
             else:
                 attribute_types_may = []
+
+            # TODO uncomment
+            # if len(attribute_types_may_filtered) != len(
+            #     attribute_types_may,
+            # ) or len(dto.attribute_types_must) != len(attribute_types_must):
+            #     raise ObjectClassNotFoundError(
+            #         "Not all Attribute Types specified in Object Class "
+            #         "definition found in schema.",
+            #     )
 
             object_class = ObjectClass(
                 oid=dto.oid,

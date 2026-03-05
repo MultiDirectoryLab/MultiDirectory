@@ -72,7 +72,7 @@ async def test_ldap3_parse_object_classes(
         object_class_info = RDParser.get_object_class_info(
             raw_definition=raw_definition,
         )
-        object_class_dto = await RDParser.collect_object_class_dto_from_raw(
+        object_class_dto = await RDParser.collect_object_class_dto_from_info(
             object_class_info=object_class_info,
         )
 

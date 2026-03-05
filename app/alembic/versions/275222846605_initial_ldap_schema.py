@@ -363,7 +363,7 @@ def upgrade(container: AsyncContainer) -> None:
             oc_already_created_oids.add(object_class_info.oid)
 
             object_class_dto = (
-                await RDParser.collect_object_class_dto_from_raw(
+                await RDParser.collect_object_class_dto_from_info(
                     object_class_info=object_class_info,
                 )
             )
@@ -386,7 +386,7 @@ def upgrade(container: AsyncContainer) -> None:
                 continue
 
             object_class_dto = (
-                await RDParser.collect_object_class_dto_from_raw(
+                await RDParser.collect_object_class_dto_from_info(
                     object_class_info=object_class_info,
                 )
             )

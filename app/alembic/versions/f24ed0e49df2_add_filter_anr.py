@@ -49,7 +49,9 @@ def upgrade(container: AsyncContainer) -> None:
         sa.Column("is_included_anr", sa.Boolean(), nullable=True),
     )
 
-    async def _set_attr_replication_flag1(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename. зачем тут два метода?
+    async def _false_all_is_included_anr_deprecated(
+        connection: AsyncConnection,  # noqa: ARG001
+    ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
@@ -57,7 +59,7 @@ def upgrade(container: AsyncContainer) -> None:
         await at_type_use_case.false_all_is_included_anr_deprecated()
         await session.flush()
 
-    op.run_async(_set_attr_replication_flag1)
+    op.run_async(_false_all_is_included_anr_deprecated)
 
     op.alter_column("AttributeTypes", "is_included_anr", nullable=False)
 
@@ -68,24 +70,26 @@ def upgrade(container: AsyncContainer) -> None:
         nullable=True,
     )
 
-    async def _set_attr_replication_flag2(connection: AsyncConnection) -> None:  # noqa: ARG001  # TODO rename. зачем тут два метода?
+    async def _update_and_get_migration_f24ed_deprecated(
+        connection: AsyncConnection,  # noqa: ARG001
+    ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
 
-        len_updated_attrs = (
+        len_updated_attrs = len(
             await at_type_use_case.update_and_get_migration_f24ed_deprecated(
                 _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES,
-            )
+            ),
         )
-        await session.flush()
-
-        if len(len_updated_attrs) != len(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES):
+        if len_updated_attrs != len(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES):
             raise ValueError(
                 "Not all expected attributes were found in the DB.",
             )
 
-    op.run_async(_set_attr_replication_flag2)
+        await session.flush()
+
+    op.run_async(_update_and_get_migration_f24ed_deprecated)
 
     session.commit()
 

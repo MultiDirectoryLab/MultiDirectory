@@ -6,10 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Iterable
 
-from entities_appendix import ObjectClass
 from ldap3.protocol.rfc4512 import AttributeTypeInfo, ObjectClassInfo
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 
@@ -25,6 +22,7 @@ class RawDefinitionParser:
         data = list(data)
         if len(data) == 1:
             return data[0]
+
         raise ValueError("Data is not a single element list")
 
     @staticmethod
@@ -37,24 +35,6 @@ class RawDefinitionParser:
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
         return RawDefinitionParser._list_to_string(tmp.values())
 
-    @staticmethod  # TODO это надо уносить отсюда в DAO, и проверки делать только в DAO  # noqa: E501
-    async def _is_all_attribute_types_exists(
-        session: AsyncSession,
-        names: list[str],
-    ) -> bool:
-        return True
-        # TODO эту проверку в dao по созданию унести
-        # query = await session.execute(
-        #     select(AttributeType)
-        #     .where(qa(AttributeType.name).in_(names)),
-        # )  # fmt: skip
-        # qwe = query.scalars().all()
-        # print("\n\n\nSOSI")
-        # print(len(qwe), qwe)
-        # names = [n for n in names if "ms" not in n.lower()]
-        # print(len(names), names)
-        # return bool(len(list(qwe)) == len(names))
-
     @staticmethod
     def collect_attribute_type_dto_from_raw(
         raw_definition: str,
@@ -63,9 +43,13 @@ class RawDefinitionParser:
             raw_definition=raw_definition,
         )
 
+        name = RawDefinitionParser._list_to_string(attribute_type_info.name)
+        if not name:
+            raise ValueError("Attribute Type name is required")
+
         return AttributeTypeDTO(
             oid=attribute_type_info.oid,
-            name=RawDefinitionParser._list_to_string(attribute_type_info.name),  # type: ignore[arg-type]
+            name=name,
             syntax=attribute_type_info.syntax,
             single_value=attribute_type_info.single_value,
             no_user_modification=attribute_type_info.no_user_modification,
@@ -74,58 +58,21 @@ class RawDefinitionParser:
             is_included_anr=False,
         )
 
-    @staticmethod  # TODO это надо уносить отсюда в DAO, и проверки делать только в DAO  # noqa: E501
-    async def _get_object_class_by_name(
-        object_class_name: str | None,
-        session: AsyncSession,
-    ) -> ObjectClass | None:
-        if not object_class_name:
-            return None
-
-        dir_= await session.scalar(
-            select(ObjectClass)
-            .filter_by(name=object_class_name),
-        )  # fmt: skip
-        if not dir_:
-            raise
-
-        return dir_
-
     @staticmethod
-    async def collect_object_class_dto_from_raw(
+    async def collect_object_class_dto_from_info(
         object_class_info: ObjectClassInfo,
     ) -> ObjectClassDTO:
         """Create Object Class by ObjectClassInfo."""
-        # TODO эту проверку в dao по созданию унести
-        # superior_object_class = (
-        #     await RawDefinitionParser._get_object_class_by_name(
-        #         superior_name,
-        #         session,
-        #     )
-        # )
+        name = RawDefinitionParser._list_to_string(object_class_info.name)
+        if not name:
+            raise ValueError("Attribute Type name is required")
 
-        # TODO эту проверку в dao по созданию унести
-        # if not await RawDefinitionParser._is_all_attribute_types_exists(
-        #     session,
-        #     object_class_info.must_contain,
-        # ):
-        #     raise
-
-        # TODO эту проверку в dao по созданию унести
-        # if not await RawDefinitionParser._is_all_attribute_types_exists(
-        #     session,
-        #     object_class_info.may_contain,
-        # ):
-        #     raise
-
-        object_class = ObjectClassDTO(
+        return ObjectClassDTO(
             oid=object_class_info.oid,
-            name=RawDefinitionParser._list_to_string(object_class_info.name),  # type: ignore[arg-type]
+            name=name,
             superior_name=RawDefinitionParser._list_to_string(object_class_info.superior),
             kind=object_class_info.kind,
             is_system=True,
             attribute_types_must=object_class_info.must_contain,
             attribute_types_may=object_class_info.may_contain,
         )  # fmt: skip
-
-        return object_class
