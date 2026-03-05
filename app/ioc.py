@@ -307,10 +307,13 @@ class MainProvider(Provider):
         self,
         dns_state_gateway: DNSStateGateway,
         settings: Settings,
+        root_dse_gw: DomainReadProtocol,
     ) -> AsyncIterator[DNSSettingsDTO]:
         """Get DNS manager's settings."""
+        domain = await root_dse_gw.get_domain()
         dns_settings = await dns_state_gateway.get_dns_manager_settings(
             settings,
+            domain.name,
         )
         yield dns_settings
 

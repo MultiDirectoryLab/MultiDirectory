@@ -14,7 +14,10 @@ from ldap_protocol.dns.clients import (
     PowerDNSDistClient,
     PowerDNSRecursorHTTPClient,
 )
-from ldap_protocol.dns.constants import DNS_FIRST_SETUP_RECORDS
+from ldap_protocol.dns.constants import (
+    DEFAULT_FORWARD_ZONE_NAMES,
+    DNS_FIRST_SETUP_RECORDS,
+)
 from ldap_protocol.dns.dto import (
     DNSForwardServerStatus,
     DNSForwardZoneDTO,
@@ -225,7 +228,14 @@ class PowerDNSManager(AbstractDNSManager):
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Retrieve all forward DNS zones."""
         try:
-            return await self._power_dns_recursor_client.get_forward_zones()
+            forward_zones = (
+                await self._power_dns_recursor_client.get_forward_zones()
+            )
+            return [
+                zone
+                for zone in forward_zones
+                if zone.name not in DEFAULT_FORWARD_ZONE_NAMES
+            ]
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 

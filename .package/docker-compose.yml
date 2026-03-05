@@ -411,7 +411,7 @@ services:
       - 53/tcp
     volumes:
       - dns_lmdb:/var/lib/pdns-lmdb
-      - dns_config:/etc/powerdns
+      - ./pdns.conf:/etc/powerdns/pdns.conf
 
 
   pdns_recursor:
