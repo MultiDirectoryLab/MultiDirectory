@@ -17,7 +17,6 @@ from api.ldap_schema.schema import (
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
-from entities import Directory
 from enums import KindType
 from ldap_protocol.ldap_schema.dto import ObjectClassDTO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
@@ -59,46 +58,18 @@ _convert_schema_to_dto = get_converter(
 )
 
 
-def _convert_dto_to_schema(
-    dir_or_dto: ObjectClassDTO | Directory,
-) -> ObjectClassSchema[int]:
-    """Map DAO/DTO objects to API schema with explicit attribute name fields."""  # noqa: E501
-    if isinstance(dir_or_dto, Directory):
-        return ObjectClassSchema(
-            oid=dir_or_dto.attributes_dict.get("oid")[0],  # type: ignore
-            name=dir_or_dto.name,
-            superior_name=dir_or_dto.attributes_dict.get("superior_name")[0],  # type: ignore
-            kind=dir_or_dto.attributes_dict.get("kind")[0],  # type: ignore
-            is_system=dir_or_dto.is_system,
-            attribute_type_names_must=dir_or_dto.attributes_dict.get(
-                "attribute_types_must",
-                [],
-            ),
-            attribute_type_names_may=dir_or_dto.attributes_dict.get(
-                "attribute_types_may",
-                [],
-            ),
-            id=dir_or_dto.id,
-            entity_type_names=set(),  # TODO
-        )
-
-    attr_type_names_must = [
-        getattr(attr, "name", attr) for attr in dir_or_dto.attribute_types_must
-    ]
-    attr_type_names_may = [
-        getattr(attr, "name", attr) for attr in dir_or_dto.attribute_types_may
-    ]
-
+def _convert_dto_to_schema(dto: ObjectClassDTO) -> ObjectClassSchema[int]:
+    """Map DTO object to API schema with explicit attribute name fields."""
     return ObjectClassSchema(
-        oid=dir_or_dto.oid,
-        name=dir_or_dto.name,
-        superior_name=dir_or_dto.superior_name,
-        kind=dir_or_dto.kind,
-        is_system=dir_or_dto.is_system,
-        attribute_type_names_must=attr_type_names_must,
-        attribute_type_names_may=attr_type_names_may,
-        id=dir_or_dto.id,
-        entity_type_names=dir_or_dto.entity_type_names,
+        oid=dto.oid,
+        name=dto.name,
+        superior_name=dto.superior_name,
+        kind=dto.kind,
+        is_system=dto.is_system,
+        attribute_type_names_must=dto.attribute_types_must,
+        attribute_type_names_may=dto.attribute_types_may,
+        id=dto.id,
+        entity_type_names=dto.entity_type_names,
     )
 
 

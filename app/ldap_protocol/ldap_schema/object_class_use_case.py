@@ -138,6 +138,18 @@ class ObjectClassUseCase(AbstractService):
 
     async def update(self, name: str, dto: ObjectClassDTO[None, str]) -> None:
         """Modify Object Class."""
+        dto.attribute_types_must = (
+            await self.__attribute_type_dao.get_all_names_by_names(
+                dto.attribute_types_must,
+            )
+        )
+        dto.attribute_types_may = [
+            name
+            for name in await self.__attribute_type_dao.get_all_names_by_names(
+                dto.attribute_types_may,
+            )
+            if name not in dto.attribute_types_must
+        ]
         await self.__object_class_dao.update(name, dto)
 
     async def delete_all_by_names(self, names: list[str]) -> None:

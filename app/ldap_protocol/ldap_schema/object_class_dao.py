@@ -6,14 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import Iterable, Literal
 
-from adaptix import P
-from adaptix.conversion import (
-    allow_unlinked_optional,
-    get_converter,
-    link_function,
-)
-from entities_appendix import AttributeType, ObjectClass
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -22,22 +15,11 @@ from enums import EntityTypeNames
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 
-from .dto import AttributeTypeDTO, ObjectClassDTO
+from .dto import ObjectClassDTO
 from .exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
 
-_converter = get_converter(
-    ObjectClass,
-    ObjectClassDTO[int, AttributeTypeDTO],
-    recipe=[
-        allow_unlinked_optional(P[ObjectClassDTO].id),
-        allow_unlinked_optional(P[ObjectClassDTO].entity_type_names),
-        allow_unlinked_optional(P[AttributeTypeDTO].object_class_names),
-        link_function(lambda x: x.kind, P[ObjectClassDTO].kind),
-    ],
-)
 
-
-def _converter_new(dir_: Directory) -> ObjectClassDTO[int, str]:
+def _converter(dir_: Directory) -> ObjectClassDTO[int, str]:
     return ObjectClassDTO(
         oid=dir_.attributes_dict.get("oid")[0],  # type: ignore
         name=dir_.name,
@@ -53,7 +35,7 @@ def _converter_new(dir_: Directory) -> ObjectClassDTO[int, str]:
             [],
         ),
         id=dir_.id,
-        entity_type_names=set(),  # TODO
+        entity_type_names=set(),
     )
 
 
@@ -72,32 +54,14 @@ class ObjectClassDAO:
     async def get_all(self) -> list[ObjectClassDTO[int, str]]:
         """Get all Object Classes."""
         return [
-            _converter_new(object_class)
+            _converter(object_class)
             for object_class in await self.__session.scalars(
                 select(Directory)
                 .join(qa(Directory.entity_type))
-                .filter(
-                    qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                )
+                .filter(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS)
                 .options(selectinload(qa(Directory.attributes))),
             )
         ]
-
-    async def get_object_class_names_include_attribute_type1(
-        self,
-        attribute_type_name: str,
-    ) -> set[str]:
-        """Get all Object Class names include Attribute Type name."""
-        result = await self.__session.execute(
-            select(qa(ObjectClass.name))
-            .where(
-                or_(
-                    qa(ObjectClass.attribute_types_must).any(name=attribute_type_name),
-                    qa(ObjectClass.attribute_types_may).any(name=attribute_type_name),
-                ),
-            ),
-        )  # fmt: skip
-        return set(row[0] for row in result.fetchall())
 
     async def get_object_class_names_include_attribute_type(
         self,
@@ -147,7 +111,7 @@ class ObjectClassDAO:
         return await PaginationResult[Directory, ObjectClassDTO].get(
             params=params,
             query=query,
-            converter=_converter_new,
+            converter=_converter,
             session=self.__session,
         )
 
@@ -190,7 +154,8 @@ class ObjectClassDAO:
             raise ObjectClassNotFoundError(
                 f"Object Class with name '{name}' not found.",
             )
-        return _converter_new(dir_)
+
+        return _converter(dir_)
 
     async def get_dir(self, name: str) -> Directory | None:
         res = await self.__session.scalars(
@@ -202,8 +167,7 @@ class ObjectClassDAO:
             )
             .options(selectinload(qa(Directory.attributes))),
         )
-        dir_ = res.first()
-        return dir_
+        return res.first()
 
     async def get_all_by_names(
         self,
@@ -223,7 +187,7 @@ class ObjectClassDAO:
             )
             .options(selectinload(qa(Directory.attributes))),
         )
-        return list(map(_converter_new, query.all()))
+        return list(map(_converter, query.all()))
 
     async def update(self, name: str, dto: ObjectClassDTO[None, str]) -> None:
         """Update Object Class."""
@@ -233,28 +197,32 @@ class ObjectClassDAO:
                 "System Object Class cannot be modified.",
             )
 
-        obj.attribute_types_must.clear()
-        obj.attribute_types_may.clear()
+        await self.__session.execute(
+            delete(Attribute).where(
+                qa(Attribute.directory_id) == obj.id,
+                qa(Attribute.name).in_(
+                    ("attribute_types_must", "attribute_types_may"),
+                ),
+            ),
+        )
 
-        if dto.attribute_types_must:
-            must_query = await self.__session.scalars(
-                select(AttributeType)
-                .where(qa(AttributeType.name).in_(dto.attribute_types_must)),
-            )  # fmt: skip
-            obj.attribute_types_must.extend(must_query.all())
+        for name in dto.attribute_types_may:
+            self.__session.add(
+                Attribute(
+                    directory_id=obj.id,
+                    name="attribute_types_may",
+                    value=name,
+                ),
+            )
 
-        attribute_types_may_filtered = [
-            name
-            for name in dto.attribute_types_may
-            if name not in dto.attribute_types_must
-        ]
-
-        if attribute_types_may_filtered:
-            may_query = await self.__session.scalars(
-                select(AttributeType)
-                .where(qa(AttributeType.name).in_(attribute_types_may_filtered)),
-            )  # fmt: skip
-            obj.attribute_types_may.extend(list(may_query.all()))
+        for name in dto.attribute_types_must:
+            self.__session.add(
+                Attribute(
+                    directory_id=obj.id,
+                    name="attribute_types_must",
+                    value=name,
+                ),
+            )
 
         await self.__session.flush()
 

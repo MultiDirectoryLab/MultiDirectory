@@ -31,7 +31,7 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO:
         system_flags=int(directory.attributes_dict["system_flags"][0]),
         is_included_anr=directory.attributes_dict["is_included_anr"][0]
         == "True",
-        object_class_names=set(),  # TODO
+        object_class_names=set(),
     )
 
 
@@ -47,7 +47,7 @@ class AttributeTypeDAO:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
 
-    async def get_dir(self, name: str) -> Directory | None:
+    async def _get_dir(self, name: str) -> Directory | None:
         res = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
@@ -76,7 +76,7 @@ class AttributeTypeDAO:
 
     async def get_all(self) -> list[AttributeTypeDTO]:
         res = await self.__session.scalars(
-            select(qa(Directory))
+            select(Directory)
             .join(qa(Directory.entity_type))
             .filter(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
         )
@@ -84,11 +84,12 @@ class AttributeTypeDAO:
 
     async def get(self, name: str) -> AttributeTypeDTO:
         """Get Attribute Type by name."""
-        dir_ = await self.get_dir(name)
+        dir_ = await self._get_dir(name)
         if not dir_:
             raise AttributeTypeNotFoundError(
                 f"Attribute Type with name '{name}' not found.",
             )
+
         return _convert_model_to_dto(dir_)
 
     async def update(self, name: str, dto: AttributeTypeDTO) -> None:
@@ -104,15 +105,14 @@ class AttributeTypeDAO:
             can only be modified for non-system attributes to preserve
             LDAP schema integrity.
         """
-        obj = await self.get_dir(name)
-
-        if not obj:
+        dir_ = await self._get_dir(name)
+        if not dir_:
             raise AttributeTypeNotFoundError(
                 f"Attribute Type with name '{name}' not found.",
             )
 
-        for attr in obj.attributes:
-            if not obj.is_system:
+        for attr in dir_.attributes:
+            if not dir_.is_system:
                 if attr.name == "syntax":
                     attr.value = dto.syntax
                 elif attr.name == "single_value":
@@ -122,6 +122,7 @@ class AttributeTypeDAO:
             else:
                 if attr.name == "is_included_anr":
                     attr.value = str(dto.is_included_anr)
+                    break
 
         await self.__session.flush()
 
@@ -131,15 +132,16 @@ class AttributeTypeDAO:
         dto: AttributeTypeDTO,
     ) -> None:
         """Update system flags of Attribute Type."""
-        obj = await self.get_dir(name)
-        if not obj:
+        dir_ = await self._get_dir(name)
+        if not dir_:
             raise AttributeTypeNotFoundError(
                 f"Attribute Type with name '{name}' not found.",
             )
 
-        for attr in obj.attributes:
+        for attr in dir_.attributes:
             if attr.name == "system_flags":
                 attr.value = str(dto.system_flags)
+                break
 
         await self.__session.flush()
 
