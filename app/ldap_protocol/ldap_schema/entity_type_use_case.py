@@ -196,7 +196,7 @@ class EntityTypeUseCase(AbstractService):
                     ),
                 )
 
-            entity_type = await self._entity_type_dao.get_entity_type_by_object_class_names(
+            entity_type = await self._entity_type_dao.get_entity_type_by_object_class_names(  # noqa: E501
                 object_class_names,
             )
 

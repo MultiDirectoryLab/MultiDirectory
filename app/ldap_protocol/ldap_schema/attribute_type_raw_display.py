@@ -1,4 +1,4 @@
-""""""
+"""AttributeTypeRawDisplay."""
 
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 

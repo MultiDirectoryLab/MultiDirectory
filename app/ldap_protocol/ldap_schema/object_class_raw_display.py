@@ -1,4 +1,4 @@
-""""""
+"""ObjectClassRawDisplay."""
 
 from ldap_protocol.ldap_schema.dto import ObjectClassDTO
 

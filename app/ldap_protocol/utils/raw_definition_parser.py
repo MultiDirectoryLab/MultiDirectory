@@ -37,7 +37,7 @@ class RawDefinitionParser:
         tmp = ObjectClassInfo.from_definition(definitions=[raw_definition])
         return RawDefinitionParser._list_to_string(tmp.values())
 
-    @staticmethod  # TODO это надо уносить отсюда в DAO, и проверки делать только в DAO
+    @staticmethod  # TODO это надо уносить отсюда в DAO, и проверки делать только в DAO  # noqa: E501
     async def _is_all_attribute_types_exists(
         session: AsyncSession,
         names: list[str],
@@ -74,7 +74,7 @@ class RawDefinitionParser:
             is_included_anr=False,
         )
 
-    @staticmethod  # TODO это надо уносить отсюда в DAO, и проверки делать только в DAO
+    @staticmethod  # TODO это надо уносить отсюда в DAO, и проверки делать только в DAO  # noqa: E501
     async def _get_object_class_by_name(
         object_class_name: str | None,
         session: AsyncSession,

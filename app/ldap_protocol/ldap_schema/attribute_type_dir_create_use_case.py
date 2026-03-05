@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from constants import CONFIGURATION_DIR_NAME
-from entities import Attribute, Directory, Group
+from entities import Attribute, Directory
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
@@ -56,13 +56,11 @@ class CreateDirectoryLikeAsAttributeTypeUseCase:
     ) -> None:
         """Create data recursively."""
         if not self.__parent:
-            self.__parent = (
-                await self.__session.execute(
-                    select(Directory).where(
-                        qa(Directory.name) == CONFIGURATION_DIR_NAME,
-                    ),
-                )
-            ).one()[0]
+            q = await self.__session.execute(
+                select(Directory)
+                .where(qa(Directory.name) == CONFIGURATION_DIR_NAME),
+            )  # fmt: skip
+            self.__parent = q.one()[0]
 
         dir_ = Directory(
             is_system=is_system,
@@ -129,19 +127,3 @@ class CreateDirectoryLikeAsAttributeTypeUseCase:
             parent_directory=self.__parent,
             directory=dir_,
         )
-
-    async def _get_group(self, name: str) -> Group:
-        """Get group by name.
-
-        :param str name: group name
-        :return Group: group
-        """
-        retval = await self.__session.scalars(
-            select(Group)
-            .join(qa(Group.directory))
-            .filter(
-                qa(Directory.name) == name,
-                qa(Directory.object_class) == "group",
-            ),
-        )
-        return retval.one()
