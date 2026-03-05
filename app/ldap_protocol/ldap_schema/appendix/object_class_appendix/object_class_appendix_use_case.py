@@ -38,4 +38,8 @@ class ObjectClassUseCaseDeprecated(AbstractService):
         """Get Object Class by name without related data."""
         return await self._object_class_dao.get_raw_by_name(name)
 
+    async def delete_table_deprecated(self) -> None:
+        """Delete Object Class table."""
+        await self._object_class_dao.delete_table_deprecated()
+
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {}

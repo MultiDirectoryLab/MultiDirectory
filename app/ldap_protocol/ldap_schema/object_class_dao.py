@@ -53,7 +53,7 @@ def _converter_new(dir_: Directory) -> ObjectClassDTO[int, str]:
             [],
         ),
         id=dir_.id,
-        entity_type_names=set(),  # TODO fix me
+        entity_type_names=set(),  # TODO
     )
 
 

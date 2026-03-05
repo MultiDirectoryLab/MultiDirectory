@@ -13,7 +13,7 @@ from adaptix.conversion import (
     link_function,
 )
 from entities_appendix import AttributeType, ObjectClass
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -175,6 +175,11 @@ class ObjectClassDAODeprecated:
     async def get_raw_by_name(self, name: str) -> ObjectClass:
         """Get Object Class by name without related data."""
         return await self._get_one_raw_by_name(name)
+
+    async def delete_table_deprecated(self) -> None:
+        await self.__session.execute(
+            text('DROP TABLE IF EXISTS "ObjectClasses" CASCADE'),
+        )
 
     async def get(self, name: str) -> ObjectClassDTO[int, AttributeTypeDTO]:
         """Get single Object Class by name.

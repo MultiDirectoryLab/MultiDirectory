@@ -11,6 +11,7 @@ from api.base_adapter import BaseAdapter
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
     BaseLDAPSchemaAdapter,
 )
+from api.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
 from api.ldap_schema.schema import (
     ObjectClassPaginationSchema,
     ObjectClassSchema,
@@ -18,7 +19,6 @@ from api.ldap_schema.schema import (
 )
 from entities import Directory
 from enums import KindType
-from ldap_protocol.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
 from ldap_protocol.ldap_schema.dto import ObjectClassDTO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
 
@@ -79,7 +79,7 @@ def _convert_dto_to_schema(
                 [],
             ),
             id=dir_or_dto.id,
-            entity_type_names=set(),  # TODO fix me
+            entity_type_names=set(),  # TODO
         )
 
     attr_type_names_must = [
