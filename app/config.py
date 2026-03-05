@@ -100,6 +100,15 @@ class Settings(BaseModel):
 
     @computed_field  # type: ignore
     @cached_property
+    def HOST_MACHINE_SHORT_NAME(self) -> str:  # noqa: N802
+        """Host machine name part before the first dot."""
+        value = self.HOST_MACHINE_NAME.strip()
+        if not value:
+            raise ValueError("HOST_MACHINE_NAME is not set or empty")
+        return value.split(".", 1)[0]
+
+    @computed_field  # type: ignore
+    @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
         """Build postgres DSN."""
         return PostgresDsn(

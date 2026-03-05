@@ -65,7 +65,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         domain_controller_data = [
             {
-                "name": settings.HOST_MACHINE_NAME,
+                "name": settings.HOST_MACHINE_SHORT_NAME,
                 "object_class": "computer",
                 "attributes": {
                     "objectClass": ["top"],
@@ -77,7 +77,7 @@ def upgrade(container: AsyncContainer) -> None:
                     "sAMAccountType": [
                         str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
                     ],
-                    "sAMAccountName": [settings.HOST_MACHINE_NAME],
+                    "sAMAccountName": [settings.HOST_MACHINE_SHORT_NAME],
                     "ipHostNumber": [settings.DEFAULT_NAMESERVER],
                 },
             },
@@ -101,7 +101,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         dc = await session.scalar(
             select(Directory).where(
-                qa(Directory.name) == settings.HOST_MACHINE_NAME,
+                qa(Directory.name) == settings.HOST_MACHINE_SHORT_NAME,
             ),
         )
         if not dc:
