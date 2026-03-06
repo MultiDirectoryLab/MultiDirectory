@@ -160,18 +160,7 @@ class PowerDNSDistClient:
         """Add rule to redirect master zone DNS requests to auth server."""
         command = f"""
             addAction(
-                QNameRule("*.{domain}"),
-                PoolAction("master")
-            )
-        """
-        self._send_command(
-            command,
-            expected=DNSdistCommandTypes.GENERIC,
-        )
-
-        command = f"""
-            addAction(
-                QNameRule("{domain}"),
+                QNameSuffixRule("{domain}"),
                 PoolAction("master")
             )
         """
@@ -186,24 +175,21 @@ class PowerDNSDistClient:
 
     def remove_zone_rule(self, domain: str) -> None:
         """Remove redirect rule from dnsdist."""
-        rule_matches = [
-            f"qname=={domain}",
-            f"qname==*.{domain}",
-        ]
-        for rule_match in rule_matches:
-            rules = self._get_all_rules()
-            if not rules.count:
-                DNSdistError(
-                    "Failed to delete existing rule in dnsdist: Not Found",
-                )
+        rules = self._get_all_rules()
+        if not rules.count:
+            raise DNSdistError(
+                "Failed to delete existing rule in dnsdist: Not Found",
+            )
 
-            for rule in rules.rules:
-                if rule.match == rule_match:
-                    command = f"rmRule({rule.id})"
-                    self._send_command(
-                        command,
-                        expected=DNSdistCommandTypes.GENERIC,
-                    )
+        for rule in rules.rules:
+            rule_match = rule.match.split(" ")[-1]
+            domain_match = domain if domain.endswith(".") else f"{domain}."
+            if domain_match == rule_match:
+                command = f"rmRule({rule.id})"
+                self._send_command(
+                    command,
+                    expected=DNSdistCommandTypes.GENERIC,
+                )
 
         self._persist_config()
 
