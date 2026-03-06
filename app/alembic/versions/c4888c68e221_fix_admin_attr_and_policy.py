@@ -28,7 +28,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 

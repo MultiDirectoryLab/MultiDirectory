@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from extra.alembic_utils import temporary_stub_column2
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
     AttributeTypeUseCaseDeprecated,
 )
@@ -38,7 +38,7 @@ _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES = (
 )
 
 
-@temporary_stub_column2("AttributeTypes", "system_flags", sa.Integer())
+@temporary_stub_column("AttributeTypes", "system_flags", sa.Integer())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()

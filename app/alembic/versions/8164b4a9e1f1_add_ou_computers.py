@@ -34,7 +34,7 @@ _OU_COMPUTERS_DATA = {
 }
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     from ldap_protocol.auth.setup_gateway import SetupGateway
@@ -83,7 +83,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_ou_computers)
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 

@@ -41,7 +41,7 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -176,7 +176,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_add_primary_group_id)
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()

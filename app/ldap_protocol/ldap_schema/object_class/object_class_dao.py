@@ -19,7 +19,7 @@ from ..dto import ObjectClassDTO
 from ..exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
 
 
-def _converter(dir_: Directory) -> ObjectClassDTO[int, str]:
+def _convert_model_to_dto(dir_: Directory) -> ObjectClassDTO[int, str]:
     return ObjectClassDTO(
         oid=dir_.attributes_dict.get("oid")[0],  # type: ignore
         name=dir_.name,
@@ -54,7 +54,7 @@ class ObjectClassDAO:
     async def get_all(self) -> list[ObjectClassDTO[int, str]]:
         """Get all Object Classes."""
         return [
-            _converter(object_class)
+            _convert_model_to_dto(object_class)
             for object_class in await self.__session.scalars(
                 select(Directory)
                 .join(qa(Directory.entity_type))
@@ -111,7 +111,7 @@ class ObjectClassDAO:
         return await PaginationResult[Directory, ObjectClassDTO].get(
             params=params,
             query=query,
-            converter=_converter,
+            converter=_convert_model_to_dto,
             session=self.__session,
         )
 
@@ -155,7 +155,7 @@ class ObjectClassDAO:
                 f"Object Class with name '{name}' not found.",
             )
 
-        return _converter(dir_)
+        return _convert_model_to_dto(dir_)
 
     async def get_dir(self, name: str) -> Directory | None:
         res = await self.__session.scalars(
@@ -187,7 +187,7 @@ class ObjectClassDAO:
             )
             .options(selectinload(qa(Directory.attributes))),
         )
-        return list(map(_converter, query.all()))
+        return list(map(_convert_model_to_dto, query.all()))
 
     async def update(self, name: str, dto: ObjectClassDTO[None, str]) -> None:
         """Update Object Class."""

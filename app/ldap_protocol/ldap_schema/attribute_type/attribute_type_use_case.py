@@ -46,9 +46,7 @@ class AttributeTypeUseCase(AbstractService):
     ) -> None:
         """Init AttributeTypeUseCase."""
         self.__attribute_type_dao = attribute_type_dao
-        self.__attribute_type_system_flags_use_case = (
-            attribute_type_system_flags_use_case
-        )
+        self.__attribute_type_system_flags_use_case = attribute_type_system_flags_use_case  # noqa: E501 # fmt: skip
         self.__object_class_dao = object_class_dao
         self.__create_attribute_dir_gateway = create_attribute_dir_use_case
 

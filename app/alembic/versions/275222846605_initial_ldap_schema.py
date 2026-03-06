@@ -52,7 +52,7 @@ depends_on: None | str = None
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
-@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("Directory", "entity_type_id", sa.Integer())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()

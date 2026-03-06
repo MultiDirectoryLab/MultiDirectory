@@ -23,16 +23,12 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO:
         oid=directory.attributes_dict["oid"][0],
         syntax=directory.attributes_dict["syntax"][0],
         single_value=directory.attributes_dict["single_value"][0] == "True",
-        no_user_modification=directory.attributes_dict["no_user_modification"][
-            0
-        ]
-        == "True",
+        no_user_modification=directory.attributes_dict["no_user_modification"][0] == "True",  # noqa: E501
         is_system=directory.is_system,
         system_flags=int(directory.attributes_dict["system_flags"][0]),
-        is_included_anr=directory.attributes_dict["is_included_anr"][0]
-        == "True",
+        is_included_anr=directory.attributes_dict["is_included_anr"][0] == "True",  # noqa: E501
         object_class_names=set(),
-    )
+    )  # fmt: skip
 
 
 class AttributeTypeDAO:
@@ -40,10 +36,7 @@ class AttributeTypeDAO:
 
     __session: AsyncSession
 
-    def __init__(
-        self,
-        session: AsyncSession,
-    ) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
 
@@ -60,10 +53,7 @@ class AttributeTypeDAO:
         dir_ = res.first()
         return dir_
 
-    async def get_all_names_by_names(
-        self,
-        names: list[str],
-    ) -> list[str]:
+    async def get_all_names_by_names(self, names: list[str]) -> list[str]:
         res = await self.__session.scalars(
             select(qa(Directory.name))
             .join(qa(Directory.entity_type))
