@@ -4,12 +4,22 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .gateways import RIDManagerGateway, RIDManagerSetupGateway
-from .use_cases import RIDManagerSetupUseCase, RIDManagerUseCase
+from .object_sid_gateway import ObjectSIDGateway
+from .object_sid_use_case import ObjectSIDUseCase
+from .rid_manager_gateway import RIDManagerGateway
+from .rid_manager_use_case import RIDManagerUseCase
+from .rid_set_gateway import RIDSetGateway
+from .rid_set_use_case import RIDSetUseCase
+from .setup_gateway import RIDManagerSetupGateway
+from .setup_use_case import RIDManagerSetupUseCase
 
 __all__ = [
+    "ObjectSIDGateway",
+    "ObjectSIDUseCase",
     "RIDManagerGateway",
     "RIDManagerSetupGateway",
-    "RIDManagerUseCase",
     "RIDManagerSetupUseCase",
+    "RIDManagerUseCase",
+    "RIDSetGateway",
+    "RIDSetUseCase",
 ]

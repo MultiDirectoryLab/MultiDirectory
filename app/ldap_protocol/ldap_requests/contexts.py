@@ -27,7 +27,7 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
 from ldap_protocol.multifactor import LDAPMultiFactorAPI
 from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.rid_manager import RIDManagerUseCase
+from ldap_protocol.rid_manager import ObjectSIDUseCase
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.rootdse.reader import RootDSEReader
@@ -48,7 +48,7 @@ class LDAPAddRequestContext:
     access_manager: AccessManager
     role_use_case: RoleUseCase
     attribute_value_validator: AttributeValueValidator
-    rid_manager_use_case: RIDManagerUseCase
+    object_sid_use_case: ObjectSIDUseCase
 
 
 @dataclass
@@ -65,7 +65,7 @@ class LDAPModifyRequestContext:
     password_use_cases: PasswordPolicyUseCases
     password_utils: PasswordUtils
     attribute_value_validator: AttributeValueValidator
-    rid_manager_use_case: RIDManagerUseCase
+    object_sid_use_case: ObjectSIDUseCase
 
 
 @dataclass

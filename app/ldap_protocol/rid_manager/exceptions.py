@@ -23,6 +23,9 @@ class ErrorCodes(IntEnum):
     RID_OBJECT_SID_NOT_FOUND_ERROR = 12
     RID_BASE_DOMAIN_NOT_FOUND_ERROR = 13
     RID_SYSTEM_CONTAINER_NOT_FOUND_ERROR = 14
+    RID_ALLOCATION_POOL_NOT_FOUND_ERROR = 15
+    RID_PREVIOUS_ALLOCATION_POOL_NOT_FOUND_ERROR = 16
+    RID_POOL_EXCEEDED_ERROR = 17
 
 
 class RIDManagerError(BaseDomainException):
@@ -49,7 +52,7 @@ class RIDManagerAvailablePoolNotFoundError(RIDManagerError):
     code = ErrorCodes.RID_AVAILABLE_POOL_NOT_FOUND_ERROR
 
 
-class RIDManagerNextRIDNotFoundError(RIDManagerError):
+class RIDManagerRidNextRIDNotFoundError(RIDManagerError):
     """RID Manager next RID not found error."""
 
     code = ErrorCodes.RID_NEXT_RID_NOT_FOUND_ERROR
@@ -101,3 +104,21 @@ class RIDManagerSystemContainerNotFoundError(RIDManagerError):
     """RID Manager system container not found error."""
 
     code = ErrorCodes.RID_SYSTEM_CONTAINER_NOT_FOUND_ERROR
+
+
+class RIDManagerRidAllocationPoolNotFoundError(RIDManagerError):
+    """RID Manager RID allocation pool not found error."""
+
+    code = ErrorCodes.RID_ALLOCATION_POOL_NOT_FOUND_ERROR
+
+
+class RIDManagerRidPreviousAllocationPoolNotFoundError(RIDManagerError):
+    """RID Manager RID previous allocation pool not found error."""
+
+    code = ErrorCodes.RID_PREVIOUS_ALLOCATION_POOL_NOT_FOUND_ERROR
+
+
+class RIDManagerPoolExceededError(RIDManagerError):
+    """RID Manager pool exceeded error."""
+
+    code = ErrorCodes.RID_POOL_EXCEEDED_ERROR

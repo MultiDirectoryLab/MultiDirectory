@@ -179,10 +179,14 @@ from ldap_protocol.policies.password.use_cases import (
     UserPasswordHistoryUseCases,
 )
 from ldap_protocol.rid_manager import (
+    ObjectSIDGateway,
+    ObjectSIDUseCase,
     RIDManagerGateway,
     RIDManagerSetupGateway,
     RIDManagerSetupUseCase,
     RIDManagerUseCase,
+    RIDSetGateway,
+    RIDSetUseCase,
 )
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -657,6 +661,10 @@ class MainProvider(Provider):
         RIDManagerSetupUseCase,
         scope=Scope.REQUEST,
     )
+    object_sid_gateway = provide(ObjectSIDGateway, scope=Scope.REQUEST)
+    object_sid_use_case = provide(ObjectSIDUseCase, scope=Scope.REQUEST)
+    rid_set_gateway = provide(RIDSetGateway, scope=Scope.REQUEST)
+    rid_set_use_case = provide(RIDSetUseCase, scope=Scope.REQUEST)
 
 
 class LDAPContextProvider(Provider):

@@ -20,7 +20,7 @@ from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
-from ldap_protocol.rid_manager.use_cases import RIDManagerUseCase
+from ldap_protocol.rid_manager import ObjectSIDUseCase
 from ldap_protocol.utils.async_cache import base_directories_cache
 from ldap_protocol.utils.queries import get_domain_object_class
 from password_utils import PasswordUtils
@@ -37,7 +37,7 @@ class SetupGateway:
         entity_type_use_case: EntityTypeUseCase,
         attribute_value_validator: AttributeValueValidator,
         directory_dao: DirectoryDAO,
-        rid_manager_use_case: RIDManagerUseCase,
+        object_sid_use_case: ObjectSIDUseCase,
     ) -> None:
         """Initialize Setup use case.
 
@@ -50,7 +50,7 @@ class SetupGateway:
         self._entity_type_use_case = entity_type_use_case
         self._attribute_value_validator = attribute_value_validator
         self._directory_dao = directory_dao
-        self._rid_manager_use_case = rid_manager_use_case
+        self._object_sid_use_case = object_sid_use_case
 
     async def is_setup(self) -> bool:
         """Check if setup is performed.
@@ -174,7 +174,7 @@ class SetupGateway:
         )
 
         if "objectSid" in data:
-            await self._rid_manager_use_case.set_object_sid(
+            await self._object_sid_use_case.add(
                 directory=dir_,
                 rid=int(data["objectSid"]),
                 sid_prefix=SidPrefix.BUILT_IN_DOMAIN,

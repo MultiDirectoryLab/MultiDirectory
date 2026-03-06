@@ -44,7 +44,7 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.rid_manager.use_cases import RIDManagerSetupUseCase
+from ldap_protocol.rid_manager import RIDManagerSetupUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import create_integer_hash, ft_now
 

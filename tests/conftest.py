@@ -175,13 +175,15 @@ from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     UserPasswordHistoryUseCases,
 )
-from ldap_protocol.rid_manager.gateways import (
+from ldap_protocol.rid_manager import (
+    ObjectSIDGateway,
+    ObjectSIDUseCase,
     RIDManagerGateway,
     RIDManagerSetupGateway,
-)
-from ldap_protocol.rid_manager.use_cases import (
     RIDManagerSetupUseCase,
     RIDManagerUseCase,
+    RIDSetGateway,
+    RIDSetUseCase,
 )
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -838,6 +840,10 @@ class TestProvider(Provider):
         RIDManagerSetupUseCase,
         scope=Scope.REQUEST,
     )
+    object_sid_gateway = provide(ObjectSIDGateway, scope=Scope.REQUEST)
+    object_sid_use_case = provide(ObjectSIDUseCase, scope=Scope.REQUEST)
+    rid_set_gateway = provide(RIDSetGateway, scope=Scope.REQUEST)
+    rid_set_use_case = provide(RIDSetUseCase, scope=Scope.REQUEST)
 
 
 @dataclass
@@ -1130,11 +1136,32 @@ async def setup_session(
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
+    rid_manager_use_case = RIDManagerUseCase(
+        rid_manager_gateway,
+        session,
+    )
+    rid_set_gateway = RIDSetGateway(session)
+
+    rid_set_use_case = RIDSetUseCase(
+        rid_set_gateway,
+        entity_type_dao,
+        session,
+        rid_manager_use_case,
+    )
+    object_sid_gateway = ObjectSIDGateway(session)
+    object_sid_use_case = ObjectSIDUseCase(
+        object_sid_gateway,
+        rid_set_use_case,
+        session,
+        rid_manager_use_case,
+    )
     rid_manager_setup_use_case = RIDManagerSetupUseCase(
         rid_manager_setup_gateway=rid_manager_setup_gateway,
         role_use_case=role_use_case,
+        rid_set_use_case=rid_set_use_case,
         access_control_entry_dao=AccessControlEntryDAO(session),
         settings=settings,
+        rid_manager_use_case=rid_manager_use_case,
     )
     setup_gateway = SetupGateway(
         session,
@@ -1142,7 +1169,7 @@ async def setup_session(
         entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
         directory_dao=directory_dao,
-        rid_manager_use_case=rid_manager_use_case,
+        object_sid_use_case=object_sid_use_case,
     )
     for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
         await entity_type_use_case.create_not_safe(entity_type_dto)

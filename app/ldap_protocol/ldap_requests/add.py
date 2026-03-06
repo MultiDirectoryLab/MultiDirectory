@@ -213,7 +213,7 @@ class AddRequest(BaseRequest):
             ctx.session.add(new_dir)
 
             await ctx.session.flush()
-            await ctx.rid_manager_use_case.set_object_sid(
+            await ctx.object_sid_use_case.add(
                 directory=new_dir,
             )
             await ctx.session.flush()
