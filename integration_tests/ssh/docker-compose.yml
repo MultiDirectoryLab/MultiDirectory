@@ -10,9 +10,14 @@ services:
     environment:
       DOMAIN: md.multifactor.dev
       DEBUG: 1
+      PDNS_API_KEY: testkey123
+      PDNS_DIST_KEY: testkey123
+      DEFAULT_NAMESERVER: 127.0.0.1
+      HOST_MACHINE_NAME: DC1
       POSTGRES_USER: user
       POSTGRES_PASSWORD: test_pwd
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
+      POSTGRES_HOST: postgres
     command: python multidirectory.py --migrate
     depends_on:
       postgres:
