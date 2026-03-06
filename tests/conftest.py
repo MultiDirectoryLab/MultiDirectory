@@ -353,16 +353,32 @@ class TestProvider(Provider):
         AttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
-    attribute_type_use_case_legacy = provide(
-        AttributeTypeUseCaseLegacy,
-        scope=Scope.REQUEST,
-    )
+
+    @provide(scope=Scope.REQUEST)
+    def get_attribute_type_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeUseCaseLegacy:
+        """Legacy attribute type use case bound to a single session."""
+        at_dao_legacy = AttributeTypeDAOLegacy(session=session)
+        return AttributeTypeUseCaseLegacy(
+            attribute_type_dao_legacy=at_dao_legacy,
+        )
 
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
-    object_class_use_case_legacy = provide(
-        ObjectClassUseCaseLegacy,
-        scope=Scope.REQUEST,
-    )
+
+    @provide(scope=Scope.REQUEST)
+    def get_object_class_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassUseCaseLegacy:
+        """Legacy object class use case bound to a single session for all DAOs."""
+        at_dao_legacy = AttributeTypeDAOLegacy(session=session)
+        oc_dao_legacy = ObjectClassDAOLegacy(session=session)
+        return ObjectClassUseCaseLegacy(
+            attribute_type_dao_legacy=at_dao_legacy,
+            object_class_dao_legacy=oc_dao_legacy,
+        )
 
     user_password_history_use_cases = provide(
         UserPasswordHistoryUseCases,
@@ -1006,10 +1022,11 @@ async def setup_session(
     attribute_type_dao = AttributeTypeDAO(session)
     attribute_type_system_flags_use_case = AttributeTypeSystemFlagsUseCase()
     object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
+    attribute_type_dao_legacy = AttributeTypeDAOLegacy(session=session)
     object_class_use_case_legacy = ObjectClassUseCaseLegacy(
+        attribute_type_dao_legacy=attribute_type_dao_legacy,
         object_class_dao_legacy=object_class_dao_legacy,
     )
-    attribute_type_dao_legacy = AttributeTypeDAOLegacy(session)
     attribute_type_use_case_legacy = AttributeTypeUseCaseLegacy(
         attribute_type_dao_legacy=attribute_type_dao_legacy,
     )

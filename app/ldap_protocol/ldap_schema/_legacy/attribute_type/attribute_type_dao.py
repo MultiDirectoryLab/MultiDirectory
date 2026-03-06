@@ -4,8 +4,6 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Sequence
-
 from adaptix import P
 from adaptix.conversion import (
     allow_unlinked_optional,
@@ -138,10 +136,10 @@ class AttributeTypeDAOLegacy:
     async def get_all_raw_by_names(
         self,
         names: list[str],
-    ) -> Sequence[AttributeType]:
+    ) -> list[AttributeType]:
         """Get list of Attribute Types by names."""
         res = await self.__session.scalars(
             select(AttributeType)
             .where(qa(AttributeType.name).in_(names)),
         )  # fmt: skip
-        return res.all()
+        return list(res.all())

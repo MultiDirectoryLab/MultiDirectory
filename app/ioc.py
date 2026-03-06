@@ -556,10 +556,17 @@ class MainProvider(Provider):
         AttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
-    attribute_type_use_case_deprecated = provide(
-        AttributeTypeUseCaseLegacy,
-        scope=Scope.REQUEST,
-    )
+
+    @provide(scope=Scope.REQUEST)
+    def get_attribute_type_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeUseCaseLegacy:
+        """Legacy attribute type use case on a single session."""
+        at_dao_legacy = AttributeTypeDAOLegacy(session)
+        return AttributeTypeUseCaseLegacy(
+            attribute_type_dao_legacy=at_dao_legacy,
+        )
 
     create_attribute_dir_gateway = provide(
         CreateDirectoryLikeAsAttributeTypeUseCase,
@@ -570,10 +577,19 @@ class MainProvider(Provider):
         scope=Scope.REQUEST,
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
-    object_class_use_case_deprecated = provide(
-        ObjectClassUseCaseLegacy,
-        scope=Scope.REQUEST,
-    )
+
+    @provide(scope=Scope.REQUEST)
+    def get_object_class_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassUseCaseLegacy:
+        """Legacy object class use case sharing one session for all DAOs."""
+        at_dao_legacy = AttributeTypeDAOLegacy(session)
+        oc_dao_legacy = ObjectClassDAOLegacy(session)
+        return ObjectClassUseCaseLegacy(
+            object_class_dao_legacy=oc_dao_legacy,
+            attribute_type_dao_legacy=at_dao_legacy,
+        )
 
     user_password_history_use_cases = provide(
         UserPasswordHistoryUseCases,

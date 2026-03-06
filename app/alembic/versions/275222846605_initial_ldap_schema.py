@@ -393,12 +393,13 @@ def upgrade(container: AsyncContainer) -> None:
     async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+            attribute_type_dao_legacy = AttributeTypeDAOLegacy(session=session)
             object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
-            attribute_type_dao_legacy = AttributeTypeDAOLegacy(session)
             attribute_type_use_case = AttributeTypeUseCaseLegacy(
                 attribute_type_dao_legacy=attribute_type_dao_legacy,
             )
             object_class_use_case = ObjectClassUseCaseLegacy(
+                attribute_type_dao_legacy=attribute_type_dao_legacy,
                 object_class_dao_legacy=object_class_dao_legacy,
             )
 

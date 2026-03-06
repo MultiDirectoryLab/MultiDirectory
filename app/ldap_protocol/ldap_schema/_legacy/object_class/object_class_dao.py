@@ -4,6 +4,8 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from dataclasses import dataclass
+
 from adaptix import P
 from adaptix.conversion import (
     allow_unlinked_optional,
@@ -16,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from enums import KindType
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
@@ -33,6 +36,19 @@ _convert_model_to_dto = get_converter(
         link_function(lambda x: x.kind, P[ObjectClassDTO].kind),
     ],
 )
+
+
+@dataclass
+class ObjectClassCreateDTO:
+    """Object Class DTO."""
+
+    oid: str
+    name: str
+    kind: KindType
+    is_system: bool
+    attribute_types_must: list[AttributeType]
+    attribute_types_may: list[AttributeType]
+    superior: ObjectClass | None = None
 
 
 class ObjectClassDAOLegacy:
@@ -57,55 +73,18 @@ class ObjectClassDAOLegacy:
 
     async def create(
         self,
-        dto: ObjectClassDTO[None, str],
+        dto: ObjectClassCreateDTO,
     ) -> None:
         """Create a new Object Class."""
         try:
-            superior = None
-            if dto.superior_name:
-                superior = await self.__session.scalar(
-                    select(ObjectClass)
-                    .filter_by(name=dto.superior_name),
-                )  # fmt: skip
-
-            if dto.superior_name and not superior:
-                raise ObjectClassNotFoundError(
-                    f"Superior (parent) Object class {dto.superior_name} "
-                    "not found in schema.",
-                )
-
-            attribute_types_may_filtered = [
-                name
-                for name in dto.attribute_types_may
-                if name not in dto.attribute_types_must
-            ]
-
-            if dto.attribute_types_must:
-                res = await self.__session.scalars(
-                    select(AttributeType)
-                    .where(qa(AttributeType.name).in_(dto.attribute_types_must)),
-                )  # fmt: skip
-                attribute_types_must = list(res.all())
-            else:
-                attribute_types_must = []
-
-            if attribute_types_may_filtered:
-                res = await self.__session.scalars(
-                    select(AttributeType)
-                    .where(qa(AttributeType.name).in_(attribute_types_may_filtered)),
-                )  # fmt: skip
-                attribute_types_may = list(res.all())
-            else:
-                attribute_types_may = []
-
             object_class = ObjectClass(
                 oid=dto.oid,
                 name=dto.name,
-                superior=superior,
+                superior=dto.superior,
                 kind=dto.kind,
                 is_system=dto.is_system,
-                attribute_types_must=attribute_types_must,
-                attribute_types_may=attribute_types_may,
+                attribute_types_must=dto.attribute_types_must,
+                attribute_types_may=dto.attribute_types_may,
             )
             self.__session.add(object_class)
             await self.__session.flush()
