@@ -34,12 +34,12 @@ class BindToPDNSMigrationUseCase:
 
     def _strip_record_name(self, record_name: str, zone_name: str) -> str:
         """Strip trash from record name."""
-        if (
-            record_name.startswith(("\\032", "\\@", "\\\\"))
-            and record_name != "\\\\@"
-        ):
-            record_name = record_name.strip("\\").strip("\\032").strip("\\@")
-        elif record_name == "\\\\@":
+        logger.debug(
+            f"Stripping record name '{record_name}' for zone '{zone_name}'",
+        )
+        if record_name.startswith(("\\032", "\\@")) and record_name != "\\@":
+            record_name = record_name.removeprefix("\\032").removeprefix("\\@")
+        elif record_name == "\\@":
             record_name = zone_name
         return (
             record_name if not record_name.startswith(".") else record_name[1:]

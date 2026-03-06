@@ -177,12 +177,14 @@ class PowerDNSDistClient:
         """Remove redirect rule from dnsdist."""
         rules = self._get_all_rules()
         if not rules.count:
-            DNSdistError(
+            raise DNSdistError(
                 "Failed to delete existing rule in dnsdist: Not Found",
             )
 
         for rule in rules.rules:
-            if domain in rule.match:
+            rule_match = rule.match.split(" ")[-1]
+            domain_match = domain if domain.endswith(".") else f"{domain}."
+            if domain_match == rule_match:
                 command = f"rmRule({rule.id})"
                 self._send_command(
                     command,
