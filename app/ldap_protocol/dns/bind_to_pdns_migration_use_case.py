@@ -32,6 +32,19 @@ class BindToPDNSMigrationUseCase:
         self.pdns_manager = pdns_manager
         self.dns_settings = dns_settings
 
+    def _strip_record_name(self, record_name: str, zone_name: str) -> str:
+        """Strip trash from record name."""
+        logger.debug(
+            f"Stripping record name '{record_name}' for zone '{zone_name}'",
+        )
+        if record_name.startswith(("\\032", "\\@")) and record_name != "\\@":
+            record_name = record_name.removeprefix("\\032").removeprefix("\\@")
+        elif record_name == "\\@":
+            record_name = zone_name
+        return (
+            record_name if not record_name.startswith(".") else record_name[1:]
+        )
+
     def parse_bind_config_file(
         self,
     ) -> tuple[list[DNSMasterZoneDTO], list[DNSForwardZoneDTO]]:
@@ -58,12 +71,24 @@ class BindToPDNSMigrationUseCase:
                         ),
                     )
                 elif "type forward" in line:
-                    forward_zones.append(
-                        DNSForwardZoneDTO(
-                            id=zone_name,
-                            name=zone_name,
-                        ),
+                    forward_zone = DNSForwardZoneDTO(
+                        id=zone_name,
+                        name=zone_name,
                     )
+                elif "forwarders" in line and forward_zone:
+                    forwarders_part = line.split("forwarders")[1]
+                    forwarders = [
+                        f
+                        for f in forwarders_part.strip(";")
+                        .strip(" ")
+                        .strip("{")
+                        .strip("}")
+                        .strip(" ")
+                        .split(";")[:-1]
+                    ]
+                    forward_zone.servers = forwarders
+                    forward_zones.append(forward_zone)
+                    forward_zone = None
 
         return master_zones, forward_zones
 
@@ -94,7 +119,7 @@ class BindToPDNSMigrationUseCase:
 
             for name, ttl, rdata in zone_obj.iterate_rdatas():
                 try:
-                    DNSRecordType(rdata.rdtype.name)
+                    record_type = DNSRecordType(rdata.rdtype.name)
                 except ValueError:
                     logger.warning(
                         f"Unsupported DNS record type {rdata.rdtype.name} in zone '{zone.name}'",  # noqa: E501
@@ -103,8 +128,11 @@ class BindToPDNSMigrationUseCase:
 
                 zone_rrsets.append(
                     DNSRRSetDTO(
-                        name=name.to_text(),
-                        type=DNSRecordType(rdata.rdtype.name),
+                        name=self._strip_record_name(
+                            name.to_text(),
+                            zone.name,
+                        ),
+                        type=record_type,
                         records=[
                             DNSRecordDTO(
                                 content=rdata.to_text(),
