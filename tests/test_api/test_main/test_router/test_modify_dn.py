@@ -16,6 +16,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 @pytest.mark.usefixtures("session")
 async def test_api_modify_dn_without_level_change(
     http_client: AsyncClient,
+    session: AsyncSession,
 ) -> None:
     """Test API for updating DN.
 
@@ -41,7 +42,7 @@ async def test_api_modify_dn_without_level_change(
         data["search_result"][0]["object_name"]
         == "ou=testModifyDn1,dc=md,dc=test"
     )
-
+    session.expire_all()
     response = await http_client.put(
         "/entry/update/dn",
         json={

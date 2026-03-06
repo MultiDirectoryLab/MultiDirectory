@@ -1,7 +1,7 @@
 """Add rIDManager and rIDSet objectClasses to LDAP schema.
 
 Revision ID: 552b4eafb1aa
-Revises: 2dadf40c026a
+Revises: 19d86e660cf2
 Create Date: 2026-02-17 09:24:57.906080
 
 """
@@ -32,12 +32,13 @@ from ldap_protocol.rid_manager.exceptions import (
 )
 from ldap_protocol.rid_manager.rid_set_gateway import RIDSetGateway
 from ldap_protocol.rid_manager.utils import from_qword, to_qword
+from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "552b4eafb1aa"
-down_revision: None | str = "2dadf40c026a"
+down_revision: None | str = "19d86e660cf2"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
@@ -173,6 +174,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             rid_manager_use_case = await cnt.get(RIDManagerUseCase)
             rid_set_gateway = await cnt.get(RIDSetGateway)
             rid_set_use_case = await cnt.get(RIDSetUseCase)
+            role_use_case = await cnt.get(RoleUseCase)
 
         if not await get_base_directories(session):
             return
@@ -220,7 +222,13 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
         start_rid = max(max_rid, RIDManagerSetupUseCase.RID_USER_MIN)
 
         qword = to_qword(start_rid, RIDManagerSetupUseCase.RID_AVAILABLE_MAX)
-        await rid_setup_gateway.set_rid_available_pool(rid_manager_dir, qword)
+        await rid_setup_gateway.set_rid_available_pool(domain, qword)
+
+        system_container = await rid_setup_gateway.get_system_container()
+        await role_use_case.inherit_parent_aces(
+            parent_directory=system_container,
+            directory=rid_manager_dir,
+        )
 
         domain_controller = await rid_gateway.get_domain_controller()
         rid_set_dir: Directory | None = None
@@ -236,13 +244,17 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             allocation_pool = await rid_manager_use_case.allocate_pool()
             lower, _ = from_qword(previous_allocation_pool)
 
-            await rid_set_use_case.add(
+            rid_set_dir = await rid_set_use_case.add(
                 domain_controller,
                 RIDSetAllocationParamsDTO(
                     next_rid=lower,
                     allocation_pool=allocation_pool,
                     previous_allocation_pool=previous_allocation_pool,
                 ),
+            )
+            await role_use_case.inherit_parent_aces(
+                parent_directory=domain_controller,
+                directory=rid_set_dir,
             )
             await session.commit()
             return

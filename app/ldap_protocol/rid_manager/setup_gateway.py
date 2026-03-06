@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import secrets
 
-from sqlalchemy import select, update
+from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory
@@ -172,8 +172,24 @@ class RIDManagerSetupGateway:
 
     async def create_domain_identifier(self) -> None:
         """Add domain identifier to domain."""
-        domain = (await get_base_directories(self._session))[0]
+        domain_identifer = await self._session.scalar(
+            select(
+                exists(Attribute),
+            ).where(
+                qa(Attribute.name) == "DomainIdentifier",
+            ),
+        )
 
+        if domain_identifer:
+            return
+        domain = await self._session.scalar(
+            select(Directory).where(
+                qa(Directory.object_class) == "domain",
+                qa(Directory.parent_id).is_(None),
+            ),
+        )
+        if not domain:
+            raise
         self._session.add(
             Attribute(
                 name="DomainIdentifier",

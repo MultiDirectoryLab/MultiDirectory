@@ -1184,7 +1184,7 @@ async def setup_session(
         is_system=False,
     )
     dc_directory = Directory(
-        name=settings.HOST_MACHINE_NAME,
+        name=DOMAIN_CONTROLLERS_OU_NAME,
         object_class="computer",
         is_system=True,
     )
@@ -1810,6 +1810,62 @@ async def rid_manager_use_case(
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
         yield RIDManagerUseCase(rid_manager_gateway, session)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_set_gateway(
+    container: AsyncContainer,
+) -> AsyncIterator[RIDSetGateway]:
+    """Provide RIDSetGateway for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDSetGateway(session)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_set_use_case(
+    container: AsyncContainer,
+    rid_manager_use_case: RIDManagerUseCase,
+    entity_type_dao: EntityTypeDAO,
+    rid_set_gateway: RIDSetGateway,
+) -> AsyncIterator[RIDSetUseCase]:
+    """Provide RIDManagerUseCase for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDSetUseCase(
+            rid_set_gateway,
+            entity_type_dao,
+            session,
+            rid_manager_use_case,
+        )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def object_sid_gateway(
+    container: AsyncContainer,
+) -> AsyncIterator[ObjectSIDGateway]:
+    """Provide ObjectSIDGateway for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield ObjectSIDGateway(session)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def object_sid_use_case(
+    container: AsyncContainer,
+    rid_manager_use_case: RIDManagerUseCase,
+    rid_set_use_case: RIDSetUseCase,
+    object_sid_gateway: ObjectSIDGateway,
+) -> AsyncIterator[ObjectSIDUseCase]:
+    """Provide RIDManagerUseCase for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield ObjectSIDUseCase(
+            object_sid_gateway,
+            rid_set_use_case,
+            session,
+            rid_manager_use_case,
+        )
 
 
 def pytest_configure(config: pytest.Config) -> None:
