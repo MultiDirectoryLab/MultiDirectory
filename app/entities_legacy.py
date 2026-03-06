@@ -1,4 +1,4 @@
-"""Deprecated entities."""
+"""Legacy entities."""
 
 from __future__ import annotations
 

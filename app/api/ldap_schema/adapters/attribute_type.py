@@ -37,7 +37,7 @@ def _convert_update_uschema_to_dto(
     request: AttributeTypeUpdateSchema,
 ) -> AttributeTypeDTO[None]:
     """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
-    return AttributeTypeDTO(
+    return AttributeTypeDTO[None](
         oid="",
         name="",
         syntax=request.syntax,

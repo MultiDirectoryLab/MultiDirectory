@@ -85,25 +85,25 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (  # noqa: E501
-    AttributeTypeDAODeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
+    AttributeTypeDAOLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
-    AttributeTypeUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (  # noqa: E501
-    ObjectClassDAODeprecated,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
+    ObjectClassDAOLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
-    ObjectClassUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
 )
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
 )
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_dir_create_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dir_create_use_case import (  # noqa: E501
     CreateDirectoryLikeAsAttributeTypeUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
@@ -119,7 +119,7 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
-from ldap_protocol.ldap_schema.object_class.object_class_dir_create_use_case import (
+from ldap_protocol.ldap_schema.object_class.object_class_dir_create_use_case import (  # noqa: E501
     CreateDirectoryLikeAsObjectClassUseCase,
 )
 from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
@@ -537,8 +537,8 @@ class MainProvider(Provider):
         scope=Scope.RUNTIME,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
-    attribute_type_dao_deprecated = provide(
-        AttributeTypeDAODeprecated,
+    attribute_type_dao_legacy = provide(
+        AttributeTypeDAOLegacy,
         scope=Scope.REQUEST,
     )
     attribute_type_system_flags_use_case = provide(
@@ -546,8 +546,8 @@ class MainProvider(Provider):
         scope=Scope.REQUEST,
     )
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
-    object_class_dao_deprecated = provide(
-        ObjectClassDAODeprecated,
+    object_class_dao_legacy = provide(
+        ObjectClassDAOLegacy,
         scope=Scope.REQUEST,
     )
 
@@ -557,7 +557,7 @@ class MainProvider(Provider):
         scope=Scope.REQUEST,
     )
     attribute_type_use_case_deprecated = provide(
-        AttributeTypeUseCaseDeprecated,
+        AttributeTypeUseCaseLegacy,
         scope=Scope.REQUEST,
     )
 
@@ -571,7 +571,7 @@ class MainProvider(Provider):
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
     object_class_use_case_deprecated = provide(
-        ObjectClassUseCaseDeprecated,
+        ObjectClassUseCaseLegacy,
         scope=Scope.REQUEST,
     )
 

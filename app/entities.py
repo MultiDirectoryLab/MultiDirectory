@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
 from typing import ClassVar, Literal
 
-from entities_appendix import AttributeType
+from entities_legacy import AttributeType
 
 from enums import (
     AceType,

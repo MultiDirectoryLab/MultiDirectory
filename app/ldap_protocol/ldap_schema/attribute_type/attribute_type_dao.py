@@ -16,7 +16,7 @@ from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 
 
-def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO:
+def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO[int]:
     return AttributeTypeDTO[int](
         id=directory.id,
         name=directory.name,
@@ -44,7 +44,7 @@ class AttributeTypeDAO:
         res = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
-            .filter(
+            .where(
                 qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                 qa(Directory.name) == name,
             )
@@ -57,7 +57,7 @@ class AttributeTypeDAO:
         res = await self.__session.scalars(
             select(qa(Directory.name))
             .join(qa(Directory.entity_type))
-            .filter(
+            .where(
                 qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                 qa(Directory.name).in_(names),
             ),
@@ -68,7 +68,7 @@ class AttributeTypeDAO:
         res = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
-            .filter(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
+            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
         )
         return list(map(_convert_model_to_dto, res.all()))
 
@@ -116,11 +116,7 @@ class AttributeTypeDAO:
 
         await self.__session.flush()
 
-    async def update_sys_flags(
-        self,
-        name: str,
-        dto: AttributeTypeDTO,
-    ) -> None:
+    async def update_sys_flags(self, name: str, dto: AttributeTypeDTO) -> None:
         """Update system flags of Attribute Type."""
         dir_ = await self._get_dir(name)
         if not dir_:
@@ -155,7 +151,7 @@ class AttributeTypeDAO:
         query = (
             select(Directory)
             .join(qa(Directory.entity_type))
-            .filter(*filters)
+            .where(*filters)
             .options(selectinload(qa(Directory.attributes)))
             .order_by(qa(Directory.id))
         )

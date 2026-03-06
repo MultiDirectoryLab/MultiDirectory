@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from typing import Literal, TypeVar, cast
 
-from entities_appendix import AttributeType, ObjectClass
+from entities_legacy import AttributeType, ObjectClass
 from sqlalchemy import (
     Boolean,
     CheckConstraint,

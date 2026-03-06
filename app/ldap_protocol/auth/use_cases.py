@@ -23,11 +23,11 @@ from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     ForbiddenError,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
-    AttributeTypeUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
-    ObjectClassUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
 )
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
@@ -50,9 +50,9 @@ class SetupUseCase:
 
     def __init__(
         self,
-        attribute_type_use_case_depr: AttributeTypeUseCaseDeprecated,
+        attribute_type_use_case_legacy: AttributeTypeUseCaseLegacy,
         attribute_type_use_case: AttributeTypeUseCase,
-        object_class_use_case_depr: ObjectClassUseCaseDeprecated,
+        object_class_use_case_legacy: ObjectClassUseCaseLegacy,
         object_class_use_case: ObjectClassUseCase,
         setup_gateway: SetupGateway,
         entity_type_use_case: EntityTypeUseCase,
@@ -74,9 +74,9 @@ class SetupUseCase:
         self._role_use_case = role_use_case
         self._audit_use_case = audit_use_case
         self._session = session
-        self._attribute_type_use_case_depr = attribute_type_use_case_depr
+        self._attribute_type_use_case_legacy = attribute_type_use_case_legacy
         self._attribute_type_use_case = attribute_type_use_case
-        self._object_class_use_case_depr = object_class_use_case_depr
+        self._object_class_use_case_legacy = object_class_use_case_legacy
         self._object_class_use_case = object_class_use_case
         self._settings = settings
 
@@ -200,13 +200,11 @@ class SetupUseCase:
                 is_system=True,
             )
 
-            attrs = (
-                await self._attribute_type_use_case_depr.get_all_deprecated()
-            )
+            attrs = await self._attribute_type_use_case_legacy.get_all()
             for attr in attrs:
                 await self._attribute_type_use_case.create(attr)
 
-            obj_classes = await self._object_class_use_case_depr.get_all()
+            obj_classes = await self._object_class_use_case_legacy.get_all()
             for obj_class in obj_classes:
                 obj_class.attribute_types_may = [
                     i.name  # type: ignore
@@ -219,8 +217,8 @@ class SetupUseCase:
                 await self._object_class_use_case.create(obj_class)  # type: ignore
 
             # TODO раскомментируй это после того как поправишь роли и вообще ВСЁ сделаешь  # noqa: E501
-            # await self._attribute_type_use_case_depr.delete_table_deprecated()  # noqa: E501, ERA001
-            # await self._object_class_use_case_depr.delete_table_deprecated()  # noqa: E501, ERA001
+            # await self._attribute_type_use_case_legacy.delete_table()  # noqa: E501, ERA001
+            # await self._object_class_use_case_legacy.delete_table()  # noqa: E501, ERA001
 
             await self._password_use_cases.create_default_domain_policy()
 

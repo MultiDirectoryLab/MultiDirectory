@@ -95,17 +95,17 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (  # noqa: E501
-    AttributeTypeDAODeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
+    AttributeTypeDAOLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
-    AttributeTypeUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (  # noqa: E501
-    ObjectClassDAODeprecated,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
+    ObjectClassDAOLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
-    ObjectClassUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
 )
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
@@ -334,14 +334,14 @@ class TestProvider(Provider):
         scope=Scope.REQUEST,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
-    attribute_type_dao_deprecated = provide(
-        AttributeTypeDAODeprecated,
+    attribute_type_dao_legacy = provide(
+        AttributeTypeDAOLegacy,
         scope=Scope.REQUEST,
     )
 
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
-    object_class_dao_deprecated = provide(
-        ObjectClassDAODeprecated,
+    object_class_dao_legacy = provide(
+        ObjectClassDAOLegacy,
         scope=Scope.REQUEST,
     )
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
@@ -353,14 +353,14 @@ class TestProvider(Provider):
         AttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
-    attribute_type_use_case_deprecated = provide(
-        AttributeTypeUseCaseDeprecated,
+    attribute_type_use_case_legacy = provide(
+        AttributeTypeUseCaseLegacy,
         scope=Scope.REQUEST,
     )
 
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
-    object_class_use_case_deprecated = provide(
-        ObjectClassUseCaseDeprecated,
+    object_class_use_case_legacy = provide(
+        ObjectClassUseCaseLegacy,
         scope=Scope.REQUEST,
     )
 
@@ -1005,12 +1005,13 @@ async def setup_session(
     attribute_value_validator = AttributeValueValidator()
     attribute_type_dao = AttributeTypeDAO(session)
     attribute_type_system_flags_use_case = AttributeTypeSystemFlagsUseCase()
-    object_class_dao_deprecated = ObjectClassDAODeprecated(session=session)
-
-    attribute_type_use_case_deprecated = AttributeTypeUseCaseDeprecated(
-        attribute_type_dao_deprecated=AttributeTypeDAODeprecated(session),
-        attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
-        object_class_dao_deprecated=object_class_dao_deprecated,
+    object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
+    object_class_use_case_legacy = ObjectClassUseCaseLegacy(
+        object_class_dao_legacy=object_class_dao_legacy,
+    )
+    attribute_type_dao_legacy = AttributeTypeDAOLegacy(session)
+    attribute_type_use_case_legacy = AttributeTypeUseCaseLegacy(
+        attribute_type_dao_legacy=attribute_type_dao_legacy,
     )
 
     object_class_dao = ObjectClassDAO(session)
@@ -1128,7 +1129,7 @@ async def setup_session(
         "cn",
         "objectClass",
     ):
-        _at = await attribute_type_use_case_deprecated.get_deprecated(
+        _at = await attribute_type_use_case_legacy.get(
             attr_type_name,
         )
         if not _at:
@@ -1150,7 +1151,7 @@ async def setup_session(
         "inetOrgPerson",
         "posixAccount",
     ):
-        _oc_dto = await object_class_dao_deprecated.get(_obj_class_name)
+        _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
         _oc_dto.attribute_types_may = [
             x.name  # type: ignore
             for x in _oc_dto.attribute_types_may

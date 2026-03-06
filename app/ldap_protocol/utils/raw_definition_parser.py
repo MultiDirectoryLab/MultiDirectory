@@ -38,7 +38,7 @@ class RawDefinitionParser:
     @staticmethod
     def collect_attribute_type_dto_from_raw(
         raw_definition: str,
-    ) -> AttributeTypeDTO:
+    ) -> AttributeTypeDTO[None]:
         attribute_type_info = RawDefinitionParser._get_attribute_type_info(
             raw_definition=raw_definition,
         )

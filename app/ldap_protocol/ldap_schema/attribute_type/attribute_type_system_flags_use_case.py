@@ -44,7 +44,7 @@ class AttributeTypeSystemFlagsUseCase:
             & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
         )
 
-    def set_attr_replication_flag(
+    def set_attr_replication(
         self,
         attribute_type_dto: AttributeTypeDTO,
         need_to_replicate: bool,

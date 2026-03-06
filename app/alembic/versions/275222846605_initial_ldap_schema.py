@@ -18,23 +18,17 @@ from sqlalchemy.orm import Session
 
 from entities import Attribute
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_dao import (  # noqa: E501
-    AttributeTypeDAODeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
+    AttributeTypeDAOLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
-    AttributeTypeUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_dao import (  # noqa: E501
-    ObjectClassDAODeprecated,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
+    ObjectClassDAOLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
-    ObjectClassUseCaseDeprecated,
-)
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (
-    AttributeTypeSystemFlagsUseCase,
-)
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.utils.raw_definition_parser import (
@@ -213,13 +207,13 @@ def upgrade(container: AsyncContainer) -> None:
     async def _create_attribute_types2(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
         for oid, name in (
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
         ):
-            await at_type_use_case.create_deprecated(
+            await at_type_use_case.create(
                 AttributeTypeDTO(
                     oid=oid,
                     name=name,
@@ -239,7 +233,7 @@ def upgrade(container: AsyncContainer) -> None:
     async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
         # NOTE: Load attributeTypes into the database
         at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
@@ -312,7 +306,7 @@ def upgrade(container: AsyncContainer) -> None:
             attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(
                 raw_definition=at_raw_definition,
             )
-            await at_type_use_case.create_deprecated(attribute_type_dto)
+            await at_type_use_case.create(attribute_type_dto)
 
         await session.commit()
 
@@ -322,7 +316,7 @@ def upgrade(container: AsyncContainer) -> None:
     async def _create_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            oc_use_case = await cnt.get(ObjectClassUseCaseDeprecated)
+            oc_use_case = await cnt.get(ObjectClassUseCaseLegacy)
 
         oc_already_created_oids = set()
         oc_first_priority_raw_definitions = (
@@ -399,20 +393,13 @@ def upgrade(container: AsyncContainer) -> None:
     async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            object_class_dao_depr = ObjectClassDAODeprecated(session=session)
-            AttributeValueValidator()
-            attribute_type_system_flags_use_case = (
-                AttributeTypeSystemFlagsUseCase()
+            object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
+            attribute_type_dao_legacy = AttributeTypeDAOLegacy(session)
+            attribute_type_use_case = AttributeTypeUseCaseLegacy(
+                attribute_type_dao_legacy=attribute_type_dao_legacy,
             )
-            attribute_type_use_case = AttributeTypeUseCaseDeprecated(
-                attribute_type_dao_deprecated=AttributeTypeDAODeprecated(
-                    session=session,
-                ),
-                attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
-                object_class_dao_deprecated=object_class_dao_depr,
-            )
-            object_class_use_case = ObjectClassUseCaseDeprecated(
-                object_class_dao=object_class_dao_depr,
+            object_class_use_case = ObjectClassUseCaseLegacy(
+                object_class_dao_legacy=object_class_dao_legacy,
             )
 
         for oc_name, at_names in (
@@ -427,7 +414,7 @@ def upgrade(container: AsyncContainer) -> None:
                 continue
 
             attribute_types = (
-                await attribute_type_use_case.get_all_raw_by_names_deprecated(
+                await attribute_type_use_case.get_all_raw_by_names(
                     at_names,
                 )
             )

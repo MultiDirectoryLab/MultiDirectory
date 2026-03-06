@@ -58,7 +58,7 @@ class ObjectClassDAO:
             for object_class in await self.__session.scalars(
                 select(Directory)
                 .join(qa(Directory.entity_type))
-                .filter(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS)
+                .where(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS)
                 .options(selectinload(qa(Directory.attributes))),
             )
         ]
@@ -73,7 +73,7 @@ class ObjectClassDAO:
             .select_from(qa(Directory))
             .join(qa(Directory.entity_type))
             .join(qa(Directory.attributes))
-            .filter(
+            .where(
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
                 qa(Attribute.name).in_(("attribute_types_must","attribute_types_may")),
                 func.lower(qa(Attribute.value)) == attribute_type_name.lower(),
@@ -103,7 +103,7 @@ class ObjectClassDAO:
         query = (
             select(Directory)
             .join(qa(Directory.entity_type))
-            .filter(*filters)
+            .where(*filters)
             .options(selectinload(qa(Directory.attributes)))
             .order_by(qa(Directory.id))
         )
@@ -131,7 +131,7 @@ class ObjectClassDAO:
             select(func.count())
             .select_from(Directory)
             .join(qa(Directory.entity_type))
-            .filter(
+            .where(
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
                 func.lower(qa(Directory.name)).in_(names),
             )
@@ -161,7 +161,7 @@ class ObjectClassDAO:
         res = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
-            .filter(
+            .where(
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
                 qa(Directory.name) == name,
             )
@@ -181,7 +181,7 @@ class ObjectClassDAO:
         query = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
-            .filter(
+            .where(
                 qa(Directory.name).in_(names),
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
             )

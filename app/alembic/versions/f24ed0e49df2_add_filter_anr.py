@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
-    AttributeTypeUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
 
 # revision identifiers, used by Alembic.
@@ -49,17 +49,15 @@ def upgrade(container: AsyncContainer) -> None:
         sa.Column("is_included_anr", sa.Boolean(), nullable=True),
     )
 
-    async def _false_all_is_included_anr_deprecated(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _false_all_is_included_anr(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
+            attribute_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        await at_type_use_case.false_all_is_included_anr_deprecated()
+        await attribute_type_use_case.false_all_is_included_anr()
         await session.flush()
 
-    op.run_async(_false_all_is_included_anr_deprecated)
+    op.run_async(_false_all_is_included_anr)
 
     op.alter_column("AttributeTypes", "is_included_anr", nullable=False)
 
@@ -70,15 +68,13 @@ def upgrade(container: AsyncContainer) -> None:
         nullable=True,
     )
 
-    async def _update_and_get_migration_f24ed_deprecated(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _mark_anr_included(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
+            attribute_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
         len_updated_attrs = len(
-            await at_type_use_case.update_and_get_migration_f24ed_deprecated(
+            await attribute_type_use_case.mark_anr_included_by_attr_names(
                 _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES,
             ),
         )
@@ -89,7 +85,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         await session.flush()
 
-    op.run_async(_update_and_get_migration_f24ed_deprecated)
+    op.run_async(_mark_anr_included)
 
     session.commit()
 

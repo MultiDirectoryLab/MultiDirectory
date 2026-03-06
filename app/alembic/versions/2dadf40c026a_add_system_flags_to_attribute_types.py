@@ -12,8 +12,8 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
-    AttributeTypeUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
 
 # revision identifiers, used by Alembic.
@@ -143,9 +143,9 @@ def upgrade(container: AsyncContainer) -> None:
     async def _zero_all_replicated_flags(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        await at_type_use_case.zero_all_replicated_flags_deprecated()
+        await at_type_use_case.zero_all_replicated_flags()
         await session.commit()
 
     op.run_async(_zero_all_replicated_flags)
@@ -153,9 +153,9 @@ def upgrade(container: AsyncContainer) -> None:
     async def _set_attr_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCaseDeprecated)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        await at_type_use_case.set_attrs_replication_flag_deprecated(
+        await at_type_use_case.set_attrs_replication_flag(
             _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES,
             need_to_replicate=False,
         )

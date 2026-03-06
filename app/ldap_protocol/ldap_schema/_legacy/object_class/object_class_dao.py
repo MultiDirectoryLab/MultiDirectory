@@ -4,16 +4,14 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Iterable, Literal
-
 from adaptix import P
 from adaptix.conversion import (
     allow_unlinked_optional,
     get_converter,
     link_function,
 )
-from entities_appendix import AttributeType, ObjectClass
-from sqlalchemy import func, select, text
+from entities_legacy import AttributeType, ObjectClass
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -25,7 +23,7 @@ from ldap_protocol.ldap_schema.exceptions import (
 )
 from repo.pg.tables import queryable_attr as qa
 
-_converter = get_converter(
+_convert_model_to_dto = get_converter(
     ObjectClass,
     ObjectClassDTO[int, AttributeTypeDTO],
     recipe=[
@@ -37,8 +35,10 @@ _converter = get_converter(
 )
 
 
-class ObjectClassDAODeprecated:
+class ObjectClassDAOLegacy:
     """Object Class DAO."""
+
+    __session: AsyncSession
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Object Class DAO with session."""
@@ -53,7 +53,7 @@ class ObjectClassDAODeprecated:
                 selectinload(qa(ObjectClass.attribute_types_must)),
             ),
         )  # fmt: skip
-        return [_converter(object_class) for object_class in obj_classes]
+        return list(map(_convert_model_to_dto, obj_classes.all()))
 
     async def create(
         self,
@@ -115,41 +115,8 @@ class ObjectClassDAODeprecated:
                 + f" '{dto.name}' already exists.",
             )
 
-    async def is_all_object_classes_exists(
-        self,
-        names: Iterable[str],
-    ) -> Literal[True]:
-        """Check if all Object Classes exist.
-
-        :param list[str] names: Object Class names.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return bool.
-        """
-        names = set(object_class.lower() for object_class in names)
-
-        count_query = (
-            select(func.count())
-            .select_from(ObjectClass)
-            .where(func.lower(ObjectClass.name).in_(names))
-        )
-        result = await self.__session.scalars(count_query)
-        count_ = result.one()
-
-        if count_ != len(names):
-            raise ObjectClassNotFoundError(
-                f"Not all Object Classes\
-                    with names {names} found.",
-            )
-
-        return True
-
-    async def _get_one_raw_by_name(self, name: str) -> ObjectClass:
-        """Get single Object Class by name.
-
-        :param str name: Object Class name.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return ObjectClass: Instance of Object Class.
-        """
+    async def get_raw_by_name(self, name: str) -> ObjectClass:
+        """Get single Object Class by name."""
         object_class = await self.__session.scalar(
             select(ObjectClass)
             .filter_by(name=name)
@@ -163,20 +130,11 @@ class ObjectClassDAODeprecated:
             )
         return object_class
 
-    async def get_raw_by_name(self, name: str) -> ObjectClass:
-        """Get Object Class by name without related data."""
-        return await self._get_one_raw_by_name(name)
-
-    async def delete_table_deprecated(self) -> None:
+    async def delete_table(self) -> None:
         await self.__session.execute(
             text('DROP TABLE IF EXISTS "ObjectClasses" CASCADE'),
         )
 
     async def get(self, name: str) -> ObjectClassDTO[int, AttributeTypeDTO]:
-        """Get single Object Class by name.
-
-        :param str name: Object Class name.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return ObjectClass: Instance of Object Class.
-        """
-        return _converter(await self._get_one_raw_by_name(name))
+        """Get single Object Class by name."""
+        return _convert_model_to_dto(await self.get_raw_by_name(name))

@@ -4,7 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import Iterable, Sequence
+from typing import Sequence
 
 from adaptix import P
 from adaptix.conversion import (
@@ -12,7 +12,7 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
-from entities_appendix import AttributeType, ObjectClass
+from entities_legacy import AttributeType, ObjectClass
 from sqlalchemy import or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,28 +43,19 @@ _convert_dto_to_model = get_converter(
 )
 
 
-class AttributeTypeDAODeprecated:
+class AttributeTypeDAOLegacy:
     """Attribute Type DAO."""
 
     __session: AsyncSession
 
-    def __init__(
-        self,
-        session: AsyncSession,
-    ) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
 
-    async def delete_table_deprecated(self) -> None:
+    async def delete_table(self) -> None:
         await self.__session.execute(
             text('DROP TABLE IF EXISTS "AttributeTypes" CASCADE'),
         )
-
-    async def get_deprecated(
-        self,
-        name: str,
-    ) -> AttributeTypeDTO:
-        return _convert_model_to_dto(await self._get_one_raw_by_name(name))
 
     async def get_object_class_names_include_attribute_type(
         self,
@@ -82,48 +73,15 @@ class AttributeTypeDAODeprecated:
         )  # fmt: skip
         return set(row[0] for row in result.fetchall())
 
-    async def update_deprecated(
-        self,
-        name: str,
-        dto: AttributeTypeDTO,
-    ) -> None:
-        """Update Attribute Type.
-
-        Docs:
-            ANR (Ambiguous Name Resolution) inclusion can be modified for
-            all attributes, including system ones, as it's a search
-            optimization setting that doesn't affect the LDAP schema
-            structure or data integrity.
-
-            Other properties (`syntax`, `single_value`, `no_user_modification`)
-            can only be modified for non-system attributes to preserve
-            LDAP schema integrity.
-        """
-        obj = await self._get_one_raw_by_name(name)
-
-        obj.is_included_anr = dto.is_included_anr
-
-        if not obj.is_system:
-            obj.syntax = dto.syntax
-            obj.single_value = dto.single_value
-            obj.no_user_modification = dto.no_user_modification
-
-        await self.__session.flush()
-
-    async def get_all_deprecated(self) -> list[AttributeTypeDTO]:
+    async def get_all(self) -> list[AttributeTypeDTO[int]]:
         """Get all Attribute Types."""
-        return [
-            _convert_model_to_dto(attribute_type)
-            for attribute_type in await self.__session.scalars(
-                select(AttributeType),
-            )
-        ]
+        res = await self.__session.scalars(select(AttributeType))
+        return list(map(_convert_model_to_dto, res.all()))
 
-    async def create_deprecated(self, dto: AttributeTypeDTO) -> None:
+    async def create(self, dto: AttributeTypeDTO[None]) -> None:
         """Create Attribute Type."""
         try:
-            attribute_type = _convert_dto_to_model(dto)
-            self.__session.add(attribute_type)
+            self.__session.add(_convert_dto_to_model(dto))
             await self.__session.flush()
 
         except IntegrityError:
@@ -132,36 +90,29 @@ class AttributeTypeDAODeprecated:
                 + f" '{dto.name}' already exists.",
             )
 
-    async def zero_all_replicated_flags_deprecated(self) -> None:
+    async def zero_all_replicated_flags(self) -> None:
         """Set replication flag to False for all Attribute Types."""
-        await self.__session.execute(
-            update(AttributeType)
-            .values({"system_flags": 0}),
-        )  # fmt: skip
+        await self.__session.execute(update(AttributeType).values({"system_flags": 0}))  # fmt: skip # noqa: E501
 
-    async def set_attrs_replication_flag_deprecated(
+    async def set_attrs_replication_flag(
         self,
         names: tuple[str, ...],
         need_to_replicate: bool,
     ) -> None:
         """Set replication flag in systemFlags."""
-        flag_value = 1 if need_to_replicate else 0
         await self.__session.execute(
             update(AttributeType)
             .where(qa(AttributeType.name).in_(names))
-            .values({"system_flags": flag_value}),
+            .values({"system_flags": int(need_to_replicate)}),
         )
 
-    async def false_all_is_included_anr_deprecated(self) -> None:
+    async def false_all_is_included_anr(self) -> None:
         """Set is_included_anr to False for all Attribute Types."""
-        await self.__session.execute(
-            update(AttributeType)
-            .values({"is_included_anr": False}),
-        )  # fmt: skip
+        await self.__session.execute(update(AttributeType).values({"is_included_anr": False}))  # fmt: skip # noqa: E501
 
-    async def update_and_get_migration_f24ed_deprecated(
+    async def mark_anr_included_by_attr_names(
         self,
-        names: Iterable[str],
+        names: tuple[str, ...],
     ) -> list[str]:
         """Update Attribute Types and return updated AttrType names."""
         result = await self.__session.scalars(
@@ -172,17 +123,7 @@ class AttributeTypeDAODeprecated:
         )
         return list(result.all())
 
-    async def update_sys_flags_deprecated(
-        self,
-        name: str,
-        dto: AttributeTypeDTO,
-    ) -> None:
-        """Update system flags of Attribute Type."""
-        obj = await self._get_one_raw_by_name(name)
-        obj.system_flags = dto.system_flags
-        await self.__session.flush()
-
-    async def _get_one_raw_by_name(self, name: str) -> AttributeType:
+    async def get(self, name: str) -> AttributeTypeDTO[int]:
         attribute_type = await self.__session.scalar(
             select(AttributeType)
             .filter_by(name=name),
@@ -192,11 +133,11 @@ class AttributeTypeDAODeprecated:
             raise AttributeTypeNotFoundError(
                 f"Attribute Type with name '{name}' not found.",
             )
-        return attribute_type
+        return _convert_model_to_dto(attribute_type)
 
-    async def get_all_raw_by_names_deprecated(
+    async def get_all_raw_by_names(
         self,
-        names: list[str] | set[str],
+        names: list[str],
     ) -> Sequence[AttributeType]:
         """Get list of Attribute Types by names."""
         res = await self.__session.scalars(
@@ -204,21 +145,3 @@ class AttributeTypeDAODeprecated:
             .where(qa(AttributeType.name).in_(names)),
         )  # fmt: skip
         return res.all()
-
-    async def get_all_by_names_deprecated(
-        self,
-        names: list[str] | set[str],
-    ) -> list[AttributeTypeDTO[int]]:
-        """Get list of Attribute Types by names.
-
-        :param list[str] names: Attribute Type names.
-        :return list[AttributeTypeDTO]: List of Attribute Types.
-        """
-        if not names:
-            return []
-
-        query = await self.__session.scalars(
-            select(AttributeType)
-            .where(qa(AttributeType.name).in_(names)),
-        )  # fmt: skip
-        return list(map(_convert_model_to_dto, query.all()))

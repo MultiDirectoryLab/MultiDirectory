@@ -50,7 +50,7 @@ class AttributeTypeUseCase(AbstractService):
         self.__object_class_dao = object_class_dao
         self.__create_attribute_dir_gateway = create_attribute_dir_use_case
 
-    async def get(self, name: str) -> AttributeTypeDTO:
+    async def get(self, name: str) -> AttributeTypeDTO[int]:
         """Get Attribute Type by name."""
         dto = await self.__attribute_type_dao.get(name)
         dto.object_class_names = await self.__object_class_dao.get_object_class_names_include_attribute_type(  # noqa: E501
@@ -58,11 +58,11 @@ class AttributeTypeUseCase(AbstractService):
         )
         return dto
 
-    async def get_all(self) -> list[AttributeTypeDTO]:
+    async def get_all(self) -> list[AttributeTypeDTO[int]]:
         """Get all Attribute Types."""
         return await self.__attribute_type_dao.get_all()
 
-    async def create(self, dto: AttributeTypeDTO[None]) -> None:
+    async def create(self, dto: AttributeTypeDTO) -> None:
         """Create Attribute Type."""
         try:
             await self.__create_attribute_dir_gateway.create_dir(
@@ -119,7 +119,7 @@ class AttributeTypeUseCase(AbstractService):
     ) -> None:
         """Set replication flag in systemFlags."""
         dto = await self.get(name)
-        dto = self.__attribute_type_system_flags_use_case.set_attr_replication_flag(  # noqa: E501
+        dto = self.__attribute_type_system_flags_use_case.set_attr_replication(
             dto,
             need_to_replicate,
         )

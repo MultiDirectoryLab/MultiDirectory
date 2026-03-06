@@ -12,11 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DATAS
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.appendix.attribute_type_appendix.attribute_type_appendix_use_case import (  # noqa: E501
-    AttributeTypeUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
-from ldap_protocol.ldap_schema.appendix.object_class_appendix.object_class_appendix_use_case import (  # noqa: E501
-    ObjectClassUseCaseDeprecated,
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
 )
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
@@ -70,31 +70,29 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             attribute_type_use_case = await cnt.get(AttributeTypeUseCase)
-            attribute_type_use_case_deprecated = await cnt.get(
-                AttributeTypeUseCaseDeprecated,
-            )
+            attribute_type_use_case_legacy = await cnt.get(AttributeTypeUseCaseLegacy)  # noqa: E501  # fmt: skip
 
         if not await get_base_directories(session):
             return
 
-        ats = await attribute_type_use_case_deprecated.get_all_deprecated()
-        for _at in ats:
-            await attribute_type_use_case.create(_at)
+        attr_type_dtos = await attribute_type_use_case_legacy.get_all()
+        for attr_type_dto in attr_type_dtos:
+            await attribute_type_use_case.create(attr_type_dto)
 
         await session.commit()
 
     async def _create_ldap_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            object_class_use_case_deprecated = await cnt.get(
-                ObjectClassUseCaseDeprecated,
+            object_class_use_case_legacy = await cnt.get(
+                ObjectClassUseCaseLegacy,
             )
             object_class_use_case = await cnt.get(ObjectClassUseCase)
 
         if not await get_base_directories(session):
             return
 
-        ocs = await object_class_use_case_deprecated.get_all()
+        ocs = await object_class_use_case_legacy.get_all()
         for _oc in ocs:
             _oc.attribute_types_may = [x.name for x in _oc.attribute_types_may]  # type: ignore
             _oc.attribute_types_must = [

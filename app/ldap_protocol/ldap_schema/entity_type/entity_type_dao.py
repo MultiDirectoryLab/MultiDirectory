@@ -8,7 +8,7 @@ from typing import Iterable
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from entities_appendix import ObjectClass
+from entities_legacy import ObjectClass
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -97,7 +97,7 @@ class EntityTypeDAO:
             result = await self.__session.execute(
                 select(Directory)
                 .join(qa(Directory.entity_type))
-                .filter(qa(EntityType.name) == entity_type.name)
+                .where(qa(EntityType.name) == entity_type.name)
                 .options(selectinload(qa(Directory.attributes))),
             )  # fmt: skip
 
