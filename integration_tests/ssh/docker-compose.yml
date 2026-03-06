@@ -44,6 +44,11 @@ services:
       POSTGRES_PASSWORD: test_pwd
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
       MFA_API_SOURCE: dev
+      PDNS_API_KEY: testkey123
+      PDNS_DIST_KEY: testkey123
+      DEFAULT_NAMESERVER: 127.0.0.1
+      HOST_MACHINE_NAME: DC1
+      POSTGRES_HOST: postgres
     hostname: api_server
     depends_on:
       migrations:
@@ -78,6 +83,11 @@ services:
       POSTGRES_PASSWORD: test_pwd
       SECRET_KEY: 6a0452ae20cab4e21b6e9d18fa4b7bf397dd66ec3968b2d74
       MFA_API_SOURCE: dev
+      PDNS_API_KEY: testkey123
+      PDNS_DIST_KEY: testkey123
+      DEFAULT_NAMESERVER: 127.0.0.1
+      HOST_MACHINE_NAME: DC1
+      POSTGRES_HOST: postgres
     expose:
       - 389
     depends_on:
