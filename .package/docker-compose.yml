@@ -402,7 +402,6 @@ services:
     cap_add:
       - NET_ADMIN
     networks:
-      default:
       md_net:
         ipv4_address: 172.20.0.202
     expose:
@@ -420,7 +419,6 @@ services:
     cap_add:
       - NET_ADMIN
     networks:
-      default:
       md_net:
         ipv4_address: 172.20.0.200
     expose:
