@@ -372,7 +372,7 @@ class TestProvider(Provider):
         self,
         session: AsyncSession,
     ) -> ObjectClassUseCaseLegacy:
-        """Legacy object class use case bound to a single session for all DAOs."""
+        """Legacy object class use case bound to a single session for all DAOs."""  # noqa: E501
         at_dao_legacy = AttributeTypeDAOLegacy(session=session)
         oc_dao_legacy = ObjectClassDAOLegacy(session=session)
         return ObjectClassUseCaseLegacy(

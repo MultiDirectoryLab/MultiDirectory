@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_raw_display import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_raw_display import (  # noqa: E501
     AttributeTypeRawDisplay,
 )
 from ldap_protocol.ldap_schema.object_class.object_class_raw_display import (

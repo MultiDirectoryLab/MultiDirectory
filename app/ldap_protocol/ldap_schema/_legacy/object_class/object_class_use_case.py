@@ -10,7 +10,7 @@ from entities_legacy import ObjectClass
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
     AttributeTypeDAOLegacy,
 )
 from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (

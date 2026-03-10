@@ -39,7 +39,7 @@ from ldap_protocol.ldap_responses import (
     SearchResultEntry,
     SearchResultReference,
 )
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_raw_display import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_raw_display import (  # noqa: E501
     AttributeTypeRawDisplay,
 )
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
