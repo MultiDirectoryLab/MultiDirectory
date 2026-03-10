@@ -938,6 +938,8 @@ class ModifyRequest(BaseRequest):
                         await kadmin.modify_princ(
                             directory.user.sam_account_name,
                             new_sam_account_name,
+                            algorithms=None,
+                            password=None,
                         )
 
                         directory.user.user_principal_name = new_user_principal_name  # noqa: E501  # fmt: skip
@@ -1044,10 +1046,14 @@ class ModifyRequest(BaseRequest):
             await kadmin.modify_princ(
                 f"host/{old_sam_account_name}",
                 f"host/{new_sam_account_name}",
+                algorithms=None,
+                password=None,
             )
             await kadmin.modify_princ(
                 f"host/{old_sam_account_name}.{base_dir.name}",
                 f"host/{new_sam_account_name}.{base_dir.name}",
+                algorithms=None,
+                password=None,
             )
 
     async def _get_base_dir(
