@@ -8,9 +8,8 @@ Create Date: 2026-03-10 07:33:43.493288
 
 from alembic import op
 from dishka import AsyncContainer, Scope
-from sqlalchemy import exists, select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
-from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
@@ -37,7 +36,6 @@ def upgrade(container: AsyncContainer) -> None:
         computer_dirs = await session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
-            .options(selectinload(qa(Directory.attributes)))
             .where(
                 qa(EntityType.name) == EntityTypeNames.COMPUTER,
                 ~exists(
@@ -73,18 +71,17 @@ def downgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        computer_dirs = await session.scalars(
-            select(Directory)
+        computer_dir_ids = (
+            select(qa(Directory.id))
             .join(qa(Directory.entity_type))
-            .options(selectinload(qa(Directory.attributes)))
-            .where(qa(EntityType.name) == EntityTypeNames.COMPUTER),
+            .where(qa(EntityType.name) == EntityTypeNames.COMPUTER)
         )
-
-        for directory in computer_dirs:
-            for attr in directory.attributes:
-                if attr.name == _ATTR_NAME_SAMACCOUNTNAME:
-                    await session.delete(attr)
-                    break
+        await session.execute(
+            delete(Attribute).where(
+                qa(Attribute.name) == _ATTR_NAME_SAMACCOUNTNAME,
+                qa(Attribute.directory_id).in_(computer_dir_ids),
+            ),
+        )
 
         await session.commit()
 
