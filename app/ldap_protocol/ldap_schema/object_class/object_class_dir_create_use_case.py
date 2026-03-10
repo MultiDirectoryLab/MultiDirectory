@@ -14,6 +14,11 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
 from ldap_protocol.roles.role_use_case import RoleUseCase
+from ldap_protocol.utils.helpers import (
+    create_object_sid,
+    is_dn_in_base_directory,
+)
+from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -24,6 +29,7 @@ class CreateDirectoryLikeAsObjectClassUseCase:
     __entity_type_use_case: EntityTypeUseCase
     __role_use_case: RoleUseCase
     __parent: Directory | None
+    __base_directories: list[Directory] | None = None
 
     def __init__(
         self,
@@ -41,6 +47,7 @@ class CreateDirectoryLikeAsObjectClassUseCase:
         self.__entity_type_use_case = entity_type_use_case
         self.__role_use_case = role_use_case
         self.__parent = None
+        self.__base_directories = None
 
     async def create_dir(
         self,
@@ -55,6 +62,8 @@ class CreateDirectoryLikeAsObjectClassUseCase:
             )  # fmt: skip
             self.__parent = q.one()[0]
 
+        self.__base_directories = await get_base_directories(self.__session)
+
         dir_ = Directory(
             is_system=is_system,
             object_class=data["object_class"],
@@ -67,6 +76,14 @@ class CreateDirectoryLikeAsObjectClassUseCase:
         await self.__session.flush()
         dir_.parent_id = self.__parent.id
         await self.__session.refresh(dir_, ["id"])
+
+        for base_directory in self.__base_directories:
+            if is_dn_in_base_directory(base_directory, dir_.path_dn):
+                base_dn = base_directory
+                break
+        else:
+            raise
+        dir_.object_sid = create_object_sid(base_dn, dir_.id)
 
         self.__session.add(
             Attribute(

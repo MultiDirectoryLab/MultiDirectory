@@ -589,7 +589,6 @@ async def test_ldap_modify_password_change(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
-    return  # TODO
     dn = "cn=user0,cn=Users,dc=md,dc=test"
     new_password = "Password12345"  # noqa
 
@@ -1144,7 +1143,7 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_modify_dn_rename_with_ap(
+async def test_modify_dn_rename_with_ap(  # TODO
     settings: Settings,
     creds: TestCreds,
     role_dao: RoleDAO,
@@ -1152,7 +1151,6 @@ async def test_modify_dn_rename_with_ap(
     entity_type_dao: EntityTypeDAO,
     attribute_type_dao: EntityTypeDAO,
 ) -> None:
-    return  # TODO
     dn = "cn=user0,cn=Users,dc=md,dc=test"
     base_dn = "dc=md,dc=test"
 
@@ -1253,7 +1251,7 @@ async def test_modify_dn_rename_with_ap(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_modify_dn_move_with_ap(
+async def test_modify_dn_move_with_ap(  # TODO
     settings: Settings,
     creds: TestCreds,
     role_dao: RoleDAO,
@@ -1261,7 +1259,6 @@ async def test_modify_dn_move_with_ap(
     entity_type_dao: EntityTypeDAO,
     attribute_type_dao: EntityTypeDAO,
 ) -> None:
-    return  # TODO
     dn = "cn=user0,cn=Users,dc=md,dc=test"
     base_dn = "dc=md,dc=test"
 

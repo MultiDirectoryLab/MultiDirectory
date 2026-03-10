@@ -8,7 +8,7 @@ from enums import KindType
 
 
 @dataclass
-class AttributeType:
+class AttributeTypeLegacy:
     """LDAP attribute type definition (schema element)."""
 
     id: int | None = field(init=False, default=None)
@@ -25,7 +25,7 @@ class AttributeType:
 
 
 @dataclass
-class ObjectClass:
+class ObjectClassLegacy:
     """LDAP object class definition with MUST/MAY attribute sets."""
 
     id: int = field(init=False)
@@ -34,12 +34,12 @@ class ObjectClass:
     superior_name: str | None = None
     kind: KindType | None = None
     is_system: bool = False
-    superior: ObjectClass | None = field(default=None, repr=False)
-    attribute_types_must: list[AttributeType] = field(
+    superior: ObjectClassLegacy | None = field(default=None, repr=False)
+    attribute_types_must: list[AttributeTypeLegacy] = field(
         default_factory=list,
         repr=False,
     )
-    attribute_types_may: list[AttributeType] = field(
+    attribute_types_may: list[AttributeTypeLegacy] = field(
         default_factory=list,
         repr=False,
     )

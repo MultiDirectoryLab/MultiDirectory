@@ -39,6 +39,19 @@ depends_on: None | list[str] = None
 
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
+    op.drop_constraint(
+        op.f("AccessControlEntries_attributeTypeId_fkey"),
+        "AccessControlEntries",
+        type_="foreignkey",
+    )
+    op.create_foreign_key(
+        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
+        "AccessControlEntries",
+        "Directory",
+        ["attributeTypeId"],
+        ["id"],
+        ondelete="CASCADE",
+    )
 
     async def _update_entity_types(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
@@ -113,3 +126,17 @@ def upgrade(container: AsyncContainer) -> None:
 
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
+    op.drop_constraint(
+        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
+        "AccessControlEntries",
+        type_="foreignkey",
+    )
+    op.create_foreign_key(
+        op.f("AccessControlEntries_attributeTypeId_fkey"),
+        "AccessControlEntries",
+        "AttributeTypes",
+        ["attributeTypeId"],
+        ["id"],
+        ondelete="CASCADE",
+    )
+    # TODO

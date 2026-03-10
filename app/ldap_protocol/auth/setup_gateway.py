@@ -225,9 +225,12 @@ class SetupGateway:
             with_for_update=None,
         )
 
-        entity_type = await self._entity_type_use_case.get_one_raw_by_name(
-            data["entity_type_name"],
-        )
+        entity_type = None
+        if entity_type_name := data.get("entity_type_name"):
+            entity_type = await self._entity_type_use_case.get_one_raw_by_name(
+                entity_type_name,
+            )  # TODO удали везде entity_type_name из данных где можно
+
         await self._entity_type_use_case.attach_entity_type_to_directory(
             directory=dir_,
             is_system_entity_type=True,

@@ -39,7 +39,6 @@ async def test_multiple_access(
     custom_role: RoleDTO,
 ) -> None:
     """Test multiple access control entries in a role."""
-    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
@@ -95,6 +94,7 @@ async def test_multiple_access(
 
     await access_control_entry_dao.create_bulk(aces)
 
+    print("SOSU")
     await perform_ldap_search_and_validate(
         settings=settings,
         creds=creds,

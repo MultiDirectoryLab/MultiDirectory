@@ -87,7 +87,6 @@ async def test_role_search_3(
 
     User with a custom role should see the group and user entries.
     """
-    return  # TODO
     ace = AccessControlEntryDTO(
         role_id=custom_role.get_id(),
         ace_type=AceType.READ,
@@ -105,6 +104,7 @@ async def test_role_search_3(
         creds=creds,
         search_base=BASE_DN,
         expected_dn=[
+            "dn: cn=Configuration,dc=md,dc=test",
             "dn: cn=Groups,dc=md,dc=test",
             "dn: cn=Users,dc=md,dc=test",
             "dn: cn=user_non_admin,cn=Users,dc=md,dc=test",
@@ -224,7 +224,6 @@ async def test_role_search_6(
 
     User with a custom role should see only the posixEmail attribute.
     """
-    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
@@ -274,7 +273,6 @@ async def test_role_search_7(
 
     User with a custom role should see all attributes except description.
     """
-    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
@@ -335,7 +333,6 @@ async def test_role_search_8(
 
     User with a custom role should see only the description attribute.
     """
-    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 
@@ -396,7 +393,6 @@ async def test_role_search_9(
 
     User with a custom role should see only the posixEmail attribute.
     """
-    return  # TODO
     user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
     assert user_entity_type
 

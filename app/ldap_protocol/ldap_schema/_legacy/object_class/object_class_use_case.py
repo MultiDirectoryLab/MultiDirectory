@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import ClassVar
 
-from entities_legacy import ObjectClass
+from entities_legacy import ObjectClassLegacy
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
@@ -91,7 +91,7 @@ class ObjectClassUseCaseLegacy(AbstractService):
 
         await self.__object_class_dao_legacy.create(create_dto)
 
-    async def get_raw_by_name(self, name: str) -> ObjectClass:
+    async def get_raw_by_name(self, name: str) -> ObjectClassLegacy:
         """Get Object Class by name without related data."""
         return await self.__object_class_dao_legacy.get_raw_by_name(name)
 

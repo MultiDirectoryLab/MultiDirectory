@@ -12,8 +12,6 @@ from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv4Network
 from typing import ClassVar, Literal
 
-from entities_legacy import AttributeType
-
 from enums import (
     AceType,
     AuditDestinationProtocolType,
@@ -381,12 +379,10 @@ class AccessControlEntry:
     is_allow: bool = False
 
     role: Role | None = field(init=False, default=None, repr=False)
-    attribute_type: AttributeType | None = (
-        field(  # TODO это АСЕ с Русланом надо
-            init=False,
-            default=None,
-            repr=False,
-        )
+    attribute_type: Directory | None = field(
+        init=False,
+        default=None,
+        repr=False,
     )
     entity_type: EntityType | None = field(
         init=False,

@@ -12,7 +12,7 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
-from entities_legacy import AttributeType, ObjectClass
+from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +27,7 @@ from ldap_protocol.ldap_schema.exceptions import (
 from repo.pg.tables import queryable_attr as qa
 
 _convert_model_to_dto = get_converter(
-    ObjectClass,
+    ObjectClassLegacy,
     ObjectClassDTO[int, AttributeTypeDTO],
     recipe=[
         allow_unlinked_optional(P[ObjectClassDTO].id),
@@ -46,9 +46,9 @@ class ObjectClassCreateDTO:
     name: str
     kind: KindType
     is_system: bool
-    attribute_types_must: list[AttributeType]
-    attribute_types_may: list[AttributeType]
-    superior: ObjectClass | None = None
+    attribute_types_must: list[AttributeTypeLegacy]
+    attribute_types_may: list[AttributeTypeLegacy]
+    superior: ObjectClassLegacy | None = None
 
 
 class ObjectClassDAOLegacy:
@@ -63,10 +63,10 @@ class ObjectClassDAOLegacy:
     async def get_all(self) -> list[ObjectClassDTO[int, AttributeTypeDTO]]:
         """Get all Object Classes."""
         obj_classes = await self.__session.scalars(
-            select(ObjectClass)
+            select(ObjectClassLegacy)
             .options(
-                selectinload(qa(ObjectClass.attribute_types_may)),
-                selectinload(qa(ObjectClass.attribute_types_must)),
+                selectinload(qa(ObjectClassLegacy.attribute_types_may)),
+                selectinload(qa(ObjectClassLegacy.attribute_types_must)),
             ),
         )  # fmt: skip
         return list(map(_convert_model_to_dto, obj_classes.all()))
@@ -77,7 +77,7 @@ class ObjectClassDAOLegacy:
     ) -> None:
         """Create a new Object Class."""
         try:
-            object_class = ObjectClass(
+            object_class = ObjectClassLegacy(
                 oid=dto.oid,
                 name=dto.name,
                 superior=dto.superior,
@@ -94,13 +94,13 @@ class ObjectClassDAOLegacy:
                 + f" '{dto.name}' already exists.",
             )
 
-    async def get_raw_by_name(self, name: str) -> ObjectClass:
+    async def get_raw_by_name(self, name: str) -> ObjectClassLegacy:
         """Get single Object Class by name."""
         object_class = await self.__session.scalar(
-            select(ObjectClass)
+            select(ObjectClassLegacy)
             .filter_by(name=name)
-            .options(selectinload(qa(ObjectClass.attribute_types_may)))
-            .options(selectinload(qa(ObjectClass.attribute_types_must))),
+            .options(selectinload(qa(ObjectClassLegacy.attribute_types_may)))
+            .options(selectinload(qa(ObjectClassLegacy.attribute_types_must))),
         )  # fmt: skip
 
         if not object_class:

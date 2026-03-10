@@ -219,6 +219,8 @@ class SetupUseCase:
             # TODO раскомментируй это после того как поправишь роли и вообще ВСЁ сделаешь  # noqa: E501
             # await self._attribute_type_use_case_legacy.delete_table()  # noqa: E501, ERA001
             # await self._object_class_use_case_legacy.delete_table()  # noqa: E501, ERA001
+            # await self._object_class_use_case_legacy.delete_table1()  # noqa: E501, ERA001  AttrsMayMemberships
+            # await self._object_class_use_case_legacy.delete_table2()  # noqa: E501, ERA001  AttrsMayMemberships
 
             await self._password_use_cases.create_default_domain_policy()
 

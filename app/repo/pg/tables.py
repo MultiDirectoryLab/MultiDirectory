@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from typing import Literal, TypeVar, cast
 
-from entities_legacy import AttributeType, ObjectClass
+from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -522,7 +522,7 @@ access_control_entries_table = Table(
     Column(
         "attributeTypeId",
         Integer,
-        ForeignKey("AttributeTypes.id", ondelete="CASCADE"),
+        ForeignKey("Directory.id", ondelete="CASCADE"),
         nullable=True,
         key="attribute_type_id",
     ),
@@ -950,7 +950,7 @@ mapper_registry.map_imperatively(
             lazy="raise",
         ),
         "attribute_type": relationship(
-            AttributeType,
+            Directory,
             lazy="raise",
             uselist=False,
         ),
@@ -965,26 +965,26 @@ mapper_registry.map_imperatively(
 )
 
 mapper_registry.map_imperatively(
-    AttributeType,
+    AttributeTypeLegacy,
     attribute_types_table,
 )
 
 mapper_registry.map_imperatively(
-    ObjectClass,
+    ObjectClassLegacy,
     object_classes_table,
     properties={
         "superior": relationship(
-            ObjectClass,
+            ObjectClassLegacy,
             remote_side=[object_classes_table.c.name],
             lazy="raise",
         ),
         "attribute_types_must": relationship(
-            AttributeType,
+            AttributeTypeLegacy,
             secondary=object_class_attr_must_table,
             lazy="raise",
         ),
         "attribute_types_may": relationship(
-            AttributeType,
+            AttributeTypeLegacy,
             secondary=object_class_attr_may_table,
             lazy="raise",
         ),

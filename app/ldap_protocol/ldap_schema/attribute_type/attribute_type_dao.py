@@ -44,11 +44,11 @@ class AttributeTypeDAO:
         res = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
+            .options(selectinload(qa(Directory.attributes)))
             .where(
                 qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                 qa(Directory.name) == name,
-            )
-            .options(selectinload(qa(Directory.attributes))),
+            ),
         )
         dir_ = res.first()
         return dir_
@@ -68,6 +68,7 @@ class AttributeTypeDAO:
         res = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
+            .options(selectinload(qa(Directory.attributes)))
             .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
         )
         return list(map(_convert_model_to_dto, res.all()))

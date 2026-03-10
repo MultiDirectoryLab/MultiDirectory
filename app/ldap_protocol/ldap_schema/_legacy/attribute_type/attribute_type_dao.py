@@ -10,7 +10,7 @@ from adaptix.conversion import (
     get_converter,
     link_function,
 )
-from entities_legacy import AttributeType, ObjectClass
+from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
 from sqlalchemy import or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +23,7 @@ from ldap_protocol.ldap_schema.exceptions import (
 from repo.pg.tables import queryable_attr as qa
 
 _convert_model_to_dto = get_converter(
-    AttributeType,
+    AttributeTypeLegacy,
     AttributeTypeDTO,
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].object_class_names),
@@ -31,11 +31,11 @@ _convert_model_to_dto = get_converter(
 )
 _convert_dto_to_model = get_converter(
     AttributeTypeDTO,
-    AttributeType,
+    AttributeTypeLegacy,
     recipe=[
         link_function(
             lambda _: None,
-            P[AttributeType].id,
+            P[AttributeTypeLegacy].id,
         ),
     ],
 )
@@ -61,11 +61,11 @@ class AttributeTypeDAOLegacy:
     ) -> set[str]:
         """Get all Object Class names include Attribute Type name."""
         result = await self.__session.execute(
-            select(qa(ObjectClass.name))
+            select(qa(ObjectClassLegacy.name))
             .where(
                 or_(
-                    qa(ObjectClass.attribute_types_must).any(name=attribute_type_name),
-                    qa(ObjectClass.attribute_types_may).any(name=attribute_type_name),
+                    qa(ObjectClassLegacy.attribute_types_must).any(name=attribute_type_name),
+                    qa(ObjectClassLegacy.attribute_types_may).any(name=attribute_type_name),
                 ),
             ),
         )  # fmt: skip
@@ -73,7 +73,7 @@ class AttributeTypeDAOLegacy:
 
     async def get_all(self) -> list[AttributeTypeDTO[int]]:
         """Get all Attribute Types."""
-        res = await self.__session.scalars(select(AttributeType))
+        res = await self.__session.scalars(select(AttributeTypeLegacy))
         return list(map(_convert_model_to_dto, res.all()))
 
     async def create(self, dto: AttributeTypeDTO[None]) -> None:
@@ -90,7 +90,7 @@ class AttributeTypeDAOLegacy:
 
     async def zero_all_replicated_flags(self) -> None:
         """Set replication flag to False for all Attribute Types."""
-        await self.__session.execute(update(AttributeType).values({"system_flags": 0}))  # fmt: skip # noqa: E501
+        await self.__session.execute(update(AttributeTypeLegacy).values({"system_flags": 0}))  # fmt: skip # noqa: E501
 
     async def set_attrs_replication_flag(
         self,
@@ -99,14 +99,14 @@ class AttributeTypeDAOLegacy:
     ) -> None:
         """Set replication flag in systemFlags."""
         await self.__session.execute(
-            update(AttributeType)
-            .where(qa(AttributeType.name).in_(names))
+            update(AttributeTypeLegacy)
+            .where(qa(AttributeTypeLegacy.name).in_(names))
             .values({"system_flags": int(need_to_replicate)}),
         )
 
     async def false_all_is_included_anr(self) -> None:
         """Set is_included_anr to False for all Attribute Types."""
-        await self.__session.execute(update(AttributeType).values({"is_included_anr": False}))  # fmt: skip # noqa: E501
+        await self.__session.execute(update(AttributeTypeLegacy).values({"is_included_anr": False}))  # fmt: skip # noqa: E501
 
     async def mark_anr_included_by_attr_names(
         self,
@@ -114,16 +114,16 @@ class AttributeTypeDAOLegacy:
     ) -> list[str]:
         """Update Attribute Types and return updated AttrType names."""
         result = await self.__session.scalars(
-            update(AttributeType)
-            .where(qa(AttributeType.name).in_(names))
+            update(AttributeTypeLegacy)
+            .where(qa(AttributeTypeLegacy.name).in_(names))
             .values({"is_included_anr": True})
-            .returning(qa(AttributeType.name)),
+            .returning(qa(AttributeTypeLegacy.name)),
         )
         return list(result.all())
 
     async def get(self, name: str) -> AttributeTypeDTO[int]:
         attribute_type = await self.__session.scalar(
-            select(AttributeType)
+            select(AttributeTypeLegacy)
             .filter_by(name=name),
         )  # fmt: skip
 
@@ -136,10 +136,10 @@ class AttributeTypeDAOLegacy:
     async def get_all_raw_by_names(
         self,
         names: list[str],
-    ) -> list[AttributeType]:
+    ) -> list[AttributeTypeLegacy]:
         """Get list of Attribute Types by names."""
         res = await self.__session.scalars(
-            select(AttributeType)
-            .where(qa(AttributeType.name).in_(names)),
+            select(AttributeTypeLegacy)
+            .where(qa(AttributeTypeLegacy.name).in_(names)),
         )  # fmt: skip
         return list(res.all())

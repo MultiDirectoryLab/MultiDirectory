@@ -40,7 +40,6 @@ from tests.search_request_datasets import (
 @pytest.mark.usefixtures("session")
 async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
-    return  # TODO
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
         "-vvv",
@@ -311,7 +310,6 @@ async def test_bind_policy(
     network_policy_validator: NetworkPolicyValidatorUseCase,
 ) -> None:
     """Bind with policy."""
-    return  # TODO
     policy = await network_policy_validator.get_by_protocol(
         IPv4Address("127.0.0.1"),
         ProtocolType.LDAP,
@@ -404,7 +402,6 @@ async def test_bind_policy_missing_group(
 @pytest.mark.usefixtures("session")
 async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
-    return  # TODO
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
         "-vvv",

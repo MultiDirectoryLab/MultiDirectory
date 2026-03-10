@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from typing import ClassVar, Sequence
 
-from entities_legacy import AttributeType
+from entities_legacy import AttributeTypeLegacy
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
@@ -76,7 +76,7 @@ class AttributeTypeUseCaseLegacy(AbstractService):
     async def get_all_raw_by_names(
         self,
         names: list[str],
-    ) -> Sequence[AttributeType]:
+    ) -> Sequence[AttributeTypeLegacy]:
         """Get list of Attribute Types by names."""
         return await self.__attribute_type_dao_legacy.get_all_raw_by_names(
             names,

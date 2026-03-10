@@ -248,7 +248,6 @@ async def test_ldap_add_access_control(
     access_control_entry_dao: AccessControlEntryDAO,
 ) -> None:
     """Test ldapadd on server."""
-    return  # TODO
     dn = "cn=test,dc=md,dc=test"
     base_dn = "dc=md,dc=test"
 
