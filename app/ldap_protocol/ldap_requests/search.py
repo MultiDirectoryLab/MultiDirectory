@@ -276,7 +276,6 @@ class SearchRequest(BaseRequest):
         is_schema = self.base_object.lower() == "cn=schema"
         user = ctx.ldap_session.user
 
-        print("OLOLO")
         if not (is_root_dse or is_schema) and user is None:
             yield SearchResultDone(**INVALID_ACCESS_RESPONSE)
             return

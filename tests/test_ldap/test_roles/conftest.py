@@ -36,7 +36,6 @@ async def run_ldap_search(
     search_base: str = "dc=md,dc=test",
 ) -> tuple[int, list[str]]:
     """Run ldapsearch command and return the result."""
-    print("SOSU3")
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
         "-vvv",
@@ -108,7 +107,6 @@ async def perform_ldap_search_and_validate(
     expected_attrs_absent: list[str],
 ) -> None:
     """Perform LDAP search and validate results."""
-    print("SOSU2")
     result, data = await run_ldap_search(
         settings,
         creds,
@@ -118,14 +116,10 @@ async def perform_ldap_search_and_validate(
     dn_list = [d for d in data if d.startswith("dn:")]
 
     assert result == 0
-    print("SOSU4")
     assert sorted(dn_list) == sorted(expected_dn)
 
-    print("SOSU5")
     for expected in expected_attrs_present:
-        print(f"Checking for expected attribute: {expected}")
         assert expected in data
 
-    print("SOSU6")
     for unexpected in expected_attrs_absent:
         assert unexpected not in data

@@ -94,7 +94,6 @@ async def test_multiple_access(
 
     await access_control_entry_dao.create_bulk(aces)
 
-    print("SOSU")
     await perform_ldap_search_and_validate(
         settings=settings,
         creds=creds,
