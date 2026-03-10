@@ -677,7 +677,6 @@ async def rename_princ(
     :param Annotated[str, Body name: principal name
     :param Annotated[str, Body new_name: principal new name
     """
-    """"""
     await kadmin.rename_princ(name, new_name)
 
 
