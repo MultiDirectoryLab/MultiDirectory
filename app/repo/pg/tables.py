@@ -112,6 +112,7 @@ directory_table = Table(
     "Directory",
     metadata,
     Column("id", Integer, primary_key=True),
+    Column("is_system", Boolean, nullable=False, default=False),
     Column(
         "parentId",
         Integer,
@@ -146,12 +147,6 @@ directory_table = Table(
     ),
     Column("depth", Integer, nullable=True),
     Column("objectSid", String, nullable=True, key="object_sid"),
-    Column(
-        "password_policy_id",
-        Integer,
-        ForeignKey("PasswordPolicies.id"),
-        nullable=True,
-    ),
     Column(
         "objectGUID",
         PG_UUID(as_uuid=True),
@@ -668,6 +663,12 @@ password_ban_word_table = Table(
     "PasswordBanWords",
     metadata,
     Column("word", String(255), primary_key=True),
+    Index(
+        "idx_password_ban_words_word_gin_trgm",
+        "word",
+        postgresql_ops={"word": "gin_trgm_ops"},
+        postgresql_using="gin",
+    ),
 )
 
 dedicated_servers_table = Table(

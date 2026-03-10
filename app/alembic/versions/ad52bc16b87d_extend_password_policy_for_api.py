@@ -8,6 +8,7 @@ Create Date: 2025-10-20 12:57:49.157153
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
@@ -23,7 +24,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -101,7 +102,7 @@ def upgrade() -> None:
     )
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_table("GroupPasswordPolicyMemberships")
 

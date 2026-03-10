@@ -2,10 +2,10 @@
 help: ## show help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n"} /^[$$()% a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-before_pr:
-	ruff format ./app
-	ruff check ./app --fix --unsafe-fixes
-	mypy ./app
+before_pr:  ## format, lint and type-check code
+	ruff format
+	ruff check --fix --unsafe-fixes
+	mypy .
 
 build:  ## build app and manually generate self-signed cert
 	make down
@@ -15,27 +15,34 @@ build_test:
 	docker compose -f docker-compose.test.yml build
 
 up:  ## run tty container with related services, use with run command
-	make down; docker compose up
+	make down
+	docker compose up
 
 test:  ## run tests
 	docker compose -f docker-compose.test.yml down --remove-orphans
-	make down;
+	make down
 	docker compose -f docker-compose.test.yml up --no-log-prefix --attach test --exit-code-from test
 
 run:  ## runs server 386/636 port
 	clear;docker exec -it multidirectory sh -c "python ."
 
 launch:  ## run standalone app without tty container
-	docker compose down;
-	docker compose run sh -c "alembic upgrade head && python ."
+	docker compose down
+	docker compose run sh -c "python multidirectory.py --migrate && python ."
 
-downgrade:  ## re-run migration
-	docker exec -it multidirectory_api sh -c\
-		"alembic downgrade -1; alembic upgrade head;"
+rerun_last_migration:  ## re-run migration
+	docker exec -it multidirectory_api sh -c "alembic downgrade -1; python multidirectory.py --migrate;"
 
 down:  ## shutdown services
 	docker compose -f docker-compose.test.yml down --remove-orphans
 	docker compose down --remove-orphans
+	docker volume prune -f
+
+migrations:  ## generate migration file
+	docker compose run ldap_server alembic revision --autogenerate
+
+migrate:  ## upgrade db
+	docker compose run ldap_server python multidirectory.py --migrate
 
 # server stage/development commands
 
@@ -47,28 +54,21 @@ stage_build:  ## build stage server
 	docker compose -f docker-compose.dev.yml build
 
 stage_up:  ## run app and detach
-	make stage_down;
+	make stage_down
 	docker compose -f docker-compose.dev.yml up -d
 
 stage_down:  ## stop all services
 	docker compose -f docker-compose.dev.yml down --remove-orphans
 
 stage_update:  ## update service
-	make stage_down;
-	make stage_build;
-	docker compose -f docker-compose.dev.yml pull;
-	make stage_up;
-	docker exec -it multidirectory-ldap sh -c\
-		"alembic downgrade -1; alembic upgrade head; python -m extra.setup_dev"
+	make stage_down
+	make stage_build
+	docker compose -f docker-compose.dev.yml pull
+	make stage_up
+	docker exec -it multidirectory-ldap sh -c "alembic downgrade -1; python multidirectory.py --migrate; python -m extra.setup_dev"
 
 krb_client_build:  ## build krb client service
 	docker build -f integration_tests/kerberos/Dockerfile . -t krbclient:runtime
 
 krb_client:  ## run krb client bash
 	docker run --rm --init -it --name krbclient --network multidirectory_default krbclient:runtime bash
-
-migrations:  ## generate migration file
-	docker compose run ldap_server alembic revision --autogenerate
-
-migrate:  ## upgrade db
-	docker compose run ldap_server alembic upgrade head

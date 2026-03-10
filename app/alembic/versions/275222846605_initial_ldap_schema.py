@@ -10,16 +10,16 @@ import json
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
-from sqlalchemy import delete, or_
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from entities import Attribute
-from extra.alembic_utils import temporary_stub_entity_type_name
+from entities import Attribute, AttributeType, ObjectClass
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
@@ -35,8 +35,8 @@ depends_on: None | str = None
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
-@temporary_stub_entity_type_name
-def upgrade() -> None:
+@temporary_stub_column("entity_type_id", sa.Integer())
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -267,9 +267,9 @@ def upgrade() -> None:
     session.commit()
 
     # NOTE: Load objectClasses into the database
-    async def _create_object_classes(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _create_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         oc_already_created_oids = set()
         oc_first_priority_raw_definitions = (
@@ -342,11 +342,11 @@ def upgrade() -> None:
 
     op.run_async(_create_object_classes)
 
-    async def _create_attribute_types(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            attribute_type_dao = await cnt.get(AttributeTypeDAO)
 
-        attribute_type_dao = AttributeTypeDAO(session)
         for oid, name in (
             ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
             ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
@@ -367,12 +367,9 @@ def upgrade() -> None:
 
     op.run_async(_create_attribute_types)
 
-    async def _modify_object_classes(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
-
-        at_dao = AttributeTypeDAO(session)
-        oc_dao = ObjectClassDAO(session)
+    async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
@@ -380,9 +377,22 @@ def upgrade() -> None:
             ("posixAccount", ["posixEmail"]),
             ("organizationalUnit", ["title", "jpegPhoto"]),
         ):
-            object_class = await oc_dao.get(oc_name)
-            attribute_types_may = await at_dao.get_all_by_names(at_names)
-            object_class.attribute_types_may.extend(attribute_types_may)
+            object_class = await session.scalar(
+                select(ObjectClass)
+                .filter_by(name=oc_name)
+                .options(selectinload(qa(ObjectClass.attribute_types_may))),
+            )
+
+            if not object_class:
+                continue
+
+            attribute_types = await session.scalars(
+                select(AttributeType)
+                .where(qa(AttributeType.name).in_(at_names),
+                ),
+            )  # fmt: skip
+
+            object_class.attribute_types_may.extend(attribute_types.all())
 
         await session.commit()
 
@@ -393,7 +403,7 @@ def upgrade() -> None:
     session.commit()
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_index(
         "idx_object_classes_name_gin_trgm",

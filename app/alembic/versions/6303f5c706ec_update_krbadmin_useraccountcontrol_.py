@@ -6,12 +6,15 @@ Create Date: 2025-10-24 15:33:31.478490
 
 """
 
+import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.utils.helpers import create_integer_hash
 from repo.pg.tables import queryable_attr as qa
@@ -23,12 +26,13 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _update_krbadmin_uac(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _update_krbadmin_uac(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         krbadmin_user_dir = await session.scalar(
             select(Directory)
@@ -51,9 +55,9 @@ def upgrade() -> None:
                 ),
             )
 
-    async def _change_uid_admin(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _change_uid_admin(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         directory = await session.scalar(
             select(Directory)
@@ -89,12 +93,13 @@ def upgrade() -> None:
     op.run_async(_change_uid_admin)
 
 
-def downgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _downgrade_krbadmin_uac(connection: AsyncConnection) -> None:
-        session = AsyncSession(connection)
-        await session.begin()
+    async def _downgrade_krbadmin_uac(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         krbadmin_user_dir = await session.scalar(
             select(Directory)

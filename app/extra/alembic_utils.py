@@ -1,37 +1,39 @@
 """Alembic utils."""
 
-from typing import Callable
+from typing import Any, Callable
 
 import sqlalchemy as sa
 from alembic import op
 
 
-def temporary_stub_entity_type_name(func: Callable) -> Callable:
-    """Add and drop the 'entity_type_name' column in the 'Directory' table.
+def temporary_stub_column(column_name: str, type_: Any) -> Callable:
+    """Add and drop a temporary column in the 'Directory' table.
 
     State of the database at the time of migration
-    doesn't contain 'entity_type_name' column in the 'Directory' table,
+    doesn't contain the specified column in the 'Directory' table,
     but 'Directory' model has the column.
 
-    Before starting the migration, add 'entity_type_name' column.
-    Then migration completed, delete 'entity_type_name' column.
+    Before starting the migration, add the specified column.
+    Then migration completed, delete the column.
 
     Don`t like excluding columns with Deferred(),
     because you will need to refactor SQL queries
-    that precede the 'ba78cef9700a_initial_entity_type.py' migration
-    and include working with the Directory.
+    that precede migrations and include working with the Directory.
 
-    :param Callable func: any function
-    :return Callable: any function
+    :param str column_name: column name to temporarily add
+    :return Callable: decorator function
     """
 
-    def wrapper(*args: tuple, **kwargs: dict) -> None:
-        op.add_column(
-            "Directory",
-            sa.Column("entity_type_id", sa.Integer(), nullable=True),
-        )
-        func(*args, **kwargs)
-        op.drop_column("Directory", "entity_type_id")
-        return None
+    def decorator(func: Callable) -> Callable:
+        def wrapper(*args: tuple, **kwargs: dict) -> None:
+            op.add_column(
+                "Directory",
+                sa.Column(column_name, type_, nullable=True),
+            )
+            func(*args, **kwargs)
+            op.drop_column("Directory", column_name)
+            return None
 
-    return wrapper
+        return wrapper
+
+    return decorator

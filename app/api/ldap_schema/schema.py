@@ -8,7 +8,7 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
-from enums import KindType
+from enums import EntityTypeNames, KindType
 from ldap_protocol.ldap_schema.constants import (
     DEFAULT_ENTITY_TYPE_IS_SYSTEM,
     OID_REGEX_PATTERN,
@@ -82,7 +82,7 @@ class EntityTypeSchema(BaseModel, Generic[_IdT]):
     """Entity Type Schema."""
 
     id: _IdT = Field(default=None)  # type: ignore[assignment]
-    name: str
+    name: EntityTypeNames | str
     is_system: bool
     object_class_names: list[str] = Field(
         default_factory=list,

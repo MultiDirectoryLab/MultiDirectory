@@ -8,10 +8,10 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal
 
 from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
 from fastapi import Depends, Form, status
 from fastapi.responses import RedirectResponse
-from fastapi.routing import APIRouter
+from fastapi_error_map.routing import ErrorAwareRouter
+from fastapi_error_map.rules import rule
 
 from api.auth.adapters import MFAFastAPIAdapter
 from api.auth.utils import (
@@ -19,13 +19,62 @@ from api.auth.utils import (
     get_user_agent_from_request,
     verify_auth,
 )
+from api.error_routing import (
+    ERROR_MAP_TYPE,
+    DishkaErrorAwareRoute,
+    DomainErrorTranslator,
+)
+from enums import DomainCodes
+from ldap_protocol.auth.exceptions.mfa import (
+    ForbiddenError,
+    InvalidCredentialsError,
+    MFAAPIError,
+    MFAConnectError,
+    MissingMFACredentialsError,
+    NetworkPolicyError,
+    NotFoundError,
+)
 from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
-mfa_router = APIRouter(
+translator = DomainErrorTranslator(DomainCodes.MFA)
+
+
+error_map: ERROR_MAP_TYPE = {
+    MFAAPIError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    MFAConnectError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    MissingMFACredentialsError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    NetworkPolicyError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    ForbiddenError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+    InvalidCredentialsError: rule(
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        translator=translator,
+    ),
+    NotFoundError: rule(
+        status=status.HTTP_400_BAD_REQUEST,
+        translator=translator,
+    ),
+}
+
+mfa_router = ErrorAwareRouter(
     prefix="/multifactor",
     tags=["Multifactor"],
-    route_class=DishkaRoute,
+    route_class=DishkaErrorAwareRoute,
 )
 
 
@@ -33,6 +82,7 @@ mfa_router = APIRouter(
     "/setup",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def setup_mfa(
     mfa: MFACreateRequest,
@@ -51,6 +101,7 @@ async def setup_mfa(
 @mfa_router.delete(
     "/keys",
     dependencies=[Depends(verify_auth)],
+    error_map=error_map,
 )
 async def remove_mfa(
     scope: Literal["ldap", "http"],
@@ -60,7 +111,11 @@ async def remove_mfa(
     await mfa_manager.remove_mfa(scope)
 
 
-@mfa_router.post("/get", dependencies=[Depends(verify_auth)])
+@mfa_router.post(
+    "/get",
+    dependencies=[Depends(verify_auth)],
+    error_map=error_map,
+)
 async def get_mfa(
     mfa_creds: FromDishka[MFA_HTTP_Creds],
     mfa_creds_ldap: FromDishka[MFA_LDAP_Creds],
@@ -74,7 +129,12 @@ async def get_mfa(
     return await mfa_manager.get_mfa(mfa_creds, mfa_creds_ldap)
 
 
-@mfa_router.post("/create", name="callback_mfa", include_in_schema=True)
+@mfa_router.post(
+    "/create",
+    name="callback_mfa",
+    include_in_schema=True,
+    error_map=error_map,
+)
 async def callback_mfa(
     access_token: Annotated[
         str,

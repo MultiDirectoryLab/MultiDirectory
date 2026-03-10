@@ -7,6 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import pytest
 from httpx import AsyncClient
 
+from enums import EntityTypeNames
 from ldap_protocol.ldap_codes import LDAPCodes
 from tests.search_request_datasets import (
     test_search_by_rule_anr_dataset,
@@ -94,15 +95,15 @@ async def test_api_search(http_client: AsyncClient) -> None:
 
     assert response["resultCode"] == LDAPCodes.SUCCESS
 
-    sub_dirs = [
+    sub_dirs = {
         "cn=groups,dc=md,dc=test",
         "cn=users,dc=md,dc=test",
         "ou=testModifyDn1,dc=md,dc=test",
         "ou=testModifyDn3,dc=md,dc=test",
         "ou=test_bit_rules,dc=md,dc=test",
-    ]
-    assert all(
-        obj["object_name"] in sub_dirs for obj in response["search_result"]
+    }
+    assert sub_dirs == set(
+        obj["object_name"] for obj in response["search_result"]
     )
 
 
@@ -432,7 +433,7 @@ async def test_api_search_by_entity_type_name(
     http_client: AsyncClient,
 ) -> None:
     """Test api search by entity type name."""
-    entity_type_name = "User"
+    entity_type_name = EntityTypeNames.USER
 
     raw_response = await http_client.post(
         "entry/search",
@@ -471,7 +472,7 @@ async def test_api_empty_search(
     http_client: AsyncClient,
 ) -> None:
     """Test api empty search."""
-    entity_type_name = "User"
+    entity_type_name = EntityTypeNames.USER
     raw_response = await http_client.post(
         "entry/search",
         json={

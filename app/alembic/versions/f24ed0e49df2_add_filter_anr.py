@@ -8,6 +8,7 @@ Create Date: 2025-11-11 08:33:46.685338
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
@@ -34,7 +35,7 @@ _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES = (
 )
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -67,7 +68,7 @@ def upgrade() -> None:
     session.commit()
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.alter_column(
         "EntityTypes",

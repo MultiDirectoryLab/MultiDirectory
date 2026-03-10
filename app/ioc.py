@@ -12,6 +12,7 @@ from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
@@ -34,6 +35,7 @@ from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import (
     PasswordBanWordsFastAPIAdapter,
     PasswordPolicyFastAPIAdapter,
+    UserPasswordHistoryResetFastAPIAdapter,
 )
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
@@ -65,6 +67,7 @@ from ldap_protocol.kerberos.ldap_structure import KRBLDAPStructureManager
 from ldap_protocol.kerberos.service import KerberosService
 from ldap_protocol.kerberos.template_render import KRBTemplateRenderer
 from ldap_protocol.ldap_requests.contexts import (
+    LDAPAbandonRequestContext,
     LDAPAddRequestContext,
     LDAPBindRequestContext,
     LDAPDeleteRequestContext,
@@ -77,6 +80,9 @@ from ldap_protocol.ldap_requests.contexts import (
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
+)
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
 )
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
@@ -112,8 +118,13 @@ from ldap_protocol.policies.audit.monitor import (
 )
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
-from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
-from ldap_protocol.policies.network.use_cases import NetworkPolicyUseCase
+from ldap_protocol.policies.network import (
+    NetworkPolicyGateway,
+    NetworkPolicyUseCase,
+    NetworkPolicyValidatorGateway,
+    NetworkPolicyValidatorProtocol,
+    NetworkPolicyValidatorUseCase,
+)
 from ldap_protocol.policies.password import (
     PasswordPolicyDAO,
     PasswordPolicyUseCases,
@@ -123,7 +134,10 @@ from ldap_protocol.policies.password.ban_word_repository import (
     PasswordBanWordRepository,
 )
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
-from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases
+from ldap_protocol.policies.password.use_cases import (
+    PasswordBanWordUseCases,
+    UserPasswordHistoryUseCases,
+)
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_dao import RoleDAO
@@ -205,7 +219,7 @@ class MainProvider(Provider):
             yield KadminHTTPClient(client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_kadmin(
+    def get_kadmin(
         self,
         client: KadminHTTPClient,
         kadmin_class: type[AbstractKadmin],
@@ -260,14 +274,14 @@ class MainProvider(Provider):
             yield DNSManagerHTTPClient(client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dns_mngr(
+    def get_dns_mngr(
         self,
         settings: DNSManagerSettings,
         dns_manager_class: type[AbstractDNSManager],
         http_client: DNSManagerHTTPClient,
-    ) -> AsyncIterator[AbstractDNSManager]:
+    ) -> AbstractDNSManager:
         """Get DNSManager class."""
-        yield dns_manager_class(settings=settings, http_client=http_client)
+        return dns_manager_class(settings=settings, http_client=http_client)
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
@@ -284,7 +298,7 @@ class MainProvider(Provider):
         await client.aclose()
 
     @provide(scope=Scope.APP)
-    async def get_session_storage(
+    def get_session_storage(
         self,
         client: SessionStorageClient,
         settings: Settings,
@@ -297,7 +311,7 @@ class MainProvider(Provider):
         )
 
     @provide()
-    async def get_normalized_audit_event(
+    def get_normalized_audit_event(
         self,
     ) -> type[NormalizedAuditEvent]:
         """Get normalized audit event class."""
@@ -318,13 +332,13 @@ class MainProvider(Provider):
         await client.aclose()
 
     @provide(scope=Scope.APP)
-    async def get_raw_audit_manager(
+    def get_raw_audit_manager(
         self,
         client: AuditRedisClient,
         settings: Settings,
-    ) -> AsyncIterator[RawAuditManager]:
+    ) -> RawAuditManager:
         """Get raw audit manager."""
-        yield RawAuditManager(
+        return RawAuditManager(
             client,
             settings.RAW_EVENT_STREAM_NAME,
             settings.EVENT_HANDLER_GROUP,
@@ -333,13 +347,13 @@ class MainProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    async def get_normalized_audit_manager(
+    def get_normalized_audit_manager(
         self,
         client: AuditRedisClient,
         settings: Settings,
-    ) -> AsyncIterator[NormalizedAuditManager]:
+    ) -> NormalizedAuditManager:
         """Get raw audit manager."""
-        yield NormalizedAuditManager(
+        return NormalizedAuditManager(
             client,
             settings.NORMALIZED_EVENT_STREAM_NAME,
             settings.EVENT_SENDER_GROUP,
@@ -352,7 +366,7 @@ class MainProvider(Provider):
     audit_destination_dao = provide(AuditDestinationDAO, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_manager_repository(
+    def get_dhcp_manager_repository(
         self,
         session: AsyncSession,
     ) -> DHCPManagerRepository:
@@ -368,20 +382,20 @@ class MainProvider(Provider):
         return await dhcp_manager_repository.ensure_state()
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_mngr_class(
+    def get_dhcp_mngr_class(
         self,
         dhcp_state: DHCPManagerState,
     ) -> type[AbstractDHCPManager]:
         """Get DHCP manager type."""
-        return await get_dhcp_manager_class(dhcp_state)
+        return get_dhcp_manager_class(dhcp_state)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_api_repository_class(
+    def get_dhcp_api_repository_class(
         self,
         dhcp_state: DHCPManagerState,
     ) -> type[DHCPAPIRepository]:
         """Get DHCP API repository type."""
-        return await get_dhcp_api_repository_class(dhcp_state)
+        return get_dhcp_api_repository_class(dhcp_state)
 
     @provide(scope=Scope.APP)
     async def get_dhcp_http_client(
@@ -395,7 +409,7 @@ class MainProvider(Provider):
             yield DHCPManagerHTTPClient(http_client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_api_repository(
+    def get_dhcp_api_repository(
         self,
         http_client: DHCPManagerHTTPClient,
         dhcp_api_repository_class: type[DHCPAPIRepository],
@@ -404,7 +418,7 @@ class MainProvider(Provider):
         return dhcp_api_repository_class(http_client)
 
     @provide(scope=Scope.REQUEST)
-    async def get_dhcp_mngr(
+    def get_dhcp_mngr(
         self,
         dhcp_manager_class: type[AbstractDHCPManager],
         dhcp_api_repository: DHCPAPIRepository,
@@ -416,6 +430,10 @@ class MainProvider(Provider):
             kea_dhcp_repository=dhcp_api_repository,
         )
 
+    attribute_value_validator = provide(
+        AttributeValueValidator,
+        scope=Scope.RUNTIME,
+    )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
@@ -425,6 +443,10 @@ class MainProvider(Provider):
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
+    user_password_history_use_cases = provide(
+        UserPasswordHistoryUseCases,
+        scope=Scope.REQUEST,
+    )
     password_policy_validator = provide(
         PasswordPolicyValidator,
         scope=Scope.REQUEST,
@@ -445,7 +467,7 @@ class MainProvider(Provider):
     )
     password_utils = provide(PasswordUtils, scope=Scope.RUNTIME)
 
-    access_manager = provide(AccessManager, scope=Scope.REQUEST)
+    access_manager = provide(AccessManager, scope=Scope.RUNTIME)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
@@ -490,12 +512,16 @@ class LDAPContextProvider(Provider):
         LDAPModifyDNRequestContext,
         scope=Scope.REQUEST,
     )
+    unbind_request_context = provide(
+        LDAPUnbindRequestContext,
+        scope=Scope.REQUEST,
+    )
     search_request_context = provide(
         LDAPSearchRequestContext,
         scope=Scope.REQUEST,
     )
-    unbind_request_context = provide(
-        LDAPUnbindRequestContext,
+    abandon_request_context = provide(
+        LDAPAbandonRequestContext,
         scope=Scope.REQUEST,
     )
 
@@ -506,9 +532,23 @@ class HTTPProvider(LDAPContextProvider):
     scope = Scope.REQUEST
     request = from_context(provides=Request, scope=Scope.REQUEST)
     monitor_use_case = provide(AuditMonitorUseCase, scope=Scope.REQUEST)
+    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
+    network_policy_use_case = provide(
+        NetworkPolicyUseCase,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_gateway = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.REQUEST,
+    )
 
     @provide()
-    async def get_audit_monitor(
+    def get_audit_monitor(
         self,
         session: AsyncSession,
         audit_use_case: "AuditUseCase",
@@ -536,6 +576,10 @@ class HTTPProvider(LDAPContextProvider):
         scope=Scope.REQUEST,
     )
 
+    user_password_history_reset_adapter = provide(
+        UserPasswordHistoryResetFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
     password_policies_adapter = provide(
         PasswordPolicyFastAPIAdapter,
         scope=Scope.REQUEST,
@@ -568,7 +612,7 @@ class HTTPProvider(LDAPContextProvider):
         return auth_provider
 
     @provide()
-    async def get_identity_provider(
+    def get_identity_provider(
         self,
         request: Request,
         session_storage: SessionStorage,
@@ -643,14 +687,41 @@ class HTTPProvider(LDAPContextProvider):
         NetworkPolicyFastAPIAdapter,
         scope=Scope.REQUEST,
     )
-    network_policy_use_case = provide(
-        NetworkPolicyUseCase,
-        scope=Scope.REQUEST,
-    )
-    network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.REQUEST)
 
 
 class LDAPServerProvider(LDAPContextProvider):
+    """Provider with session scope."""
+
+    scope = Scope.SESSION
+
+    network_policy_validator_gateway = provide(
+        NetworkPolicyValidatorGateway,
+        scope=Scope.REQUEST,
+    )
+
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.REQUEST,
+    )
+
+    @provide(scope=Scope.SESSION, provides=LDAPSession)
+    async def get_session(
+        self,
+        storage: SessionStorage,
+    ) -> AsyncIterator[LDAPSession]:
+        """Create ldap session."""
+        session = LDAPSession(storage=storage)
+        await session.start()
+        yield session
+        await session.disconnect()
+
+
+class GlobalLDAPServerProvider(Provider):
     """Provider with session scope."""
 
     scope = Scope.SESSION
@@ -665,6 +736,29 @@ class LDAPServerProvider(LDAPContextProvider):
         await session.start()
         yield session
         await session.disconnect()
+
+    bind_request_context = provide(
+        LDAPBindRequestContext,
+        scope=Scope.REQUEST,
+    )
+    search_request_context = provide(
+        LDAPSearchRequestContext,
+        scope=Scope.REQUEST,
+    )
+    unbind_request_context = provide(
+        LDAPUnbindRequestContext,
+        scope=Scope.REQUEST,
+    )
+
+    network_policy_validator = provide(
+        NetworkPolicyValidatorGateway,
+        provides=NetworkPolicyValidatorProtocol,
+        scope=Scope.REQUEST,
+    )
+    network_policy_validator_use_case = provide(
+        NetworkPolicyValidatorUseCase,
+        scope=Scope.REQUEST,
+    )
 
 
 class MFACredsProvider(Provider):
@@ -739,7 +833,7 @@ class MFAProvider(Provider):
             yield MFAHTTPClient(client)
 
     @provide(provides=MultifactorAPI)
-    async def get_http_mfa(
+    def get_http_mfa(
         self,
         credentials: MFA_HTTP_Creds,
         client: MFAHTTPClient,
@@ -761,7 +855,7 @@ class MFAProvider(Provider):
         )
 
     @provide(provides=LDAPMultiFactorAPI)
-    async def get_ldap_mfa(
+    def get_ldap_mfa(
         self,
         credentials: MFA_LDAP_Creds,
         client: MFAHTTPClient,
@@ -783,3 +877,26 @@ class MFAProvider(Provider):
                 settings,
             ),
         )
+
+
+class MigrationProvider(Provider):
+    """Provider for migrations."""
+
+    scope = Scope.APP
+
+    @provide(scope=Scope.APP)
+    def get_session_factory(
+        self,
+        connection: AsyncConnection,
+    ) -> AsyncSession:
+        """Create session factory."""
+        return AsyncSession(connection)
+
+    @provide(scope=Scope.APP)
+    async def get_conn_factory(
+        self,
+        engine: AsyncEngine,
+    ) -> AsyncIterator[AsyncConnection]:
+        """Create session factory."""
+        async with engine.connect() as connection:
+            yield connection

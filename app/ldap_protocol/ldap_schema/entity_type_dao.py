@@ -16,6 +16,10 @@ from sqlalchemy.orm import selectinload
 
 from abstract_dao import AbstractDAO
 from entities import Attribute, Directory, EntityType, ObjectClass
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+    AttributeValueValidatorError,
+)
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeAlreadyExistsError,
@@ -44,15 +48,18 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
     __session: AsyncSession
     __object_class_dao: ObjectClassDAO
+    __attribute_value_validator: AttributeValueValidator
 
     def __init__(
         self,
         session: AsyncSession,
         object_class_dao: ObjectClassDAO,
+        attribute_value_validator: AttributeValueValidator,
     ) -> None:
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
         self.__object_class_dao = object_class_dao
+        self.__attribute_value_validator = attribute_value_validator
 
     async def get_all(self) -> list[EntityTypeDTO[int]]:
         """Get all Entity Types."""
@@ -120,11 +127,20 @@ class EntityTypeDAO(AbstractDAO[EntityTypeDTO, str]):
 
             for directory in result.scalars():
                 for object_class_name in entity_type.object_class_names:
+                    if not self.__attribute_value_validator.is_value_valid(
+                        entity_type.name,
+                        "objectClass",
+                        object_class_name,
+                    ):
+                        raise AttributeValueValidatorError(
+                            f"Invalid objectClass value '{object_class_name}' for entity type '{entity_type.name}'.",  # noqa: E501
+                        )
+
                     self.__session.add(
                         Attribute(
                             directory_id=directory.id,
-                            value=object_class_name,
                             name="objectClass",
+                            value=object_class_name,
                         ),
                     )
 

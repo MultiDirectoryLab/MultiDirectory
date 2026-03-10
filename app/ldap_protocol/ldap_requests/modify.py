@@ -14,9 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from config import Settings
-from constants import PRIMARY_ENTITY_TYPE_NAMES
+from constants import DOMAIN_ADMIN_GROUP_NAME
 from entities import Attribute, Directory, Group, User
-from enums import AceType
+from enums import AceType, EntityTypeNames
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.kerberos import AbstractKadmin, unlock_principal
@@ -37,17 +37,11 @@ from ldap_protocol.objects import (
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.cte import check_root_group_membership_intersection
-from ldap_protocol.utils.helpers import (
-    create_user_name,
-    ft_to_dt,
-    is_dn_in_base_directory,
-    validate_entry,
-)
+from ldap_protocol.utils.helpers import ft_to_dt, validate_entry
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
     clear_group_membership,
     extend_group_membership,
-    get_base_directories,
     get_directories,
     get_directory_by_rid,
     get_filter_from_path,
@@ -81,8 +75,6 @@ MODIFY_EXCEPTION_STACK = (
     KRBAPIForcePasswordChangeError,
 )
 
-_DOMAIN_ADMIN_NAME = "domain admins"
-
 
 class ModifyRequest(BaseRequest):
     """Modify request.
@@ -103,6 +95,7 @@ class ModifyRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY
+    CONTEXT_TYPE: ClassVar[type] = LDAPModifyRequestContext
 
     object: str
     changes: list[Changes]
@@ -193,9 +186,7 @@ class ModifyRequest(BaseRequest):
 
         names = {change.get_name() for change in self.changes}
 
-        password_change_requested = self._check_password_change_requested(
-            names,
-        )
+        password_change_requested = self._is_password_change_requested(names)
         self_modify = directory.id == ctx.ldap_session.user.directory_id
 
         if (
@@ -210,7 +201,7 @@ class ModifyRequest(BaseRequest):
             return
 
         before_attrs = self.get_directory_attrs(directory)
-
+        entity_type = directory.entity_type
         try:
             if not can_modify and not (
                 password_change_requested and self_modify
@@ -223,6 +214,17 @@ class ModifyRequest(BaseRequest):
             for change in self.changes:
                 if change.modification.type.lower() in Directory.ro_fields:
                     continue
+
+                if not ctx.attribute_value_validator.is_partial_attribute_valid(  # noqa: E501
+                    entity_type.name if entity_type else "",
+                    change.modification,
+                ):
+                    await ctx.session.rollback()
+                    yield ModifyResponse(
+                        result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
+                        message="Invalid attribute value(s)",
+                    )
+                    return
 
                 await self._update_password_expiration(
                     change,
@@ -267,9 +269,7 @@ class ModifyRequest(BaseRequest):
                             await self._add(*add_args)
 
                     await ctx.session.flush()
-                    await ctx.session.execute(
-                        update(Directory).filter_by(id=directory.id),
-                    )
+
                 except MODIFY_EXCEPTION_STACK as err:
                     await ctx.session.rollback()
                     result_code, message = self._match_bad_response(err)
@@ -289,8 +289,10 @@ class ModifyRequest(BaseRequest):
                     directory=directory,
                     is_system_entity_type=False,
                 )
+
             await ctx.session.commit()
             yield ModifyResponse(result_code=LDAPCodes.SUCCESS)
+
         finally:
             query = self._get_dir_query()
             directory = await ctx.session.scalar(query)
@@ -351,7 +353,7 @@ class ModifyRequest(BaseRequest):
             .filter(get_filter_from_path(self.object))
         )
 
-    def _check_password_change_requested(
+    def _is_password_change_requested(
         self,
         names: set[str],
     ) -> bool:
@@ -437,7 +439,7 @@ class ModifyRequest(BaseRequest):
         if operation == Operation.REPLACE:
             for group in directory.groups:
                 if (
-                    group.directory.name == _DOMAIN_ADMIN_NAME
+                    group.directory.name == DOMAIN_ADMIN_GROUP_NAME
                     and directory.path_dn == user.dn
                     and group not in groups
                 ):
@@ -448,7 +450,7 @@ class ModifyRequest(BaseRequest):
         elif operation == Operation.DELETE:
             for group in groups:
                 if (
-                    group.directory.name == _DOMAIN_ADMIN_NAME
+                    group.directory.name == DOMAIN_ADMIN_GROUP_NAME
                     and directory.path_dn == user.dn
                 ):
                     raise ModifyForbiddenError(
@@ -482,7 +484,7 @@ class ModifyRequest(BaseRequest):
             operation == Operation.DELETE and user.dn in modified_members_dns
         )
 
-        if directory.name == _DOMAIN_ADMIN_NAME and (
+        if directory.name == DOMAIN_ADMIN_GROUP_NAME and (
             is_user_in_deleted or is_user_not_in_replaced
         ):
             raise ModifyForbiddenError("Can't delete yourself from group.")
@@ -591,7 +593,7 @@ class ModifyRequest(BaseRequest):
     ) -> None:
         if not (
             directory.entity_type
-            and directory.entity_type.name in PRIMARY_ENTITY_TYPE_NAMES
+            and directory.entity_type.name in EntityTypeNames
         ):
             return
 
@@ -847,17 +849,12 @@ class ModifyRequest(BaseRequest):
 
                     await session.execute(
                         delete(Attribute)
-                        .filter_by(
-                            name="nsAccountLock",
-                            directory=directory,
-                        ),
-                    )  # fmt: skip
-
-                    await session.execute(
-                        delete(Attribute)
-                        .filter_by(
-                            name="shadowExpire",
-                            directory=directory,
+                        .where(
+                            or_(
+                                qa(Attribute.name) == "nsAccountLock",
+                                qa(Attribute.name) == "shadowExpire",
+                            ),
+                            qa(Attribute.directory) == directory,
                         ),
                     )  # fmt: skip
 
@@ -881,30 +878,6 @@ class ModifyRequest(BaseRequest):
                 )
 
             elif name in User.search_fields:
-                if not directory.user:
-                    path_dn = directory.path_dn
-                    for base_directory in await get_base_directories(session):
-                        if is_dn_in_base_directory(base_directory, path_dn):
-                            base_dn = base_directory
-                            break
-
-                    sam_account_name = create_user_name(directory.id)
-                    user_principal_name = f"{sam_account_name}@{base_dn.name}"
-                    user = User(
-                        sam_account_name=sam_account_name,
-                        user_principal_name=user_principal_name,
-                        directory_id=directory.id,
-                    )
-                    uac_attr = Attribute(
-                        name="userAccountControl",
-                        value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
-                        directory_id=directory.id,
-                    )
-
-                    session.add_all([user, uac_attr])
-                    await session.flush()
-                    await session.refresh(directory)
-
                 if name == "accountexpires":
                     new_value = ft_to_dt(int(value)) if value != "0" else None
                 else:
@@ -915,14 +888,6 @@ class ModifyRequest(BaseRequest):
                     .filter_by(directory=directory)
                     .values({name: new_value}),
                 )
-
-            elif name in Group.search_fields and directory.group:
-                await session.execute(
-                    update(Group)
-                    .filter_by(directory=directory)
-                    .values({name: value}),
-                )
-
             elif name in ("userpassword", "unicodepwd") and directory.user:
                 if not settings.USE_CORE_TLS:
                     raise PermissionError("TLS required")

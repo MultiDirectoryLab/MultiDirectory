@@ -8,6 +8,7 @@ Create Date: 2024-10-28 08:57:53.115142
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
@@ -17,7 +18,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.create_table(
         "AccessPolicies",
@@ -331,7 +332,7 @@ def upgrade() -> None:
     )
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_index("ix_directory_objectGUID", table_name="Directory")
     op.drop_index(op.f("ix_Directory_path"), table_name="Directory")

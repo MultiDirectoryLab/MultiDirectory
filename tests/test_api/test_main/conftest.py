@@ -48,8 +48,20 @@ async def adding_test_user(
                     "vals": ["test"],
                 },
                 {
+                    "type": "sAMAccountName",
+                    "vals": ["test"],
+                },
+                {
                     "type": "objectClass",
-                    "vals": ["organization", "top", "user"],
+                    "vals": [
+                        "top",
+                        "user",
+                        "person",
+                        "organizationalPerson",
+                        "posixAccount",
+                        "shadowAccount",
+                        "inetOrgPerson",
+                    ],
                 },
             ],
         },
@@ -62,13 +74,6 @@ async def adding_test_user(
         json={
             "object": test_user_dn,
             "changes": [
-                {
-                    "operation": Operation.ADD,
-                    "modification": {
-                        "type": "sAMAccountName",
-                        "vals": ["Test"],
-                    },
-                },
                 {
                     "operation": Operation.ADD,
                     "modification": {

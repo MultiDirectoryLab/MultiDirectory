@@ -6,11 +6,15 @@ Create Date: 2025-10-10 06:23:58.238864
 
 """
 
+import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory, EntityType
+from enums import EntityTypeNames
+from extra.alembic_utils import temporary_stub_column
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -20,15 +24,16 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _migrate_ou_to_cn_containers(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
         """Migrate existing ou= containers to cn= containers."""
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         containers_to_migrate = ["groups", "computers", "users"]
         directories = await session.scalars(
@@ -39,7 +44,7 @@ def upgrade() -> None:
         )
         entity_type = await session.scalar(
             select(EntityType)
-            .where(qa(EntityType.name) == "Container"),
+            .where(qa(EntityType.name) == EntityTypeNames.CONTAINER),
         )  # fmt: skip
 
         for directory in directories:
@@ -105,15 +110,16 @@ def upgrade() -> None:
     op.run_async(_migrate_ou_to_cn_containers)
 
 
-def downgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
     async def _migrate_cn_to_ou_containers(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
         """Migrate existing cn= containers back to ou= containers."""
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         containers_to_migrate = ["groups", "computers", "users"]
         directories = await session.scalars(
@@ -124,7 +130,7 @@ def downgrade() -> None:
         )
         entity_type = await session.scalar(
             select(EntityType)
-            .where(qa(EntityType.name) == "Organizational Unit"),
+            .where(qa(EntityType.name) == EntityTypeNames.ORGANIZATIONAL_UNIT),
         )  # fmt: skip
 
         for directory in directories:

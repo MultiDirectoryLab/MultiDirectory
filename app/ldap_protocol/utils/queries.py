@@ -15,6 +15,10 @@ from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
 from sqlalchemy.sql.expression import ColumnElement
 
 from entities import Attribute, Directory, Group, User
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+    AttributeValueValidatorError,
+)
 from repo.pg.tables import (
     directory_memberships_table,
     directory_table,
@@ -336,6 +340,7 @@ def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
 async def create_group(
     name: str,
     sid: int | None,
+    attribute_value_validator: AttributeValueValidator,
     session: AsyncSession,
 ) -> tuple[Directory, Group]:
     """Create group in default groups path.
@@ -388,9 +393,18 @@ async def create_group(
     for name, attr in attributes.items():
         for val in attr:
             session.add(Attribute(name=name, value=val, directory_id=dir_.id))
-
     await session.flush()
-    await session.refresh(dir_)
+
+    await session.refresh(
+        instance=dir_,
+        attribute_names=["attributes", "user"],
+        with_for_update=None,
+    )
+    if not attribute_value_validator.is_directory_valid(dir_):
+        raise AttributeValueValidatorError(
+            "Invalid directory attributes values",
+        )
+
     await session.refresh(group)
     return dir_, group
 
@@ -496,22 +510,22 @@ async def set_or_update_primary_group(
             f"group '{group_dn}'.",
         )
 
-    existing_attr = await session.scalar(
-        select(Attribute)
-        .filter_by(
-            name="primaryGroupID",
-            directory_id=directory.id,
-        ),
-    )  # fmt: skip
+    updated_attribute = await session.scalar(
+        update(Attribute)
+        .values(value=group.directory.relative_id)
+        .where(
+            qa(Attribute.name) == "primaryGroupID",
+            qa(Attribute.directory_id) == directory.id,
+        )
+        .returning(qa(Attribute.directory_id)),
+    )
 
-    if existing_attr:
-        existing_attr.value = group.directory.relative_id
-    else:
+    if not updated_attribute:
         session.add(
             Attribute(
                 name="primaryGroupID",
-                value=group.directory.relative_id,
                 directory_id=directory.id,
+                value=group.directory.relative_id,
             ),
         )
 

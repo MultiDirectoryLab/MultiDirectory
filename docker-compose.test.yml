@@ -20,7 +20,7 @@ services:
       POSTGRES_HOST: postgres
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
-    command: sh -c "python -B -m pytest -n auto -x -W ignore::DeprecationWarning -vv"
+    command: sh -c "python -B -m pytest -n auto -x -W ignore::DeprecationWarning -W ignore::coverage.exceptions.CoverageWarning -vv"
     tty: true
 
   postgres:
@@ -34,12 +34,16 @@ services:
       - "5432"
     logging:
       driver: "none"
+    tmpfs:
+      - /var/lib/postgresql/data
 
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     container_name: dragonfly-test
     expose:
       - "6379"
+    tmpfs:
+      - /data
     deploy:
       resources:
         limits:
