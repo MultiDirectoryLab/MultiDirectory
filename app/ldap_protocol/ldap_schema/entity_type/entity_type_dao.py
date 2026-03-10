@@ -8,13 +8,13 @@ from typing import Iterable
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from entities_legacy import ObjectClass
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, EntityType
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -235,6 +235,7 @@ class EntityTypeDAO:
         )  # fmt: skip
         return set(row[0] for row in result.fetchall())
 
+    # TODO причеши это
     async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get all attribute names for an Entity Type.
 
@@ -246,28 +247,31 @@ class EntityTypeDAO:
         if not entity_type.object_class_names:
             return []
 
-        object_classes_query = await self.__session.scalars(
-            select(ObjectClass)
+        object_class_dirs_query = await self.__session.scalars(
+            select(Directory)
+            .join(qa(Directory.entity_type))
             .where(
-                qa(ObjectClass.name).in_(
-                    entity_type.object_class_names,
-                ),
+                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+                qa(Directory.name).in_(entity_type.object_class_names),
             )
-            .options(
-                selectinload(qa(ObjectClass.attribute_types_must)),
-                selectinload(qa(ObjectClass.attribute_types_may)),
-            ),
+            .options(selectinload(qa(Directory.attributes))),
         )
-        object_classes = list(object_classes_query.all())
+        object_class_dirs = list(object_class_dirs_query.all())
 
-        attribute_names = set()
-        for object_class in object_classes:
-            for attr in object_class.attribute_types_must:
-                attribute_names.add(attr.name)
-            for attr in object_class.attribute_types_may:
-                attribute_names.add(attr.name)
+        attribute_names: set[str] = set()
+        for object_class_dir in object_class_dirs:
+            for attr in object_class_dir.attributes:
+                if (
+                    attr.name
+                    in (
+                        "attribute_types_must",
+                        "attribute_types_may",
+                    )
+                    and attr.value
+                ):
+                    attribute_names.add(attr.value)
 
-        return sorted(list(attribute_names))
+        return sorted(attribute_names)
 
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system and not used Entity Type by their names.

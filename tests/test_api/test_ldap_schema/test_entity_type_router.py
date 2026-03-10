@@ -123,6 +123,73 @@ async def test_get_list_entity_types_with_pagination(
     assert len(response.json().get("items")) == page_size
 
 
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_get_entity_type_attributes(http_client: AsyncClient) -> None:
+    """Test retrieving attribute names for an entity type."""
+    attribute_types = [
+        {
+            "oid": "1.2.3.100",
+            "name": "testEntityTypeAttr1",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
+            "single_value": True,
+            "no_user_modification": False,
+            "is_system": False,
+            "is_included_anr": False,
+        },
+        {
+            "oid": "1.2.3.101",
+            "name": "testEntityTypeAttr2",
+            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
+            "single_value": True,
+            "no_user_modification": False,
+            "is_system": False,
+            "is_included_anr": False,
+        },
+    ]
+    for attribute_type in attribute_types:
+        response = await http_client.post(
+            "/schema/attribute_type",
+            json=attribute_type,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    object_class_name = "testEntityTypeObjectClass"
+    response = await http_client.post(
+        "/schema/object_class",
+        json={
+            "oid": "1.2.3.102",
+            "name": object_class_name,
+            "superior_name": None,
+            "kind": "STRUCTURAL",
+            "is_system": False,
+            "attribute_type_names_must": ["testEntityTypeAttr1"],
+            "attribute_type_names_may": ["testEntityTypeAttr2"],
+        },
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    entity_type_name = "testEntityTypeWithAttrs"
+    response = await http_client.post(
+        "/schema/entity_type",
+        json={
+            "name": entity_type_name,
+            "object_class_names": [object_class_name],
+            "is_system": False,
+        },
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.get(
+        f"/schema/entity_type/{entity_type_name}/attrs",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert set(response.json()) == {
+        "testEntityTypeAttr1",
+        "testEntityTypeAttr2",
+    }
+
+
 @pytest.mark.parametrize(
     "dataset",
     test_modify_entity_type_with_duplicates_dataset,
