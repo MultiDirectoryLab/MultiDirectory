@@ -416,6 +416,7 @@ services:
   pdns_recursor:
     image: powerdns/pdns-recursor-51:5.1.7
     container_name: pdns_recursor
+    user: "0:0"
     cap_add:
       - NET_ADMIN
     networks:
