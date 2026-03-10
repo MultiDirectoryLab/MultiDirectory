@@ -216,7 +216,10 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        if directory.rdname in names:
+        if (
+            directory.rdname != "krbprincipalname"
+            and directory.rdname in names
+        ):
             yield ModifyResponse(result_code=LDAPCodes.NOT_ALLOWED_ON_RDN)
             return
 
@@ -935,11 +938,9 @@ class ModifyRequest(BaseRequest):
                         new_user_principal_name = f"{new_sam_account_name}@{base_dir.name}"  # noqa: E501  # fmt: skip
 
                     if directory.user.sam_account_name != new_sam_account_name:
-                        await kadmin.modify_princ(
+                        await kadmin.rename_princ(
                             directory.user.sam_account_name,
                             new_sam_account_name,
-                            algorithms=None,
-                            password=None,
                         )
 
                         directory.user.user_principal_name = new_user_principal_name  # noqa: E501  # fmt: skip
@@ -1043,17 +1044,13 @@ class ModifyRequest(BaseRequest):
             raise ModifyForbiddenError("Old sAMAccountName value not found.")
 
         if old_sam_account_name != new_sam_account_name:
-            await kadmin.modify_princ(
+            await kadmin.rename_princ(
                 f"host/{old_sam_account_name}",
                 f"host/{new_sam_account_name}",
-                algorithms=None,
-                password=None,
             )
-            await kadmin.modify_princ(
+            await kadmin.rename_princ(
                 f"host/{old_sam_account_name}.{base_dir.name}",
                 f"host/{new_sam_account_name}.{base_dir.name}",
-                algorithms=None,
-                password=None,
             )
 
     async def _get_base_dir(

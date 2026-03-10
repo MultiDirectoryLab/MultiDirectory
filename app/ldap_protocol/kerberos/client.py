@@ -103,13 +103,27 @@ class KerberosMDAPIClient(AbstractKadmin):
     ) -> None:
         """Rename request."""
         response = await self.client.put(
-            "principal",
+            "principal/modify",
             json={
-                "name": name,
+                "principal_name": name,
                 "new_name": new_name,
                 "algorithms": algorithms,
                 "password": password,
             },
+        )
+        if response.status_code != 202:
+            raise krb_exc.KRBAPIModifyPrincipalError(response.text)
+
+    @logger_wraps()
+    async def rename_princ(
+        self,
+        name: str,
+        new_name: str,
+    ) -> None:
+        """Rename request."""
+        response = await self.client.put(
+            "principal/rename",
+            json={"name": name, "new_name": new_name},
         )
         if response.status_code != 202:
             raise krb_exc.KRBAPIModifyPrincipalError(response.text)
