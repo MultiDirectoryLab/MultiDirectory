@@ -22,6 +22,8 @@ down_revision: None | str = "19d86e660cf2"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
+_ATTR_NAME_SAMACCOUNTNAME = "sAMAccountName"
+
 
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
@@ -35,17 +37,14 @@ def upgrade(container: AsyncContainer) -> None:
         computer_dirs = await session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
-            .options(
-                selectinload(qa(Directory.attributes)),
-                selectinload(qa(Directory.entity_type)),
-            )
+            .options(selectinload(qa(Directory.attributes)))
             .where(
                 qa(EntityType.name) == EntityTypeNames.COMPUTER,
                 ~exists(
                     select(qa(Attribute.id))
                     .where(
                         qa(Attribute.directory_id) == qa(Directory.id),
-                        qa(Attribute.name) == "sAMAccountName",
+                        qa(Attribute.name) == _ATTR_NAME_SAMACCOUNTNAME,
                     ),
                 ),
             ),
@@ -54,7 +53,7 @@ def upgrade(container: AsyncContainer) -> None:
         for directory in computer_dirs:
             session.add(
                 Attribute(
-                    name="sAMAccountName",
+                    name=_ATTR_NAME_SAMACCOUNTNAME,
                     value=directory.name,
                     directory_id=directory.id,
                 ),
@@ -77,16 +76,13 @@ def downgrade(container: AsyncContainer) -> None:
         computer_dirs = await session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
-            .options(
-                selectinload(qa(Directory.attributes)),
-                selectinload(qa(Directory.entity_type)),
-            )
+            .options(selectinload(qa(Directory.attributes)))
             .where(qa(EntityType.name) == EntityTypeNames.COMPUTER),
         )
 
         for directory in computer_dirs:
             for attr in directory.attributes:
-                if attr.name == "sAMAccountName":
+                if attr.name == _ATTR_NAME_SAMACCOUNTNAME:
                     await session.delete(attr)
                     break
 
