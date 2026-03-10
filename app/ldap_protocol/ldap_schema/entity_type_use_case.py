@@ -7,8 +7,8 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import ClassVar
 
 from abstract_service import AbstractService
-from constants import ENTITY_TYPE_DATAS, PRIMARY_ENTITY_TYPE_NAMES
-from enums import AuthorizationRules
+from constants import ENTITY_TYPE_DATAS
+from enums import AuthorizationRules, EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -65,7 +65,7 @@ class EntityTypeUseCase(AbstractService):
         self,
         name: str,
     ) -> None:
-        if name in PRIMARY_ENTITY_TYPE_NAMES:
+        if name in EntityTypeNames:
             raise EntityTypeCantModifyError(
                 f"Can't change entity type name {name}",
             )
@@ -93,7 +93,7 @@ class EntityTypeUseCase(AbstractService):
         for entity_type_data in ENTITY_TYPE_DATAS:
             await self.create(
                 EntityTypeDTO(
-                    name=entity_type_data["name"],  # type: ignore
+                    name=entity_type_data["name"],
                     object_class_names=list(
                         entity_type_data["object_class_names"],
                     ),

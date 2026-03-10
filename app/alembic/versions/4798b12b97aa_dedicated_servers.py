@@ -8,6 +8,7 @@ Create Date: 2025-08-26 12:45:08.370675
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer
 from loguru import logger
 from sqlalchemy.orm import Session
 
@@ -21,7 +22,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade() -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.create_table(
         "DedicatedServer",
@@ -88,7 +89,7 @@ def upgrade() -> None:
     session.commit()
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)

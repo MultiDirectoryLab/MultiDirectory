@@ -41,6 +41,8 @@ class Settings(BaseModel):
     PORT: int = 389
     TLS_PORT: int = 636
     HTTP_PORT: int = 8000
+    GLOBAL_LDAP_PORT: int = 3268
+    GLOBAL_LDAP_TLS_PORT: int = 3269
     USE_CORE_TLS: bool = False
     LDAP_LOAD_SSL_CERT: bool = False
 
@@ -196,6 +198,23 @@ class Settings(BaseModel):
         tls_settings.USE_CORE_TLS = True
         tls_settings.PORT = tls_settings.TLS_PORT
         return tls_settings
+
+    def get_copy_4_global(self) -> "Settings":
+        """Create a copy for global LDAP server."""
+        from copy import copy
+
+        global_settings = copy(self)
+        global_settings.PORT = global_settings.GLOBAL_LDAP_PORT
+        return global_settings
+
+    def get_copy_4_global_tls(self) -> "Settings":
+        """Create a copy for global LDAP server with TLS."""
+        from copy import copy
+
+        global_tls_settings = copy(self)
+        global_tls_settings.USE_CORE_TLS = True
+        global_tls_settings.PORT = global_tls_settings.GLOBAL_LDAP_TLS_PORT
+        return global_tls_settings
 
     def check_certs_exist(self) -> bool:
         """Check if certs exist."""

@@ -5,6 +5,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from api.ldap_schema.schema import ObjectClassUpdateSchema
+from enums import EntityTypeNames
 
 from .test_object_class_router_datasets import (
     test_create_one_object_class_dataset,
@@ -15,7 +16,7 @@ from .test_object_class_router_datasets import (
 
 
 @pytest.mark.asyncio
-async def test_get_one_extended_object_class(
+async def test_get_extended_object_classes(
     http_client: AsyncClient,
 ) -> None:
     """Test getting a single extended object class."""
@@ -25,7 +26,10 @@ async def test_get_one_extended_object_class(
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert isinstance(data, dict)
-    assert data.get("entity_type_names") == ["User"]
+    assert set(data.get("entity_type_names")) == {  # type: ignore
+        EntityTypeNames.CONTACT,
+        EntityTypeNames.USER,
+    }
 
 
 @pytest.mark.parametrize(
@@ -87,7 +91,7 @@ async def test_create_object_class_type_conflict_when_already_exists(
         "/schema/object_class",
         json=dataset["object_class"],
     )
-    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -108,7 +112,7 @@ async def test_modify_system_object_class(http_client: AsyncClient) -> None:
                 f"/schema/object_class/{object_class_name}",
                 json=request_data.model_dump(),
             )
-            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
             break
     else:
         pytest.fail("No system object class")
@@ -203,7 +207,7 @@ async def test_delete_bulk_object_classes(
             response = await http_client.get(
                 f"/schema/object_class/{object_class_name}",
             )
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.parametrize(

@@ -190,6 +190,7 @@ class Directory:
 
     id: int = field(init=False)
     name: str
+    is_system: bool = field(default=False)
     object_sid: str = field(default="")
     object_guid: uuid.UUID = field(default_factory=uuid.uuid4)
     parent_id: int | None = None
@@ -201,7 +202,6 @@ class Directory:
     )
     updated_at: datetime | None = field(default=None)
     depth: int = field(default=0)
-    password_policy_id: int | None = None
     path: list[str] = field(default_factory=list)
 
     parent: Directory | None = field(default=None, repr=False, compare=False)

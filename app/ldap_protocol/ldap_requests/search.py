@@ -14,7 +14,12 @@ from loguru import logger
 from pydantic import Field, PrivateAttr, field_serializer
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
+from sqlalchemy.orm import (
+    contains_eager,
+    joinedload,
+    selectinload,
+    with_loader_criteria,
+)
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import Select
 
@@ -100,6 +105,7 @@ class SearchRequest(BaseRequest):
     """
 
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.SEARCH
+    CONTEXT_TYPE: ClassVar[type] = LDAPSearchRequestContext
 
     base_object: str = Field("", description="Any `DistinguishedName`")
     scope: Scope
@@ -150,6 +156,10 @@ class SearchRequest(BaseRequest):
     @property
     def is_guid_requested(self) -> bool:
         return self.all_attrs or "objectguid" in self.requested_attrs
+
+    @property
+    def is_objectclass_requested(self) -> bool:
+        return self.all_attrs or "objectclass" in self.requested_attrs
 
     @cached_property
     def all_attrs(self) -> bool:
@@ -339,7 +349,7 @@ class SearchRequest(BaseRequest):
         if self.entity_type_name:
             query = (
                 query.join(qa(Directory.entity_type))
-                .options(selectinload(qa(Directory.entity_type)))
+                .options(contains_eager(qa(Directory.entity_type)))
             )  # fmt: skip
 
         if self.all_attrs:
@@ -351,11 +361,16 @@ class SearchRequest(BaseRequest):
             if attr not in _ATTRS_TO_CLEAN
         }
 
+        cond = or_(
+            func.lower(Attribute.name).in_(attrs),
+            func.lower(Attribute.name) == "objectclass",
+        )
+
         return query.options(
             selectinload(qa(Directory.attributes)),
             with_loader_criteria(
                 Attribute,
-                func.lower(Attribute.name).in_(attrs),
+                cond,
             ),
         )
 
@@ -369,8 +384,8 @@ class SearchRequest(BaseRequest):
         query = (
             select(Directory)
             .join(qa(Directory.user), isouter=True)
-            .options(joinedload(qa(Directory.user)))
-            .options(selectinload(qa(Directory.group)))
+            .options(contains_eager(qa(Directory.user)))
+            .options(joinedload(qa(Directory.group)))
         )
 
         query = self._mutate_query_with_attributes_to_load(query)
@@ -423,7 +438,7 @@ class SearchRequest(BaseRequest):
 
         if self.member:
             query = query.options(
-                selectinload(qa(Directory.group)).selectinload(
+                joinedload(qa(Directory.group)).selectinload(
                     qa(Group.members),
                 ),
             )
@@ -468,7 +483,7 @@ class SearchRequest(BaseRequest):
         attrs: dict[str, list[str]],
         session: AsyncSession,
     ) -> None:
-        if "distinguishedname" not in self.requested_attrs or self.all_attrs:
+        if "distinguishedname" in self.requested_attrs or self.all_attrs:
             attrs["distinguishedName"].append(distinguished_name)
 
         if "whenCreated" in self.requested_attrs or self.all_attrs:
@@ -501,15 +516,10 @@ class SearchRequest(BaseRequest):
                     )
 
         if self.member_of:
-            logger.debug(f"Member of group: {directory.groups}")
             for group in directory.groups:
                 attrs["memberOf"].append(group.directory.path_dn)
 
         if self.token_groups and "user" in obj_classes:
-            attrs["tokenGroups"].append(
-                str(string_to_sid(directory.object_sid)),
-            )
-
             group_directories = await get_all_parent_group_directories(
                 directory.groups,
                 session,
@@ -518,7 +528,7 @@ class SearchRequest(BaseRequest):
             if group_directories is not None:
                 async for directory_ in group_directories:
                     attrs["tokenGroups"].append(
-                        str(string_to_sid(directory_.object_sid)),
+                        string_to_sid(directory_.object_sid),  # type: ignore
                     )
 
         if self.member and "group" in obj_classes and directory.group:
@@ -541,9 +551,9 @@ class SearchRequest(BaseRequest):
         access_manager: AccessManager,
     ) -> AsyncGenerator[SearchResultEntry, None]:
         """Yield all resulted directories."""
-        directories = await session.stream_scalars(query)
+        directories = await session.scalars(query)
 
-        async for directory in directories:
+        for directory in directories:
             attrs = defaultdict(list)
             obj_classes = []
 
@@ -572,6 +582,9 @@ class SearchRequest(BaseRequest):
 
                 if attr.name.lower() == "objectclass":
                     obj_classes.append(value)
+                    if self.is_objectclass_requested:
+                        attrs[attr.name].append(value)
+                    continue
 
                 attrs[attr.name].append(value)
 

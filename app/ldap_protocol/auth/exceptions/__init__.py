@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from .mfa import (
+    AuthenticationError,
     InvalidCredentialsError,
     MFARequiredError,
     MFATokenError,
@@ -20,4 +21,5 @@ __all__ = [
     "InvalidCredentialsError",
     "NetworkPolicyError",
     "NotFoundError",
+    "AuthenticationError",
 ]

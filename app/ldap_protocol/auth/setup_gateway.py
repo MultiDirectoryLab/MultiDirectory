@@ -12,6 +12,9 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory, Group, NetworkPolicy, User
+from ldap_protocol.ldap_schema.attribute_value_validator import (
+    AttributeValueValidator,
+)
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
@@ -27,6 +30,7 @@ class SetupGateway:
         session: AsyncSession,
         password_utils: PasswordUtils,
         entity_type_dao: EntityTypeDAO,
+        attribute_value_validator: AttributeValueValidator,
     ) -> None:
         """Initialize Setup use case.
 
@@ -37,6 +41,7 @@ class SetupGateway:
         self._session = session
         self._password_utils = password_utils
         self._entity_type_dao = entity_type_dao
+        self._attribute_value_validator = attribute_value_validator
 
     async def is_setup(self) -> bool:
         """Check if setup is performed.
@@ -44,8 +49,9 @@ class SetupGateway:
         :return: bool (True if setup is performed, False otherwise)
         """
         query = select(
-            exists(Directory).where(qa(Directory.parent_id).is_(None)),
-        )
+            exists(Directory)
+            .where(qa(Directory.parent_id).is_(None)),
+        )  # fmt: skip
         retval = await self._session.scalars(query)
         return retval.one()
 
@@ -53,6 +59,7 @@ class SetupGateway:
         self,
         *,
         data: list,
+        is_system: bool,
         dn: str = "multifactor.dev",
     ) -> None:
         """Create directories and users for enviroment."""
@@ -61,10 +68,8 @@ class SetupGateway:
             logger.warning("dev data already set up")
             return
 
-        domain = Directory(
-            name=dn,
-            object_class="domain",
-        )
+        domain = Directory(name=dn, object_class="domain")
+        domain.is_system = True
         domain.object_sid = generate_domain_sid()
         domain.path = [f"dc={path}" for path in reversed(dn.split("."))]
         domain.depth = len(domain.path)
@@ -94,14 +99,19 @@ class SetupGateway:
                 directory=domain,
                 is_system_entity_type=True,
             )
+            if not self._attribute_value_validator.is_directory_valid(domain):
+                raise ValueError(
+                    "Invalid directory attribute values during environment setup",  # noqa: E501
+                )
             await self._session.flush()
 
         try:
             for unit in data:
                 await self.create_dir(
                     unit,
-                    domain,
-                    domain,
+                    is_system=is_system,
+                    domain=domain,
+                    parent=domain,
                 )
 
         except Exception:
@@ -113,11 +123,13 @@ class SetupGateway:
     async def create_dir(
         self,
         data: dict,
+        is_system: bool,
         domain: Directory,
         parent: Directory | None = None,
     ) -> None:
         """Create data recursively."""
         dir_ = Directory(
+            is_system=is_system,
             object_class=data["object_class"],
             name=data["name"],
             parent=parent,
@@ -199,21 +211,24 @@ class SetupGateway:
 
         await self._session.refresh(
             instance=dir_,
-            attribute_names=["attributes"],
+            attribute_names=["attributes", "user"],
             with_for_update=None,
         )
         await self._entity_type_dao.attach_entity_type_to_directory(
             directory=dir_,
             is_system_entity_type=True,
         )
+        if not self._attribute_value_validator.is_directory_valid(dir_):
+            raise ValueError("Invalid directory attribute values")
         await self._session.flush()
 
         if "children" in data:
             for n_data in data["children"]:
                 await self.create_dir(
                     n_data,
-                    domain,
-                    dir_,
+                    is_system=is_system,
+                    domain=domain,
+                    parent=dir_,
                 )
 
     async def _get_group(self, name: str) -> Group:

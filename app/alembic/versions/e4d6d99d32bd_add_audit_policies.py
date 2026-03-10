@@ -10,9 +10,11 @@ from unittest.mock import Mock
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
 from ldap_protocol.policies.audit.events.managers import RawAuditManager
@@ -26,16 +28,19 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _create_audit_policies(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
+    async def _create_audit_policies(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            audit_dao = await cnt.get(AuditPoliciesDAO)
+            dest_dao = await cnt.get(AuditDestinationDAO)
 
         if not await get_base_directories(session):
             return
-        audit_dao = AuditPoliciesDAO(session)
-        dest_dao = AuditDestinationDAO(session)
+
         manager = Mock(spec=RawAuditManager)
         use_case = AuditUseCase(audit_dao, dest_dao, manager)
         await use_case.create_policies()
@@ -139,7 +144,7 @@ def upgrade() -> None:
     op.run_async(_create_audit_policies)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
     op.drop_table("AuditPolicyTriggers")
     op.drop_table("AuditPolicies")

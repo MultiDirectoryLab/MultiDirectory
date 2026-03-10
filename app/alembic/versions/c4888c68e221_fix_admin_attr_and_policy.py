@@ -8,12 +8,13 @@ Create Date: 2025-11-06 10:38:31.124118
 
 import sqlalchemy as sa
 from alembic import op
+from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory, NetworkPolicy
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.helpers import create_integer_hash
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -25,31 +26,26 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade() -> None:
+@temporary_stub_column("is_system", sa.Boolean())
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
     async def _attach_entity_type_to_directories(
-        connection: AsyncConnection,
+        connection: AsyncConnection,  # noqa: ARG001
     ) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            entity_type_dao = await cnt.get(EntityTypeDAO)
 
         if not await get_base_directories(session):
             return
 
-        object_class_dao = ObjectClassDAO(
-            session,
-        )
-        entity_type_dao = EntityTypeDAO(
-            session,
-            object_class_dao=object_class_dao,
-        )
         await entity_type_dao.attach_entity_type_to_directories()
         await session.commit()
 
-    async def _change_uid_admin(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _change_uid_admin(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         directory = await session.scalar(
             sa.select(Directory)
@@ -81,9 +77,9 @@ def upgrade() -> None:
         )
         await session.commit()
 
-    async def _change_ldap_session_ttl(connection: AsyncConnection) -> None:
-        session = AsyncSession(bind=connection)
-        await session.begin()
+    async def _change_ldap_session_ttl(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
 
         await session.execute(
             sa.update(NetworkPolicy)
@@ -101,5 +97,5 @@ def upgrade() -> None:
     op.run_async(_attach_entity_type_to_directories)
 
 
-def downgrade() -> None:
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""

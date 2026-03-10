@@ -4,6 +4,21 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+from typing import TypedDict
+
+from enums import EntityTypeNames
+
+GROUPS_CONTAINER_NAME = "groups"
+COMPUTERS_CONTAINER_NAME = "computers"
+USERS_CONTAINER_NAME = "users"
+
+READ_ONLY_GROUP_NAME = "read-only"
+
+DOMAIN_ADMIN_GROUP_NAME = "domain admins"
+DOMAIN_USERS_GROUP_NAME = "domain users"
+DOMAIN_COMPUTERS_GROUP_NAME = "domain computers"
+
+
 group_attrs = {
     "objectClass": ["top"],
     "groupType": ["-2147483646"],
@@ -117,7 +132,7 @@ DATA = [
         },
     },
     {
-        "name": "users",
+        "name": USERS_CONTAINER_NAME,
         "object_class": "container",
         "attributes": {"objectClass": ["top"]},
         "children": [
@@ -207,24 +222,37 @@ DATA = [
 ]
 
 
-ENTITY_TYPE_DATAS = [
-    {
-        "name": "Domain",
-        "object_class_names": ["top", "domain", "domainDNS"],
-    },
-    {"name": "Computer", "object_class_names": ["top", "computer"]},
-    {"name": "Container", "object_class_names": ["top", "container"]},
-    {
-        "name": "Organizational Unit",
-        "object_class_names": ["top", "container", "organizationalUnit"],
-    },
-    {
-        "name": "Group",
-        "object_class_names": ["top", "group", "posixGroup"],
-    },
-    {
-        "name": "User",
-        "object_class_names": [
+class EntityTypeData(TypedDict):
+    """Entity Type data."""
+
+    name: EntityTypeNames
+    object_class_names: list[str]
+
+
+ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
+    EntityTypeData(
+        name=EntityTypeNames.DOMAIN,
+        object_class_names=["top", "domain", "domainDNS"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.COMPUTER,
+        object_class_names=["top", "computer"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.CONTAINER,
+        object_class_names=["top", "container"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.ORGANIZATIONAL_UNIT,
+        object_class_names=["top", "container", "organizationalUnit"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.GROUP,
+        object_class_names=["top", "group", "posixGroup"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.USER,
+        object_class_names=[
             "top",
             "user",
             "person",
@@ -233,32 +261,39 @@ ENTITY_TYPE_DATAS = [
             "shadowAccount",
             "inetOrgPerson",
         ],
-    },
-    {"name": "KRB Container", "object_class_names": ["krbContainer"]},
-    {
-        "name": "KRB Principal",
-        "object_class_names": [
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.CONTACT,
+        object_class_names=[
+            "top",
+            "person",
+            "organizationalPerson",
+            "contact",
+            "mailRecipient",
+        ],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_CONTAINER,
+        object_class_names=["krbContainer"],
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_PRINCIPAL,
+        object_class_names=[
             "krbprincipal",
             "krbprincipalaux",
             "krbTicketPolicyAux",
         ],
-    },
-    {
-        "name": "KRB Realm Container",
-        "object_class_names": [
-            "top",
-            "krbrealmcontainer",
-            "krbticketpolicyaux",
-        ],
-    },
-]
-PRIMARY_ENTITY_TYPE_NAMES = {
-    entity_type_data["name"] for entity_type_data in ENTITY_TYPE_DATAS
-}
+    ),
+    EntityTypeData(
+        name=EntityTypeNames.KRB_REALM_CONTAINER,
+        object_class_names=["top", "krbrealmcontainer", "krbticketpolicyaux"],
+    ),
+)
+
 
 FIRST_SETUP_DATA = [
     {
-        "name": "groups",
+        "name": GROUPS_CONTAINER_NAME,
         "object_class": "container",
         "attributes": {
             "objectClass": ["top"],
@@ -266,52 +301,52 @@ FIRST_SETUP_DATA = [
         },
         "children": [
             {
-                "name": "domain admins",
+                "name": DOMAIN_ADMIN_GROUP_NAME,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["domain admins"],
+                    "sAMAccountName": [DOMAIN_ADMIN_GROUP_NAME],
                     "sAMAccountType": ["268435456"],
                     "gidNumber": ["512"],
                 },
                 "objectSid": 512,
             },
             {
-                "name": "domain users",
+                "name": DOMAIN_USERS_GROUP_NAME,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["domain users"],
+                    "sAMAccountName": [DOMAIN_USERS_GROUP_NAME],
                     "sAMAccountType": ["268435456"],
                     "gidNumber": ["513"],
                 },
                 "objectSid": 513,
             },
             {
-                "name": "read-only",
+                "name": READ_ONLY_GROUP_NAME,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["read-only"],
+                    "sAMAccountName": [READ_ONLY_GROUP_NAME],
                     "sAMAccountType": ["268435456"],
                     "gidNumber": ["521"],
                 },
                 "objectSid": 521,
             },
             {
-                "name": "domain computers",
+                "name": DOMAIN_COMPUTERS_GROUP_NAME,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
-                    "sAMAccountName": ["domain computers"],
+                    "sAMAccountName": [DOMAIN_COMPUTERS_GROUP_NAME],
                     "sAMAccountType": ["268435456"],
                     "gidNumber": ["515"],
                 },
@@ -320,12 +355,13 @@ FIRST_SETUP_DATA = [
         ],
     },
     {
-        "name": "computers",
+        "name": COMPUTERS_CONTAINER_NAME,
         "object_class": "container",
         "attributes": {"objectClass": ["top"]},
         "children": [],
     },
 ]
+
 
 DEFAULT_DC_POSTFIX = "DC1"
 UNC_PREFIX = "\\\\"
