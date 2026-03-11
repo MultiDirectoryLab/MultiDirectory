@@ -102,16 +102,17 @@ class AttributeTypeDAO:
                 f"Attribute Type with name '{name}' not found.",
             )
 
+        # TODO мб оптимизировать и работать только с атрибутами?
         for attr in dir_.attributes:
             if not dir_.is_system:
-                if attr.name == "syntax":
+                if attr.name == "syntax":  # TODO fix нейминг
                     attr.value = dto.syntax
-                elif attr.name == "single_value":
+                elif attr.name == "single_value":  # TODO fix нейминг
                     attr.value = str(dto.single_value)
-                elif attr.name == "no_user_modification":
+                elif attr.name == "no_user_modification":  # TODO fix нейминг
                     attr.value = str(dto.no_user_modification)
             else:
-                if attr.name == "is_included_anr":
+                if attr.name == "is_included_anr":  # TODO fix нейминг
                     attr.value = str(dto.is_included_anr)
                     break
 
@@ -125,8 +126,9 @@ class AttributeTypeDAO:
                 f"Attribute Type with name '{name}' not found.",
             )
 
+        # TODO мб оптимизировать и работать только с атрибутом?
         for attr in dir_.attributes:
-            if attr.name == "system_flags":
+            if attr.name == "system_flags":  # TODO fix нейминг
                 attr.value = str(dto.system_flags)
                 break
 
@@ -141,13 +143,10 @@ class AttributeTypeDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Attribute Types and metadata.
         """
-        filters = [
-            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
-        ]
+        filters = [qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE]
+
         if params.query:
-            filters.append(
-                qa(Directory.name).like(f"%{params.query}%"),
-            )
+            filters.append(qa(Directory.name).like(f"%{params.query}%"))
 
         query = (
             select(Directory)

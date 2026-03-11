@@ -31,7 +31,7 @@ from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import
     ObjectClassUseCaseLegacy,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.utils.raw_definition_parser import (
+from ldap_protocol.ldap_schema.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
 from repo.pg.tables import queryable_attr as qa

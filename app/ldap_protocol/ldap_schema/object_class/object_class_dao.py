@@ -96,9 +96,7 @@ class ObjectClassDAO:
         :param PaginationParams params: page_size and page_number.
         :return PaginationResult: Chunk of Object Classes and metadata.
         """
-        filters = [
-            qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-        ]
+        filters = [qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS]
 
         query = (
             select(Directory)

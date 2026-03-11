@@ -12,7 +12,7 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_raw_display import 
 from ldap_protocol.ldap_schema.object_class.object_class_raw_display import (
     ObjectClassRawDisplay,
 )
-from ldap_protocol.utils.raw_definition_parser import (
+from ldap_protocol.ldap_schema.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
 
