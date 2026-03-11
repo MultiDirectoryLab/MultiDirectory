@@ -426,6 +426,8 @@ services:
       - 8083
       - 53/udp
       - 53/tcp
+    entrypoint: sh -c "chown 0:0 /etc/powerdns/recursor.d &&
+      exec /usr/bin/tini -- /usr/local/sbin/pdns_recursor-startup"
     volumes:
       - ./recursor.conf:/etc/powerdns/recursor.conf
       - forward_zones:/etc/powerdns/recursor.d/
