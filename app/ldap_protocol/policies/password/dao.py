@@ -211,10 +211,7 @@ class PasswordPolicyDAO(AbstractDAO[PasswordPolicyDTO, int]):
 
         return await self.get_password_policy_for_user(user)
 
-    async def create(
-        self,
-        dto: PasswordPolicyDTO[None, PriorityT],
-    ) -> None:
+    async def create(self, dto: PasswordPolicyDTO[None, PriorityT]) -> None:
         """Create one Password Policy."""
         if await self._is_policy_already_exist(dto.name):
             raise PasswordPolicyAlreadyExistsError(

@@ -69,10 +69,7 @@ async def modify_one_attribute_type(
     adapter: FromDishka[AttributeTypeFastAPIAdapter],
 ) -> None:
     """Modify an Attribute Type."""
-    await adapter.update(
-        name=attribute_type_name,
-        data=request_data,
-    )
+    await adapter.update(name=attribute_type_name, data=request_data)
 
 
 @ldap_schema_router.post(
