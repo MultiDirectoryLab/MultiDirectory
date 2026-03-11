@@ -100,9 +100,6 @@ from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
 )
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_dir_create_use_case import (  # noqa: E501
-    CreateDirectoryLikeAsAttributeTypeUseCase,
-)
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
@@ -119,11 +116,11 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
-from ldap_protocol.ldap_schema.object_class.object_class_dir_create_use_case import (  # noqa: E501
-    CreateDirectoryLikeAsObjectClassUseCase,
-)
 from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
+)
+from ldap_protocol.ldap_schema.schema_create_use_case import (
+    SchemaLikeAsDirectoryCreateUseCase,
 )
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
@@ -568,12 +565,8 @@ class MainProvider(Provider):
             attribute_type_dao_legacy=at_dao_legacy,
         )
 
-    create_attribute_dir_gateway = provide(
-        CreateDirectoryLikeAsAttributeTypeUseCase,
-        scope=Scope.REQUEST,
-    )
-    create_objclass_dir_use_case = provide(
-        CreateDirectoryLikeAsObjectClassUseCase,
+    schema_create_use_case = provide(
+        SchemaLikeAsDirectoryCreateUseCase,
         scope=Scope.REQUEST,
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)

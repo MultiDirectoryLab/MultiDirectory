@@ -9,6 +9,7 @@ import os
 import uuid
 from contextlib import suppress
 from dataclasses import dataclass
+from itertools import chain
 from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
@@ -62,7 +63,7 @@ from api.password_policy.adapter import (
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from constants import ENTITY_TYPE_DATAS
+from constants import ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.auth import AuthManager, MFAManager
@@ -110,9 +111,6 @@ from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
 )
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_dir_create_use_case import (  # noqa: E501
-    CreateDirectoryLikeAsAttributeTypeUseCase,
-)
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
@@ -122,7 +120,7 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, EntityTypeDTO
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
@@ -130,11 +128,11 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
-from ldap_protocol.ldap_schema.object_class.object_class_dir_create_use_case import (  # noqa: E501
-    CreateDirectoryLikeAsObjectClassUseCase,
-)
 from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
+)
+from ldap_protocol.ldap_schema.schema_create_use_case import (
+    SchemaLikeAsDirectoryCreateUseCase,
 )
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
@@ -325,12 +323,8 @@ class TestProvider(Provider):
             domain.name,
         )
 
-    create_objclass_dir_use_case = provide(
-        CreateDirectoryLikeAsObjectClassUseCase,
-        scope=Scope.REQUEST,
-    )
-    create_attribute_dir_gateway = provide(
-        CreateDirectoryLikeAsAttributeTypeUseCase,
+    schema_create_use_case = provide(
+        SchemaLikeAsDirectoryCreateUseCase,
         scope=Scope.REQUEST,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
@@ -1040,7 +1034,7 @@ async def setup_session(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,
     )
-    create_objclass_dir_use_case = CreateDirectoryLikeAsObjectClassUseCase(
+    schema_create_use_case = SchemaLikeAsDirectoryCreateUseCase(
         session=session,
         entity_type_use_case=entity_type_use_case,
         role_use_case=role_use_case,
@@ -1049,32 +1043,15 @@ async def setup_session(
         attribute_type_dao=attribute_type_dao,
         object_class_dao=object_class_dao,
         entity_type_dao=entity_type_dao,
-        create_objclass_dir_use_case=create_objclass_dir_use_case,
-    )
-    create_attribute_dir_use_case = CreateDirectoryLikeAsAttributeTypeUseCase(
-        session=session,
-        entity_type_use_case=entity_type_use_case,
-        role_use_case=role_use_case,
+        schema_create_use_case=schema_create_use_case,
     )
 
     attribute_type_use_case = AttributeTypeUseCase(
         attribute_type_dao=attribute_type_dao,
         attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
         object_class_dao=object_class_dao,
-        create_attribute_dir_use_case=create_attribute_dir_use_case,
+        schema_create_use_case=schema_create_use_case,
     )
-
-    for entity_type_data in ENTITY_TYPE_DATAS:
-        await entity_type_dao.create(
-            dto=EntityTypeDTO(
-                id=None,
-                name=entity_type_data["name"],
-                object_class_names=entity_type_data["object_class_names"],
-                is_system=True,
-            ),
-        )
-
-    await session.flush()
 
     audit_policy_dao = AuditPoliciesDAO(session)
     audit_destination_dao = AuditDestinationDAO(session)
@@ -1097,16 +1074,17 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
-    entity_type_use_case = EntityTypeUseCase(
-        entity_type_dao=entity_type_dao,
-        object_class_dao=object_class_dao,
-    )
     setup_gateway = SetupGateway(
         session,
         password_utils,
         entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
     )
+
+    for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
+        await entity_type_use_case.create_not_safe(entity_type_dto)
+    await session.flush()
+
     await audit_use_case.create_policies()
     await setup_gateway.setup_enviroment(
         dn="md.test",

@@ -9,11 +9,15 @@ from typing import ClassVar
 from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService
-from enums import AuthorizationRules
+from enums import AuthorizationRules, EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
 )
-from ldap_protocol.ldap_schema.dto import ObjectClassDTO
+from ldap_protocol.ldap_schema.dto import (
+    AttributeDTO,
+    CreateDirDTO,
+    ObjectClassDTO,
+)
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
@@ -22,8 +26,8 @@ from ldap_protocol.ldap_schema.exceptions import (
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
-from ldap_protocol.ldap_schema.object_class.object_class_dir_create_use_case import (  # noqa: E501
-    CreateDirectoryLikeAsObjectClassUseCase,
+from ldap_protocol.ldap_schema.schema_create_use_case import (
+    SchemaLikeAsDirectoryCreateUseCase,
 )
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
@@ -34,20 +38,20 @@ class ObjectClassUseCase(AbstractService):
     __attribute_type_dao: AttributeTypeDAO
     __object_class_dao: ObjectClassDAO
     __entity_type_dao: EntityTypeDAO
-    __create_objclass_dir_use_case: CreateDirectoryLikeAsObjectClassUseCase
+    __schema_create_use_case: SchemaLikeAsDirectoryCreateUseCase
 
     def __init__(
         self,
         attribute_type_dao: AttributeTypeDAO,
         object_class_dao: ObjectClassDAO,
         entity_type_dao: EntityTypeDAO,
-        create_objclass_dir_use_case: CreateDirectoryLikeAsObjectClassUseCase,
+        schema_create_use_case: SchemaLikeAsDirectoryCreateUseCase,
     ) -> None:
         """Init ObjectClassUseCase."""
         self.__attribute_type_dao = attribute_type_dao
         self.__object_class_dao = object_class_dao
         self.__entity_type_dao = entity_type_dao
-        self.__create_objclass_dir_use_case = create_objclass_dir_use_case
+        self.__schema_create_use_case = schema_create_use_case
 
     async def get_all(self) -> list[ObjectClassDTO[int, str]]:
         """Get all Object Classes."""
@@ -86,36 +90,46 @@ class ObjectClassUseCase(AbstractService):
                 )
             )
 
-        try:
-            superior = None
-            if dto.superior_name:
-                superior = await self.__object_class_dao.get_dir(
-                    dto.superior_name,
+        superior = None
+        if dto.superior_name:
+            superior = await self.__object_class_dao.get_dir(
+                dto.superior_name,
+            )
+
+            if not superior:
+                raise ObjectClassNotFoundError(
+                    f"Superior (parent) Object class {dto.superior_name} "
+                    "not found in schema.",
                 )
 
-                if not superior:
-                    raise ObjectClassNotFoundError(
-                        f"Superior (parent) Object class {dto.superior_name} "
-                        "not found in schema.",
-                    )
-
-            await self.__create_objclass_dir_use_case.create_dir(
-                data={
-                    "name": dto.name,
-                    "object_class": "",
-                    "attributes": {
-                        "objectClass": ["top", "classSchema"],
-                        "oid": [str(dto.oid)],
-                        "name": [str(dto.name)],
-                        "superior_name": [str(dto.superior_name)],
-                        "kind": [str(dto.kind)],
-                        "attribute_types_must": dto.attribute_types_must,
-                        "attribute_types_may": dto.attribute_types_may,
-                    },
-                    "children": [],
-                },
-                is_system=dto.is_system,
-            )
+        _dto = CreateDirDTO(
+            name=dto.name,
+            entity_type_name=EntityTypeNames.OBJECT_CLASS,
+            attributes=(
+                AttributeDTO(
+                    name="objectClass",
+                    values=["top", "classSchema"],
+                ),
+                AttributeDTO(name="oid", values=[str(dto.oid)]),
+                AttributeDTO(name="name", values=[str(dto.name)]),
+                AttributeDTO(
+                    name="subClassOf",
+                    values=[str(dto.superior_name)],
+                ),
+                AttributeDTO(name="kind", values=[str(dto.kind)]),
+                AttributeDTO(
+                    name="mustContain",
+                    values=dto.attribute_types_must,
+                ),
+                AttributeDTO(
+                    name="mayContain",
+                    values=dto.attribute_types_may,
+                ),
+            ),
+            is_system=dto.is_system,
+        )
+        try:
+            await self.__schema_create_use_case.create_dir(dto=_dto)
         except IntegrityError:
             raise ObjectClassAlreadyExistsError(
                 f"Object Class with oid '{dto.oid}' and name"

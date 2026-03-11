@@ -22,12 +22,19 @@ class ErrorCodes(IntEnum):
     ENTITY_TYPE_NOT_FOUND_ERROR = 7
     ENTITY_TYPE_CANT_MODIFY_ERROR = 8
     ENTITY_TYPE_ALREADY_EXISTS_ERROR = 9
+    CANT_CREATE_DIRECTORY_WITH_SCHEMA_LIKE_AS_DIRECTORY = 10
 
 
 class LdapSchemaError(BaseDomainException):
     """Raised when an LDAP Schema error occurs."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
+
+
+class CantCreateDirectoryWithSchemaLikeAsDirectoryError(LdapSchemaError):
+    """Raised when trying to create a directory with schema like as directory."""
+
+    code = ErrorCodes.CANT_CREATE_DIRECTORY_WITH_SCHEMA_LIKE_AS_DIRECTORY
 
 
 class AttributeTypeNotFoundError(LdapSchemaError):

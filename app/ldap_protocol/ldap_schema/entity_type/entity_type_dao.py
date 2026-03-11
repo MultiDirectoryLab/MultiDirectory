@@ -213,12 +213,8 @@ class EntityTypeDAO:
         result = await self.__session.execute(
             select(EntityType)
             .where(
-                func.array_lowercase(EntityType.object_class_names).op("@>")(
-                    list_object_class_names,
-                ),
-                func.array_lowercase(EntityType.object_class_names).op("<@")(
-                    list_object_class_names,
-                ),
+                func.array_lowercase(EntityType.object_class_names).op("@>")(list_object_class_names),
+                func.array_lowercase(EntityType.object_class_names).op("<@")(list_object_class_names),
             ),
         )  # fmt: skip
 
@@ -261,14 +257,7 @@ class EntityTypeDAO:
         attribute_names: set[str] = set()
         for object_class_dir in object_class_dirs:
             for attr in object_class_dir.attributes:
-                if (
-                    attr.name
-                    in (
-                        "attribute_types_must",
-                        "attribute_types_may",
-                    )
-                    and attr.value
-                ):
+                if attr.name in ("mustContain", "mayContain") and attr.value:
                     attribute_names.add(attr.value)
 
         return sorted(attribute_names)

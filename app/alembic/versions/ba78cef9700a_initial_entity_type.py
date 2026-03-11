@@ -13,11 +13,9 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from constants import ENTITY_TYPE_DATAS
+from constants import ENTITY_TYPE_DTOS_V1
 from entities import Attribute, Directory, User
-from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
@@ -107,21 +105,8 @@ def upgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
-        for entity_type_data in ENTITY_TYPE_DATAS:
-            if entity_type_data["name"] not in (
-                EntityTypeNames.CONFIGURATION,
-                EntityTypeNames.ATTRIBUTE_TYPE,
-                EntityTypeNames.OBJECT_CLASS,
-            ):
-                await entity_type_use_case.create(
-                    EntityTypeDTO(
-                        name=entity_type_data["name"],
-                        object_class_names=entity_type_data[
-                            "object_class_names"
-                        ],
-                        is_system=True,
-                    ),
-                )
+        for entity_type_dto in ENTITY_TYPE_DTOS_V1:
+            await entity_type_use_case.create(entity_type_dto)
 
         await session.commit()
 

@@ -204,7 +204,7 @@ def upgrade(container: AsyncContainer) -> None:
         ),
     )
 
-    async def _create_attribute_types2(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
@@ -226,14 +226,7 @@ def upgrade(container: AsyncContainer) -> None:
                 ),
             )
 
-        await session.commit()
-
-    op.run_async(_create_attribute_types2)
-
-    async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
+        await session.flush()
 
         # NOTE: Load attributeTypes into the database
         at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
@@ -470,4 +463,3 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.drop_index("ix_AttributeTypes_name", table_name="AttributeTypes")
     op.drop_index("ix_AttributeTypes_oid", table_name="AttributeTypes")
     op.drop_table("AttributeTypes")
-    # ### end Alembic commands ###

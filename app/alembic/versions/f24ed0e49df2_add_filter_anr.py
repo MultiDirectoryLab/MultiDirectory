@@ -79,9 +79,7 @@ def upgrade(container: AsyncContainer) -> None:
             ),
         )
         if len_updated_attrs != len(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES):
-            raise ValueError(
-                "Not all expected attributes were found in the DB.",
-            )
+            raise ValueError("Not all expected attributes were found")
 
         await session.flush()
 

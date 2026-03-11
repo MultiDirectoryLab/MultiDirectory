@@ -150,19 +150,18 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_zero_all_replicated_flags)
 
-    async def _set_attr_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _set_false_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        await at_type_use_case.set_attrs_replication_flag(
+        await at_type_use_case.set_false_replication_flag(
             _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES,
-            need_to_replicate=False,
         )
 
         await session.commit()
 
-    op.run_async(_set_attr_replication_flag)
+    op.run_async(_set_false_replication_flag)
 
     op.alter_column("AttributeTypes", "system_flags", nullable=False)
 

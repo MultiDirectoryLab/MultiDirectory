@@ -11,7 +11,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from abstract_service import AbstractService
-from constants import ENTITY_TYPE_DATAS
 from entities import Directory, EntityType
 from enums import AuthorizationRules, EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
@@ -44,23 +43,26 @@ class EntityTypeUseCase(AbstractService):
         self._entity_type_dao = entity_type_dao
         self._object_class_dao = object_class_dao
 
-    async def create(
-        self,
-        dto: EntityTypeDTO,
-        *,
-        skip_object_class_validation: bool = False,
-    ) -> None:
+    async def create(self, dto: EntityTypeDTO) -> None:
         """Create Entity Type.
 
         :param EntityTypeDTO dto: Entity Type data.
         :param bool skip_object_class_validation: Skip checking related
             Object Classes exist (used during first setup seeding).
         """
-        if not skip_object_class_validation:
-            await self._object_class_dao.is_all_object_classes_exists(
-                dto.object_class_names,
-            )
+        await self._object_class_dao.is_all_object_classes_exists(
+            dto.object_class_names,
+        )
 
+        await self._entity_type_dao.create(dto)
+
+    async def create_not_safe(self, dto: EntityTypeDTO) -> None:
+        """Create Entity Type.
+
+        :param EntityTypeDTO dto: Entity Type data.
+        :param bool skip_object_class_validation: Skip checking related
+            Object Classes exist (used during first setup seeding).
+        """
         await self._entity_type_dao.create(dto)
 
     async def update(self, name: str, dto: EntityTypeDTO) -> None:
@@ -124,23 +126,6 @@ class EntityTypeUseCase(AbstractService):
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete all Entity Types by names."""
         await self._entity_type_dao.delete_all_by_names(names)
-
-    async def create_for_first_setup(self) -> None:
-        """Create Entity Types for first setup.
-
-        :return: None.
-        """
-        for entity_type_data in ENTITY_TYPE_DATAS:
-            await self.create(
-                EntityTypeDTO(
-                    name=entity_type_data["name"],
-                    object_class_names=list(
-                        entity_type_data["object_class_names"],
-                    ),
-                    is_system=True,
-                ),
-                skip_object_class_validation=True,
-            )
 
     async def attach_entity_type_to_directories(self) -> None:
         """Find all Directories without an Entity Type and attach it to them.

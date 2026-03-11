@@ -116,7 +116,7 @@ class FilterInterpreterProtocol(Protocol):
                         .join(qa(Directory.entity_type))
                         .join(qa(Directory.attributes))
                         .where(
-                            qa(Attribute.name) == "is_included_anr",
+                            qa(Attribute.name) == "aNR",
                             qa(Attribute.value) == "True",
                             qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
                         ),
@@ -149,7 +149,7 @@ class FilterInterpreterProtocol(Protocol):
                         .join(qa(Directory.entity_type))
                         .join(qa(Directory.attributes))
                         .where(
-                            qa(Attribute.name) == "is_included_anr",
+                            qa(Attribute.name) == "aNR",
                             qa(Attribute.value) == "True",
                             qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
                         ),
@@ -219,7 +219,7 @@ class FilterInterpreterProtocol(Protocol):
                     .join(qa(Directory.attributes))
                     .where(
                         qa(Directory.name) == "legacyExchangeDN",
-                        qa(Attribute.name) == "is_included_anr",
+                        qa(Attribute.name) == "aNR",
                         qa(Attribute.value) == "True",
                         qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                     ),

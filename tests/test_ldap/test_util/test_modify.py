@@ -1143,7 +1143,7 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_modify_dn_rename_with_ap(  # TODO
+async def test_modify_dn_rename_with_ap(
     settings: Settings,
     creds: TestCreds,
     role_dao: RoleDAO,
@@ -1251,7 +1251,7 @@ async def test_modify_dn_rename_with_ap(  # TODO
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_modify_dn_move_with_ap(  # TODO
+async def test_modify_dn_move_with_ap(
     settings: Settings,
     creds: TestCreds,
     role_dao: RoleDAO,

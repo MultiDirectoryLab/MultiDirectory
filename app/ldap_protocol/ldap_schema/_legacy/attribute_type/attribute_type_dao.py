@@ -92,16 +92,12 @@ class AttributeTypeDAOLegacy:
         """Set replication flag to False for all Attribute Types."""
         await self.__session.execute(update(AttributeTypeLegacy).values({"system_flags": 0}))  # fmt: skip # noqa: E501
 
-    async def set_attrs_replication_flag(
-        self,
-        names: tuple[str, ...],
-        need_to_replicate: bool,
-    ) -> None:
+    async def set_false_replication_flag(self, names: tuple[str, ...]) -> None:
         """Set replication flag in systemFlags."""
         await self.__session.execute(
             update(AttributeTypeLegacy)
             .where(qa(AttributeTypeLegacy.name).in_(names))
-            .values({"system_flags": int(need_to_replicate)}),
+            .values({"system_flags": 0}),
         )
 
     async def false_all_is_included_anr(self) -> None:

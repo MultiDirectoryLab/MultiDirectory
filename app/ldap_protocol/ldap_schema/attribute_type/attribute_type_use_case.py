@@ -9,22 +9,26 @@ from typing import ClassVar
 from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService
-from enums import AuthorizationRules
+from enums import AuthorizationRules, EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
-)
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_dir_create_use_case import (  # noqa: E501
-    CreateDirectoryLikeAsAttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
-from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
+from ldap_protocol.ldap_schema.dto import (
+    AttributeDTO,
+    AttributeTypeDTO,
+    CreateDirDTO,
+)
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
 )
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
+)
+from ldap_protocol.ldap_schema.schema_create_use_case import (
+    SchemaLikeAsDirectoryCreateUseCase,
 )
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
@@ -35,20 +39,20 @@ class AttributeTypeUseCase(AbstractService):
     __attribute_type_dao: AttributeTypeDAO
     __attribute_type_system_flags_use_case: AttributeTypeSystemFlagsUseCase
     __object_class_dao: ObjectClassDAO
-    __create_attribute_dir_gateway: CreateDirectoryLikeAsAttributeTypeUseCase
+    __schema_create_use_case: SchemaLikeAsDirectoryCreateUseCase
 
     def __init__(
         self,
         attribute_type_dao: AttributeTypeDAO,
         attribute_type_system_flags_use_case: AttributeTypeSystemFlagsUseCase,
         object_class_dao: ObjectClassDAO,
-        create_attribute_dir_use_case: CreateDirectoryLikeAsAttributeTypeUseCase,  # noqa: E501
+        schema_create_use_case: SchemaLikeAsDirectoryCreateUseCase,
     ) -> None:
         """Init AttributeTypeUseCase."""
         self.__attribute_type_dao = attribute_type_dao
         self.__attribute_type_system_flags_use_case = attribute_type_system_flags_use_case  # noqa: E501 # fmt: skip
         self.__object_class_dao = object_class_dao
-        self.__create_attribute_dir_gateway = create_attribute_dir_use_case
+        self.__schema_create_use_case = schema_create_use_case
 
     async def get(self, name: str) -> AttributeTypeDTO[int]:
         """Get Attribute Type by name."""
@@ -64,28 +68,34 @@ class AttributeTypeUseCase(AbstractService):
 
     async def create(self, dto: AttributeTypeDTO) -> None:
         """Create Attribute Type."""
+        _dto = CreateDirDTO(
+            name=dto.name,
+            entity_type_name=EntityTypeNames.ATTRIBUTE_TYPE,
+            attributes=(
+                AttributeDTO(name="oid", values=[str(dto.oid)]),
+                AttributeDTO(name="name", values=[str(dto.name)]),
+                AttributeDTO(name="syntax", values=[str(dto.syntax)]),
+                AttributeDTO(
+                    name="isSingleValued",
+                    values=[str(dto.single_value)],
+                ),
+                AttributeDTO(
+                    name="systemOnly",
+                    values=[str(dto.no_user_modification)],
+                ),
+                AttributeDTO(
+                    name="systemFlags",
+                    values=[str(dto.system_flags)],
+                ),
+                AttributeDTO(
+                    name="aNR",
+                    values=[str(dto.is_included_anr)],
+                ),
+            ),
+            is_system=dto.is_system,
+        )
         try:
-            await self.__create_attribute_dir_gateway.create_dir(
-                data={
-                    "name": dto.name,
-                    "object_class": "",
-                    "attributes": {
-                        "objectClass": ["top", "attributeSchema"],
-                        "oid": [str(dto.oid)],
-                        "name": [str(dto.name)],
-                        "syntax": [str(dto.syntax)],
-                        "single_value": [str(dto.single_value)],
-                        "no_user_modification": [
-                            str(dto.no_user_modification),
-                        ],
-                        "system_flags": [str(dto.system_flags)],
-                        "is_included_anr": [str(dto.is_included_anr)],
-                    },
-                    "children": [],
-                },
-                is_system=dto.is_system,
-            )
-
+            await self.__schema_create_use_case.create_dir(dto=_dto)
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(
                 f"Attribute Type with oid '{dto.oid}' and name"

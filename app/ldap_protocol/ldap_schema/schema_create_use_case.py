@@ -9,9 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from constants import CONFIGURATION_DIR_NAME
 from entities import Attribute, Directory
-from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.dto import CreateDirDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
+)
+from ldap_protocol.ldap_schema.exceptions import (
+    CantCreateDirectoryWithSchemaLikeAsDirectoryError,
 )
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import (
@@ -22,7 +25,7 @@ from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 
-class CreateDirectoryLikeAsAttributeTypeUseCase:
+class SchemaLikeAsDirectoryCreateUseCase:
     """Setup use case."""
 
     __session: AsyncSession
@@ -37,24 +40,15 @@ class CreateDirectoryLikeAsAttributeTypeUseCase:
         entity_type_use_case: EntityTypeUseCase,
         role_use_case: RoleUseCase,
     ) -> None:
-        """Initialize Setup use case.
-
-        :param session: SQLAlchemy AsyncSession
-
-        return: None.
-        """
+        """Initialize."""
         self.__session = session
         self.__entity_type_use_case = entity_type_use_case
         self.__role_use_case = role_use_case
         self.__parent = None
         self.__base_directories = None
 
-    async def create_dir(
-        self,
-        data: dict,
-        is_system: bool,
-    ) -> None:
-        """Create data recursively."""
+    async def create_dir(self, dto: CreateDirDTO) -> None:
+        """Create."""
         if not self.__parent:
             q = await self.__session.execute(
                 select(Directory)
@@ -65,15 +59,15 @@ class CreateDirectoryLikeAsAttributeTypeUseCase:
         self.__base_directories = await get_base_directories(self.__session)
 
         dir_ = Directory(
-            is_system=is_system,
-            object_class=data["object_class"],
-            name=data["name"],
+            is_system=dto.is_system,
+            object_class="",
+            name=dto.name,
         )
         dir_.groups = []
         dir_.create_path(self.__parent, dir_.get_dn_prefix())
-
         self.__session.add(dir_)
         await self.__session.flush()
+
         dir_.parent_id = self.__parent.id
         await self.__session.refresh(dir_, ["id"])
 
@@ -82,7 +76,10 @@ class CreateDirectoryLikeAsAttributeTypeUseCase:
                 base_dn = base_directory
                 break
         else:
-            raise
+            raise CantCreateDirectoryWithSchemaLikeAsDirectoryError(
+                "Cannot create a directory with schema like as directory.",
+            )
+
         dir_.object_sid = create_object_sid(base_dn, dir_.id)
 
         self.__session.add(
@@ -93,26 +90,19 @@ class CreateDirectoryLikeAsAttributeTypeUseCase:
             ),
         )
 
-        if "attributes" in data:
-            for name, values in data["attributes"].items():
-                for value in values:
-                    self.__session.add(
-                        Attribute(
-                            directory_id=dir_.id,
-                            name=name,
-                            value=value if isinstance(value, str) else None,
-                            bvalue=value if isinstance(value, bytes) else None,
-                        ),
-                    )
+        for attribute_dto in dto.attributes:
+            for value in attribute_dto.values:
+                if not isinstance(value, str):
+                    raise ValueError("Only string values are supported.")
 
-            self.__session.add(
-                Attribute(
-                    directory_id=dir_.id,
-                    name="objectClass",
-                    value=dir_.object_class if isinstance(dir_.object_class, str) else None,  # noqa: E501
-                    bvalue=None,
-                ),
-            )  # fmt: skip
+                self.__session.add(
+                    Attribute(
+                        directory_id=dir_.id,
+                        name=attribute_dto.name,
+                        value=value,
+                        bvalue=None,
+                    ),
+                )
 
         await self.__session.flush()
 
@@ -121,13 +111,10 @@ class CreateDirectoryLikeAsAttributeTypeUseCase:
             attribute_names=["attributes"],
         )
 
-        entity_type = await self.__entity_type_use_case.get_one_raw_by_name(
-            EntityTypeNames.ATTRIBUTE_TYPE,
-        )
-        await self.__entity_type_use_case.attach_entity_type_to_directory(
-            directory=dir_,
-            is_system_entity_type=True,
-            entity_type=entity_type,
+        dir_.entity_type = (
+            await self.__entity_type_use_case.get_one_raw_by_name(
+                dto.entity_type_name,
+            )
         )
         await self.__session.flush()
 

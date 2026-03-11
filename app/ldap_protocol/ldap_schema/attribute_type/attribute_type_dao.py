@@ -22,11 +22,11 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO[int]:
         name=directory.name,
         oid=directory.attributes_dict["oid"][0],
         syntax=directory.attributes_dict["syntax"][0],
-        single_value=directory.attributes_dict["single_value"][0] == "True",
-        no_user_modification=directory.attributes_dict["no_user_modification"][0] == "True",  # noqa: E501
+        single_value=directory.attributes_dict["isSingleValued"][0] == "True",
+        no_user_modification=directory.attributes_dict["systemOnly"][0] == "True",  # noqa: E501
         is_system=directory.is_system,
-        system_flags=int(directory.attributes_dict["system_flags"][0]),
-        is_included_anr=directory.attributes_dict["is_included_anr"][0] == "True",  # noqa: E501
+        system_flags=int(directory.attributes_dict["systemFlags"][0]),
+        is_included_anr=directory.attributes_dict["aNR"][0] == "True",
         object_class_names=set(),
     )  # fmt: skip
 
@@ -105,14 +105,14 @@ class AttributeTypeDAO:
         # TODO мб оптимизировать и работать только с атрибутами?
         for attr in dir_.attributes:
             if not dir_.is_system:
-                if attr.name == "syntax":  # TODO fix нейминг
+                if attr.name == "syntax":
                     attr.value = dto.syntax
-                elif attr.name == "single_value":  # TODO fix нейминг
+                elif attr.name == "isSingleValued":
                     attr.value = str(dto.single_value)
-                elif attr.name == "no_user_modification":  # TODO fix нейминг
+                elif attr.name == "systemOnly":
                     attr.value = str(dto.no_user_modification)
             else:
-                if attr.name == "is_included_anr":  # TODO fix нейминг
+                if attr.name == "aNR":
                     attr.value = str(dto.is_included_anr)
                     break
 
@@ -128,7 +128,7 @@ class AttributeTypeDAO:
 
         # TODO мб оптимизировать и работать только с атрибутом?
         for attr in dir_.attributes:
-            if attr.name == "system_flags":  # TODO fix нейминг
+            if attr.name == "systemFlags":
                 attr.value = str(dto.system_flags)
                 break
 

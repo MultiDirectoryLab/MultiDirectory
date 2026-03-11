@@ -23,17 +23,11 @@ def _convert_model_to_dto(dir_: Directory) -> ObjectClassDTO[int, str]:
     return ObjectClassDTO(
         oid=dir_.attributes_dict.get("oid")[0],  # type: ignore
         name=dir_.name,
-        superior_name=dir_.attributes_dict.get("superior_name")[0],  # type: ignore
+        superior_name=dir_.attributes_dict.get("subClassOf")[0],  # type: ignore
         kind=dir_.attributes_dict.get("kind")[0],  # type: ignore
         is_system=dir_.is_system,
-        attribute_types_must=dir_.attributes_dict.get(
-            "attribute_types_must",
-            [],
-        ),
-        attribute_types_may=dir_.attributes_dict.get(
-            "attribute_types_may",
-            [],
-        ),
+        attribute_types_must=dir_.attributes_dict.get("mustContain", []),
+        attribute_types_may=dir_.attributes_dict.get("mayContain", []),
         id=dir_.id,
         entity_type_names=set(),
     )
@@ -75,7 +69,7 @@ class ObjectClassDAO:
             .join(qa(Directory.attributes))
             .where(
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                qa(Attribute.name).in_(("attribute_types_must","attribute_types_may")),
+                qa(Attribute.name).in_(("mustContain", "mayContain")),
                 func.lower(qa(Attribute.value)) == attribute_type_name.lower(),
             ),
         )  # fmt: skip
@@ -140,8 +134,7 @@ class ObjectClassDAO:
 
         if count_ != len(names):
             raise ObjectClassNotFoundError(
-                f"Not all Object Classes\
-                    with names {names} ( != {count_} ) found.",
+                f"Not all Object Classes with names {names} ( != {count_} ) found.",  # noqa: E501
             )
 
         return True
@@ -198,9 +191,7 @@ class ObjectClassDAO:
         await self.__session.execute(
             delete(Attribute).where(
                 qa(Attribute.directory_id) == obj.id,
-                qa(Attribute.name).in_(
-                    ("attribute_types_must", "attribute_types_may"),
-                ),
+                qa(Attribute.name).in_(("mustContain", "mayContain")),
             ),
         )
 
@@ -208,7 +199,7 @@ class ObjectClassDAO:
             self.__session.add(
                 Attribute(
                     directory_id=obj.id,
-                    name="attribute_types_may",
+                    name="mayContain",
                     value=name,
                 ),
             )
@@ -217,7 +208,7 @@ class ObjectClassDAO:
             self.__session.add(
                 Attribute(
                     directory_id=obj.id,
-                    name="attribute_types_must",
+                    name="mustContain",
                     value=name,
                 ),
             )

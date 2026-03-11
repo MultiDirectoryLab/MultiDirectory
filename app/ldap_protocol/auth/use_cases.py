@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import copy
+from itertools import chain
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,8 @@ from config import Settings
 from constants import (
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_CONTROLLERS_OU_NAME,
+    ENTITY_TYPE_DTOS_V1,
+    ENTITY_TYPE_DTOS_V2,
     FIRST_SETUP_DATA,
     USERS_CONTAINER_NAME,
 )
@@ -90,7 +93,9 @@ class SetupUseCase:
         """
         if await self.is_setup():
             raise AlreadyConfiguredError("Setup already performed")
-        await self._entity_type_use_case.create_for_first_setup()
+
+        for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
+            await self._entity_type_use_case.create_not_safe(entity_type_dto)
 
         data = copy.deepcopy(FIRST_SETUP_DATA)
         data.append(self._create_user_data(dto))
