@@ -214,7 +214,7 @@ async def test_ktadd(
     names = ["test1", "test2"]
     response = await http_client.post(
         "/kerberos/ktadd",
-        json={"names": names, "is_rand_key": False},
+        json=names,
     )
 
     kadmin.ktadd.assert_called()  # type: ignore
@@ -245,7 +245,7 @@ async def test_ktadd_400(
     names = ["test1", "test2"]
     response = await http_client.post(
         "/kerberos/ktadd",
-        json={"names": names, "is_rand_key": False},
+        json=names,
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -395,10 +395,10 @@ async def test_add_princ(
     :param LDAPSession ldap_session: ldap
     """
     response = await http_client.post(
-        "/kerberos/principal",
+        "/kerberos/principal/add",
         json={
-            "principal_name": "host/12345",
-            "password": None,
+            "primary": "host",
+            "instance": "12345",
         },
     )
     kadmin_args = kadmin.add_principal.call_args.args  # type: ignore
