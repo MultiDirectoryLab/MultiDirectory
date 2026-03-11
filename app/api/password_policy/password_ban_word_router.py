@@ -13,6 +13,7 @@ from api.auth.utils import verify_auth
 from api.error_routing import DishkaErrorAwareRoute
 from api.password_policy.adapter import PasswordBanWordsFastAPIAdapter
 from api.password_policy.error_utils import error_map
+from api.utils import require_master_db
 
 password_ban_word_router = ErrorAwareRouter(
     prefix="/password_ban_word",
@@ -26,6 +27,7 @@ password_ban_word_router = ErrorAwareRouter(
     "/upload_txt",
     status_code=status.HTTP_201_CREATED,
     error_map=error_map,
+    dependencies=[Depends(require_master_db)],
 )
 async def upload_ban_words_txt(
     file: UploadFile,

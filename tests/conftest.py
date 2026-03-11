@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import asyncio
 import os
 import uuid
-import weakref
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
@@ -50,10 +49,10 @@ from api.auth.adapters import (
 )
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
+from api.dns.adapter import DNSFastAPIAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
-from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import (
@@ -74,11 +73,10 @@ from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
-    DNSManagerSettings,
+    DNSSettingsDTO,
     StubDNSManager,
 )
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
-from ldap_protocol.dns.dto import DNSSettingDTO
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
@@ -99,6 +97,9 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+    AttributeTypeSystemFlagsUseCase,
+)
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
@@ -110,6 +111,10 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.master_check_use_case import (
+    MasterCheckUseCase,
+    MasterGatewayProtocol,
+)
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
@@ -157,6 +162,7 @@ from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
+from repo.pg.master_gateway import PGMasterGateway
 from tests.constants import TEST_DATA
 
 
@@ -188,6 +194,7 @@ class TestProvider(Provider):
         kadmin.get_status = AsyncMock(return_value=False)
         kadmin.add_principal = AsyncMock()
         kadmin.del_principal = AsyncMock()
+        kadmin.modify_princ = AsyncMock()
         kadmin.rename_princ = AsyncMock()
         kadmin.create_or_update_principal_pw = AsyncMock()
         kadmin.change_principal_password = AsyncMock()
@@ -201,7 +208,7 @@ class TestProvider(Provider):
 
         self._cached_kadmin = None
 
-    @provide(scope=Scope.REQUEST, provides=AbstractDHCPManager)
+    @provide(scope=Scope.APP, provides=AbstractDHCPManager)
     async def get_dhcp_mngr(self) -> AsyncIterator[AsyncMock]:
         """Get mock DHCP manager."""
         dhcp_manager = AsyncMock(spec=StubDHCPManager)
@@ -213,60 +220,58 @@ class TestProvider(Provider):
 
         self._cached_dhcp_manager = None
 
-    @provide(scope=Scope.REQUEST, provides=AbstractDNSManager)
+    @provide(scope=Scope.APP, provides=AbstractDNSManager)
     async def get_dns_mngr(self) -> AsyncIterator[AsyncMock]:
         """Get mock DNS manager."""
         dns_manager = AsyncMock(spec=StubDNSManager)
 
-        dns_manager.setup.return_value = DNSSettingDTO(
-            zone_name="example.com",
-            dns_server_ip="127.0.0.1",
-            tsig_key=None,
-        )
-        dns_manager.get_all_records.return_value = [
+        dns_manager.get_records.return_value = [
             {
+                "name": "example.com",
                 "type": "A",
                 "records": [
                     {
-                        "name": "example.com",
-                        "value": "127.0.0.1",
-                        "ttl": 3600,
+                        "content": "127.0.0.1",
+                        "disabled": False,
+                        "modified_at": None,
                     },
                 ],
-            },
-        ]
-        dns_manager.get_server_options.return_value = [
-            {
-                "name": "dnssec-validation",
-                "value": "no",
+                "ttl": 3600,
             },
         ]
         dns_manager.get_forward_zones.return_value = [
             {
-                "name": "test.local",
-                "type": "forward",
-                "forwarders": [
-                    "127.0.0.1",
-                    "127.0.0.2",
-                ],
+                "id": "forward1",
+                "name": "forward1.",
+                "rrsets": [],
+                "kind": "Forwarded",
+                "type": "zone",
+                "servers": ["127.0.0.1"],
+                "recursion_desired": False,
             },
         ]
-        dns_manager.get_all_zones_records.return_value = [
+        dns_manager.get_master_zones.return_value = [
             {
-                "name": "test.local",
-                "type": "master",
-                "records": [
+                "id": "zone1",
+                "name": "example.com.",
+                "rrsets": [
                     {
+                        "name": "example.com",
                         "type": "A",
                         "records": [
                             {
-                                "name": "example.com",
-                                "value": "127.0.0.1",
-                                "ttl": 3600,
+                                "content": "127.0.0.1",
+                                "disabled": False,
+                                "modified_at": None,
                             },
                         ],
+                        "ttl": 3600,
                     },
                 ],
+                "dnssec": False,
+                "nameservers": ["ns1.example.com."],
+                "kind": "Master",
+                "type": "zone",
             },
         ]
 
@@ -277,37 +282,26 @@ class TestProvider(Provider):
 
         self._cached_dns_manager = None
 
-    @provide(scope=Scope.REQUEST, provides=DNSManagerSettings, cache=False)
+    @provide(scope=Scope.REQUEST, provides=DNSSettingsDTO, cache=False)
     async def get_dns_mngr_settings(
         self,
         dns_state_gateway: DNSStateGateway,
-    ) -> AsyncIterator["DNSManagerSettings"]:
+        settings: Settings,
+        root_dse_gw: DomainReadProtocol,
+    ) -> AsyncIterator["DNSSettingsDTO"]:
         """Get DNS manager's settings."""
+        domain = await root_dse_gw.get_domain()
+        yield await dns_state_gateway.get_dns_manager_settings(
+            settings,
+            domain.name,
+        )
 
-        async def resolve() -> str:
-            return "127.0.0.1"
-
-        resolver = resolve()
-        yield await dns_state_gateway.get_dns_manager_settings(resolver)
-        weakref.finalize(resolver, resolver.close)
-
-    @provide(scope=Scope.REQUEST, provides=AttributeTypeDAO, cache=False)
-    def get_attribute_type_dao(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeDAO:
-        """Get Attribute Type DAO."""
-        return AttributeTypeDAO(session)
-
-    @provide(scope=Scope.REQUEST, provides=ObjectClassDAO, cache=False)
-    def get_object_class_dao(self, session: AsyncSession) -> ObjectClassDAO:
-        """Get Object Class DAO."""
-        return ObjectClassDAO(session=session)
-
-    get_entity_type_dao = provide(
-        EntityTypeDAO,
+    attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
+    attribute_type_system_flags_use_case = provide(
+        AttributeTypeSystemFlagsUseCase,
         scope=Scope.REQUEST,
-        cache=False,
     )
     attribute_type_use_case = provide(
         AttributeTypeUseCase,
@@ -466,6 +460,19 @@ class TestProvider(Provider):
         await client.flushdb()
         with suppress(RuntimeError):
             await client.aclose()
+
+    @provide(scope=Scope.REQUEST, provides=MasterGatewayProtocol)
+    async def get_master_gateway(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+    ) -> PGMasterGateway:
+        return PGMasterGateway(session, settings)
+
+    master_check_use_case = provide(
+        MasterCheckUseCase,
+        scope=Scope.REQUEST,
+    )
 
     @provide(scope=Scope.APP)
     async def get_session_storage(
@@ -1003,7 +1010,7 @@ async def setup_session(
             name="TEST ONLY LOGIN ROLE",
             creator_upn=None,
             is_system=True,
-            groups=["cn=admin login only,cn=groups,dc=md,dc=test"],
+            groups=["cn=admin login only,cn=Groups,dc=md,dc=test"],
             permissions=AuthorizationRules.AUTH_LOGIN,
         ),
     )
@@ -1062,6 +1069,15 @@ async def network_policy_gateway(
     """Get network policy gateway."""
     async with container(scope=Scope.SESSION) as container:
         yield await container.get(NetworkPolicyGateway)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def network_policy_use_case(
+    container: AsyncContainer,
+) -> AsyncIterator[NetworkPolicyUseCase]:
+    """Get network policy gateway."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(NetworkPolicyUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")

@@ -24,7 +24,7 @@ async def custom_role(role_dao: RoleDAO) -> RoleDTO:
             name="Custom Role",
             creator_upn=None,
             is_system=False,
-            groups=["cn=domain users,cn=groups,dc=md,dc=test"],
+            groups=["cn=domain users,cn=Groups,dc=md,dc=test"],
         ),
     )
     return await role_dao.get(role_dao.get_last_id())

@@ -24,6 +24,8 @@ from pydantic import (
 )
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from enums import PostgresRWModeType
+
 
 def _get_vendor_version() -> str:
     with open("/pyproject.toml", "rb") as f:
@@ -34,6 +36,7 @@ class Settings(BaseModel):
     """Settigns with database dsn."""
 
     DOMAIN: str
+    HOST_MACHINE_NAME: str
 
     DEBUG: bool = False
     AUTO_RELOAD: bool = False
@@ -49,12 +52,20 @@ class Settings(BaseModel):
     TCP_PACKET_SIZE: int = 1024
     COROUTINES_NUM_PER_CLIENT: int = 3
 
+    POSTGRES_RW_MODE: PostgresRWModeType = PostgresRWModeType.SINGLE
     POSTGRES_SCHEMA: ClassVar[str] = "postgresql+psycopg"
-    POSTGRES_DB: str = "postgres"
 
+    POSTGRES_REPLICA_DB: str = ""
+    POSTGRES_REPLICA_HOST: str = ""
+    POSTGRES_REPLICA_USER: str = ""
+    POSTGRES_REPLICA_PASSWORD: str = ""
+    POSTGRES_REPLICA_CONNECT_TIMEOUT: int = 4
+
+    POSTGRES_DB: str = "postgres"
     POSTGRES_HOST: str = "postgres"
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+    POSTGRES_CONNECT_TIMEOUT: int = 4
 
     SESSION_STORAGE_URL: RedisDsn = RedisDsn("redis://dragonfly:6379/1")
     SESSION_KEY_LENGTH: int = 16
@@ -89,6 +100,15 @@ class Settings(BaseModel):
 
     @computed_field  # type: ignore
     @cached_property
+    def HOST_MACHINE_SHORT_NAME(self) -> str:  # noqa: N802
+        """Host machine name part before the first dot."""
+        value = self.HOST_MACHINE_NAME.strip()
+        if not value:
+            raise ValueError("HOST_MACHINE_NAME is not set or empty")
+        return value.split(".", 1)[0]
+
+    @computed_field  # type: ignore
+    @cached_property
     def POSTGRES_URI(self) -> PostgresDsn:  # noqa
         """Build postgres DSN."""
         return PostgresDsn(
@@ -97,6 +117,54 @@ class Settings(BaseModel):
             f"{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}/"
             f"{self.POSTGRES_DB}",
+        )
+
+    @computed_field  # type: ignore
+    @cached_property
+    def REPLICA_POSTGRES_URI(self) -> PostgresDsn:  # noqa
+        """Build replica postgres DSN."""
+        return PostgresDsn(
+            f"{self.POSTGRES_SCHEMA}://"
+            f"{self.POSTGRES_REPLICA_USER}:"
+            f"{self.POSTGRES_REPLICA_PASSWORD}@"
+            f"{self.POSTGRES_REPLICA_HOST}/"
+            f"{self.POSTGRES_REPLICA_DB}",
+        )
+
+    @cached_property
+    def engine(self) -> AsyncEngine:
+        """Get engine."""
+        return create_async_engine(
+            str(self.POSTGRES_URI),
+            pool_size=self.INSTANCE_DB_POOL_SIZE,
+            max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
+            pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
+            pool_recycle=self.INSTANCE_DB_POOL_RECYCLE,
+            pool_pre_ping=False,
+            future=True,
+            echo=False,
+            logging_name="master",
+            connect_args={"connect_timeout": self.POSTGRES_CONNECT_TIMEOUT},
+        )
+
+    @cached_property
+    def replica_engine(self) -> AsyncEngine | None:
+        if self.POSTGRES_RW_MODE == PostgresRWModeType.SINGLE:
+            return None
+
+        return create_async_engine(
+            str(self.REPLICA_POSTGRES_URI),
+            pool_size=self.INSTANCE_DB_POOL_SIZE,
+            max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
+            pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
+            pool_recycle=self.INSTANCE_DB_POOL_RECYCLE,
+            pool_pre_ping=False,
+            future=True,
+            echo=False,
+            logging_name="replica",
+            connect_args={
+                "connect_timeout": self.POSTGRES_REPLICA_CONNECT_TIMEOUT,
+            },
         )
 
     VENDOR_NAME: ClassVar[str] = "MultiFactor"
@@ -130,7 +198,18 @@ class Settings(BaseModel):
         autoescape=True,
     )
 
-    DNS_BIND_HOST: str = "bind_dns"
+    PDNS_AUTH_SERVER_HOST: str = "pdns_auth"
+    PDNS_AUTH_SERVER_IP: str = "172.20.0.202"
+    PDNS_AUTH_SERVER_PORT: int = 8082
+    PDNS_RECURSOR_SERVER_HOST: str = "pdns_recursor"
+    PDNS_RECURSOR_SERVER_IP: str = "172.20.0.200"
+    PDNS_RECURSOR_SERVER_PORT: int = 8083
+    PDNS_DIST_IP: str = "172.20.0.201"
+    PDNS_DIST_PORT: int = 8084
+    PDNS_DIST_CONFIG_PATH: str = "/dnsdist/delta.conf"
+    PDNS_DIST_KEY: str
+    PDNS_API_KEY: str
+    DEFAULT_NAMESERVER: str
 
     ENABLE_SQLALCHEMY_LOGGING: bool = False
     PYTEST_XDIST_WORKER: str = "master"
@@ -187,6 +266,12 @@ class Settings(BaseModel):
 
     @computed_field  # type: ignore
     @cached_property
+    def is_global_catalog(self) -> bool:
+        """Check if this is Global Catalog server."""
+        return self.PORT in (self.GLOBAL_LDAP_PORT, self.GLOBAL_LDAP_TLS_PORT)
+
+    @computed_field  # type: ignore
+    @cached_property
     def KRB5_CONFIG_SERVER(self) -> HttpUrl:  # noqa: N802
         return f"https://{self.KADMIN_API_SERVER}:8000"  # type: ignore
 
@@ -219,20 +304,6 @@ class Settings(BaseModel):
     def check_certs_exist(self) -> bool:
         """Check if certs exist."""
         return os.path.exists(self.SSL_CERT) and os.path.exists(self.SSL_KEY)
-
-    @cached_property
-    def engine(self) -> AsyncEngine:
-        """Get engine."""
-        return create_async_engine(
-            str(self.POSTGRES_URI),
-            pool_size=self.INSTANCE_DB_POOL_SIZE,
-            max_overflow=self.INSTANCE_DB_POOL_OVERFLOW,
-            pool_timeout=self.INSTANCE_DB_POOL_TIMEOUT,
-            pool_recycle=self.INSTANCE_DB_POOL_RECYCLE,
-            pool_pre_ping=False,
-            future=True,
-            echo=False,
-        )
 
     @classmethod
     def from_os(cls) -> "Settings":

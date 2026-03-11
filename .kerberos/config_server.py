@@ -31,7 +31,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
 KRB5_CONF_PATH = "/etc/krb5.conf"
@@ -79,6 +79,30 @@ class PrincipalNotFoundError(Exception):
     """Not found error."""
 
 
+class AddPrincipalRequest(BaseModel):
+    """Request model for adding principal."""
+
+    principal_name: str
+    password: str | None = None
+    algorithms: list[str] | None = None
+
+
+class KtaddRequest(BaseModel):
+    """Request model for ktadd."""
+
+    names: list[str]
+    is_rand_key: bool = Field(default=False)
+
+
+class ModifyPrincipalRequest(BaseModel):
+    """Request model for modifying principal."""
+
+    principal_name: str
+    new_name: str | None = None
+    algorithms: list[str] | None = None
+    password: str | None = None
+
+
 class AbstractKRBManager(ABC):
     """Kadmin manager."""
 
@@ -95,12 +119,14 @@ class AbstractKRBManager(ABC):
         self,
         name: str,
         password: str | None,
+        algorithms: list[str] | None = None,
         **dbargs,
     ) -> None:
         """Create principal.
 
         :param str name: principal
-        :param str | None password: if empty - uses randkey.
+        :param str | None password: if None - uses randkey.
+        :param list[str] | None algorithms: encryption algorithms
         """
 
     @abstractmethod
@@ -135,19 +161,17 @@ class AbstractKRBManager(ABC):
         """
 
     @abstractmethod
-    async def rename_princ(self, name: str, new_name: str) -> None:
-        """Rename principal.
-
-        :param str name: original name
-        :param str new_name: new name
-        """
-
-    @abstractmethod
-    async def ktadd(self, names: list[str], fn: str) -> None:
+    async def ktadd(
+        self,
+        names: list[str],
+        fn: str,
+        is_rand_key: bool = False,
+    ) -> None:
         """Create or write to keytab.
 
-        :param str name: principal
+        :param list[str] names: principals
         :param str fn: filename
+        :param bool is_rand_key: generate new principal keys
         """
 
     @abstractmethod
@@ -162,6 +186,31 @@ class AbstractKRBManager(ABC):
         """Lock principal.
 
         :param str name: principal
+        """
+
+    @abstractmethod
+    async def rename_princ(self, name: str, new_name: str) -> None:
+        """Rename principal.
+
+        :param str name: original name
+        :param str new_name: new name
+        """
+
+    @abstractmethod
+    async def modify_principal(
+        self,
+        principal_name: str,
+        new_name: str | None = None,
+        algorithms: list[str] | None = None,
+        password: str | None = None,
+        **dbargs,
+    ) -> None:
+        """Modify principal (rename, change algorithms, password).
+
+        :param str principal_name: current principal name
+        :param str | None new_name: new name if rename needed
+        :param list[str] | None algorithms: new encryption algorithms
+        :param str | None password: new password
         """
 
 
@@ -206,18 +255,21 @@ class KAdminLocalManager(AbstractKRBManager):
         self,
         name: str,
         password: str | None,
+        algorithms: list[str] | None = None,
         **dbargs,
     ) -> None:
         """Create principal.
 
         :param str name: principal
-        :param str | None password: if empty - uses randkey.
+        :param str | None password: if None - uses randkey.
+        :param list[str] | None algorithms: encryption algorithms
         """
         await self.loop.run_in_executor(
             self.pool,
             self.client.add_principal,
             name,
             password,
+            algorithms,
         )
 
         if password:
@@ -227,6 +279,19 @@ class KAdminLocalManager(AbstractKRBManager):
                 self.pool,
                 partial(princ.modify, attributes=128),
             )
+
+    async def rename_princ(self, name: str, new_name: str) -> None:
+        """Rename principal.
+
+        :param str name: original name
+        :param str new_name: new name
+        """
+        await self.loop.run_in_executor(
+            self.pool,
+            self.client.rename_principal,
+            name,
+            new_name,
+        )
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
         principal = await self.loop.run_in_executor(
@@ -287,32 +352,30 @@ class KAdminLocalManager(AbstractKRBManager):
         except kadmv.UnknownPrincipalError:
             raise PrincipalNotFoundError
 
-    async def rename_princ(self, name: str, new_name: str) -> None:
-        """Rename principal.
-
-        :param str name: original name
-        :param str new_name: new name
-        """
-        await self.loop.run_in_executor(
-            self.pool,
-            self.client.rename_principal,
-            name,
-            new_name,
-        )
-
-    async def ktadd(self, names: list[str], fn: str) -> None:
+    async def ktadd(
+        self,
+        names: list[str],
+        fn: str,
+        is_rand_key: bool = True,
+    ) -> None:
         """Create or write to keytab.
 
-        :param str name: principal
+        :param list[str] names: principals
         :param str fn: filename
-        :raises self.PrincipalNotFoundError: on not found princ
+        :param bool is_rand_key: generate new principal keys
+        :raises PrincipalNotFoundError: on not found princ
         """
         principals = [await self._get_raw_principal(name) for name in names]
         if not all(principals):
             raise PrincipalNotFoundError("Principal not found")
 
         for princ in principals:
-            await self.loop.run_in_executor(self.pool, princ.ktadd, fn)
+            await self.loop.run_in_executor(
+                self.pool,
+                princ.ktadd,
+                fn,
+                is_rand_key,
+            )
 
     async def lock_princ(self, name: str, **dbargs) -> None:
         """Lock princ.
@@ -331,6 +394,36 @@ class KAdminLocalManager(AbstractKRBManager):
         princ = await self._get_raw_principal(name)
         princ.pwexpire = "Now"
         await self.loop.run_in_executor(self.pool, princ.commit)
+
+    async def modify_principal(
+        self,
+        principal_name: str,
+        new_name: str | None = None,
+        algorithms: list[str] | None = None,
+        password: str | None = None,
+        **dbargs,
+    ) -> None:
+        """Modify principal (rename, change algorithms, password).
+
+        :param str principal_name: current principal name
+        :param str | None new_name: new name if rename needed
+        :param list[str] | None algorithms: new encryption algorithms
+        :param str | None password: new password
+        """
+        args = []
+        if new_name:
+            args.append(new_name)
+        if password:
+            args.append(password)
+        if algorithms:
+            args.append(algorithms)
+
+        await self.loop.run_in_executor(
+            self.pool,
+            self.client.modify_principal,
+            principal_name,
+            *args,
+        )
 
 
 @asynccontextmanager
@@ -494,16 +587,18 @@ async def reset_setup() -> None:
 @principal_router.post("", response_class=Response, status_code=201)
 async def add_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
-    name: Annotated[str, Body()],
-    password: Annotated[str | None, Body(embed=True)] = None,
+    request: AddPrincipalRequest,
 ) -> None:
     """Add principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    :param AddPrincipalRequest request: request data
     """
-    await kadmin.add_princ(name, password)
+    await kadmin.add_princ(
+        request.principal_name,
+        request.password,
+        algorithms=request.algorithms,
+    )
 
 
 @principal_router.get("")
@@ -511,11 +606,10 @@ async def get_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
 ) -> Principal:
-    """Add principal.
+    """Get principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    :param str name: principal name
     """
     return await kadmin.get_princ(name)
 
@@ -525,11 +619,10 @@ async def del_princ(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
     name: str,
 ) -> None:
-    """Add principal.
+    """Delete principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    :param str name: principal name
     """
     await kadmin.del_princ(name)
 
@@ -569,7 +662,7 @@ async def create_or_update_princ_password(
 
 
 @principal_router.put(
-    "",
+    "/rename",
     status_code=status.HTTP_202_ACCEPTED,
     response_class=Response,
 )
@@ -584,23 +677,47 @@ async def rename_princ(
     :param Annotated[str, Body name: principal name
     :param Annotated[str, Body new_name: principal new name
     """
-    """"""
     await kadmin.rename_princ(name, new_name)
+
+
+@principal_router.put(
+    "/modify",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_class=Response,
+)
+async def modify_princ(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    request: ModifyPrincipalRequest,
+) -> None:
+    """Modify principal (rename, algorithms, password).
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param ModifyPrincipalRequest request: request data
+    """
+    await kadmin.modify_principal(
+        principal_name=request.principal_name,
+        new_name=request.new_name,
+        algorithms=request.algorithms,
+        password=request.password,
+    )
 
 
 @principal_router.post("/ktadd")
 async def ktadd(
     kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
-    names: Annotated[list[str], Body()],
+    request: KtaddRequest,
 ) -> FileResponse:
     """Ktadd principal.
 
     :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
-    :param Annotated[str, Body name: principal name
-    :param Annotated[str, Body password: principal password
+    :param KtaddRequest request: request data
     """
     filename = os.path.join(gettempdir(), str(uuid.uuid1()))
-    await kadmin.ktadd(names, filename)
+    await kadmin.ktadd(
+        request.names,
+        filename,
+        request.is_rand_key,
+    )
 
     return FileResponse(
         filename,

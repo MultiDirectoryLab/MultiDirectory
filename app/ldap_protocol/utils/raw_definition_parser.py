@@ -59,6 +59,7 @@ class RawDefinitionParser:
             single_value=attribute_type_info.single_value,
             no_user_modification=attribute_type_info.no_user_modification,
             is_system=True,
+            system_flags=0,
             is_included_anr=False,
         )
 

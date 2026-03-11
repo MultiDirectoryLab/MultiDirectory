@@ -14,6 +14,7 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.adapters import MFAFastAPIAdapter
+from api.auth.schemas import MFACreateRequest, MFAGetResponse
 from api.auth.utils import (
     get_ip_from_request,
     get_user_agent_from_request,
@@ -24,6 +25,7 @@ from api.error_routing import (
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.auth.exceptions.mfa import (
     ForbiddenError,
@@ -34,7 +36,6 @@ from ldap_protocol.auth.exceptions.mfa import (
     NetworkPolicyError,
     NotFoundError,
 )
-from ldap_protocol.auth.schemas import MFACreateRequest, MFAGetResponse
 from ldap_protocol.multifactor import MFA_HTTP_Creds, MFA_LDAP_Creds
 
 translator = DomainErrorTranslator(DomainCodes.MFA)
@@ -62,7 +63,7 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     InvalidCredentialsError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     NotFoundError: rule(
@@ -81,7 +82,7 @@ mfa_router = ErrorAwareRouter(
 @mfa_router.post(
     "/setup",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def setup_mfa(
@@ -100,7 +101,7 @@ async def setup_mfa(
 
 @mfa_router.delete(
     "/keys",
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def remove_mfa(
@@ -113,7 +114,7 @@ async def remove_mfa(
 
 @mfa_router.post(
     "/get",
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def get_mfa(

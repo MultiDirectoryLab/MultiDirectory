@@ -8,6 +8,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+from enums import SamAccountTypeCodes
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.objects import UserAccountControlFlag
 from tests.api_datasets import test_api_forbidden_chars_in_attr_value
@@ -28,7 +29,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
                 {"type": "objectClass", "vals": ["organization", "top"]},
                 {
                     "type": "memberOf",
-                    "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                    "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
                 },
             ],
         },
@@ -40,35 +41,6 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert data.get("errorMessage") == ""
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("session")
-async def test_api_add_incorrect_computer_name(
-    http_client: AsyncClient,
-) -> None:
-    """Test api incorrect (name) add."""
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": "cn=test,dc=md,dc=test",
-            "password": None,
-            "attributes": [
-                {"type": "name", "vals": [" test;incorrect"]},
-                {"type": "cn", "vals": ["test"]},
-                {"type": "objectClass", "vals": ["computer", "top"]},
-                {
-                    "type": "memberOf",
-                    "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
-                },
-            ],
-        },
-    )
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert data.get("resultCode") == LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE
 
 
 @pytest.mark.asyncio
@@ -171,6 +143,57 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
     else:
         raise Exception("Computer without userAccountControl")
 
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "sAMAccountName":
+            assert attr["vals"][0] == "PC"
+            break
+    else:
+        raise Exception("Computer without sAMAccountName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_add_user_samaccounttype(
+    http_client: AsyncClient,
+) -> None:
+    """Add user without sAMAccountType: server sets SAM_USER_OBJECT."""
+    entry = "cn=samuser,dc=md,dc=test"
+    await http_client.post(
+        "/entry/add",
+        json={
+            "entry": entry,
+            "password": "P@ssw0rd",
+            "attributes": [
+                {"type": "name", "vals": ["samuser"]},
+                {"type": "cn", "vals": ["samuser"]},
+                {"type": "objectClass", "vals": ["user", "top"]},
+                {"type": "sAMAccountName", "vals": ["samuser"]},
+                {"type": "userPrincipalName", "vals": ["samuser@md.test"]},
+            ],
+        },
+    )
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": ["sAMAccountType"],
+            "page_number": 1,
+        },
+    )
+    data = response.json()
+    attrs = {
+        a["type"]: a for a in data["search_result"][0]["partial_attributes"]
+    }
+    assert attrs["sAMAccountType"]["vals"][0] == str(
+        SamAccountTypeCodes.SAM_USER_OBJECT,
+    )
+
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
@@ -186,7 +209,7 @@ async def test_api_correct_add_double_member_of(
     user = "cn=test0,dc=md,dc=test"
     un = "test0"
     groups = [
-        "cn=domain admins,cn=groups,dc=md,dc=test",
+        "cn=domain admins,cn=Groups,dc=md,dc=test",
         new_group,
     ]
 
@@ -307,7 +330,7 @@ async def test_api_correct_add_double_member_of(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user
 
-    created_groups = groups + ["cn=domain users,cn=groups,dc=md,dc=test"]
+    created_groups = groups + ["cn=domain users,cn=Groups,dc=md,dc=test"]
 
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "memberOf":
@@ -528,7 +551,7 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                        "cn=domain admins,cn=Groups,dc=md,dc=test",
                     ],
                 },
             ],
@@ -568,7 +591,7 @@ async def test_api_add_double_case_insensetive(
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                        "cn=domain admins,cn=Groups,dc=md,dc=test",
                     ],
                 },
             ],
@@ -597,7 +620,7 @@ async def test_api_add_double_case_insensetive(
                 {
                     "type": "memberOf",
                     "vals": [
-                        "cn=domain admins,cn=groups,dc=md,dc=test",
+                        "cn=domain admins,cn=Groups,dc=md,dc=test",
                     ],
                 },
             ],

@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import jinja2
 
-from .schemas import KDCContext
+from .dtos import KDCContextDTO
 
 
 class KRBTemplateRenderer:
@@ -23,11 +23,11 @@ class KRBTemplateRenderer:
         """
         self._templates = templates
 
-    async def render_krb5(self, context: KDCContext) -> str:
+    async def render_krb5(self, context: KDCContextDTO) -> str:
         """Render the krb5.conf configuration file using the provided context.
 
         :param context:
-            KDCContext dataclass with Kerberos configuration parameters.
+            KDCContextDTO dataclass with Kerberos configuration parameters.
         :return: Rendered krb5.conf as a string.
         """
         krb5_template = self._templates.get_template("krb5.conf")
@@ -40,11 +40,11 @@ class KRBTemplateRenderer:
             sync_password_url=context.sync_password_url,
         )
 
-    async def render_kdc(self, context: KDCContext) -> str:
+    async def render_kdc(self, context: KDCContextDTO) -> str:
         """Render the kdc.conf configuration file using the provided context.
 
         :param context:
-            KDCContext dataclass with Kerberos configuration parameters.
+            KDCContextDTO dataclass with Kerberos configuration parameters.
         :return: Rendered kdc.conf as a string.
         """
         kdc_template = self._templates.get_template("kdc.conf")

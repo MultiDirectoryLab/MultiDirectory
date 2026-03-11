@@ -62,9 +62,9 @@ async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
     result = await proc.wait()
 
     assert result == 0
-    assert "dn: cn=groups,dc=md,dc=test" in data
-    assert "dn: cn=users,dc=md,dc=test" in data
-    assert "dn: cn=user0,cn=users,dc=md,dc=test" in data
+    assert "dn: cn=Groups,dc=md,dc=test" in data
+    assert "dn: cn=Users,dc=md,dc=test" in data
+    assert "dn: cn=user0,cn=Users,dc=md,dc=test" in data
 
 
 @pytest.mark.asyncio
@@ -89,7 +89,7 @@ async def test_ldap_search_filter(
         "dc=md,dc=test",
         "(&"
         "(objectClass=user)"
-        "(memberOf:1.2.840.113556.1.4.1941:=cn=domain admins,cn=groups,dc=md,\
+        "(memberOf:1.2.840.113556.1.4.1941:=cn=domain admins,cn=Groups,dc=md,\
             dc=test)"
         ")",
         stdout=asyncio.subprocess.PIPE,
@@ -101,8 +101,8 @@ async def test_ldap_search_filter(
     result = await proc.wait()
 
     assert result == 0
-    assert "dn: cn=user0,cn=users,dc=md,dc=test" in data
-    assert "dn: cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test" in data
+    assert "dn: cn=user0,cn=Users,dc=md,dc=test" in data
+    assert "dn: cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test" in data
 
 
 @pytest.mark.asyncio
@@ -298,7 +298,7 @@ async def test_ldap_search_filter_prefix(
     result = await proc.wait()
 
     assert result == 0
-    assert "dn: cn=user0,cn=users,dc=md,dc=test" in data
+    assert "dn: cn=user0,cn=Users,dc=md,dc=test" in data
 
 
 @pytest.mark.asyncio
@@ -317,7 +317,7 @@ async def test_bind_policy(
     assert policy
 
     group = await get_group(
-        dn="cn=domain admins,cn=groups,dc=md,dc=test",
+        dn="cn=domain admins,cn=Groups,dc=md,dc=test",
         session=session,
     )
     policy.groups.append(group)
@@ -368,7 +368,7 @@ async def test_bind_policy_missing_group(
     user = (await session.scalars(user_query)).one()
 
     policy.groups = await get_groups(
-        ["cn=domain admins,cn=groups,dc=md,dc=test"],
+        ["cn=domain admins,cn=Groups,dc=md,dc=test"],
         session,
     )
     user.groups.clear()
@@ -432,7 +432,7 @@ async def test_bvalue_in_search_request(
 ) -> None:
     """Test SearchRequest with bytes data."""
     request = SearchRequest(
-        base_object="cn=user0,cn=users,dc=md,dc=test",
+        base_object="cn=user0,cn=Users,dc=md,dc=test",
         scope=0,
         deref_aliases=0,
         size_limit=0,
@@ -525,7 +525,7 @@ async def test_ldap_search_access_control_denied(
 
     assert result == 0
     assert dn_list == [
-        "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
+        "dn: cn=user_non_admin,cn=Users,dc=md,dc=test",
     ]
 
     await session.commit()
@@ -535,7 +535,7 @@ async def test_ldap_search_access_control_denied(
             name="Groups Read Role",
             creator_upn=None,
             is_system=False,
-            groups=["cn=domain users,cn=groups,dc=md,dc=test"],
+            groups=["cn=domain users,cn=Groups,dc=md,dc=test"],
         ),
     )
 
@@ -543,7 +543,7 @@ async def test_ldap_search_access_control_denied(
         role_id=role_dao.get_last_id(),
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
-        base_dn="cn=groups,dc=md,dc=test",
+        base_dn="cn=Groups,dc=md,dc=test",
         attribute_type_id=None,
         entity_type_id=None,
         is_allow=True,
@@ -577,12 +577,12 @@ async def test_ldap_search_access_control_denied(
     assert result == 0
     assert sorted(dn_list) == sorted(
         [
-            "dn: cn=groups,dc=md,dc=test",
-            "dn: cn=domain admins,cn=groups,dc=md,dc=test",
-            "dn: cn=admin login only,cn=groups,dc=md,dc=test",
-            "dn: cn=developers,cn=groups,dc=md,dc=test",
-            "dn: cn=domain computers,cn=groups,dc=md,dc=test",
-            "dn: cn=domain users,cn=groups,dc=md,dc=test",
-            "dn: cn=user_non_admin,cn=users,dc=md,dc=test",
+            "dn: cn=Groups,dc=md,dc=test",
+            "dn: cn=domain admins,cn=Groups,dc=md,dc=test",
+            "dn: cn=admin login only,cn=Groups,dc=md,dc=test",
+            "dn: cn=developers,cn=Groups,dc=md,dc=test",
+            "dn: cn=domain computers,cn=Groups,dc=md,dc=test",
+            "dn: cn=domain users,cn=Groups,dc=md,dc=test",
+            "dn: cn=user_non_admin,cn=Users,dc=md,dc=test",
         ],
     )

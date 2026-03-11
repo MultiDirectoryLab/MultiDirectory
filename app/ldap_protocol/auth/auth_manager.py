@@ -14,9 +14,8 @@ from abstract_service import AbstractService
 from config import Settings
 from entities import User
 from enums import AuthorizationRules, MFAFlags
-from ldap_protocol.auth.dto import SetupDTO
+from ldap_protocol.auth.dto import LoginRequestDTO, LoginResponseDTO, SetupDTO
 from ldap_protocol.auth.mfa_manager import MFAManager
-from ldap_protocol.auth.schemas import LoginDTO, OAuth2Form
 from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.auth.utils import authenticate_user
 from ldap_protocol.dialogue import UserSchema
@@ -100,11 +99,11 @@ class AuthManager(AbstractService):
 
     async def login(
         self,
-        form: OAuth2Form,
+        form: LoginRequestDTO,
         url: URL,
         ip: IPv4Address | IPv6Address,
         user_agent: str,
-    ) -> LoginDTO:
+    ) -> LoginResponseDTO:
         """Log in a user.
 
         :param form: OAuth2Form with username and password
@@ -169,8 +168,8 @@ class AuthManager(AbstractService):
                 )
             if request_2fa:
                 (
-                    mfa_challenge,
-                    key,
+                    mfa_challenge_dto,
+                    session_key,
                 ) = await self._mfa_manager.two_factor_protocol(
                     user=user,
                     network_policy=network_policy,
@@ -178,7 +177,10 @@ class AuthManager(AbstractService):
                     ip=ip,
                     user_agent=user_agent,
                 )
-                return LoginDTO(key, mfa_challenge)
+                return LoginResponseDTO(
+                    session_key=session_key,
+                    mfa_challenge=mfa_challenge_dto,
+                )
 
         session_key = await self._repository.create_session_key(
             user,
@@ -186,7 +188,10 @@ class AuthManager(AbstractService):
             user_agent,
             self.key_ttl,
         )
-        return LoginDTO(session_key, None)
+        return LoginResponseDTO(
+            session_key=session_key,
+            mfa_challenge=None,
+        )
 
     async def _update_password(
         self,
@@ -232,7 +237,7 @@ class AuthManager(AbstractService):
 
         if include_krb:
             await self._kadmin.create_or_update_principal_pw(
-                user.get_upn_prefix(),
+                user.sam_account_name,
                 new_password,
             )
 

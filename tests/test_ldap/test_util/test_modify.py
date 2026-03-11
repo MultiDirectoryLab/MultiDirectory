@@ -18,14 +18,15 @@ from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from config import Settings
 from entities import Directory, Group
-from enums import AceType, RoleScope
+from enums import AceType, EntityTypeNames, RoleScope
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
+from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.objects import Operation
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.utils.queries import get_search_path
+from ldap_protocol.utils.queries import get_filter_from_path
 from repo.pg.tables import Attribute, directory_table, queryable_attr as qa
 from tests.conftest import TestCreds
 
@@ -38,14 +39,14 @@ async def test_ldap_base_modify(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(
             subqueryload(qa(Directory.attributes)),
             joinedload(qa(Directory.user)),
         )
-        .filter_by(path=get_search_path(dn))
+        .filter(get_filter_from_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -139,11 +140,11 @@ async def test_ldap_membersip_user_delete(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_admin,cn=users,dc=md,dc=test"
+    dn = "cn=user_admin,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
-        .filter_by(path=get_search_path(dn))
+        .filter(get_filter_from_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -187,11 +188,11 @@ async def test_ldap_membersip_self_delete_admin_domain(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
-        .filter_by(path=get_search_path(dn))
+        .filter(get_filter_from_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -201,7 +202,7 @@ async def test_ldap_membersip_self_delete_admin_domain(
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
             f"dn: {dn}\nchangetype: modify\ndelete: memberOf\n"
-            "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n",
+            "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n",
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -250,7 +251,7 @@ async def test_self_disable(
     response = await http_client.patch(
         "entry/update",
         json={
-            "object": "cn=user0,cn=users,dc=md,dc=test",
+            "object": "cn=user0,cn=Users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -288,7 +289,7 @@ async def test_ldap_membersip_user_add(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_non_admin,cn=users,dc=md,dc=test"
+    dn = "cn=user_non_admin,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(
@@ -296,7 +297,7 @@ async def test_ldap_membersip_user_add(
                 qa(Group.directory),
             ),
         )
-        .filter_by(path=get_search_path(dn))
+        .filter(get_filter_from_path(dn))
     )
 
     directory = (await session.scalars(query)).one()
@@ -312,7 +313,7 @@ async def test_ldap_membersip_user_add(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "add: memberOf\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )
@@ -351,17 +352,17 @@ async def test_ldap_membersip_user_replace(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user_admin,cn=users,dc=md,dc=test"
+    dn = "cn=user_admin,cn=Users,dc=md,dc=test"
     query = (
         select(Directory)
         .options(selectinload(qa(Directory.groups)))
-        .filter_by(path=get_search_path(dn))
+        .filter(get_filter_from_path(dn))
     )
     directory = (await session.scalars(query)).one()
 
     assert directory.groups
 
-    new_group_dn = "cn=twisted,cn=groups,dc=md,dc=test\n"
+    new_group_dn = "cn=twisted,cn=Groups,dc=md,dc=test\n"
 
     # add new group
     with tempfile.NamedTemporaryFile("w") as file:
@@ -372,7 +373,7 @@ async def test_ldap_membersip_user_replace(
                 "cn: twisted\n"
                 "objectClass: group\n"
                 "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -403,7 +404,7 @@ async def test_ldap_membersip_user_replace(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "replace: memberOf\n"
-                "memberOf: cn=twisted,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=twisted,cn=Groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )
@@ -442,7 +443,7 @@ async def test_ldap_membersip_grp_replace(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+    dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     query = (
         select(Directory)
@@ -451,7 +452,7 @@ async def test_ldap_membersip_grp_replace(
             .selectinload(qa(Group.parent_groups))
             .selectinload(qa(Group.directory)),
         )
-        .filter_by(path=get_search_path(dn))
+        .filter(get_filter_from_path(dn))
     )
 
     directory = await session.scalar(query)
@@ -463,7 +464,7 @@ async def test_ldap_membersip_grp_replace(
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
             (
-                "dn: cn=twisted1,cn=groups,dc=md,dc=test\n"
+                "dn: cn=twisted1,cn=Groups,dc=md,dc=test\n"
                 "name: twisted\n"
                 "cn: twisted\n"
                 "objectClass: group\n"
@@ -498,7 +499,7 @@ async def test_ldap_membersip_grp_replace(
                 f"dn: {dn}\n"
                 "changetype: modify\n"
                 "replace: memberOf\n"
-                "memberOf: cn=twisted1,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=twisted1,cn=Groups,dc=md,dc=test\n"
                 "-\n"
             ),
         )
@@ -537,7 +538,7 @@ async def test_ldap_modify_dn(
     user: dict,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
@@ -546,7 +547,7 @@ async def test_ldap_modify_dn(
                 "changetype: modrdn\n"
                 "newrdn: cn=user2\n"
                 "deleteoldrdn: 1\n"
-                "newsuperior: cn=users,dc=md,dc=test\n"
+                "newsuperior: cn=Users,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -574,7 +575,7 @@ async def test_ldap_modify_dn(
         select(Directory)
         .filter(
             directory_table.c.path
-            == ["dc=test", "dc=md", "cn=users", "cn=user2"],
+            == ["dc=test", "dc=md", "cn=Users", "cn=user2"],
             directory_table.c.entity_type_id.isnot(None),
         ),
     )  # fmt: skip
@@ -588,7 +589,7 @@ async def test_ldap_modify_password_change(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=user0,cn=users,dc=md,dc=test"
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
     new_password = "Password12345"  # noqa
 
     with tempfile.NamedTemporaryFile("w") as file:
@@ -655,9 +656,8 @@ async def test_ldap_modify_with_ap(
     access_control_entry_dao: AccessControlEntryDAO,
 ) -> None:
     """Test ldapmodify on server."""
-    dn = "cn=users,dc=md,dc=test"
+    dn = "cn=Users,dc=md,dc=test"
     base_dn = "dc=md,dc=test"
-    search_path = get_search_path(dn)
 
     query = (
         select(Directory)
@@ -665,7 +665,7 @@ async def test_ldap_modify_with_ap(
             subqueryload(qa(Directory.attributes)),
             joinedload(qa(Directory.user)),
         )
-        .filter_by(path=search_path)
+        .filter(get_filter_from_path(dn))
     )
 
     directory = await session.scalar(query)
@@ -719,7 +719,7 @@ async def test_ldap_modify_with_ap(
             name="Modify Role",
             creator_upn=None,
             is_system=False,
-            groups=["cn=domain users,cn=groups," + base_dn],
+            groups=["cn=domain users,cn=Groups," + base_dn],
         ),
     )
 
@@ -781,6 +781,104 @@ async def test_ldap_modify_with_ap(
     assert "posixEmail" not in attributes
 
 
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_modify_rdn(
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test modify RDN."""
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+
+    async def try_modify() -> int:
+        with tempfile.NamedTemporaryFile("w") as file:
+            file.write(
+                (f"dn: {dn}\nchangetype: modify\nreplace: cn\ncn: modme\n-\n"),
+            )
+            file.seek(0)
+            proc = await asyncio.create_subprocess_exec(
+                "ldapmodify",
+                "-vvv",
+                "-H",
+                f"ldap://{settings.HOST}:{settings.PORT}",
+                "-D",
+                "user_admin",
+                "-x",
+                "-w",
+                creds.pw,
+                "-f",
+                file.name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            await proc.communicate()
+            return await proc.wait()
+
+    assert await try_modify() == LDAPCodes.NOT_ALLOWED_ON_RDN
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_ldap_modify_name(
+    session: AsyncSession,
+    settings: Settings,
+    creds: TestCreds,
+) -> None:
+    """Test modify name."""
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+
+    query = (
+        select(Directory)
+        .options(
+            subqueryload(qa(Directory.attributes)),
+            joinedload(qa(Directory.user)),
+        )
+        .filter(get_filter_from_path(dn))
+    )
+
+    old_directory = await session.scalar(query)
+    assert old_directory
+
+    async def try_modify() -> int:
+        with tempfile.NamedTemporaryFile("w") as file:
+            file.write(
+                (
+                    f"dn: {dn}\n"
+                    "changetype: modify\n"
+                    "replace: name\n"
+                    "name: changename\n"
+                    "-\n"
+                ),
+            )
+            file.seek(0)
+            proc = await asyncio.create_subprocess_exec(
+                "ldapmodify",
+                "-vvv",
+                "-H",
+                f"ldap://{settings.HOST}:{settings.PORT}",
+                "-D",
+                "user_admin",
+                "-x",
+                "-w",
+                creds.pw,
+                "-f",
+                file.name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            await proc.communicate()
+            return await proc.wait()
+
+    assert await try_modify() == LDAPCodes.SUCCESS
+
+    new_directory = await session.scalar(query)
+    assert new_directory
+
+    assert old_directory.name == new_directory.name
+
+
 async def run_single_modify(
     settings: Settings,
     operation: Literal["add", "delete", "replace"],
@@ -822,6 +920,49 @@ async def run_single_modify(
         return await proc.wait()
 
 
+async def run_single_modrdn(
+    *,
+    settings: Settings,
+    bind_dn: str,
+    password: str,
+    dn: str,
+    newrdn: str,
+    deleteoldrdn: int = 1,
+    newsuperior: str | None = None,
+) -> int:
+    with tempfile.NamedTemporaryFile("w") as file:
+        lines = [
+            f"dn: {dn}",
+            "changetype: modrdn",
+            f"newrdn: {newrdn}",
+            f"deleteoldrdn: {deleteoldrdn}",
+        ]
+        if newsuperior is not None:
+            lines.append(f"newsuperior: {newsuperior}")
+
+        file.write("\n".join(lines) + "\n")
+        file.seek(0)
+
+        proc = await asyncio.create_subprocess_exec(
+            "ldapmodify",
+            "-vvv",
+            "-H",
+            f"ldap://{settings.HOST}:{settings.PORT}",
+            "-D",
+            bind_dn,
+            "-x",
+            "-w",
+            password,
+            "-f",
+            file.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        await proc.communicate()
+        return await proc.wait()
+
+
 async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     """Fetch directory by DN."""
     query = (
@@ -831,7 +972,7 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
             selectinload(qa(Directory.attributes)),
             joinedload(qa(Directory.group)),
         )
-        .filter(qa(Directory.path) == get_search_path(dn))
+        .filter(get_filter_from_path(dn))
     )
     return (await session.scalars(query)).one()
 
@@ -843,25 +984,25 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     [
         (
             "add",
-            "cn=developers,cn=groups,dc=md,dc=test",
+            "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             True,
         ),
         (
             "add",
-            "cn=domain admins,cn=groups,dc=md,dc=test",
+            "cn=domain admins,cn=Groups,dc=md,dc=test",
             {"domain admins"},
             True,
         ),
         (
             "delete",
-            "cn=developers,cn=groups,dc=md,dc=test",
+            "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             False,
         ),
         (
             "replace",
-            "cn=developers,cn=groups,dc=md,dc=test",
+            "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             True,
         ),
@@ -877,7 +1018,7 @@ async def test_ldap_modify_primary_group_id_scenarios(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify request with primaryGroupID for various scenarios."""
-    user_dn = "cn=user_admin,cn=users,dc=md,dc=test"
+    user_dn = "cn=user_admin,cn=Users,dc=md,dc=test"
     user_dir = await fetch_directory_by_dn(session, user_dn)
 
     group_dir = await fetch_directory_by_dn(session, group_dn)
@@ -932,22 +1073,22 @@ async def test_ldap_modify_primary_group_id_scenarios(
     ("values", "include_dev_group", "expected_result", "expected_groups"),
     [
         (
-            ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             True,
             1,
             {"domain admins", "developers"},
         ),
         (
-            ["cn=domain admins,cn=groups,dc=md,dc=test"],
+            ["cn=domain admins,cn=Groups,dc=md,dc=test"],
             False,
             0,
             {"domain admins"},
         ),
         (
             [
-                "cn=domain admins,cn=groups,dc=md,dc=test",
-                "cn=developers,cn=groups,dc=md,dc=test",
-                "cn=domain computers,cn=groups,dc=md,dc=test",
+                "cn=domain admins,cn=Groups,dc=md,dc=test",
+                "cn=developers,cn=Groups,dc=md,dc=test",
+                "cn=domain computers,cn=Groups,dc=md,dc=test",
             ],
             True,
             0,
@@ -965,8 +1106,8 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
     creds: TestCreds,
 ) -> None:
     """Test ldapmodify request replace memberOf attribute."""
-    user_dn = "cn=user_admin,cn=users,dc=md,dc=test"
-    dev_group_dn = "cn=developers,cn=groups,dc=md,dc=test"
+    user_dn = "cn=user_admin,cn=Users,dc=md,dc=test"
+    dev_group_dn = "cn=developers,cn=Groups,dc=md,dc=test"
 
     user_dir = await fetch_directory_by_dn(session, user_dn)
     dev_group_dir = await fetch_directory_by_dn(session, dev_group_dn)
@@ -998,3 +1139,244 @@ async def test_ldap_modify_replace_memberof_primary_group_various(
     user_dir = await fetch_directory_by_dn(session, user_dn)
     group_names = {group.directory.name for group in user_dir.groups}
     assert group_names == expected_groups
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_modify_dn_rename_with_ap(
+    settings: Settings,
+    creds: TestCreds,
+    role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
+    entity_type_dao: EntityTypeDAO,
+    attribute_type_dao: EntityTypeDAO,
+) -> None:
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+    base_dn = "dc=md,dc=test"
+
+    user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
+    assert user_entity_type
+
+    rdn_attr = await attribute_type_dao.get("cn")
+    assert rdn_attr
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+    )
+
+    assert res == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Modify Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=Groups," + base_dn],
+        ),
+    )
+
+    role_id = role_dao.get_last_id()
+
+    write_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.WRITE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=rdn_attr.id,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+    delete_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.DELETE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=rdn_attr.id,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+
+    await access_control_entry_dao.create_bulk([write_ace, delete_ace])
+
+    aces_before = await access_control_entry_dao.get_all()
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+    )
+
+    assert res == LDAPCodes.SUCCESS
+
+    aces_after = await access_control_entry_dao.get_all()
+
+    inherited_aces_before = [
+        ace for ace in aces_before if ace.base_dn == base_dn
+    ]
+    explicit_aces_before = [
+        ace for ace in aces_before if ace.base_dn != base_dn
+    ]
+
+    inherited_aces_after = [
+        ace for ace in aces_after if ace.base_dn == base_dn
+    ]
+    explicit_aces_after = [ace for ace in aces_after if ace.base_dn != base_dn]
+
+    assert inherited_aces_before == inherited_aces_after
+    assert len(explicit_aces_after) == len(explicit_aces_before)
+
+    # NOTE: Check explicit ACEs have same properties except base_dn
+    for ace_before, ace_after in zip(
+        explicit_aces_before,
+        explicit_aces_after,
+    ):
+        assert ace_before.id == ace_after.id
+        assert ace_before.role_id == ace_after.role_id
+        assert ace_before.ace_type == ace_after.ace_type
+        assert ace_before.scope == ace_after.scope
+        assert ace_before.attribute_type_id == ace_after.attribute_type_id
+        assert ace_before.entity_type_id == ace_after.entity_type_id
+        assert ace_before.is_allow == ace_after.is_allow
+
+        assert ace_after.base_dn == "cn=user2,cn=Users,dc=md,dc=test"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("setup_session")
+async def test_modify_dn_move_with_ap(
+    settings: Settings,
+    creds: TestCreds,
+    role_dao: RoleDAO,
+    access_control_entry_dao: AccessControlEntryDAO,
+    entity_type_dao: EntityTypeDAO,
+    attribute_type_dao: EntityTypeDAO,
+) -> None:
+    dn = "cn=user0,cn=Users,dc=md,dc=test"
+    base_dn = "dc=md,dc=test"
+
+    user_entity_type = await entity_type_dao.get(EntityTypeNames.USER)
+    assert user_entity_type
+
+    rdn_attr = await attribute_type_dao.get("cn")
+    assert rdn_attr
+
+    new_parent_dn = "cn=Groups,dc=md,dc=test"
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+        newsuperior=new_parent_dn,
+    )
+
+    assert res == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
+
+    await role_dao.create(
+        dto=RoleDTO(
+            name="Modify Role",
+            creator_upn=None,
+            is_system=False,
+            groups=["cn=domain users,cn=Groups," + base_dn],
+        ),
+    )
+
+    role_id = role_dao.get_last_id()
+
+    write_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.WRITE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=rdn_attr.id,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+    create_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.CREATE_CHILD,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=new_parent_dn,
+        attribute_type_id=None,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+    delete_ace = AccessControlEntryDTO(
+        role_id=role_id,
+        ace_type=AceType.DELETE,
+        scope=RoleScope.WHOLE_SUBTREE,
+        base_dn=dn,
+        attribute_type_id=None,
+        entity_type_id=user_entity_type.id,
+        is_allow=True,
+    )
+
+    await access_control_entry_dao.create_bulk(
+        [write_ace, create_ace, delete_ace],
+    )
+
+    aces_before = await access_control_entry_dao.get_all()
+
+    res = await run_single_modrdn(
+        settings=settings,
+        bind_dn="user_non_admin",
+        password=creds.pw,
+        dn=dn,
+        newrdn="cn=user2",
+        deleteoldrdn=1,
+        newsuperior=new_parent_dn,
+    )
+
+    assert res == LDAPCodes.SUCCESS
+
+    aces_after = await access_control_entry_dao.get_all()
+
+    inherited_aces_before = [
+        ace
+        for ace in aces_before
+        if ace.base_dn != "cn=user0,cn=Users,dc=md,dc=test"
+    ]
+    explicit_aces_before = [
+        ace
+        for ace in aces_before
+        if ace.base_dn == "cn=user0,cn=Users,dc=md,dc=test"
+    ]
+
+    inherited_aces_after = [
+        ace
+        for ace in aces_after
+        if ace.base_dn != "cn=user2,cn=Groups,dc=md,dc=test"
+    ]
+    explicit_aces_after = [
+        ace
+        for ace in aces_after
+        if ace.base_dn == "cn=user2,cn=Groups,dc=md,dc=test"
+    ]
+
+    assert inherited_aces_before == inherited_aces_after
+    assert len(explicit_aces_after) == len(explicit_aces_before)
+
+    # check expicit aces have same properties except base_dn
+    for ace_before, ace_after in zip(
+        explicit_aces_before,
+        explicit_aces_after,
+    ):
+        assert ace_before.id == ace_after.id
+        assert ace_before.role_id == ace_after.role_id
+        assert ace_before.ace_type == ace_after.ace_type
+        assert ace_before.scope == ace_after.scope
+        assert ace_before.attribute_type_id == ace_after.attribute_type_id
+        assert ace_before.entity_type_id == ace_after.entity_type_id
+        assert ace_before.is_allow == ace_after.is_allow
+
+        assert ace_after.base_dn == "cn=user2,cn=Groups,dc=md,dc=test"

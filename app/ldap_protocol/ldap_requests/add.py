@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory, Group, User
-from enums import AceType, EntityTypeNames
+from enums import AceType, EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -64,6 +64,7 @@ class AddRequest(BaseRequest):
     ```
     """
 
+    RESPONSE_TYPE: ClassVar[type] = AddResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.ADD
     CONTEXT_TYPE: ClassVar[type] = LDAPAddRequestContext
 
@@ -233,7 +234,12 @@ class AddRequest(BaseRequest):
         parent_groups: list[Group] = []
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
-        user_fields = User.search_fields.keys() | User.fields.keys()
+        is_user_like = "user" in self.object_class_names
+        user_fields = (
+            User.search_fields.keys() | User.fields.keys()
+            if is_user_like
+            else set()
+        )
 
         attributes.append(
             Attribute(
@@ -249,11 +255,7 @@ class AddRequest(BaseRequest):
             # in the attributes
             if (
                 attr_name in Directory.ro_fields
-                or attr_name
-                in (
-                    "userpassword",
-                    "unicodepwd",
-                )
+                or attr_name in ("userpassword", "unicodepwd")
                 or attr_name == new_dir.rdname
             ):
                 continue
@@ -294,6 +296,7 @@ class AddRequest(BaseRequest):
             or "userPrincipalName" in user_attributes
         )
         is_computer = "computer" in self.attrs_dict.get("objectClass", [])
+        computer_sam_account_name = None
 
         if is_user:
             if not any(
@@ -342,11 +345,11 @@ class AddRequest(BaseRequest):
                 ),
             )
 
-            for uattr, value in {
-                "loginShell": "/bin/bash",
-                "uidNumber": str(create_integer_hash(user.sam_account_name)),
-                "homeDirectory": f"/home/{user.sam_account_name}",
-            }.items():
+            for uattr, value in (
+                ("loginShell", "/bin/bash"),
+                ("uidNumber", str(create_integer_hash(user.sam_account_name))),
+                ("homeDirectory", f"/home/{user.sam_account_name}"),
+            ):
                 if uattr in user_attributes:
                     value = user_attributes[uattr]
                     del user_attributes[uattr]
@@ -372,32 +375,43 @@ class AddRequest(BaseRequest):
             items_to_add.append(group)
             group.parent_groups.extend(parent_groups)
 
-        elif is_computer and "useraccountcontrol" not in self.l_attrs_dict:
-            if not any(
-                group.directory.name.lower() == DOMAIN_COMPUTERS_GROUP_NAME
-                for group in parent_groups
-            ):
-                parent_groups.append(
-                    await get_group(
-                        DOMAIN_COMPUTERS_GROUP_NAME,
-                        ctx.session,
-                    ),
-                )
-            await ctx.session.refresh(
-                instance=new_dir,
-                attribute_names=["groups"],
-                with_for_update=None,
-            )
-            new_dir.groups.extend(parent_groups)
+        elif is_computer:
+            computer_sam_account_name = new_dir.name
+
             attributes.append(
                 Attribute(
-                    name="userAccountControl",
-                    value=str(
-                        UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT,
-                    ),
+                    name="sAMAccountName",
+                    value=computer_sam_account_name,
                     directory_id=new_dir.id,
                 ),
             )
+
+            if "useraccountcontrol" not in self.l_attrs_dict:
+                if not any(
+                    group.directory.name.lower() == DOMAIN_COMPUTERS_GROUP_NAME
+                    for group in parent_groups
+                ):
+                    parent_groups.append(
+                        await get_group(
+                            DOMAIN_COMPUTERS_GROUP_NAME,
+                            ctx.session,
+                        ),
+                    )
+                await ctx.session.refresh(
+                    instance=new_dir,
+                    attribute_names=["groups"],
+                    with_for_update=None,
+                )
+                new_dir.groups.extend(parent_groups)
+                attributes.append(
+                    Attribute(
+                        name="userAccountControl",
+                        value=str(
+                            UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT,
+                        ),
+                        directory_id=new_dir.id,
+                    ),
+                )
 
         if (is_user or is_group) and "gidnumber" not in self.l_attrs_dict:
             reverse_d_name = new_dir.name[::-1]
@@ -420,6 +434,32 @@ class AddRequest(BaseRequest):
                     directory_id=new_dir.id,
                 ),
             )
+
+        if "samaccounttype" not in self.l_attrs_dict:
+            if is_user:
+                attributes.append(
+                    Attribute(
+                        name="sAMAccountType",
+                        value=str(SamAccountTypeCodes.SAM_USER_OBJECT),
+                        directory_id=new_dir.id,
+                    ),
+                )
+            elif is_group:
+                attributes.append(
+                    Attribute(
+                        name="sAMAccountType",
+                        value=str(SamAccountTypeCodes.SAM_GROUP_OBJECT),
+                        directory_id=new_dir.id,
+                    ),
+                )
+            elif is_computer:
+                attributes.append(
+                    Attribute(
+                        name="sAMAccountType",
+                        value=str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
+                        directory_id=new_dir.id,
+                    ),
+                )
 
         if not ctx.attribute_value_validator.is_directory_attributes_valid(
             entity_type.name if entity_type else "",
@@ -461,24 +501,22 @@ class AddRequest(BaseRequest):
                         KRBAPIDeletePrincipalError,
                         KRBAPIPrincipalNotFoundError,
                     ):
-                        await ctx.kadmin.del_principal(
-                            user.get_upn_prefix(),
-                        )
+                        await ctx.kadmin.del_principal(user.sam_account_name)
 
                     pw = (
                         self.password.get_secret_value()
                         if self.password
                         else None
                     )
-                    await ctx.kadmin.add_principal(user.get_upn_prefix(), pw)
+                    await ctx.kadmin.add_principal(user.sam_account_name, pw)
 
                 elif is_computer:
                     await ctx.kadmin.add_principal(
-                        f"{new_dir.host_principal}.{base_dn.name}",
+                        f"host/{computer_sam_account_name}.{base_dn.name}",
                         None,
                     )
                     await ctx.kadmin.add_principal(
-                        new_dir.host_principal,
+                        f"host/{computer_sam_account_name}",
                         None,
                     )
             except (KRBAPIAddPrincipalError, KRBAPIConnectionError):

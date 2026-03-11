@@ -8,7 +8,8 @@ from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, ClassVar
 
 from loguru import logger
-from sqlalchemy import Select, and_, delete, or_, select, update
+from pydantic import PrivateAttr
+from sqlalchemy import Select, and_, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -24,6 +25,7 @@ from ldap_protocol.kerberos.exceptions import (
     KRBAPIConnectionError,
     KRBAPIForcePasswordChangeError,
     KRBAPILockPrincipalError,
+    KRBAPIModifyPrincipalError,
     KRBAPIPrincipalNotFoundError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
@@ -37,11 +39,16 @@ from ldap_protocol.objects import (
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.cte import check_root_group_membership_intersection
-from ldap_protocol.utils.helpers import ft_to_dt, validate_entry
+from ldap_protocol.utils.helpers import (
+    ft_to_dt,
+    is_dn_in_base_directory,
+    validate_entry,
+)
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
     clear_group_membership,
     extend_group_membership,
+    get_base_directories,
     get_directories,
     get_directory_by_rid,
     get_filter_from_path,
@@ -71,6 +78,7 @@ MODIFY_EXCEPTION_STACK = (
     PermissionError,
     ModifyForbiddenError,
     KRBAPIPrincipalNotFoundError,
+    KRBAPIModifyPrincipalError,
     KRBAPILockPrincipalError,
     KRBAPIForcePasswordChangeError,
 )
@@ -94,11 +102,17 @@ class ModifyRequest(BaseRequest):
     ```
     """
 
+    RESPONSE_TYPE: ClassVar[type] = ModifyResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.MODIFY
     CONTEXT_TYPE: ClassVar[type] = LDAPModifyRequestContext
 
     object: str
     changes: list[Changes]
+
+    # NOTE: If the old value was changed (for example, in _delete)
+    # in one method, then you need to have access to the old value
+    # from other methods (for example, from _add)
+    _old_vals: dict[str, str | None] = PrivateAttr(default_factory=dict)
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "ModifyRequest":
@@ -131,7 +145,7 @@ class ModifyRequest(BaseRequest):
             return
 
         if not (
-            change.modification.type == "krbpasswordexpiration"
+            change.l_type == "krbpasswordexpiration"
             and change.modification.vals[0] == "19700101000000Z"
         ):
             return
@@ -184,7 +198,7 @@ class ModifyRequest(BaseRequest):
             entity_type_id=directory.entity_type_id,
         )
 
-        names = {change.get_name() for change in self.changes}
+        names = {change.l_type for change in self.changes}
 
         password_change_requested = self._is_password_change_requested(names)
         self_modify = directory.id == ctx.ldap_session.user.directory_id
@@ -194,25 +208,26 @@ class ModifyRequest(BaseRequest):
             and await ctx.password_use_cases.is_password_change_restricted(
                 directory.id,
             )
+        ) or (
+            not can_modify and not (password_change_requested and self_modify)
         ):
             yield ModifyResponse(
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 
+        if (
+            directory.rdname != "krbprincipalname"
+            and directory.rdname in names
+        ):
+            yield ModifyResponse(result_code=LDAPCodes.NOT_ALLOWED_ON_RDN)
+            return
+
         before_attrs = self.get_directory_attrs(directory)
         entity_type = directory.entity_type
         try:
-            if not can_modify and not (
-                password_change_requested and self_modify
-            ):
-                yield ModifyResponse(
-                    result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-                )
-                return
-
             for change in self.changes:
-                if change.modification.type.lower() in Directory.ro_fields:
+                if change.l_type in Directory.ro_fields:
                     continue
 
                 if not ctx.attribute_value_validator.is_partial_attribute_valid(  # noqa: E501
@@ -222,7 +237,7 @@ class ModifyRequest(BaseRequest):
                     await ctx.session.rollback()
                     yield ModifyResponse(
                         result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                        message="Invalid attribute value(s)",
+                        error_message="Invalid attribute value(s)",
                     )
                     return
 
@@ -272,10 +287,10 @@ class ModifyRequest(BaseRequest):
 
                 except MODIFY_EXCEPTION_STACK as err:
                     await ctx.session.rollback()
-                    result_code, message = self._match_bad_response(err)
+                    result_code, error_message = self._match_bad_response(err)
                     yield ModifyResponse(
                         result_code=result_code,
-                        message=message,
+                        error_message=error_message,
                     )
                     return
 
@@ -320,6 +335,9 @@ class ModifyRequest(BaseRequest):
 
             case ModifyForbiddenError():
                 return LDAPCodes.OPERATIONS_ERROR, str(err)
+
+            case KRBAPIModifyPrincipalError():
+                return LDAPCodes.UNAVAILABLE, "Kerberos error"
 
             case KRBAPIPrincipalNotFoundError():
                 return LDAPCodes.UNAVAILABLE, "Kerberos error"
@@ -612,6 +630,18 @@ class ModifyRequest(BaseRequest):
         if is_object_class_in_replaced or is_object_class_in_deleted:
             raise ModifyForbiddenError("ObjectClass can't be deleted.")
 
+    def _need_to_cache_samaccountname_old_value(
+        self,
+        change: Changes,
+        directory: Directory,
+    ) -> bool:
+        return bool(
+            directory.entity_type
+            and directory.entity_type.name == EntityTypeNames.COMPUTER
+            and change.l_type == "samaccountname"
+            and not self._old_vals.get(change.modification.type),
+        )
+
     async def _delete(
         self,
         change: Changes,
@@ -621,9 +651,8 @@ class ModifyRequest(BaseRequest):
         name_only: bool = False,
     ) -> None:
         attrs = []
-        name = change.modification.type.lower()
 
-        if name == "memberof":
+        if change.l_type == "memberof":
             await self._delete_memberof(
                 change=change,
                 directory=directory,
@@ -632,7 +661,7 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        if name == "member":
+        if change.l_type == "member":
             await self._delete_member(
                 change=change,
                 directory=directory,
@@ -641,14 +670,16 @@ class ModifyRequest(BaseRequest):
             )
             return
 
-        if name == "objectclass":
+        if change.l_type == "objectclass":
             await self._validate_object_class_modification(change, directory)
 
         if name_only or not change.modification.vals:
             attrs.append(qa(Attribute.name) == change.modification.type)
         else:
             for value in change.modification.vals:
-                if name not in (Directory.search_fields | User.search_fields):
+                if change.l_type not in (
+                    Directory.search_fields | User.search_fields
+                ):
                     if isinstance(value, str):
                         condition = qa(Attribute.value) == value
                     elif isinstance(value, bytes):
@@ -656,10 +687,15 @@ class ModifyRequest(BaseRequest):
 
                     attrs.append(
                         and_(
-                            qa(Attribute.name) == change.modification.type,
+                            func.lower(qa(Attribute.name)) == change.l_type,
                             condition,
                         ),
-                    )
+                    )  # fmt: skip
+
+        if self._need_to_cache_samaccountname_old_value(change, directory):
+            vals = directory.attributes_dict.get(change.modification.type)
+            if vals:
+                self._old_vals[change.modification.type] = vals[0]
 
         if attrs:
             del_query = (
@@ -773,16 +809,15 @@ class ModifyRequest(BaseRequest):
         directory: Directory,
         session: AsyncSession,
     ) -> None:
-        name = change.get_name()
-        if name == "primarygroupid":
+        if change.l_type == "primarygroupid":
             await self._add_primary_group_attribute(
                 change,
                 directory,
                 session,
             )
-        elif name == "memberof":
+        elif change.l_type == "memberof":
             await self._add_memberof(change, directory, session)
-        elif name == "member":
+        elif change.l_type == "member":
             await self._add_member(change, directory, session)
 
     async def _add(  # noqa: C901
@@ -797,24 +832,22 @@ class ModifyRequest(BaseRequest):
         password_use_cases: PasswordPolicyUseCases,
         password_utils: PasswordUtils,
     ) -> None:
+        base_dir = None
         attrs = []
-        name = change.get_name()
 
-        if name in {"memberof", "member", "primarygroupid"}:
+        if change.l_type in ("memberof", "member", "primarygroupid"):
             await self._add_group_attrs(change, directory, session)
             return
 
         for value in change.modification.vals:
-            if name == "useraccountcontrol":
+            if change.l_type == "useraccountcontrol":
                 uac_val = int(value)
 
                 if not UserAccountControlFlag.is_value_valid(uac_val):
                     continue
 
                 elif (
-                    bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     if directory.path_dn == current_user.dn:
@@ -823,7 +856,7 @@ class ModifyRequest(BaseRequest):
                         )
 
                     await kadmin.lock_principal(
-                        directory.user.get_upn_prefix(),
+                        directory.user.sam_account_name,
                     )
 
                     await add_lock_and_expire_attributes(
@@ -837,9 +870,7 @@ class ModifyRequest(BaseRequest):
                     )
 
                 elif (
-                    not bool(
-                        uac_val & UserAccountControlFlag.ACCOUNTDISABLE,
-                    )
+                    not bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
                     and directory.user
                 ):
                     await unlock_principal(
@@ -858,37 +889,100 @@ class ModifyRequest(BaseRequest):
                         ),
                     )  # fmt: skip
 
-            if name == "pwdlastset" and value == "0" and directory.user:
+            if (
+                change.l_type == "pwdlastset"
+                and value == "0"
+                and directory.user
+            ):
                 await kadmin.force_princ_pw_change(
-                    directory.user.get_upn_prefix(),
+                    directory.user.sam_account_name,
                 )
 
-            if name == directory.rdname:
+            if change.l_type == directory.rdname:
                 await session.execute(
                     update(Directory)
                     .filter(directory_table.c.id == directory.id)
                     .values(name=value),
                 )
 
-            if name in Directory.search_fields:
+            if change.l_type in Directory.search_fields:
                 await session.execute(
                     update(Directory)
                     .filter(directory_table.c.id == directory.id)
-                    .values({name: value}),
+                    .values({change.l_type: value}),
                 )
 
-            elif name in User.search_fields:
-                if name == "accountexpires":
+            elif (
+                change.l_type in User.search_fields
+                and directory.entity_type
+                and directory.entity_type.name == EntityTypeNames.USER
+                and directory.user
+            ):
+                if change.l_type == "accountexpires":
                     new_value = ft_to_dt(int(value)) if value != "0" else None
                 else:
                     new_value = value  # type: ignore
 
-                await session.execute(
-                    update(User)
-                    .filter_by(directory=directory)
-                    .values({name: new_value}),
+                if change.l_type in ("userprincipalname", "samaccountname"):
+                    if change.l_type == "userprincipalname":
+                        new_user_principal_name = str(new_value)
+                        new_sam_account_name = new_user_principal_name.split("@")[0]  # noqa: E501  # fmt: skip
+                    elif change.l_type == "samaccountname":
+                        if not base_dir:
+                            base_dir = await self._get_base_dir(
+                                directory,
+                                session,
+                            )
+
+                        new_sam_account_name = str(new_value)
+                        new_user_principal_name = f"{new_sam_account_name}@{base_dir.name}"  # noqa: E501  # fmt: skip
+
+                    if directory.user.sam_account_name != new_sam_account_name:
+                        await kadmin.rename_princ(
+                            directory.user.sam_account_name,
+                            new_sam_account_name,
+                        )
+
+                        directory.user.user_principal_name = new_user_principal_name  # noqa: E501  # fmt: skip
+                        directory.user.sam_account_name = new_sam_account_name
+                else:
+                    await session.execute(
+                        update(User)
+                        .filter_by(directory=directory)
+                        .values({change.l_type: new_value}),
+                    )
+
+            elif (
+                change.l_type == "samaccountname"
+                and directory.entity_type
+                and directory.entity_type.name == EntityTypeNames.COMPUTER
+            ):
+                if not base_dir:
+                    base_dir = await self._get_base_dir(
+                        directory,
+                        session,
+                    )
+
+                await self._modify_computer_samaccountname(
+                    change,
+                    kadmin,
+                    base_dir,
+                    value,
                 )
-            elif name in ("userpassword", "unicodepwd") and directory.user:
+
+                attrs.append(
+                    Attribute(
+                        name=change.modification.type,
+                        value=value if isinstance(value, str) else None,
+                        bvalue=value if isinstance(value, bytes) else None,
+                        directory_id=directory.id,
+                    ),
+                )  # fmt: skip
+
+            elif (
+                change.l_type in ("userpassword", "unicodepwd")
+                and directory.user
+            ):
                 if not settings.USE_CORE_TLS:
                     raise PermissionError("TLS required")
 
@@ -918,7 +1012,7 @@ class ModifyRequest(BaseRequest):
                     directory.user,
                 )
                 await kadmin.create_or_update_principal_pw(
-                    directory.user.get_upn_prefix(),
+                    directory.user.sam_account_name,
                     value,
                 )
 
@@ -935,3 +1029,45 @@ class ModifyRequest(BaseRequest):
                 )
 
         session.add_all(attrs)
+
+    async def _modify_computer_samaccountname(
+        self,
+        change: Changes,
+        kadmin: AbstractKadmin,
+        base_dir: Directory,
+        new_sam_account_name: bytes | str,
+    ) -> None:
+        old_sam_account_name = self._old_vals.get(change.modification.type)
+        new_sam_account_name = str(new_sam_account_name)
+
+        if not old_sam_account_name:
+            raise ModifyForbiddenError("Old sAMAccountName value not found.")
+
+        if old_sam_account_name != new_sam_account_name:
+            await kadmin.rename_princ(
+                f"host/{old_sam_account_name}",
+                f"host/{new_sam_account_name}",
+            )
+            await kadmin.rename_princ(
+                f"host/{old_sam_account_name}.{base_dir.name}",
+                f"host/{new_sam_account_name}.{base_dir.name}",
+            )
+
+    async def _get_base_dir(
+        self,
+        directory: Directory,
+        session: AsyncSession,
+    ) -> Directory:
+        base_dir = None
+
+        for base_directory in await get_base_directories(session):
+            if is_dn_in_base_directory(
+                base_directory,
+                directory.path_dn,
+            ):
+                base_dir = base_directory
+                break
+        else:
+            raise ModifyForbiddenError("Base directory not found.")
+
+        return base_dir

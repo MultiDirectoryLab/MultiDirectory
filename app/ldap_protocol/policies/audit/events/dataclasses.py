@@ -208,6 +208,7 @@ class NormalizedAuditEvent(AuditEvent):
             "policy_id": self.policy_id,
             "details": self.details,
             "service_name": self.service_name,
+            "severity": self.severity,
         }
 
 

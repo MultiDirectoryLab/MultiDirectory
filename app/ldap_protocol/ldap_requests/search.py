@@ -104,6 +104,7 @@ class SearchRequest(BaseRequest):
     ```
     """
 
+    RESPONSE_TYPE: ClassVar[type] = SearchResultDone
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.SEARCH
     CONTEXT_TYPE: ClassVar[type] = LDAPSearchRequestContext
 
@@ -166,8 +167,8 @@ class SearchRequest(BaseRequest):
         return "*" in self.requested_attrs or not self.requested_attrs
 
     @cached_property
-    def requested_attrs(self) -> list[str]:
-        return [attr.lower() for attr in self.attributes]
+    def requested_attrs(self) -> set[str]:
+        return {attr.lower() for attr in self.attributes}
 
     @classmethod
     def from_data(cls, data: dict[str, list[ASN1Row]]) -> "SearchRequest":
@@ -252,7 +253,7 @@ class SearchRequest(BaseRequest):
         return "netlogon" in self.requested_attrs
 
     async def _get_netlogon(self, ctx: LDAPSearchRequestContext) -> bytes:
-        rootdse = await ctx.rootdse_rd.get(self.requested_attrs)
+        rootdse = await ctx.rootdse_rd.get(set())
         nl = NetLogonAttributeHandler.from_filter(rootdse, self.filter)
         return nl.get_attr()
 
@@ -303,9 +304,16 @@ class SearchRequest(BaseRequest):
                 result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
+        base_directories = await get_base_directories(ctx.session)
+        if (
+            ctx.settings.is_global_catalog
+            and not self.base_object
+            and base_directories
+        ):
+            self.base_object = base_directories[0].path_dn
 
         query = self._build_query(
-            await get_base_directories(ctx.session),
+            base_directories,
             user,
             ctx.access_manager,
         )

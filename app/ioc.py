@@ -8,12 +8,12 @@ from typing import AsyncIterator, NewType
 
 import httpx
 import redis.asyncio as redis
+from db_routing import EngineRegistry, RoutingSession
 from dishka import Provider, Scope, from_context, provide
 from fastapi import Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
 )
@@ -26,10 +26,10 @@ from api.auth.adapters import (
 )
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
+from api.dns.adapter import DNSFastAPIAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
-from api.main.adapters.dns import DNSFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import (
@@ -54,12 +54,20 @@ from ldap_protocol.dhcp import (
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.dns import (
     AbstractDNSManager,
-    DNSManagerSettings,
-    get_dns_manager_class,
+    DNSManagerState,
+    DNSSettingsDTO,
+    DNSStateGateway,
+    DNSUseCase,
+    PowerDNSAuthHTTPClient,
+    PowerDNSDistClient,
+    PowerDNSManager,
+    PowerDNSRecursorHTTPClient,
+    RemoteDNSManager,
+    StubDNSManager,
 )
-from ldap_protocol.dns.dns_gateway import DNSStateGateway
-from ldap_protocol.dns.use_cases import DNSUseCase
-from ldap_protocol.dns.utils import resolve_dns_server_ip
+from ldap_protocol.dns.bind_to_pdns_migration_use_case import (
+    BindToPDNSMigrationUseCase,
+)
 from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.kerberos import AbstractKadmin, get_kerberos_class
@@ -78,6 +86,9 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPUnbindRequestContext,
 )
 from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+    AttributeTypeSystemFlagsUseCase,
+)
 from ldap_protocol.ldap_schema.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
@@ -88,6 +99,10 @@ from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
 from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.master_check_use_case import (
+    MasterCheckUseCase,
+    MasterGatewayProtocol,
+)
 from ldap_protocol.multifactor import (
     Creds,
     LDAPMultiFactorAPI,
@@ -148,10 +163,10 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
 from password_utils import PasswordUtils
+from repo.pg.master_gateway import PGMasterGateway
 
 SessionStorageClient = NewType("SessionStorageClient", redis.Redis)
 KadminHTTPClient = NewType("KadminHTTPClient", httpx.AsyncClient)
-DNSManagerHTTPClient = NewType("DNSManagerHTTPClient", httpx.AsyncClient)
 MFAHTTPClient = NewType("MFAHTTPClient", httpx.AsyncClient)
 DHCPManagerHTTPClient = NewType("DHCPManagerHTTPClient", httpx.AsyncClient)
 
@@ -163,17 +178,27 @@ class MainProvider(Provider):
     settings = from_context(provides=Settings, scope=Scope.APP)
 
     @provide(scope=Scope.APP)
-    def get_engine(self, settings: Settings) -> AsyncEngine:
-        """Get async engine."""
-        return settings.engine
+    def get_engine_registry(self, settings: Settings) -> EngineRegistry:
+        return EngineRegistry(
+            master_engine=settings.engine,
+            replica_engine=settings.replica_engine,
+        )
 
     @provide(scope=Scope.APP)
     def get_session_factory(
         self,
-        engine: AsyncEngine,
+        settings: Settings,
+        engine_registry: EngineRegistry,
     ) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
-        return async_sessionmaker(engine, expire_on_commit=False)
+        return async_sessionmaker(
+            sync_session_class=RoutingSession,
+            expire_on_commit=False,
+            info={
+                "engine_registry": engine_registry,
+                "rw_mode": settings.POSTGRES_RW_MODE,
+            },
+        )
 
     @provide(scope=Scope.REQUEST)
     async def create_session(
@@ -233,14 +258,6 @@ class MainProvider(Provider):
         """
         return kadmin_class(client)
 
-    @provide(scope=Scope.REQUEST)
-    async def get_dns_mngr_class(
-        self,
-        dns_state_gateway: DNSStateGateway,
-    ) -> type[AbstractDNSManager]:
-        """Get DNS manager type."""
-        return await get_dns_manager_class(dns_state_gateway)
-
     @provide(scope=Scope.REQUEST, provides=AuthorizationProviderProtocol)
     async def get_auth_provider_class(
         self,
@@ -248,40 +265,99 @@ class MainProvider(Provider):
         """Get AuthorizationProvider."""
         return None
 
+    @provide(scope=Scope.APP)
+    async def get_power_dns_auth_http_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[PowerDNSAuthHTTPClient]:
+        """Get PowerDNS Auth server client."""
+        async with httpx.AsyncClient(
+            base_url=f"http://{settings.PDNS_AUTH_SERVER_HOST}:{settings.PDNS_AUTH_SERVER_PORT}/api/v1/servers/localhost",
+            headers={"X-API-Key": settings.PDNS_API_KEY},
+        ) as client:
+            yield PowerDNSAuthHTTPClient(http_client=client)
+
+    @provide(scope=Scope.APP)
+    async def get_power_dns_recursor_http_client(
+        self,
+        settings: Settings,
+    ) -> AsyncIterator[PowerDNSRecursorHTTPClient]:
+        """Get PowerDNS Auth server client."""
+        async with httpx.AsyncClient(
+            base_url=f"http://{settings.PDNS_RECURSOR_SERVER_HOST}:{settings.PDNS_RECURSOR_SERVER_PORT}/api/v1/servers/localhost",
+            headers={"X-API-Key": settings.PDNS_API_KEY},
+        ) as client:
+            yield PowerDNSRecursorHTTPClient(http_client=client)
+
+    @provide(scope=Scope.APP)
+    def get_power_dns_dist_client(
+        self,
+        settings: Settings,
+    ) -> PowerDNSDistClient:
+        """Get PowerDNS dist client."""
+        return PowerDNSDistClient(
+            dnsdist_host=settings.PDNS_DIST_IP,
+            dnsdist_port=settings.PDNS_DIST_PORT,
+            dnsdist_key=settings.PDNS_DIST_KEY,
+            config_path=settings.PDNS_DIST_CONFIG_PATH,
+        )
+
     @provide(scope=Scope.REQUEST)
     async def get_dns_mngr_settings(
         self,
-        settings: Settings,
         dns_state_gateway: DNSStateGateway,
-    ) -> DNSManagerSettings:
-        """Get DNS manager's settings."""
-        resolve_coro = resolve_dns_server_ip(
-            settings.DNS_BIND_HOST,
-        )
-        return await dns_state_gateway.get_dns_manager_settings(
-            resolve_coro,
-        )
-
-    @provide(scope=Scope.APP)
-    async def get_dns_http_client(
-        self,
         settings: Settings,
-    ) -> AsyncIterator[DNSManagerHTTPClient]:
-        """Get async client for DNS manager."""
-        async with httpx.AsyncClient(
-            base_url=f"http://{settings.DNS_BIND_HOST}:8000",
-        ) as client:
-            yield DNSManagerHTTPClient(client)
+        root_dse_gw: DomainReadProtocol,
+    ) -> AsyncIterator[DNSSettingsDTO]:
+        """Get DNS manager's settings."""
+        domain = await root_dse_gw.get_domain()
+        dns_settings = await dns_state_gateway.get_dns_manager_settings(
+            settings,
+            domain.name,
+        )
+        yield dns_settings
 
     @provide(scope=Scope.REQUEST)
-    def get_dns_mngr(
+    async def get_dns_mngr(
         self,
-        settings: DNSManagerSettings,
-        dns_manager_class: type[AbstractDNSManager],
-        http_client: DNSManagerHTTPClient,
-    ) -> AbstractDNSManager:
+        dns_settings: DNSSettingsDTO,
+        dns_state_gateway: DNSStateGateway,
+        power_dns_auth_client: PowerDNSAuthHTTPClient,
+        power_dns_recursor_client: PowerDNSRecursorHTTPClient,
+        power_dns_dist_client: PowerDNSDistClient,
+    ) -> AsyncIterator[AbstractDNSManager]:
         """Get DNSManager class."""
-        return dns_manager_class(settings=settings, http_client=http_client)
+        state = await dns_state_gateway.get_state()
+        if state == DNSManagerState.SELFHOSTED:
+            yield PowerDNSManager(
+                settings=dns_settings,
+                power_dns_auth_client=power_dns_auth_client,
+                power_dns_recursor_client=power_dns_recursor_client,
+                dnsdist_client=power_dns_dist_client,
+            )
+        elif state == DNSManagerState.HOSTED:
+            yield RemoteDNSManager(settings=dns_settings)
+        else:
+            yield StubDNSManager(settings=dns_settings)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_dns_migration_usecase(
+        self,
+        dns_settings: DNSSettingsDTO,
+        power_dns_auth_client: PowerDNSAuthHTTPClient,
+        power_dns_recursor_client: PowerDNSRecursorHTTPClient,
+        power_dns_dist_client: PowerDNSDistClient,
+    ) -> AsyncIterator[BindToPDNSMigrationUseCase]:
+        """Get DNS migration manager class."""
+        yield BindToPDNSMigrationUseCase(
+            PowerDNSManager(
+                settings=dns_settings,
+                power_dns_auth_client=power_dns_auth_client,
+                power_dns_recursor_client=power_dns_recursor_client,
+                dnsdist_client=power_dns_dist_client,
+            ),
+            dns_settings=dns_settings,
+        )
 
     @provide(scope=Scope.APP)
     async def get_redis_for_sessions(
@@ -435,6 +511,10 @@ class MainProvider(Provider):
         scope=Scope.RUNTIME,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    attribute_type_system_flags_use_case = provide(
+        AttributeTypeSystemFlagsUseCase,
+        scope=Scope.REQUEST,
+    )
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_use_case = provide(
@@ -472,10 +552,10 @@ class MainProvider(Provider):
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
-
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
+
     rootdse_gw = provide(
         SADomainGateway,
         provides=DomainReadProtocol,
@@ -570,6 +650,19 @@ class HTTPProvider(LDAPContextProvider):
             user_agent=user_agent,
             session_key=session_key,
         )
+
+    @provide(scope=Scope.REQUEST, provides=MasterGatewayProtocol)
+    async def get_master_gateway(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+    ) -> PGMasterGateway:
+        return PGMasterGateway(session, settings)
+
+    master_check_use_case = provide(
+        MasterCheckUseCase,
+        scope=Scope.REQUEST,
+    )
 
     identity_provider_gateway = provide(
         IdentityProviderGateway,
@@ -895,8 +988,9 @@ class MigrationProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_conn_factory(
         self,
-        engine: AsyncEngine,
+        engine_registry: EngineRegistry,
     ) -> AsyncIterator[AsyncConnection]:
         """Create session factory."""
+        engine = engine_registry.get_master_engine()
         async with engine.connect() as connection:
             yield connection

@@ -23,7 +23,7 @@ from ldap_protocol.ldap_requests.contexts import LDAPAddRequestContext
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.roles.role_dao import RoleDAO
-from ldap_protocol.utils.queries import get_search_path
+from ldap_protocol.utils.queries import get_filter_from_path
 from repo.pg.tables import queryable_attr as qa
 from tests.conftest import TestCreds
 
@@ -37,7 +37,6 @@ async def test_ldap_root_add(
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
-    search_path = get_search_path(dn)
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
             (
@@ -46,7 +45,7 @@ async def test_ldap_root_add(
                 "cn: test\n"
                 "objectClass: organization\n"
                 "objectClass: top\n"
-                "memberOf: cn=domain admins,cn=groups,dc=md,dc=test\n"
+                "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
             ),
         )
         file.seek(0)
@@ -73,7 +72,7 @@ async def test_ldap_root_add(
     new_dir_query = (
         select(Directory)
         .options(subqueryload(qa(Directory.attributes)))
-        .filter_by(path=search_path)
+        .filter(get_filter_from_path(dn))
     )
     new_dir = (await session.scalars(new_dir_query)).one()
 
@@ -96,8 +95,8 @@ async def test_ldap_user_add_with_group(
 ) -> None:
     """Test ldapadd on server."""
     user_dn = "cn=test,dc=md,dc=test"
-    user_search_path = get_search_path(user_dn)
-    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+
+    group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         file.write(
@@ -144,7 +143,7 @@ async def test_ldap_user_add_with_group(
     new_dir_query = (
         select(Directory)
         .options(subqueryload(qa(Directory.attributes)), membership)
-        .filter_by(path=user_search_path)
+        .filter(get_filter_from_path(user_dn))
     )
     new_dir = (await session.scalars(new_dir_query)).one()
 
@@ -163,8 +162,7 @@ async def test_ldap_user_add_group_with_group(
     user: dict,
 ) -> None:
     """Test ldapadd on server."""
-    child_group_dn = "cn=twisted,cn=groups,dc=md,dc=test"
-    child_group_search_path = get_search_path(child_group_dn)
+    child_group_dn = "cn=twisted,cn=Groups,dc=md,dc=test"
     group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
@@ -208,13 +206,16 @@ async def test_ldap_user_add_group_with_group(
     new_dir_query = (
         select(Directory)
         .options(membership)
-        .filter_by(path=child_group_search_path)
+        .filter(get_filter_from_path(child_group_dn))
     )
     new_dir = (await session.scalars(new_dir_query)).one()
 
     assert new_dir.name == "twisted"
 
-    groups = [group.directory.path_dn for group in new_dir.group.parent_groups]
+    groups = [
+        group.directory.path_dn.lower()
+        for group in new_dir.group.parent_groups
+    ]
 
     assert group_dn in groups
 
@@ -287,7 +288,7 @@ async def test_ldap_add_access_control(
             name="Add Role",
             creator_upn=None,
             is_system=False,
-            groups=["cn=domain users,cn=groups," + base_dn],
+            groups=["cn=domain users,cn=Groups," + base_dn],
         ),
     )
 
@@ -355,7 +356,7 @@ async def test_ldap_user_add_with_duplicate_groups(
 ) -> None:
     """Duplicate memberOf yields single membership."""
     user_dn = "cn=dup,dc=md,dc=test"
-    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
         ldif = [
@@ -394,11 +395,10 @@ async def test_ldap_user_add_with_duplicate_groups(
 
     assert result == 0
 
-    user_search_path = get_search_path(user_dn)
     user_row = await session.scalar(
         select(User)
         .join(qa(User.directory))
-        .filter_by(path=user_search_path)
+        .filter(get_filter_from_path(user_dn))
         .options(
             selectinload(qa(User.groups)).selectinload(qa(Group.directory)),
         ),

@@ -32,7 +32,7 @@ async def principal_block_sync(
 
         if "@" in user.user_principal_name:
             principal_postfix = user.user_principal_name.split("@")[1].upper()
-            principal_name = f"{user.get_upn_prefix()}@{principal_postfix}"
+            principal_name = f"{user.sam_account_name}@{principal_postfix}"
         else:
             continue
 

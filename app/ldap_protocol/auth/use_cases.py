@@ -9,11 +9,14 @@ import copy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import Settings
 from constants import (
     DOMAIN_ADMIN_GROUP_NAME,
+    DOMAIN_CONTROLLERS_OU_NAME,
     FIRST_SETUP_DATA,
     USERS_CONTAINER_NAME,
 )
+from enums import SamAccountTypeCodes
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.identity.exceptions import (
@@ -21,6 +24,7 @@ from ldap_protocol.identity.exceptions import (
     ForbiddenError,
 )
 from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -38,6 +42,7 @@ class SetupUseCase:
         role_use_case: RoleUseCase,
         audit_use_case: AuditUseCase,
         session: AsyncSession,
+        settings: Settings,
     ) -> None:
         """Initialize Setup manager.
 
@@ -51,6 +56,7 @@ class SetupUseCase:
         self._role_use_case = role_use_case
         self._audit_use_case = audit_use_case
         self._session = session
+        self._settings = settings
 
     async def setup(self, dto: SetupDTO) -> None:
         """Perform the initial setup of structure and policies.
@@ -66,6 +72,7 @@ class SetupUseCase:
 
         data = copy.deepcopy(FIRST_SETUP_DATA)
         data.append(self._create_user_data(dto))
+        data.append(self._create_domain_controller_data())
 
         await self._create(dto, data)
 
@@ -75,6 +82,36 @@ class SetupUseCase:
         :return: bool (True if setup is performed, False otherwise)
         """
         return await self._setup_gateway.is_setup()
+
+    def _create_domain_controller_data(self) -> dict:
+        return {
+            "name": DOMAIN_CONTROLLERS_OU_NAME,
+            "object_class": "organizationalUnit",
+            "attributes": {
+                "objectClass": ["top", "container"],
+            },
+            "children": [
+                {
+                    "name": self._settings.HOST_MACHINE_SHORT_NAME,
+                    "object_class": "computer",
+                    "attributes": {
+                        "objectClass": ["top"],
+                        "userAccountControl": [
+                            str(
+                                UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value,
+                            ),
+                        ],
+                        "sAMAccountType": [
+                            str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
+                        ],
+                        "sAMAccountName": [
+                            self._settings.HOST_MACHINE_SHORT_NAME,
+                        ],
+                        "ipHostNumber": [self._settings.DEFAULT_NAMESERVER],
+                    },
+                },
+            ],
+        }
 
     def _create_user_data(self, dto: SetupDTO) -> dict:
         """Create user data by request.
@@ -114,6 +151,9 @@ class SetupUseCase:
                         "userAccountControl": ["512"],
                         "primaryGroupID": ["512"],
                         "givenName": [dto.username],
+                        "sAMAccountType": [
+                            str(SamAccountTypeCodes.SAM_USER_OBJECT),
+                        ],
                     },
                     "objectSid": 500,
                 },

@@ -23,7 +23,13 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.main.schema import KerberosSetupRequest
+from api.main.schema import (
+    KerberosSetupRequest,
+    KtaddRequest,
+    ModifyPrincipalRequest,
+    PrincipalAddRequest,
+)
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.dialogue import LDAPSession
 from ldap_protocol.kerberos import KerberosState
@@ -82,7 +88,7 @@ KERBEROS_POLICY_NAME = "Kerberos Access Policy"
     "/setup/tree",
     response_class=Response,
     error_map=error_map,
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
 )
 async def setup_krb_catalogue(
     mail: Annotated[EmailStr, Body()],
@@ -106,7 +112,12 @@ async def setup_krb_catalogue(
     )
 
 
-@krb5_router.post("/setup", response_class=Response, error_map=error_map)
+@krb5_router.post(
+    "/setup",
+    response_class=Response,
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def setup_kdc(
     data: KerberosSetupRequest,
     identity_adapter: FromDishka[AuthFastAPIAdapter],
@@ -143,15 +154,16 @@ LIMITED_LIST = Annotated[
     error_map=error_map,
 )
 async def ktadd(
-    names: Annotated[LIMITED_LIST, Body()],
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
+    names: Annotated[LIMITED_LIST, Body()],
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :return bytes: file
     """
-    return await kerberos_adapter.ktadd(names)
+    request = KtaddRequest(names=names)
+    return await kerberos_adapter.ktadd(request)
 
 
 @krb5_router.get(
@@ -173,7 +185,7 @@ async def get_krb_status(
 
 @krb5_router.post(
     "/principal/add",
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def add_principal(
@@ -188,57 +200,27 @@ async def add_principal(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request.
     """
-    await kerberos_adapter.add_principal(primary, instance)
-
-
-@krb5_router.patch(
-    "/principal/rename",
-    dependencies=[Depends(verify_auth)],
-    error_map=error_map,
-)
-async def rename_principal(
-    principal_name: Annotated[LIMITED_STR, Body()],
-    principal_new_name: Annotated[LIMITED_STR, Body()],
-    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
-) -> None:
-    """Rename principal in kerberos with given name.
-
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LIMITED_STR, Body principal_new_name: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
-    """
-    await kerberos_adapter.rename_principal(
-        principal_name,
-        principal_new_name,
+    request = PrincipalAddRequest(
+        principal_name=f"{primary}/{instance}",
     )
+    await kerberos_adapter.add_principal(request)
 
 
-@krb5_router.patch(
-    "/principal/reset",
-    dependencies=[Depends(verify_auth)],
+@krb5_router.put(
+    "/principal",
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
-async def reset_principal_pw(
-    principal_name: Annotated[LIMITED_STR, Body()],
-    new_password: Annotated[LIMITED_STR, Body()],
+async def modify_principal(
+    request: ModifyPrincipalRequest,
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
-    """Reset principal password in kerberos with given name.
-
-    \f
-    :param Annotated[str, Body principal_name: upn
-    :param Annotated[LIMITED_STR, Body new_password: _description_
-    :param Annotated[LDAPSession, Depends ldap_session: ldap
-    :raises HTTPException: on failed kamin request.
-    """
-    await kerberos_adapter.reset_principal_pw(principal_name, new_password)
+    await kerberos_adapter.modify_principal(request)
 
 
 @krb5_router.delete(
     "/principal/delete",
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def delete_principal(

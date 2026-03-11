@@ -12,6 +12,17 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
+from api.dhcp.schemas import (
+    DHCPChangeStateSchemaRequest,
+    DHCPLeaseSchemaRequest,
+    DHCPLeaseSchemaResponse,
+    DHCPLeaseToReservationErrorResponse,
+    DHCPReservationSchemaRequest,
+    DHCPReservationSchemaResponse,
+    DHCPStateSchemaResponse,
+    DHCPSubnetSchemaAddRequest,
+    DHCPSubnetSchemaResponse,
+)
 from api.error_routing import (
     ERROR_MAP_TYPE,
     DishkaErrorAwareRoute,
@@ -25,18 +36,7 @@ from ldap_protocol.dhcp.exceptions import (
     DHCPEntryNotFoundError,
     DHCPEntryUpdateError,
     DHCPOperationError,
-    DHCPValidatonError,
-)
-from ldap_protocol.dhcp.schemas import (
-    DHCPChangeStateSchemaRequest,
-    DHCPLeaseSchemaRequest,
-    DHCPLeaseSchemaResponse,
-    DHCPLeaseToReservationErrorResponse,
-    DHCPReservationSchemaRequest,
-    DHCPReservationSchemaResponse,
-    DHCPStateSchemaResponse,
-    DHCPSubnetSchemaAddRequest,
-    DHCPSubnetSchemaResponse,
+    DHCPValidationError,
 )
 
 from .adapter import DHCPAdapter
@@ -65,8 +65,8 @@ error_map: ERROR_MAP_TYPE = {
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,
     ),
-    DHCPValidatonError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    DHCPValidationError: rule(
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     DHCPOperationError: rule(

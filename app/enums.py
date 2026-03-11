@@ -12,6 +12,13 @@ from operator import or_
 from typing import Iterable, Self
 
 
+class PostgresRWModeType(StrEnum):
+    """Postgres read/write mode type."""
+
+    SINGLE = "single"
+    REPLICATION = "replication"
+
+
 class AceType(IntEnum):
     """ACE types."""
 
@@ -105,9 +112,9 @@ class RoleConstants(StrEnum):
     READ_ONLY_ROLE_NAME = "Read Only Role"
     KERBEROS_ROLE_NAME = "Kerberos Role"
 
-    DOMAIN_ADMINS_GROUP_CN = "cn=domain admins,cn=groups,"
-    READONLY_GROUP_CN = "cn=read-only,cn=groups,"
-    KERBEROS_GROUP_CN = "cn=krbadmin,cn=groups,"
+    DOMAIN_ADMINS_GROUP_CN = "cn=domain admins,cn=Groups,"
+    READONLY_GROUP_CN = "cn=read-only,cn=Groups,"
+    KERBEROS_GROUP_CN = "cn=krbadmin,cn=Groups,"
 
 
 @verify(UNIQUE)
@@ -150,6 +157,7 @@ class AuthorizationRules(IntFlag):
     ATTRIBUTE_TYPE_GET_PAGINATOR = auto()
     ATTRIBUTE_TYPE_UPDATE = auto()
     ATTRIBUTE_TYPE_DELETE_ALL_BY_NAMES = auto()
+    ATTRIBUTE_TYPE_SET_ATTR_REPLICATION_FLAG = auto()
 
     ENTITY_TYPE_GET = auto()
     ENTITY_TYPE_CREATE = auto()
@@ -170,24 +178,22 @@ class AuthorizationRules(IntFlag):
     DNS_UPDATE_RECORD = auto()
     DNS_GET_ALL_RECORDS = auto()
     DNS_GET_DNS_STATUS = auto()
-    DNS_GET_ALL_ZONES_RECORDS = auto()
-    DNS_GET_FORWARD_ZONES = auto()
-    DNS_CREATE_ZONE = auto()
-    DNS_UPDATE_ZONE = auto()
-    DNS_DELETE_ZONE = auto()
+    DNS_GET_MASTER_ZONES = auto()
+    DNS_GET_FWD_ZONES = auto()
+    DNS_DELETE_MASTER_ZONES = auto()
+    DNS_DELETE_FWD_ZONES = auto()
+    DNS_CREATE_MASTER_ZONE = auto()
+    DNS_CREATE_FWD_ZONE = auto()
+    DNS_UPDATE_MASTER_ZONE = auto()
+    DNS_UPDATE_FWD_ZONE = auto()
     DNS_CHECK_DNS_FORWARD_ZONE = auto()
-    DNS_RELOAD_ZONE = auto()
-    DNS_UPDATE_SERVER_OPTIONS = auto()
-    DNS_GET_SERVER_OPTIONS = auto()
-    DNS_RESTART_SERVER = auto()
 
     KRB_SETUP_CATALOGUE = auto()
     KRB_SETUP_KDC = auto()
     KRB_KTADD = auto()
     KRB_GET_STATUS = auto()
     KRB_ADD_PRINCIPAL = auto()
-    KRB_RENAME_PRINCIPAL = auto()
-    KRB_RESET_PRINCIPAL_PW = auto()
+    KRB_MODIFY_PRINCIPAL = auto()
     KRB_DELETE_PRINCIPAL = auto()
 
     AUDIT_GET_POLICIES = auto()
@@ -254,3 +260,23 @@ class DomainCodes(IntEnum):
     DHCP = 12
     LDAP_SCHEMA = 13
     SHADOW = 14
+
+
+class SamAccountTypeCodes(IntEnum):
+    """SAM Account Type values."""
+
+    SAM_DOMAIN_OBJECT = 0
+    SAM_GROUP_OBJECT = 268435456
+    SAM_NON_SECURITY_GROUP_OBJECT = 268435457
+    SAM_ALIAS_OBJECT = 536870912
+    SAM_NON_SECURITY_ALIAS_OBJECT = 536870913
+    SAM_USER_OBJECT = 805306368
+    SAM_MACHINE_ACCOUNT = 805306369
+    SAM_TRUST_ACCOUNT = 805306370
+    SAM_APP_BASIC_GROUP = 1073741824
+    SAM_APP_QUERY_GROUP = 1073741825
+
+    @staticmethod
+    def to_hex(value: int) -> str:
+        """Convert decimal value to hex string."""
+        return hex(value)

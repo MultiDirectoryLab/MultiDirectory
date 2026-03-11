@@ -123,17 +123,16 @@ class AccessManager:
             return False
 
         for change in changes:
-            attr_name = change.get_name()
             if change.operation == Operation.DELETE:
                 if not cls._check_modify_access(
-                    attr_name,
+                    change.l_type,
                     filtered_aces,
                     AceType.DELETE,
                 ):
                     return False
             elif change.operation == Operation.ADD:
                 if not cls._check_modify_access(
-                    attr_name,
+                    change.l_type,
                     filtered_aces,
                     AceType.WRITE,
                 ):
@@ -141,12 +140,12 @@ class AccessManager:
             else:
                 if not (
                     cls._check_modify_access(
-                        attr_name,
+                        change.l_type,
                         filtered_aces,
                         AceType.WRITE,
                     )
                     and cls._check_modify_access(
-                        attr_name,
+                        change.l_type,
                         filtered_aces,
                         AceType.DELETE,
                     )
@@ -305,12 +304,19 @@ class AccessManager:
             null attribute_type_id
         :return: mutated query with access control entries loaded
         """
-        selectin_loader = selectinload(
+        base_loader = selectinload(
             qa(Directory.access_control_entries),
         )
+
+        loader_options = [
+            base_loader.joinedload(qa(AccessControlEntry.entity_type)),
+        ]
+
         if load_attribute_type:
-            selectin_loader = selectin_loader.joinedload(
-                qa(AccessControlEntry.attribute_type),
+            loader_options.append(
+                base_loader.joinedload(
+                    qa(AccessControlEntry.attribute_type),
+                ),
             )
 
         criteria_conditions = [
@@ -332,7 +338,7 @@ class AccessManager:
             )
 
         return query.options(
-            selectin_loader,
+            *loader_options,
             with_loader_criteria(
                 AccessControlEntry,
                 and_(*criteria_conditions),

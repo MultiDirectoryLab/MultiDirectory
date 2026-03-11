@@ -13,6 +13,7 @@ from api.error_routing import DishkaErrorAwareRoute
 from api.password_policy.adapter import PasswordPolicyFastAPIAdapter
 from api.password_policy.error_utils import error_map
 from api.password_policy.schemas import PasswordPolicySchema
+from api.utils import require_master_db
 from ldap_protocol.utils.const import GRANT_DN_STRING
 
 from .schemas import PriorityT
@@ -51,7 +52,11 @@ async def get_password_policy_by_dir_path_dn(
     return await adapter.get_password_policy_by_dir_path_dn(path_dn)
 
 
-@password_policy_router.put("/{id_}", error_map=error_map)
+@password_policy_router.put(
+    "/{id_}",
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def update(
     id_: int,
     policy: PasswordPolicySchema[PriorityT],
@@ -61,7 +66,11 @@ async def update(
     await adapter.update(id_, policy)
 
 
-@password_policy_router.put("/reset/domain_policy", error_map=error_map)
+@password_policy_router.put(
+    "/reset/domain_policy",
+    error_map=error_map,
+    dependencies=[Depends(require_master_db)],
+)
 async def reset_domain_policy_to_default_config(
     adapter: FromDishka[PasswordPolicyFastAPIAdapter],
 ) -> None:

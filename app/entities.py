@@ -69,6 +69,7 @@ class AttributeType:
     single_value: bool = False
     no_user_modification: bool = False
     is_system: bool = False
+    system_flags: int = 0
     # NOTE: ms-adts/cf133d47-b358-4add-81d3-15ea1cff9cd9
     # see section 3.1.1.2.3 `searchFlags` (fANR) for details
     is_included_anr: bool = False
@@ -240,6 +241,7 @@ class Directory:
         "objectguid",
         "objectsid",
         "entitytypename",
+        "name",
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
@@ -258,10 +260,6 @@ class Directory:
     @property
     def is_domain(self) -> bool:
         return not self.parent_id and self.object_class == "domain"
-
-    @property
-    def host_principal(self) -> str:
-        return f"host/{self.name}"
 
     @property
     def path_dn(self) -> str:
@@ -371,9 +369,6 @@ class User:
         "uidnumber": "uidNumber",
         "homedirectory": "homeDirectory",
     }
-
-    def get_upn_prefix(self) -> str:
-        return self.user_principal_name.split("@")[0]
 
     def is_expired(self) -> bool:
         if self.account_exp is None:

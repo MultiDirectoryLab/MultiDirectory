@@ -315,6 +315,8 @@ def test_ds_flags_combination() -> None:
         | DSFlag.CLOSEST_FLAG
         | DSFlag.WRITABLE_FLAG
         | DSFlag.GOOD_TIMESERV_FLAG
+        | DSFlag.KDC_FLAG
+        | DSFlag.WS_FLAG
     )
 
     assert ds_flags == expected_flags

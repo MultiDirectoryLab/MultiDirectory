@@ -7,6 +7,12 @@ api:
 ping:
   entryPoint: "ping"
 
+tcp:
+  serversTransports:
+    ldap_transport:
+      proxyProtocol:
+        version: 2
+
 entryPoints:
   ping:
     address: ":8800"
@@ -34,8 +40,6 @@ entryPoints:
     address: ":749"
   kpasswd:
     address: ":464"
-  bind_dns_udp:
-    address: ":53/udp"
 
 tls:
   stores:

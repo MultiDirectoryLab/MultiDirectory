@@ -13,23 +13,20 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.adapters import AuthFastAPIAdapter
+from api.auth.schemas import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.error_routing import (
     ERROR_MAP_TYPE,
     DishkaErrorAwareRoute,
     DomainErrorTranslator,
 )
+from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.auth.exceptions.mfa import (
     MFAAPIError,
     MFAConnectError,
     MFARequiredError,
     MissingMFACredentialsError,
-)
-from ldap_protocol.auth.schemas import (
-    MFAChallengeResponse,
-    OAuth2Form,
-    SetupRequest,
 )
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions import (
@@ -67,7 +64,7 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     PasswordPolicyError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     UserNotFoundError: rule(
@@ -75,7 +72,7 @@ error_map: ERROR_MAP_TYPE = {
         translator=translator,
     ),
     AuthValidationError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         translator=translator,
     ),
     MFARequiredError: rule(
@@ -186,7 +183,7 @@ async def logout(
 @auth_router.patch(
     "/user/password",
     status_code=200,
-    dependencies=[Depends(verify_auth)],
+    dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def password_reset(
@@ -229,6 +226,7 @@ async def check_setup(
     status_code=status.HTTP_200_OK,
     responses={423: {"detail": "Locked"}},
     error_map=error_map,
+    dependencies=[Depends(require_master_db)],
 )
 async def first_setup(
     request: SetupRequest,

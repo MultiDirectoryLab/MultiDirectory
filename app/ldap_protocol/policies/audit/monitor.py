@@ -14,6 +14,7 @@ from starlette.datastructures import URL
 
 from config import Settings
 from entities import User
+from ldap_protocol.auth.dto import LoginRequestDTO
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -22,7 +23,6 @@ from ldap_protocol.auth.exceptions.mfa import (
     MFATokenError,
     NetworkPolicyError,
 )
-from ldap_protocol.auth.schemas import OAuth2Form
 from ldap_protocol.identity.exceptions import (
     AuthorizationError,
     AuthValidationError,
@@ -224,7 +224,7 @@ class AuditMonitorUseCase:
     def wrap_login(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_login(
-            form: OAuth2Form,
+            form: LoginRequestDTO,
             url: URL,
             ip: IPv4Address | IPv6Address,
             user_agent: str,

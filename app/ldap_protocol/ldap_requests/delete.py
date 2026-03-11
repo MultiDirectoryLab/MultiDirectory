@@ -42,6 +42,7 @@ class DeleteRequest(BaseRequest):
     DelRequest ::= [APPLICATION 10] LDAPDN
     """
 
+    RESPONSE_TYPE: ClassVar[type] = DeleteResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.DELETE
     CONTEXT_TYPE: ClassVar[type] = LDAPDeleteRequestContext
 
@@ -74,6 +75,7 @@ class DeleteRequest(BaseRequest):
             select(Directory)
             .options(
                 joinedload(qa(Directory.user)),
+                joinedload(qa(Directory.entity_type)),
                 selectinload(qa(Directory.groups)).selectinload(
                     qa(Group.directory),
                 ),
@@ -154,13 +156,16 @@ class DeleteRequest(BaseRequest):
                 await ctx.session_storage.clear_user_sessions(
                     directory.user.id,
                 )
-                await ctx.kadmin.del_principal(directory.user.get_upn_prefix())
+                await ctx.kadmin.del_principal(directory.user.sam_account_name)
 
             if await is_computer(directory.id, ctx.session):
-                await ctx.kadmin.del_principal(directory.host_principal)
-                await ctx.kadmin.del_principal(
-                    f"{directory.host_principal}.{base_dn.name}",
-                )
+                computer_sam_account_names = directory.attributes_dict.get("sAMAccountName")  # noqa: E501  # fmt: skip
+                if computer_sam_account_names:
+                    computer_sam_account_name = computer_sam_account_names[0]
+                    await ctx.kadmin.del_principal(f"host/{computer_sam_account_name}")  # noqa: E501  # fmt: skip
+                    await ctx.kadmin.del_principal(f"host/{computer_sam_account_name}.{base_dn.name}")  # noqa: E501  # fmt: skip
+                else:
+                    raise KRBAPIDeletePrincipalError
         except KRBAPIPrincipalNotFoundError:
             pass
         except (KRBAPIDeletePrincipalError, KRBAPIConnectionError):

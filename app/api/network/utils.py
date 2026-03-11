@@ -27,6 +27,6 @@ async def check_policy_count(session: AsyncSession) -> None:
 
     if count.one() == 1:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "At least one policy should be active",
         )

@@ -8,6 +8,7 @@ import contextlib
 from typing import AsyncGenerator, ClassVar
 
 from pydantic import Field
+from sqlalchemy.exc import OperationalError
 
 from entities import NetworkPolicy
 from enums import MFAFlags
@@ -42,6 +43,7 @@ from .contexts import LDAPBindRequestContext, LDAPUnbindRequestContext
 class BindRequest(BaseRequest):
     """Bind request fields mapping."""
 
+    RESPONSE_TYPE: ClassVar[type] = BindResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.BIND
     CONTEXT_TYPE: ClassVar[type] = LDAPBindRequestContext
 
@@ -209,13 +211,18 @@ class BindRequest(BaseRequest):
             KRBAPIConnectionError,
         ):
             await ctx.kadmin.add_principal(
-                user.get_upn_prefix(),
+                user.sam_account_name,
                 self.authentication_choice.password.get_secret_value(),
-                0.1,
+                timeout=0.1,
             )
 
         await ctx.ldap_session.set_user(user)
-        await set_user_logon_attrs(user, ctx.session, ctx.settings.TIMEZONE)
+        with contextlib.suppress(OperationalError):
+            await set_user_logon_attrs(
+                user,
+                ctx.session,
+                ctx.settings.TIMEZONE,
+            )
 
         server_sasl_creds = None
         if isinstance(self.authentication_choice, SaslSPNEGOAuthentication):

@@ -248,7 +248,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         ):
             try:
                 await ctx.kadmin.create_or_update_principal_pw(
-                    user.get_upn_prefix(),
+                    user.sam_account_name,
                     new_password,
                 )
             except (
@@ -307,6 +307,7 @@ class ExtendedRequest(BaseRequest):
         requestValue     [1] OCTET STRING OPTIONAL }
     """
 
+    RESPONSE_TYPE: ClassVar[type] = ExtendedResponse
     PROTOCOL_OP: ClassVar[int] = ProtocolRequests.EXTENDED
     CONTEXT_TYPE: ClassVar[type] = LDAPExtendedRequestContext
     request_name: LDAPOID

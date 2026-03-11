@@ -12,7 +12,6 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from constants import COMPUTERS_CONTAINER_NAME
 from entities import Directory
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -26,8 +25,9 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
+COMPUTERS = "computers"
 _OU_COMPUTERS_DATA = {
-    "name": COMPUTERS_CONTAINER_NAME,
+    "name": COMPUTERS,
     "object_class": "organizationalUnit",
     "attributes": {"objectClass": ["top", "container"]},
     "children": [],
@@ -53,7 +53,7 @@ def upgrade(container: AsyncContainer) -> None:
         exists_ou_computers = await session.scalar(
             select(
                 exists(Directory)
-                .where(qa(Directory.name) == COMPUTERS_CONTAINER_NAME),
+                .where(qa(Directory.name) == COMPUTERS),
             ),
         )  # fmt: skip
         if exists_ou_computers:
@@ -68,7 +68,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         ou_computers_dir = await session.scalar(
             select(Directory)
-            .where(qa(Directory.name) == COMPUTERS_CONTAINER_NAME),
+            .where(qa(Directory.name) == COMPUTERS),
         )  # fmt: skip
         if not ou_computers_dir:
             raise Exception("Directory 'ou=computers' not found.")
@@ -97,7 +97,7 @@ def downgrade(container: AsyncContainer) -> None:
 
         await session.execute(
             delete(Directory)
-            .where(qa(Directory.name) == COMPUTERS_CONTAINER_NAME),
+            .where(qa(Directory.name) == COMPUTERS),
         )  # fmt: skip
 
         await session.commit()

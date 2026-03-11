@@ -8,6 +8,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.modify import Operation
 
@@ -16,10 +17,13 @@ from ldap_protocol.ldap_requests.modify import Operation
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify(http_client: AsyncClient) -> None:
+async def test_api_correct_modify_user_accountexpires(
+    http_client: AsyncClient,
+) -> None:
     """Test API for modify object attribute."""
     entry_dn = "cn=test,dc=md,dc=test"
     new_value = "133632677730000000"
+
     response = await http_client.patch(
         "/entry/update",
         json={
@@ -37,9 +41,193 @@ async def test_api_correct_modify(http_client: AsyncClient) -> None:
     )
 
     data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "accountExpires":
+            assert attr["vals"][0] == new_value
+            break
+    else:
+        raise Exception("User without accountExpires")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_user_samaccountname(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify object attribute."""
+    entry_dn = "cn=test,dc=md,dc=test"
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["NEW user name"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert kadmin.rename_princ.call_args.args == ("new_user", "NEW user name")  # type: ignore
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "sAMAccountName":
+            assert attr["vals"][0] == "NEW user name"
+            break
+    else:
+        raise Exception("User without sAMAccountName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_user")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_user_userprincipalname(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify object attribute."""
+    entry_dn = "cn=test,dc=md,dc=test"
+
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "userPrincipalName",
+                        "vals": ["newbiguser@md.test"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert kadmin.rename_princ.call_args.args == ("new_user", "newbiguser")  # type: ignore
+
+    response = await http_client.post(
+        "entry/search",
+        json={
+            "base_object": entry_dn,
+            "scope": 0,
+            "deref_aliases": 0,
+            "size_limit": 1000,
+            "time_limit": 10,
+            "types_only": True,
+            "filter": "(objectClass=*)",
+            "attributes": [],
+            "page_number": 1,
+        },
+    )
+
+    data = response.json()
+    assert data["resultCode"] == LDAPCodes.SUCCESS
+    assert data["search_result"][0]["object_name"] == entry_dn
+
+    for attr in data["search_result"][0]["partial_attributes"]:
+        if attr["type"] == "userPrincipalName":
+            assert attr["vals"][0] == "newbiguser@md.test"
+            break
+    else:
+        raise Exception("User without userPrincipalName")
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_computer")
+@pytest.mark.usefixtures("setup_session")
+@pytest.mark.usefixtures("session")
+async def test_api_correct_modify_computer_samaccountname_replace(
+    http_client: AsyncClient,
+    kadmin: AbstractKadmin,
+) -> None:
+    """Test API for modify computer sAMAccountName."""
+    entry_dn = "cn=mycomputer,dc=md,dc=test"
+    response = await http_client.patch(
+        "/entry/update",
+        json={
+            "object": entry_dn,
+            "changes": [
+                {
+                    "operation": Operation.REPLACE,
+                    "modification": {
+                        "type": "sAMAccountName",
+                        "vals": ["maincomputer"],
+                    },
+                },
+            ],
+        },
+    )
+
+    data = response.json()
 
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
+    assert kadmin.rename_princ.call_count == 2  # type: ignore
+    assert kadmin.rename_princ.call_args_list[0].args == (  # type: ignore
+        "host/mycomputer",
+        "host/maincomputer",
+    )
+    assert kadmin.rename_princ.call_args_list[1].args == (  # type: ignore
+        "host/mycomputer.md.test",
+        "host/maincomputer.md.test",
+    )
 
     response = await http_client.post(
         "entry/search",
@@ -62,44 +250,32 @@ async def test_api_correct_modify(http_client: AsyncClient) -> None:
     assert data["search_result"][0]["object_name"] == entry_dn
 
     for attr in data["search_result"][0]["partial_attributes"]:
-        if attr["type"] == "accountExpires":
-            assert attr["vals"][0] == new_value
+        if attr["type"] == "sAMAccountName":
+            assert attr["vals"][0] == "maincomputer"
+            break
+    else:
+        raise Exception("Computer without sAMAccountName")
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("adding_test_computer")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_duplicate_with_spaces_modify(
+async def test_api_incorrect_modify_computer_samaccountname_add(
     http_client: AsyncClient,
 ) -> None:
-    """Test API for modify duplicated object name."""
-    entry_dn = "cn=new_test,dc=md,dc=test"
-    response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": entry_dn,
-            "password": None,
-            "attributes": [
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-            ],
-        },
-    )
-    data = response.json()
-    assert data.get("resultCode") == LDAPCodes.SUCCESS
-
+    """Test API for modify computer sAMAccountName."""
+    entry_dn = "cn=mycomputer,dc=md,dc=test"
     response = await http_client.patch(
         "/entry/update",
         json={
             "object": entry_dn,
             "changes": [
                 {
-                    "operation": Operation.REPLACE,
+                    "operation": Operation.ADD,
                     "modification": {
-                        "type": "cn",
-                        "vals": ["  test"],
+                        "type": "sAMAccountName",
+                        "vals": ["maincomputer"],
                     },
                 },
             ],
@@ -109,26 +285,7 @@ async def test_api_duplicate_with_spaces_modify(
     data = response.json()
 
     assert isinstance(data, dict)
-    assert data.get("resultCode") == LDAPCodes.SUCCESS
-
-    response = await http_client.post(
-        "entry/search",
-        json={
-            "base_object": entry_dn,
-            "scope": 0,
-            "deref_aliases": 0,
-            "size_limit": 1000,
-            "time_limit": 10,
-            "types_only": True,
-            "filter": "(objectClass=*)",
-            "attributes": [],
-            "page_number": 1,
-        },
-    )
-
-    data = response.json()
-    assert isinstance(data, dict)
-    assert data["search_result"][0]["object_name"] == entry_dn
+    assert data.get("resultCode") == LDAPCodes.OPERATIONS_ERROR
 
 
 @pytest.mark.asyncio
@@ -262,8 +419,8 @@ async def test_api_correct_modify_replace_memberof(
     http_client: AsyncClient,
 ) -> None:
     """Test API for modify object attribute."""
-    user = "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test"
-    new_group = "cn=domain admins,cn=groups,dc=md,dc=test"
+    user = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
+    new_group = "cn=domain admins,cn=Groups,dc=md,dc=test"
     response = await http_client.patch(
         "/entry/update",
         json={
@@ -320,13 +477,13 @@ async def test_api_modify_add_loop_detect_member(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=developers,cn=groups,dc=md,dc=test",
+            "object": "cn=developers,cn=Groups,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.ADD,
                     "modification": {
                         "type": "member",
-                        "vals": ["cn=domain admins,cn=groups,dc=md,dc=test"],
+                        "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
                     },
                 },
             ],
@@ -347,13 +504,13 @@ async def test_api_modify_add_loop_detect_memberof(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=domain admins,cn=groups,dc=md,dc=test",
+            "object": "cn=domain admins,cn=Groups,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.ADD,
                     "modification": {
                         "type": "memberOf",
-                        "vals": ["cn=developers,cn=groups,dc=md,dc=test"],
+                        "vals": ["cn=developers,cn=Groups,dc=md,dc=test"],
                     },
                 },
             ],
@@ -374,15 +531,15 @@ async def test_api_modify_replace_loop_detect_member(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=developers,cn=groups,dc=md,dc=test",
+            "object": "cn=developers,cn=Groups,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
                     "modification": {
                         "type": "member",
                         "vals": [
-                            "cn=user1,cn=moscow,cn=russia,cn=users,dc=md,dc=test",
-                            "cn=domain admins,cn=groups,dc=md,dc=test",
+                            "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
+                            "cn=domain admins,cn=Groups,dc=md,dc=test",
                         ],
                     },
                 },
@@ -404,15 +561,15 @@ async def test_api_modify_replace_loop_detect_memberof(
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=domain admins,cn=groups,dc=md,dc=test",
+            "object": "cn=domain admins,cn=Groups,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
                     "modification": {
                         "type": "memberOf",
                         "vals": [
-                            "cn=domain computers,cn=groups,dc=md,dc=test",
-                            "cn=developers,cn=groups,dc=md,dc=test",
+                            "cn=domain computers,cn=Groups,dc=md,dc=test",
+                            "cn=developers,cn=Groups,dc=md,dc=test",
                         ],
                     },
                 },
@@ -431,7 +588,7 @@ async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
     response = await http_client.patch(
         "/entry/update",
         json={
-            "object": "cn=user0,cn=users,dc=md,dc=test",
+            "object": "cn=user0,cn=Users,dc=md,dc=test",
             "changes": [
                 {
                     "operation": Operation.REPLACE,
@@ -455,7 +612,7 @@ async def test_qpi_modify_primary_object_classes(
     http_client: AsyncClient,
 ) -> None:
     """Test deleting primary object class."""
-    entry_dn = "cn=user0,cn=users,dc=md,dc=test"
+    entry_dn = "cn=user0,cn=Users,dc=md,dc=test"
     response = await http_client.patch(
         "/entry/update",
         json={
@@ -487,7 +644,7 @@ async def test_api_set_primary_group(
 ) -> None:
     """Test API for setting primary group."""
     user_dn = "cn=test,dc=md,dc=test"
-    group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
+    group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
     response = await http_client.post(
         "/entry/set_primary_group",

@@ -19,8 +19,9 @@ class StubKadminMDADPIClient(AbstractKadmin):
     @logger_wraps(is_stub=True)
     async def add_principal(
         self,
-        name: str,
-        password: str | None,
+        principal_name: str,
+        password: str | None = None,
+        algorithms: list[str] | None = None,
         timeout: int = 1,
     ) -> None: ...
 
@@ -45,10 +46,23 @@ class StubKadminMDADPIClient(AbstractKadmin):
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def rename_princ(self, name: str, new_name: str) -> None: ...
+    async def modify_princ(
+        self,
+        name: str,
+        new_name: str | None,
+        algorithms: list[str] | None = None,
+        password: str | None = None,
+    ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def ktadd(self, names: list[str]) -> NoReturn:  # noqa: ARG002
+    async def rename_princ(
+        self,
+        name: str,
+        new_name: str,
+    ) -> None: ...
+
+    @logger_wraps(is_stub=True)
+    async def ktadd(self, names: list[str], is_rand_key: bool) -> NoReturn:  # noqa: ARG002
         raise KRBAPIPrincipalNotFoundError
 
     @logger_wraps(is_stub=True)

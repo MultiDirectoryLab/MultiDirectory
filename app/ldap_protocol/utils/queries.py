@@ -5,16 +5,23 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import time
+from copy import copy
 from datetime import datetime
 from typing import Iterator
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Column, exists, func, insert, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import InstrumentedAttribute, joinedload, selectinload
+from sqlalchemy.orm import (
+    InstrumentedAttribute,
+    contains_eager,
+    joinedload,
+    selectinload,
+)
 from sqlalchemy.sql.expression import ColumnElement
 
 from entities import Attribute, Directory, Group, User
+from enums import SamAccountTypeCodes
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -25,6 +32,7 @@ from repo.pg.tables import (
     queryable_attr as qa,
 )
 
+from .async_cache import base_directories_cache
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
     create_integer_hash,
@@ -35,13 +43,19 @@ from .helpers import (
 )
 
 
+@base_directories_cache
 async def get_base_directories(session: AsyncSession) -> list[Directory]:
     """Get base domain directories."""
     result = await session.execute(
         select(Directory)
         .filter(qa(Directory.parent_id).is_(None)),
     )  # fmt: skip
-    return list(result.scalars().all())
+    res = []
+    for dir_ in result.scalars():
+        new_dir = copy(dir_)
+        session.expunge(new_dir)
+        res.append(new_dir)
+    return res
 
 
 async def get_user(session: AsyncSession, name: str) -> User | None:
@@ -320,7 +334,7 @@ async def get_dn_by_id(id_: int, session: AsyncSession) -> str:
     """Get dn by id.
 
     >>> await get_dn_by_id(0, session)
-    >>> "cn=groups,dc=example,dc=com"
+    >>> "cn=Groups,dc=example,dc=com"
     """
     query = select(Directory).filter_by(id=id_)
     retval = (await session.scalars(query)).one()
@@ -345,7 +359,7 @@ async def create_group(
 ) -> tuple[Directory, Group]:
     """Create group in default groups path.
 
-    cn=name,cn=groups,dc=domain,dc=com
+    cn=name,cn=Groups,dc=domain,dc=com
 
     :param str name: group name
     :param int sid: objectSid
@@ -354,7 +368,7 @@ async def create_group(
     base_dn_list = await get_base_directories(session)
 
     query = select(Directory).filter(
-        get_filter_from_path("cn=groups," + base_dn_list[0].path_dn),
+        get_filter_from_path("cn=Groups," + base_dn_list[0].path_dn),
     )
 
     parent = (await session.scalars(query)).one()
@@ -362,7 +376,7 @@ async def create_group(
     dir_ = Directory(
         object_class="",
         name=name,
-        parent=parent,
+        parent_id=parent.id,
     )
     session.add(dir_)
     await session.flush()
@@ -386,7 +400,7 @@ async def create_group(
         "instanceType": ["4"],
         "sAMAccountName": [dir_.name],
         dir_.rdname: [dir_.name],
-        "sAMAccountType": ["268435456"],
+        "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
         "gidNumber": [str(create_integer_hash(dir_.name))],
     }
 
@@ -530,3 +544,30 @@ async def set_or_update_primary_group(
         )
 
     await session.commit()
+
+
+async def get_group_path_dn_by_primary_group_id(
+    primary_group_id: int,
+    session: AsyncSession,
+) -> str:
+    """Get group path DN by primary group ID.
+
+    :param int primary_group_id: primary group ID
+    :param AsyncSession session: db session
+    :return str: group path DN
+    :raises ValueError: if no group found with the given primaryGroupID
+    """
+    query = (
+        select(Directory)
+        .join(qa(Directory.group))
+        .options(contains_eager(qa(Directory.group)))
+        .filter(qa(Directory.object_sid).endswith(f"-{primary_group_id}"))
+    )
+
+    directory = await session.scalar(query)
+    if directory is None:
+        raise ValueError(
+            f"No group found with primaryGroupID '{primary_group_id}'.",
+        )
+
+    return directory.path_dn

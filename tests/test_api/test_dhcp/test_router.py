@@ -147,7 +147,7 @@ async def test_create_subnet_invalid_data(
         json=invalid_data,
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
@@ -297,7 +297,7 @@ async def test_create_lease_invalid_data(
         json=invalid_data,
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
@@ -486,7 +486,7 @@ async def test_create_reservation_invalid_data(
         json=invalid_data,
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
@@ -597,7 +597,7 @@ async def test_delete_reservation_missing_params(
     """Test reservation deletion with missing parameters."""
     response = await http_client.delete("/dhcp/reservation")
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
