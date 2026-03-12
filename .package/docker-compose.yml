@@ -402,7 +402,6 @@ services:
     cap_add:
       - NET_ADMIN
     networks:
-      default:
       md_net:
         ipv4_address: 172.20.0.202
     expose:
@@ -417,16 +416,18 @@ services:
   pdns_recursor:
     image: powerdns/pdns-recursor-51:5.1.7
     container_name: pdns_recursor
+    user: "0:0"
     cap_add:
       - NET_ADMIN
     networks:
-      default:
       md_net:
         ipv4_address: 172.20.0.200
     expose:
       - 8083
       - 53/udp
       - 53/tcp
+    entrypoint: sh -c "chown 0:0 /etc/powerdns/recursor.d &&
+      exec /usr/bin/tini -- /usr/local/sbin/pdns_recursor-startup"
     volumes:
       - ./recursor.conf:/etc/powerdns/recursor.conf
       - forward_zones:/etc/powerdns/recursor.d/
@@ -434,10 +435,10 @@ services:
   pdnsdist:
     image: powerdns/dnsdist-19:1.9.11
     container_name: pdnsdist
+    user: "0:0"
     cap_add:
       - NET_ADMIN
     networks:
-      default:
       md_net:
         ipv4_address: 172.20.0.201
     expose:

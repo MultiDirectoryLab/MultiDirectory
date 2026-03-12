@@ -189,6 +189,14 @@ class AbstractKRBManager(ABC):
         """
 
     @abstractmethod
+    async def rename_princ(self, name: str, new_name: str) -> None:
+        """Rename principal.
+
+        :param str name: original name
+        :param str new_name: new name
+        """
+
+    @abstractmethod
     async def modify_principal(
         self,
         principal_name: str,
@@ -271,6 +279,19 @@ class KAdminLocalManager(AbstractKRBManager):
                 self.pool,
                 partial(princ.modify, attributes=128),
             )
+
+    async def rename_princ(self, name: str, new_name: str) -> None:
+        """Rename principal.
+
+        :param str name: original name
+        :param str new_name: new name
+        """
+        await self.loop.run_in_executor(
+            self.pool,
+            self.client.rename_principal,
+            name,
+            new_name,
+        )
 
     async def _get_raw_principal(self, name: str) -> PrincipalProtocol:
         principal = await self.loop.run_in_executor(
@@ -638,6 +659,25 @@ async def create_or_update_princ_password(
     :param Annotated[str, Body password: principal password
     """
     await kadmin.create_or_update_princ_pw(name, password)
+
+
+@principal_router.put(
+    "/rename",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_class=Response,
+)
+async def rename_princ(
+    kadmin: Annotated[AbstractKRBManager, Depends(get_kadmin)],
+    name: Annotated[str, Body()],
+    new_name: Annotated[str, Body()],
+) -> None:
+    """Rename principal.
+
+    :param Annotated[AbstractKRBManager, Depends kadmin: kadmin abstract
+    :param Annotated[str, Body name: principal name
+    :param Annotated[str, Body new_name: principal new name
+    """
+    await kadmin.rename_princ(name, new_name)
 
 
 @principal_router.put(

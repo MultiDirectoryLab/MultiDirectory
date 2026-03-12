@@ -188,6 +188,13 @@ class AbstractKadmin(ABC):
         password: str | None = None,
     ) -> None: ...
 
+    @abstractmethod
+    async def rename_princ(
+        self,
+        name: str,
+        new_name: str,
+    ) -> None: ...
+
     @backoff.on_exception(
         backoff.constant,
         (

@@ -155,13 +155,14 @@ LIMITED_LIST = Annotated[
 )
 async def ktadd(
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
-    request: KtaddRequest,
+    names: Annotated[LIMITED_LIST, Body()],
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :return bytes: file
     """
+    request = KtaddRequest(names=names)
     return await kerberos_adapter.ktadd(request)
 
 
@@ -183,12 +184,13 @@ async def get_krb_status(
 
 
 @krb5_router.post(
-    "/principal",
+    "/principal/add",
     dependencies=[Depends(verify_auth), Depends(require_master_db)],
     error_map=error_map,
 )
 async def add_principal(
-    request: PrincipalAddRequest,
+    primary: Annotated[LIMITED_STR, Body()],
+    instance: Annotated[LIMITED_STR, Body()],
     kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
 ) -> None:
     """Create principal in kerberos with given name.
@@ -198,6 +200,9 @@ async def add_principal(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request.
     """
+    request = PrincipalAddRequest(
+        principal_name=f"{primary}/{instance}",
+    )
     await kerberos_adapter.add_principal(request)
 
 
