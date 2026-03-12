@@ -178,6 +178,9 @@ from ldap_protocol.policies.password.use_cases import (
 )
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.migrations_ace_dao import (
+    AccessControlEntryMigrationsDAO,
+)
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.rootdse.gateway import SADomainGateway
@@ -611,6 +614,10 @@ class MainProvider(Provider):
     access_manager = provide(AccessManager, scope=Scope.RUNTIME)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
+    ace_migrations_dao = provide(
+        AccessControlEntryMigrationsDAO,
+        scope=Scope.REQUEST,
+    )
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)

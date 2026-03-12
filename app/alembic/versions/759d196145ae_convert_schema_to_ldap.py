@@ -8,12 +8,9 @@ Create Date: 2026-02-24 13:18:06.715730
 
 from alembic import op
 from dishka import AsyncContainer, Scope
-from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DTOS_V2
-from entities import Directory, EntityType
-from enums import EntityTypeNames
 from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
     AttributeTypeUseCaseLegacy,
 )
@@ -29,9 +26,10 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
 from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
 )
-from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.migrations_ace_dao import (
+    AccessControlEntryMigrationsDAO,
+)
 from ldap_protocol.utils.queries import get_base_directories
-from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "759d196145ae"
@@ -79,15 +77,13 @@ def upgrade(container: AsyncContainer) -> None:
     async def _create_ldap_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            object_class_use_case_legacy = await cnt.get(
-                ObjectClassUseCaseLegacy,
-            )
+            obj_cls_use_case_legacy = await cnt.get(ObjectClassUseCaseLegacy)
             object_class_use_case = await cnt.get(ObjectClassUseCase)
 
         if not await get_base_directories(session):
             return
 
-        obj_class_dtos = await object_class_use_case_legacy.get_all()
+        obj_class_dtos = await obj_cls_use_case_legacy.get_all()
         for obj_class_dto in obj_class_dtos:
             obj_class_dto.attribute_types_may = [
                 _.name  # type: ignore
@@ -106,12 +102,12 @@ def upgrade(container: AsyncContainer) -> None:
     ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            ace_dao = await cnt.get(AccessControlEntryDAO)
+            ace_dao = await cnt.get(AccessControlEntryMigrationsDAO)
 
         if not await get_base_directories(session):
             return
 
-        await ace_dao.migration_upgrade()
+        await ace_dao.upgrade()
 
     op.run_async(_update_entity_types)
     op.run_async(_create_ldap_attributes)
@@ -136,88 +132,46 @@ def downgrade(container: AsyncContainer) -> None:
     ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            ace_dao = await cnt.get(AccessControlEntryDAO)
+            ace_dao = await cnt.get(AccessControlEntryMigrationsDAO)
 
         if not await get_base_directories(session):
             return
 
-        await ace_dao.migration_downgrade()
-
-    async def _delete_ldap_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
-            object_class_use_case_legacy = await cnt.get(
-                ObjectClassUseCaseLegacy,
-            )
-
-        if not await get_base_directories(session):
-            return
-
-        entity_type_id = await session.scalar(  # TODO
-            select(qa(EntityType.id))
-            .where(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS),
-        )  # fmt: skip
-        if not entity_type_id:
-            return
-
-        obj_class_dtos = await object_class_use_case_legacy.get_all()
-        obj_class_names = [dto.name for dto in obj_class_dtos]
-        if not obj_class_names:
-            return
-
-        await session.execute(  # TODO
-            delete(Directory)
-            .where(
-                qa(Directory.entity_type_id) == entity_type_id,
-                qa(Directory.name).in_(obj_class_names),
-            ),
-        )  # fmt: skip
-        await session.commit()
+        await ace_dao.downgrade()
 
     async def _delete_ldap_attributes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            attribute_type_use_case_legacy = await cnt.get(
-                AttributeTypeUseCaseLegacy,
-            )
+            attribute_type_use_case_legacy = await cnt.get(AttributeTypeUseCaseLegacy)  # noqa: E501  # fmt: skip
 
         if not await get_base_directories(session):
             return
 
-        entity_type_id = await session.scalar(  # TODO
-            select(qa(EntityType.id))
-            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
-        )  # fmt: skip
-        if not entity_type_id:
+        await attribute_type_use_case_legacy.delete_all_dirs()
+        await session.commit()
+
+    async def _delete_ldap_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            obj_cls_use_case_legacy = await cnt.get(ObjectClassUseCaseLegacy)
+
+        if not await get_base_directories(session):
             return
 
-        attr_type_dtos = await attribute_type_use_case_legacy.get_all()
-        attr_type_names = [dto.name for dto in attr_type_dtos]
-        if not attr_type_names:
-            return
-
-        await session.execute(  # TODO
-            delete(Directory)
-            .where(
-                qa(Directory.entity_type_id) == entity_type_id,
-                qa(Directory.name).in_(attr_type_names),
-            ),
-        )  # fmt: skip
+        await obj_cls_use_case_legacy.delete_all_dirs()
         await session.commit()
 
     async def _delete_entity_types(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+            entity_type_use_case = await cnt.get(EntityTypeUseCase)
 
         if not await get_base_directories(session):
             return
 
         entity_type_names = [dto.name for dto in ENTITY_TYPE_DTOS_V2]
 
-        await session.execute(  # TODO
-            delete(EntityType)
-            .where(qa(EntityType.name).in_(entity_type_names)),
-        )  # fmt: skip
+        await entity_type_use_case.delete_all_by_names(entity_type_names)
         await session.commit()
 
     op.drop_constraint(
@@ -227,8 +181,8 @@ def downgrade(container: AsyncContainer) -> None:
     )
 
     op.run_async(_rebind_ace_attribute_types_to_legacy)
-    op.run_async(_delete_ldap_object_classes)
     op.run_async(_delete_ldap_attributes)
+    op.run_async(_delete_ldap_object_classes)
     op.run_async(_delete_entity_types)
 
     op.create_foreign_key(

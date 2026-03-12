@@ -42,6 +42,10 @@ class AttributeTypeUseCaseLegacy(AbstractService):
         """Create Attribute Type."""
         await self.__attribute_type_dao_legacy.create(dto)
 
+    async def delete_all_dirs(self) -> None:
+        """Delete all Attribute Type directories."""
+        await self.__attribute_type_dao_legacy.delete_all_dirs()
+
     async def delete_table(self) -> None:
         await self.__attribute_type_dao_legacy.delete_table()
 

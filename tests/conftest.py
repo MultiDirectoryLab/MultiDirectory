@@ -175,6 +175,9 @@ from ldap_protocol.policies.password.use_cases import (
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
+from ldap_protocol.roles.migrations_ace_dao import (
+    AccessControlEntryMigrationsDAO,
+)
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.rootdse.gateway import SADomainGateway
@@ -554,6 +557,10 @@ class TestProvider(Provider):
 
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
+    ace_migrations_dao = provide(
+        AccessControlEntryMigrationsDAO,
+        scope=Scope.REQUEST,
+    )
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 

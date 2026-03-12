@@ -187,7 +187,6 @@ class ModifyRequest(BaseRequest):
         )
 
         directory = await ctx.session.scalar(query)
-        # TODO запретить
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
@@ -221,8 +220,18 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NOT_ALLOWED_ON_RDN)
             return
 
-        before_attrs = self.get_directory_attrs(directory)
         entity_type = directory.entity_type
+        if entity_type and entity_type.name in (
+            EntityTypeNames.ATTRIBUTE_TYPE,
+            EntityTypeNames.OBJECT_CLASS,
+            EntityTypeNames.CONFIGURATION,
+        ):
+            yield ModifyResponse(
+                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
+            )
+            return
+
+        before_attrs = self.get_directory_attrs(directory)
         try:
             for change in self.changes:
                 if change.l_type in Directory.ro_fields:

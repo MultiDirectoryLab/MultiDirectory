@@ -163,8 +163,12 @@ class AddRequest(BaseRequest):
         entity_type = await ctx.entity_type_use_case.get_entity_type_by_object_class_names(  # noqa: E501
             object_class_names=self.object_class_names,
         )
-        # TODO запретить
-        if entity_type and entity_type.name == EntityTypeNames.CONTAINER:
+        if entity_type and entity_type.name in (
+            EntityTypeNames.CONTAINER,
+            EntityTypeNames.ATTRIBUTE_TYPE,
+            EntityTypeNames.OBJECT_CLASS,
+            EntityTypeNames.CONFIGURATION,
+        ):
             yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 

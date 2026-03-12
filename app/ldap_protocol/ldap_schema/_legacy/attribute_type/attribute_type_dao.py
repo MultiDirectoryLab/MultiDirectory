@@ -11,10 +11,12 @@ from adaptix.conversion import (
     link_function,
 )
 from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
-from sqlalchemy import or_, select, text, update
+from sqlalchemy import delete, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from entities import Directory, EntityType
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
@@ -49,6 +51,17 @@ class AttributeTypeDAOLegacy:
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Attribute Type DAO with session."""
         self.__session = session
+
+    async def delete_all_dirs(self) -> None:
+        attr_subq = (
+            select(qa(EntityType.id))
+            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE)
+            .scalar_subquery(),
+        )
+        await self.__session.execute(
+            delete(Directory)
+            .where(qa(Directory.entity_type_id).in_(attr_subq)),
+        )  # fmt: skip
 
     async def delete_table(self) -> None:
         await self.__session.execute(

@@ -95,6 +95,10 @@ class ObjectClassUseCaseLegacy(AbstractService):
         """Get Object Class by name without related data."""
         return await self.__object_class_dao_legacy.get_raw_by_name(name)
 
+    async def delete_all_dirs(self) -> None:
+        """Delete all Object Class directories."""
+        await self.__object_class_dao_legacy.delete_all_dirs()
+
     async def delete_main_table(self) -> None:
         """Delete Object Class table."""
         await self.__object_class_dao_legacy.delete_main_table()

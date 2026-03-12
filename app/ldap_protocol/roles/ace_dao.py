@@ -6,15 +6,14 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from adaptix import P
 from adaptix.conversion import get_converter, link_function
-from entities_legacy import AttributeTypeLegacy
-from sqlalchemy import and_, delete, func, select, update
+from sqlalchemy import and_, delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from abstract_dao import AbstractDAO
-from entities import AccessControlEntry, Directory, EntityType
-from enums import AceType, EntityTypeNames, RoleScope
+from entities import AccessControlEntry, Directory
+from enums import AceType, RoleScope
 from ldap_protocol.utils.helpers import get_depth_by_dn
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from repo.pg.tables import queryable_attr as qa
@@ -277,82 +276,3 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
             delete(AccessControlEntry).filter_by(id=ace.id),
         )
         await self._session.flush()
-
-    async def migration_upgrade(self) -> None:  # TODO
-        ace_rows_q = await self._session.execute(
-            select(qa(AccessControlEntry.id), qa(AttributeTypeLegacy.name))
-            .join(
-                AttributeTypeLegacy,
-                qa(AccessControlEntry.attribute_type_id)
-                == qa(AttributeTypeLegacy.id),
-            )
-            .where(qa(AccessControlEntry.attribute_type_id).is_not(None)),
-        )
-        ace_rows = ace_rows_q.all()
-
-        if ace_rows:
-            attribute_names = {row.name for row in ace_rows}
-            directory_rows_q = await self._session.execute(
-                select(qa(Directory.name), qa(Directory.id))
-                .join(
-                    EntityType,
-                    qa(EntityType.id) == qa(Directory.entity_type_id),
-                )
-                .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE)
-                .where(qa(Directory.name).in_(attribute_names)),
-            )
-            directory_rows = directory_rows_q.all()
-            directory_by_name = {row.name: row.id for row in directory_rows}
-
-            updates = [
-                {"ace_id": row.id, "directory_id": directory_by_name[row.name]}
-                for row in ace_rows
-                if row.name in directory_by_name
-            ]
-            if updates:
-                for item in updates:
-                    update_stmt = (
-                        update(AccessControlEntry)
-                        .where(qa(AccessControlEntry.id) == item["ace_id"])
-                        .values(attribute_type_id=item["directory_id"])
-                    )
-                    await self._session.execute(update_stmt)
-
-    async def migration_downgrade(self) -> None:  # TODO
-        ace_rows_q = await self._session.execute(
-            select(qa(AccessControlEntry.id), qa(Directory.name))
-            .join(
-                Directory,
-                qa(AccessControlEntry.attribute_type_id) == qa(Directory.id),
-            )
-            .join(
-                EntityType,
-                qa(EntityType.id) == qa(Directory.entity_type_id),
-            )
-            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE)
-            .where(qa(AccessControlEntry.attribute_type_id).is_not(None)),
-        )
-        ace_rows = ace_rows_q.all()
-
-        if ace_rows:
-            attribute_names = {row.name for row in ace_rows}
-            legacy_rows_q = await self._session.execute(
-                select(qa(AttributeTypeLegacy.name), qa(AttributeTypeLegacy.id))  # noqa: E501
-                .where(qa(AttributeTypeLegacy.name).in_(attribute_names)),
-            )  # fmt: skip
-            legacy_rows = legacy_rows_q.all()
-            legacy_by_name = {row.name: row.id for row in legacy_rows}
-
-            updates = [
-                {"ace_id": row.id, "legacy_id": legacy_by_name[row.name]}
-                for row in ace_rows
-                if row.name in legacy_by_name
-            ]
-            if updates:
-                for item in updates:
-                    update_stmt = (
-                        update(AccessControlEntry)
-                        .where(qa(AccessControlEntry.id) == item["ace_id"])
-                        .values(attribute_type_id=item["legacy_id"])
-                    )
-                    await self._session.execute(update_stmt)

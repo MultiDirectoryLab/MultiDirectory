@@ -13,12 +13,13 @@ from adaptix.conversion import (
     link_function,
 )
 from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from enums import KindType
+from entities import Directory, EntityType
+from enums import EntityTypeNames, KindType
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
@@ -108,6 +109,17 @@ class ObjectClassDAOLegacy:
                 f"Object Class with name '{name}' not found.",
             )
         return object_class
+
+    async def delete_all_dirs(self) -> None:
+        objcls_subq = (
+            select(qa(EntityType.id))
+            .where(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS)
+            .scalar_subquery()
+        )
+        await self.__session.execute(
+            delete(Directory)
+            .where(qa(Directory.entity_type_id).in_(objcls_subq)),
+        )  # fmt: skip
 
     async def delete_main_table(self) -> None:
         await self.__session.execute(
