@@ -32,7 +32,7 @@ class LdapSchemaError(BaseDomainException):
 
 
 class CantCreateDirectoryWithSchemaLikeAsDirectoryError(LdapSchemaError):
-    """Raised when trying to create a directory with schema like as directory."""
+    """Raised when trying to create directory with schema like as directory."""
 
     code = ErrorCodes.CANT_CREATE_DIRECTORY_WITH_SCHEMA_LIKE_AS_DIRECTORY
 
