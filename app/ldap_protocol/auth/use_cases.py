@@ -212,20 +212,19 @@ class SetupUseCase:
             obj_classes = await self._object_class_use_case_legacy.get_all()
             for obj_class in obj_classes:
                 obj_class.attribute_types_may = [
-                    i.name  # type: ignore
-                    for i in obj_class.attribute_types_may
+                    _.name  # type: ignore
+                    for _ in obj_class.attribute_types_may
                 ]
                 obj_class.attribute_types_must = [
-                    i.name  # type: ignore
-                    for i in obj_class.attribute_types_must
+                    _.name  # type: ignore
+                    for _ in obj_class.attribute_types_must
                 ]
                 await self._object_class_use_case.create(obj_class)  # type: ignore
 
-            # TODO раскомментируй это после того как поправишь роли и вообще ВСЁ сделаешь  # noqa: E501
-            # await self._attribute_type_use_case_legacy.delete_table()  # noqa: E501, ERA001
-            # await self._object_class_use_case_legacy.delete_table()  # noqa: E501, ERA001
-            # await self._object_class_use_case_legacy.delete_table1()  # noqa: E501, ERA001  AttrsMayMemberships
-            # await self._object_class_use_case_legacy.delete_table2()  # noqa: E501, ERA001  AttrsMayMemberships
+            await self._attribute_type_use_case_legacy.delete_table()
+            await self._object_class_use_case_legacy.delete_may_table()
+            await self._object_class_use_case_legacy.delete_must_table()
+            await self._object_class_use_case_legacy.delete_main_table()
 
             await self._password_use_cases.create_default_domain_policy()
 

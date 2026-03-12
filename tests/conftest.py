@@ -1029,6 +1029,7 @@ async def setup_session(
     entity_type_dao = EntityTypeDAO(
         session,
         attribute_value_validator=attribute_value_validator,
+        object_class_dao=object_class_dao,
     )
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,
@@ -1148,14 +1149,19 @@ async def setup_session(
     ):
         _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
         _oc_dto.attribute_types_may = [
-            x.name  # type: ignore
-            for x in _oc_dto.attribute_types_may
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_may
         ]
         _oc_dto.attribute_types_must = [
-            x.name  # type: ignore
-            for x in _oc_dto.attribute_types_must
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_must
         ]
         await object_class_use_case.create(_oc_dto)  # type: ignore
+
+    await attribute_type_use_case_legacy.delete_table()
+    await object_class_use_case_legacy.delete_may_table()
+    await object_class_use_case_legacy.delete_must_table()
+    await object_class_use_case_legacy.delete_main_table()
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
@@ -1243,14 +1249,16 @@ async def entity_type_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[EntityTypeDAO]:
     """Get session and acquire after completion."""
-    async with container(scope=Scope.APP) as container:
+    async with container(scope=Scope.REQUEST) as container:
         session = await container.get(AsyncSession)
         attribute_value_validator = await container.get(
             AttributeValueValidator,
         )
+        object_class_dao = await container.get(ObjectClassDAO)
         yield EntityTypeDAO(
             session,
             attribute_value_validator=attribute_value_validator,
+            object_class_dao=object_class_dao,
         )
 
 

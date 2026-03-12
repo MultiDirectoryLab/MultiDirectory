@@ -85,11 +85,7 @@ class ObjectClassDAO:
         self,
         params: PaginationParams,
     ) -> PaginationResult[Directory, ObjectClassDTO]:
-        """Retrieve paginated Object Classes.
-
-        :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of Object Classes and metadata.
-        """
+        """Retrieve paginated Object Classes."""
         filters = [qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS]
 
         query = (
@@ -111,12 +107,7 @@ class ObjectClassDAO:
         self,
         names: Iterable[str],
     ) -> Literal[True]:
-        """Check if all Object Classes exist.
-
-        :param list[str] names: Object Class names.
-        :raise ObjectClassNotFoundError: If Object Class not found.
-        :return bool.
-        """
+        """Check if all Object Classes exist."""
         names = set(object_class.lower() for object_class in names)
 
         count_query = (
@@ -163,12 +154,8 @@ class ObjectClassDAO:
     async def get_all_by_names(
         self,
         names: list[str] | set[str],
-    ) -> list[ObjectClassDTO]:
-        """Get list of Object Classes by names.
-
-        :param list[str] names: Object Classes names.
-        :return list[ObjectClassDTO]: List of Object Classes.
-        """
+    ) -> list[ObjectClassDTO[int, str]]:
+        """Get list of Object Classes by names."""
         query = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))
@@ -216,11 +203,7 @@ class ObjectClassDAO:
         await self.__session.flush()
 
     async def delete_all_by_names(self, names: list[str]) -> None:
-        """Delete not system Object Classes by Names.
-
-        :param list[str] names: Object Classes names.
-        :return None.
-        """
+        """Delete not system Object Classes by Names."""
         subq = (
             select(func.unnest(qa(EntityType.object_class_names)))
             .where(qa(EntityType.object_class_names).isnot(None))

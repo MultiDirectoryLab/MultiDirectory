@@ -93,12 +93,12 @@ def upgrade(container: AsyncContainer) -> None:
         obj_class_dtos = await object_class_use_case_legacy.get_all()
         for obj_class_dto in obj_class_dtos:
             obj_class_dto.attribute_types_may = [
-                x.name  # type: ignore
-                for x in obj_class_dto.attribute_types_may
+                _.name  # type: ignore
+                for _ in obj_class_dto.attribute_types_may
             ]
             obj_class_dto.attribute_types_must = [
-                x.name  # type: ignore
-                for x in obj_class_dto.attribute_types_must
+                _.name  # type: ignore
+                for _ in obj_class_dto.attribute_types_must
             ]
             await object_class_use_case.create(obj_class_dto)  # type: ignore
 

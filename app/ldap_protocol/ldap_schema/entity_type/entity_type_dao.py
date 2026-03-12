@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, EntityType
-from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -24,6 +23,9 @@ from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeAlreadyExistsError,
     EntityTypeCantModifyError,
     EntityTypeNotFoundError,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
 )
 from ldap_protocol.utils.pagination import (
     PaginationParams,
@@ -46,15 +48,18 @@ class EntityTypeDAO:
 
     __session: AsyncSession
     __attribute_value_validator: AttributeValueValidator
+    __object_class_dao: ObjectClassDAO
 
     def __init__(
         self,
         session: AsyncSession,
         attribute_value_validator: AttributeValueValidator,
+        object_class_dao: ObjectClassDAO,
     ) -> None:
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
         self.__attribute_value_validator = attribute_value_validator
+        self.__object_class_dao = object_class_dao
 
     async def get_all(self) -> list[EntityTypeDTO[int]]:
         """Get all Entity Types."""
@@ -154,11 +159,7 @@ class EntityTypeDAO:
         self,
         params: PaginationParams,
     ) -> PaginationResult[EntityType, EntityTypeDTO]:
-        """Retrieve paginated Entity Types.
-
-        :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of Entity Types and metadata.
-        """
+        """Retrieve paginated Entity Types."""
         query = build_paginated_search_query(
             model=EntityType,
             order_by_field=qa(EntityType.name),
@@ -174,12 +175,7 @@ class EntityTypeDAO:
         )
 
     async def get_one_raw_by_name(self, name: str) -> EntityType:
-        """Get single Entity Type by name.
-
-        :param str name: Entity Type name.
-        :raise EntityTypeNotFoundError: If Entity Type not found.
-        :return EntityType: Instance of Entity Type.
-        """
+        """Get single Entity Type by name."""
         entity_type = await self.__session.scalar(
             select(EntityType)
             .filter_by(name=name),
@@ -192,23 +188,14 @@ class EntityTypeDAO:
         return entity_type
 
     async def get(self, name: str) -> EntityTypeDTO:
-        """Get single Entity Type by name.
-
-        :param str name: Entity Type name.
-        :raise EntityTypeNotFoundError: If Entity Type not found.
-        :return EntityType: Instance of Entity Type.
-        """
+        """Get single Entity Type by name."""
         return _convert(await self.get_one_raw_by_name(name))
 
     async def get_entity_type_by_object_class_names(
         self,
         object_class_names: Iterable[str],
     ) -> EntityType | None:
-        """Get single Entity Type by object class names.
-
-        :param Iterable[str] object_class_names: object class names.
-        :return EntityType | None: Instance of Entity Type or None.
-        """
+        """Get single Entity Type by object class names."""
         list_object_class_names = [name.lower() for name in object_class_names]
         result = await self.__session.execute(
             select(EntityType)
@@ -231,43 +218,26 @@ class EntityTypeDAO:
         )  # fmt: skip
         return set(row[0] for row in result.fetchall())
 
-    # TODO причеши это
     async def get_entity_type_attributes(self, name: str) -> list[str]:
-        """Get all attribute names for an Entity Type.
-
-        :param str entity_type_name: Entity Type name.
-        :return list[str]: List of attribute names.
-        """
+        """Get all attribute names for an Entity Type."""
         entity_type = await self.get_one_raw_by_name(name)
 
         if not entity_type.object_class_names:
             return []
 
-        object_class_dirs_query = await self.__session.scalars(
-            select(Directory)
-            .join(qa(Directory.entity_type))
-            .where(
-                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                qa(Directory.name).in_(entity_type.object_class_names),
-            )
-            .options(selectinload(qa(Directory.attributes))),
+        object_class_dirs = await self.__object_class_dao.get_all_by_names(
+            entity_type.object_class_names,
         )
-        object_class_dirs = list(object_class_dirs_query.all())
 
         attribute_names: set[str] = set()
         for object_class_dir in object_class_dirs:
-            for attr in object_class_dir.attributes:
-                if attr.name in ("mustContain", "mayContain") and attr.value:
-                    attribute_names.add(attr.value)
+            attribute_names.update(object_class_dir.attribute_types_may)
+            attribute_names.update(object_class_dir.attribute_types_must)
 
         return sorted(attribute_names)
 
     async def delete_all_by_names(self, names: list[str]) -> None:
-        """Delete not system and not used Entity Type by their names.
-
-        :param list[str] names: Entity Type names.
-        :return None.
-        """
+        """Delete not system and not used Entity Type by their names."""
         await self.__session.execute(
             delete(EntityType).where(
                 qa(EntityType.name).in_(names),

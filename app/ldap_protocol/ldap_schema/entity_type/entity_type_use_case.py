@@ -35,21 +35,12 @@ class EntityTypeUseCase(AbstractService):
         entity_type_dao: EntityTypeDAO,
         object_class_dao: ObjectClassDAO,
     ) -> None:
-        """Initialize Entity Use Case.
-
-        :param EntityTypeDAO entity_type_dao: Entity Type DAO.
-        :param ObjectClassDAO object_class_dao: Object Class DAO.
-        """
+        """Initialize Entity Use Case."""
         self._entity_type_dao = entity_type_dao
         self._object_class_dao = object_class_dao
 
     async def create(self, dto: EntityTypeDTO) -> None:
-        """Create Entity Type.
-
-        :param EntityTypeDTO dto: Entity Type data.
-        :param bool skip_object_class_validation: Skip checking related
-            Object Classes exist (used during first setup seeding).
-        """
+        """Create Entity Type."""
         await self._object_class_dao.is_all_object_classes_exists(
             dto.object_class_names,
         )
@@ -57,12 +48,7 @@ class EntityTypeUseCase(AbstractService):
         await self._entity_type_dao.create(dto)
 
     async def create_not_safe(self, dto: EntityTypeDTO) -> None:
-        """Create Entity Type.
-
-        :param EntityTypeDTO dto: Entity Type data.
-        :param bool skip_object_class_validation: Skip checking related
-            Object Classes exist (used during first setup seeding).
-        """
+        """Create Entity Type."""
         await self._entity_type_dao.create(dto)
 
     async def update(self, name: str, dto: EntityTypeDTO) -> None:
@@ -128,10 +114,7 @@ class EntityTypeUseCase(AbstractService):
         await self._entity_type_dao.delete_all_by_names(names)
 
     async def attach_entity_type_to_directories(self) -> None:
-        """Find all Directories without an Entity Type and attach it to them.
-
-        :return None.
-        """
+        """Find all Directories without an Entity Type and attach it to them."""  # noqa: E501
         result = await self.__session.execute(
             select(Directory)
             .where(qa(Directory.entity_type_id).is_(None))
@@ -156,15 +139,7 @@ class EntityTypeUseCase(AbstractService):
         entity_type: EntityType | None = None,
         object_class_names: set[str] | None = None,
     ) -> None:
-        """Try to find the Entity Type, attach it to the Directory.
-
-        :param Directory directory: Directory to attach Entity Type.
-        :param bool is_system_entity_type: Is system Entity Type.
-        :param EntityType | None entity_type: Predefined Entity Type.
-        :param set[str] | None object_class_names: Predefined object
-            class names.
-        :return None.
-        """
+        """Try to find the Entity Type, attach it to the Directory."""
         if entity_type:
             directory.entity_type = entity_type
             return

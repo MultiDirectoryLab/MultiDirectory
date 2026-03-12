@@ -31,8 +31,12 @@ async def add_system_administrator(
 ) -> None:
     """Create system administrator user for tests that require it."""
     attribute_value_validator = AttributeValueValidator()
-    entity_type_dao = EntityTypeDAO(session, attribute_value_validator)
     object_class_dao = ObjectClassDAO(session)
+    entity_type_dao = EntityTypeDAO(
+        session=session,
+        attribute_value_validator=attribute_value_validator,
+        object_class_dao=object_class_dao,
+    )
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,

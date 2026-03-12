@@ -102,7 +102,6 @@ class AttributeTypeDAO:
                 f"Attribute Type with name '{name}' not found.",
             )
 
-        # TODO мб оптимизировать и работать только с атрибутами?
         for attr in dir_.attributes:
             if not dir_.is_system:
                 if attr.name == "syntax":
@@ -126,7 +125,6 @@ class AttributeTypeDAO:
                 f"Attribute Type with name '{name}' not found.",
             )
 
-        # TODO мб оптимизировать и работать только с атрибутом?
         for attr in dir_.attributes:
             if attr.name == "systemFlags":
                 attr.value = str(dto.system_flags)
@@ -138,11 +136,7 @@ class AttributeTypeDAO:
         self,
         params: PaginationParams,
     ) -> PaginationResult[Directory, AttributeTypeDTO]:
-        """Retrieve paginated Attribute Types.
-
-        :param PaginationParams params: page_size and page_number.
-        :return PaginationResult: Chunk of Attribute Types and metadata.
-        """
+        """Retrieve paginated Attribute Types."""
         filters = [qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE]
 
         if params.query:
@@ -164,11 +158,7 @@ class AttributeTypeDAO:
         )
 
     async def delete_all_by_names(self, names: list[str]) -> None:
-        """Delete not system Attribute Types by names.
-
-        :param list[str] names: List of Attribute Types names.
-        :return None: None.
-        """
+        """Delete not system Attribute Types by names."""
         if not names:
             return
 

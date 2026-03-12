@@ -95,8 +95,16 @@ class ObjectClassUseCaseLegacy(AbstractService):
         """Get Object Class by name without related data."""
         return await self.__object_class_dao_legacy.get_raw_by_name(name)
 
-    async def delete_table(self) -> None:
+    async def delete_main_table(self) -> None:
         """Delete Object Class table."""
-        await self.__object_class_dao_legacy.delete_table()
+        await self.__object_class_dao_legacy.delete_main_table()
+
+    async def delete_may_table(self) -> None:
+        """Delete Object Class May membership table."""
+        await self.__object_class_dao_legacy.delete_may_table()
+
+    async def delete_must_table(self) -> None:
+        """Delete Object Class Must membership  table."""
+        await self.__object_class_dao_legacy.delete_must_table()
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {}

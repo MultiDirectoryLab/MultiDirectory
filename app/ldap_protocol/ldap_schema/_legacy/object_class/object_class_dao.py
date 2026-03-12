@@ -109,10 +109,20 @@ class ObjectClassDAOLegacy:
             )
         return object_class
 
-    async def delete_table(self) -> None:
+    async def delete_main_table(self) -> None:
         await self.__session.execute(
             text('DROP TABLE IF EXISTS "ObjectClasses" CASCADE'),
         )
+
+    async def delete_may_table(self) -> None:
+        await self.__session.execute(
+            text('DROP TABLE IF EXISTS "ObjectClassAttributeTypeMayMemberships" CASCADE'),  # noqa: E501
+        )  # fmt: skip
+
+    async def delete_must_table(self) -> None:
+        await self.__session.execute(
+            text('DROP TABLE IF EXISTS "ObjectClassAttributeTypeMustMemberships" CASCADE'),  # noqa: E501
+        )  # fmt: skip
 
     async def get(self, name: str) -> ObjectClassDTO[int, AttributeTypeDTO]:
         """Get single Object Class by name."""
