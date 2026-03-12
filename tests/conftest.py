@@ -1029,7 +1029,6 @@ async def setup_session(
     entity_type_dao = EntityTypeDAO(
         session,
         attribute_value_validator=attribute_value_validator,
-        object_class_dao=object_class_dao,
     )
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,
@@ -1254,11 +1253,9 @@ async def entity_type_dao(
         attribute_value_validator = await container.get(
             AttributeValueValidator,
         )
-        object_class_dao = await container.get(ObjectClassDAO)
         yield EntityTypeDAO(
             session,
             attribute_value_validator=attribute_value_validator,
-            object_class_dao=object_class_dao,
         )
 
 

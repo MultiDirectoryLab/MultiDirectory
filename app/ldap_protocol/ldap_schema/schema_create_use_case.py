@@ -31,8 +31,8 @@ class SchemaLikeAsDirectoryCreateUseCase:
     __session: AsyncSession
     __entity_type_use_case: EntityTypeUseCase
     __role_use_case: RoleUseCase
-    __parent: Directory | None
-    __base_directories: list[Directory] | None = None
+    __parent_dir: Directory | None
+    __base_dirs: list[Directory] | None = None
 
     def __init__(
         self,
@@ -44,19 +44,24 @@ class SchemaLikeAsDirectoryCreateUseCase:
         self.__session = session
         self.__entity_type_use_case = entity_type_use_case
         self.__role_use_case = role_use_case
-        self.__parent = None
-        self.__base_directories = None
+        self.__parent_dir = None
+        self.__base_dirs = None
+
+    async def _get_configuration_dir(self) -> Directory:
+        """Get parent dir."""
+        query = await self.__session.execute(
+            select(Directory)
+            .where(qa(Directory.name) == CONFIGURATION_DIR_NAME),
+        )  # fmt: skip
+
+        return query.one()[0]
 
     async def create_dir(self, dto: CreateDirDTO) -> None:
         """Create."""
-        if not self.__parent:
-            q = await self.__session.execute(
-                select(Directory)
-                .where(qa(Directory.name) == CONFIGURATION_DIR_NAME),
-            )  # fmt: skip
-            self.__parent = q.one()[0]
+        if not self.__parent_dir:
+            self.__parent_dir = await self._get_configuration_dir()
 
-        self.__base_directories = await get_base_directories(self.__session)
+        self.__base_dirs = await get_base_directories(self.__session)
 
         dir_ = Directory(
             is_system=dto.is_system,
@@ -64,14 +69,14 @@ class SchemaLikeAsDirectoryCreateUseCase:
             name=dto.name,
         )
         dir_.groups = []
-        dir_.create_path(self.__parent, dir_.get_dn_prefix())
+        dir_.create_path(self.__parent_dir, dir_.get_dn_prefix())
         self.__session.add(dir_)
         await self.__session.flush()
 
-        dir_.parent_id = self.__parent.id
+        dir_.parent_id = self.__parent_dir.id
         await self.__session.refresh(dir_, ["id"])
 
-        for base_directory in self.__base_directories:
+        for base_directory in self.__base_dirs:
             if is_dn_in_base_directory(base_directory, dir_.path_dn):
                 base_dn = base_directory
                 break
@@ -119,7 +124,7 @@ class SchemaLikeAsDirectoryCreateUseCase:
         await self.__session.flush()
 
         await self.__role_use_case.inherit_parent_aces(
-            parent_directory=self.__parent,
+            parent_directory=self.__parent_dir,
             directory=dir_,
         )
         await self.__session.flush()

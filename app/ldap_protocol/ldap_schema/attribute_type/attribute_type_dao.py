@@ -10,6 +10,9 @@ from sqlalchemy.orm import selectinload
 
 from entities import Directory, EntityType
 from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.attribute_type.constants import (
+    AttributeTypeAttributeNames as Names,
+)
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import AttributeTypeNotFoundError
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
@@ -20,13 +23,13 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO[int]:
     return AttributeTypeDTO[int](
         id=directory.id,
         name=directory.name,
-        oid=directory.attributes_dict["oid"][0],
-        syntax=directory.attributes_dict["syntax"][0],
-        single_value=directory.attributes_dict["isSingleValued"][0] == "True",
-        no_user_modification=directory.attributes_dict["systemOnly"][0] == "True",  # noqa: E501
+        oid=directory.attributes_dict[Names.OID][0],
+        syntax=directory.attributes_dict[Names.SYNTAX][0],
+        single_value=directory.attributes_dict[Names.SINGLE_VALUE][0] == "True",  # noqa: E501
+        no_user_modification=directory.attributes_dict[Names.NO_USER_MODIFICATION][0] == "True",  # noqa: E501
         is_system=directory.is_system,
-        system_flags=int(directory.attributes_dict["systemFlags"][0]),
-        is_included_anr=directory.attributes_dict["aNR"][0] == "True",
+        system_flags=int(directory.attributes_dict[Names.SYSTEM_FLAGS][0]),
+        is_included_anr=directory.attributes_dict[Names.IS_INCLUDED_ANR][0] == "True",  # noqa: E501
         object_class_names=set(),
     )  # fmt: skip
 
@@ -104,14 +107,14 @@ class AttributeTypeDAO:
 
         for attr in dir_.attributes:
             if not dir_.is_system:
-                if attr.name == "syntax":
+                if attr.name == Names.SYNTAX:
                     attr.value = dto.syntax
-                elif attr.name == "isSingleValued":
+                elif attr.name == Names.SINGLE_VALUE:
                     attr.value = str(dto.single_value)
-                elif attr.name == "systemOnly":
+                elif attr.name == Names.NO_USER_MODIFICATION:
                     attr.value = str(dto.no_user_modification)
             else:
-                if attr.name == "aNR":
+                if attr.name == Names.IS_INCLUDED_ANR:
                     attr.value = str(dto.is_included_anr)
                     break
 
@@ -126,7 +129,7 @@ class AttributeTypeDAO:
             )
 
         for attr in dir_.attributes:
-            if attr.name == "systemFlags":
+            if attr.name == Names.SYSTEM_FLAGS:
                 attr.value = str(dto.system_flags)
                 break
 
@@ -163,7 +166,8 @@ class AttributeTypeDAO:
             return
 
         await self.__session.execute(
-            delete(Directory).where(
+            delete(Directory)
+            .where(
                 qa(Directory.entity_type)
                 .has(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
                 qa(Directory.name).in_(names),

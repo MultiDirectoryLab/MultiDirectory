@@ -23,6 +23,9 @@ from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassAlreadyExistsError,
     ObjectClassNotFoundError,
 )
+from ldap_protocol.ldap_schema.object_class.constants import (
+    ObjectClassAttributeNames as Names,
+)
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
@@ -107,22 +110,22 @@ class ObjectClassUseCase(AbstractService):
             entity_type_name=EntityTypeNames.OBJECT_CLASS,
             attributes=(
                 AttributeDTO(
-                    name="objectClass",
+                    name=Names.OBJECT_CLASS,
                     values=["top", "classSchema"],
                 ),
-                AttributeDTO(name="oid", values=[str(dto.oid)]),
-                AttributeDTO(name="name", values=[str(dto.name)]),
+                AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
+                AttributeDTO(name=Names.NAME, values=[str(dto.name)]),
                 AttributeDTO(
-                    name="subClassOf",
+                    name=Names.SUPERIOR_NAME,
                     values=[str(dto.superior_name)],
                 ),
-                AttributeDTO(name="kind", values=[str(dto.kind)]),
+                AttributeDTO(name=Names.KIND, values=[str(dto.kind)]),
                 AttributeDTO(
-                    name="mustContain",
+                    name=Names.ATTRIBUTE_TYPES_MUST,
                     values=dto.attribute_types_must,
                 ),
                 AttributeDTO(
-                    name="mayContain",
+                    name=Names.ATTRIBUTE_TYPES_MAY,
                     values=dto.attribute_types_may,
                 ),
             ),
@@ -145,13 +148,6 @@ class ObjectClassUseCase(AbstractService):
             )
         )
         return dto
-
-    async def get_all_by_names(
-        self,
-        names: list[str] | set[str],
-    ) -> list[ObjectClassDTO]:
-        """Get list of Object Classes by names."""
-        return await self.__object_class_dao.get_all_by_names(names)
 
     async def update(self, name: str, dto: ObjectClassDTO[None, str]) -> None:
         """Modify Object Class."""

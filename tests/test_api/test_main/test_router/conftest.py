@@ -35,7 +35,6 @@ async def add_system_administrator(
     entity_type_dao = EntityTypeDAO(
         session=session,
         attribute_value_validator=attribute_value_validator,
-        object_class_dao=object_class_dao,
     )
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,

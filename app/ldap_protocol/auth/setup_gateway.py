@@ -100,13 +100,10 @@ class SetupGateway:
                 with_for_update=None,
             )
 
-            entity_type = await self._entity_type_use_case.get_one_raw_by_name(
-                EntityTypeNames.DOMAIN,
-            )
-            await self._entity_type_use_case.attach_entity_type_to_directory(
-                directory=domain,
-                is_system_entity_type=True,
-                entity_type=entity_type,
+            domain.entity_type = (
+                await self._entity_type_use_case.get_one_raw_by_name(
+                    EntityTypeNames.DOMAIN,
+                )
             )
             if not self._attribute_value_validator.is_directory_valid(domain):
                 raise ValueError(
@@ -238,7 +235,6 @@ class SetupGateway:
         )
         if not self._attribute_value_validator.is_directory_valid(dir_):
             raise ValueError("Invalid directory attribute values")
-
         await self._session.flush()
 
         if "children" in data:

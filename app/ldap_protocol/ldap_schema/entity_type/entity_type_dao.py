@@ -24,9 +24,6 @@ from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeCantModifyError,
     EntityTypeNotFoundError,
 )
-from ldap_protocol.ldap_schema.object_class.object_class_dao import (
-    ObjectClassDAO,
-)
 from ldap_protocol.utils.pagination import (
     PaginationParams,
     PaginationResult,
@@ -48,18 +45,15 @@ class EntityTypeDAO:
 
     __session: AsyncSession
     __attribute_value_validator: AttributeValueValidator
-    __object_class_dao: ObjectClassDAO
 
     def __init__(
         self,
         session: AsyncSession,
         attribute_value_validator: AttributeValueValidator,
-        object_class_dao: ObjectClassDAO,
     ) -> None:
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
         self.__attribute_value_validator = attribute_value_validator
-        self.__object_class_dao = object_class_dao
 
     async def get_all(self) -> list[EntityTypeDTO[int]]:
         """Get all Entity Types."""
@@ -218,28 +212,11 @@ class EntityTypeDAO:
         )  # fmt: skip
         return set(row[0] for row in result.fetchall())
 
-    async def get_entity_type_attributes(self, name: str) -> list[str]:
-        """Get all attribute names for an Entity Type."""
-        entity_type = await self.get_one_raw_by_name(name)
-
-        if not entity_type.object_class_names:
-            return []
-
-        object_class_dirs = await self.__object_class_dao.get_all_by_names(
-            entity_type.object_class_names,
-        )
-
-        attribute_names: set[str] = set()
-        for object_class_dir in object_class_dirs:
-            attribute_names.update(object_class_dir.attribute_types_may)
-            attribute_names.update(object_class_dir.attribute_types_must)
-
-        return sorted(attribute_names)
-
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system and not used Entity Type by their names."""
         await self.__session.execute(
-            delete(EntityType).where(
+            delete(EntityType)
+            .where(
                 qa(EntityType.name).in_(names),
                 qa(EntityType.is_system).is_(False),
                 qa(EntityType.id).not_in(

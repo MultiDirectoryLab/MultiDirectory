@@ -12,6 +12,9 @@ from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
+from ldap_protocol.ldap_schema.object_class.constants import (
+    ObjectClassAttributeNames as Names,
+)
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 
@@ -21,16 +24,16 @@ from ..exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
 
 def _convert_model_to_dto(dir_: Directory) -> ObjectClassDTO[int, str]:
     return ObjectClassDTO(
-        oid=dir_.attributes_dict.get("oid")[0],  # type: ignore
+        oid=dir_.attributes_dict.get(Names.OID)[0],  # type: ignore
         name=dir_.name,
-        superior_name=dir_.attributes_dict.get("subClassOf")[0],  # type: ignore
-        kind=dir_.attributes_dict.get("kind")[0],  # type: ignore
+        superior_name=dir_.attributes_dict.get(Names.SUPERIOR_NAME)[0],  # type: ignore
+        kind=dir_.attributes_dict.get(Names.KIND)[0],  # type: ignore
         is_system=dir_.is_system,
-        attribute_types_must=dir_.attributes_dict.get("mustContain", []),
-        attribute_types_may=dir_.attributes_dict.get("mayContain", []),
+        attribute_types_must=dir_.attributes_dict.get(Names.ATTRIBUTE_TYPES_MUST, []),  # noqa: E501
+        attribute_types_may=dir_.attributes_dict.get(Names.ATTRIBUTE_TYPES_MAY, []),  # noqa: E501
         id=dir_.id,
         entity_type_names=set(),
-    )
+    )  # fmt: skip
 
 
 class ObjectClassDAO:
@@ -69,7 +72,7 @@ class ObjectClassDAO:
             .join(qa(Directory.attributes))
             .where(
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                qa(Attribute.name).in_(("mustContain", "mayContain")),
+                qa(Attribute.name).in_((Names.ATTRIBUTE_TYPES_MUST, Names.ATTRIBUTE_TYPES_MAY)),  # noqa: E501
                 func.lower(qa(Attribute.value)) == attribute_type_name.lower(),
             ),
         )  # fmt: skip
@@ -176,27 +179,28 @@ class ObjectClassDAO:
             )
 
         await self.__session.execute(
-            delete(Attribute).where(
+            delete(Attribute)
+            .where(
                 qa(Attribute.directory_id) == obj.id,
-                qa(Attribute.name).in_(("mustContain", "mayContain")),
+                qa(Attribute.name).in_((Names.ATTRIBUTE_TYPES_MUST, Names.ATTRIBUTE_TYPES_MAY)),  # noqa: E501
             ),
-        )
+        )  # fmt: skip
 
-        for name in dto.attribute_types_may:
+        for value in dto.attribute_types_may:
             self.__session.add(
                 Attribute(
                     directory_id=obj.id,
-                    name="mayContain",
-                    value=name,
+                    name=Names.ATTRIBUTE_TYPES_MAY,
+                    value=value,
                 ),
             )
 
-        for name in dto.attribute_types_must:
+        for value in dto.attribute_types_must:
             self.__session.add(
                 Attribute(
                     directory_id=obj.id,
-                    name="mustContain",
-                    value=name,
+                    name=Names.ATTRIBUTE_TYPES_MUST,
+                    value=value,
                 ),
             )
 

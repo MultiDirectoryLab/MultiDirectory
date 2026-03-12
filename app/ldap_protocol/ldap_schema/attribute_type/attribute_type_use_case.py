@@ -16,6 +16,9 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
+from ldap_protocol.ldap_schema.attribute_type.constants import (
+    AttributeTypeAttributeNames as Names,
+)
 from ldap_protocol.ldap_schema.dto import (
     AttributeDTO,
     AttributeTypeDTO,
@@ -72,23 +75,23 @@ class AttributeTypeUseCase(AbstractService):
             name=dto.name,
             entity_type_name=EntityTypeNames.ATTRIBUTE_TYPE,
             attributes=(
-                AttributeDTO(name="oid", values=[str(dto.oid)]),
-                AttributeDTO(name="name", values=[str(dto.name)]),
-                AttributeDTO(name="syntax", values=[str(dto.syntax)]),
+                AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
+                AttributeDTO(name=Names.NAME, values=[str(dto.name)]),
+                AttributeDTO(name=Names.SYNTAX, values=[str(dto.syntax)]),
                 AttributeDTO(
-                    name="isSingleValued",
+                    name=Names.SINGLE_VALUE,
                     values=[str(dto.single_value)],
                 ),
                 AttributeDTO(
-                    name="systemOnly",
+                    name=Names.NO_USER_MODIFICATION,
                     values=[str(dto.no_user_modification)],
                 ),
                 AttributeDTO(
-                    name="systemFlags",
+                    name=Names.SYSTEM_FLAGS,
                     values=[str(dto.system_flags)],
                 ),
                 AttributeDTO(
-                    name="aNR",
+                    name=Names.IS_INCLUDED_ANR,
                     values=[str(dto.is_included_anr)],
                 ),
             ),

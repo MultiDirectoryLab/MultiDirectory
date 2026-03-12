@@ -187,6 +187,7 @@ class ModifyRequest(BaseRequest):
         )
 
         directory = await ctx.session.scalar(query)
+        # TODO запретить
 
         if not directory:
             yield ModifyResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)

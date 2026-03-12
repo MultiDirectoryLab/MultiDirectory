@@ -95,6 +95,7 @@ class DeleteRequest(BaseRequest):
         )
 
         directory = await ctx.session.scalar(query)
+        # TODO запретить
 
         if not directory:
             yield DeleteResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)

@@ -30,26 +30,29 @@ from repo.pg.tables import queryable_attr as qa
 class EntityTypeUseCase(AbstractService):
     """Entity Use Case."""
 
+    __entity_type_dao: EntityTypeDAO
+    __object_class_dao: ObjectClassDAO
+
     def __init__(
         self,
         entity_type_dao: EntityTypeDAO,
         object_class_dao: ObjectClassDAO,
     ) -> None:
         """Initialize Entity Use Case."""
-        self._entity_type_dao = entity_type_dao
-        self._object_class_dao = object_class_dao
+        self.__entity_type_dao = entity_type_dao
+        self.__object_class_dao = object_class_dao
 
     async def create(self, dto: EntityTypeDTO) -> None:
         """Create Entity Type."""
-        await self._object_class_dao.is_all_object_classes_exists(
+        await self.__object_class_dao.is_all_object_classes_exists(
             dto.object_class_names,
         )
 
-        await self._entity_type_dao.create(dto)
+        await self.__entity_type_dao.create(dto)
 
     async def create_not_safe(self, dto: EntityTypeDTO) -> None:
         """Create Entity Type."""
-        await self._entity_type_dao.create(dto)
+        await self.__entity_type_dao.create(dto)
 
     async def update(self, name: str, dto: EntityTypeDTO) -> None:
         """Update Entity Type."""
@@ -65,18 +68,18 @@ class EntityTypeUseCase(AbstractService):
         if name != dto.name:
             await self._validate_name(name=dto.name)
 
-        await self._object_class_dao.is_all_object_classes_exists(
+        await self.__object_class_dao.is_all_object_classes_exists(
             dto.object_class_names,
         )
 
-        await self._entity_type_dao.update(entity_type.name, dto)
+        await self.__entity_type_dao.update(entity_type.name, dto)
 
     async def get(self, name: str) -> EntityTypeDTO:
         """Get Entity Type by name."""
-        return await self._entity_type_dao.get(name)
+        return await self.__entity_type_dao.get(name)
 
     async def get_one_raw_by_name(self, name: str) -> EntityType:
-        return await self._entity_type_dao.get_one_raw_by_name(name)
+        return await self.__entity_type_dao.get_one_raw_by_name(name)
 
     async def _validate_name(
         self,
@@ -92,11 +95,25 @@ class EntityTypeUseCase(AbstractService):
         params: PaginationParams,
     ) -> PaginationResult:
         """Get paginated Entity Types."""
-        return await self._entity_type_dao.get_paginator(params)
+        return await self.__entity_type_dao.get_paginator(params)
 
     async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get entity type attributes."""
-        return await self._entity_type_dao.get_entity_type_attributes(name)
+        entity_type = await self.__entity_type_dao.get_one_raw_by_name(name)
+
+        if not entity_type.object_class_names:
+            return []
+
+        object_class_dirs = await self.__object_class_dao.get_all_by_names(
+            entity_type.object_class_names,
+        )
+
+        attribute_names: set[str] = set()
+        for object_class_dir in object_class_dirs:
+            attribute_names.update(object_class_dir.attribute_types_may)
+            attribute_names.update(object_class_dir.attribute_types_must)
+
+        return sorted(attribute_names)
 
     async def get_entity_type_by_object_class_names(
         self,
@@ -104,14 +121,14 @@ class EntityTypeUseCase(AbstractService):
     ) -> EntityType | None:
         """Get Entity Type by object class names."""
         return (
-            await self._entity_type_dao.get_entity_type_by_object_class_names(
+            await self.__entity_type_dao.get_entity_type_by_object_class_names(
                 object_class_names,
             )
         )
 
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete all Entity Types by names."""
-        await self._entity_type_dao.delete_all_by_names(names)
+        await self.__entity_type_dao.delete_all_by_names(names)
 
     async def attach_entity_type_to_directories(self) -> None:
         """Find all Directories without an Entity Type and attach it to them."""  # noqa: E501
@@ -147,12 +164,12 @@ class EntityTypeUseCase(AbstractService):
         if object_class_names is None:
             object_class_names = directory.object_class_names_set
 
-        await self._object_class_dao.is_all_object_classes_exists(
+        await self.__object_class_dao.is_all_object_classes_exists(
             object_class_names,
         )
 
         entity_type = (
-            await self._entity_type_dao.get_entity_type_by_object_class_names(
+            await self.__entity_type_dao.get_entity_type_by_object_class_names(
                 object_class_names,
             )
         )
@@ -169,7 +186,7 @@ class EntityTypeUseCase(AbstractService):
                     ),
                 )
 
-            entity_type = await self._entity_type_dao.get_entity_type_by_object_class_names(  # noqa: E501
+            entity_type = await self.__entity_type_dao.get_entity_type_by_object_class_names(  # noqa: E501
                 object_class_names,
             )
 

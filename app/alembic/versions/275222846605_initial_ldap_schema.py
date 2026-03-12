@@ -195,14 +195,15 @@ def upgrade(container: AsyncContainer) -> None:
 
     # NOTE: catalog is a non-existent object class
     session.execute(
-        delete(Attribute).where(
+        delete(Attribute)
+        .where(
             or_(
                 qa(Attribute.name) == "objectClass",
                 qa(Attribute.name) == "objectclass",
             ),
             qa(Attribute.value) == "catalog",
         ),
-    )
+    )  # fmt: skip
 
     async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
