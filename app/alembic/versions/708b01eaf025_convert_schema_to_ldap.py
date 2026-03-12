@@ -32,8 +32,8 @@ from ldap_protocol.roles.migrations_ace_dao import (
 from ldap_protocol.utils.queries import get_base_directories
 
 # revision identifiers, used by Alembic.
-revision: None | str = "759d196145ae"
-down_revision: None | str = "19d86e660cf2"
+revision: None | str = "708b01eaf025"
+down_revision: None | str = "df4287898910"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
