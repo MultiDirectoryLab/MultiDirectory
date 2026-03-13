@@ -52,10 +52,6 @@ class EntityType:
     def object_class_names_set(self) -> set[str]:
         return set(self.object_class_names)
 
-    @classmethod
-    def generate_entity_type_name(cls, directory: Directory) -> str:
-        return f"{directory.name}_entity_type_{directory.id}"
-
 
 @dataclass
 class PasswordPolicy:

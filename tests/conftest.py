@@ -108,6 +108,7 @@ from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
 from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
     ObjectClassUseCaseLegacy,
 )
+from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
 )
@@ -120,6 +121,7 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
@@ -342,6 +344,9 @@ class TestProvider(Provider):
         ObjectClassDAOLegacy,
         scope=Scope.REQUEST,
     )
+    attribute_dao = provide(AttributeDAO, scope=Scope.REQUEST)
+    directory_dao = provide(DirectoryDAO, scope=Scope.REQUEST)
+
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
         AttributeTypeSystemFlagsUseCase,
@@ -1034,18 +1039,24 @@ async def setup_session(
     )
 
     object_class_dao = ObjectClassDAO(session)
+    directory_dao = DirectoryDAO(session)
+    attribute_dao = AttributeDAO(session)
     entity_type_dao = EntityTypeDAO(
         session,
         attribute_value_validator=attribute_value_validator,
+        directory_dao=directory_dao,
     )
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,
+        directory_dao=directory_dao,
     )
     schema_create_use_case = SchemaLikeAsDirectoryCreateUseCase(
         session=session,
         entity_type_use_case=entity_type_use_case,
         role_use_case=role_use_case,
+        directory_dao=directory_dao,
+        attribute_dao=attribute_dao,
     )
     object_class_use_case = ObjectClassUseCase(
         attribute_type_dao=attribute_type_dao,
@@ -1087,6 +1098,7 @@ async def setup_session(
         password_utils,
         entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
+        directory_dao=directory_dao,
     )
 
     for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
@@ -1261,9 +1273,11 @@ async def entity_type_dao(
         attribute_value_validator = await container.get(
             AttributeValueValidator,
         )
+        directory_dao = await container.get(DirectoryDAO)
         yield EntityTypeDAO(
             session,
             attribute_value_validator=attribute_value_validator,
+            directory_dao=directory_dao,
         )
 
 

@@ -95,7 +95,7 @@ class ObjectClassUseCase(AbstractService):
 
         superior = None
         if dto.superior_name:
-            superior = await self.__object_class_dao.get_dir(
+            superior = await self.__object_class_dao.get(
                 dto.superior_name,
             )
 

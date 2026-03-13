@@ -11,6 +11,7 @@ from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
@@ -32,13 +33,16 @@ async def add_system_administrator(
     """Create system administrator user for tests that require it."""
     attribute_value_validator = AttributeValueValidator()
     object_class_dao = ObjectClassDAO(session)
+    directory_dao = DirectoryDAO(session)
     entity_type_dao = EntityTypeDAO(
         session=session,
         attribute_value_validator=attribute_value_validator,
+        directory_dao=directory_dao,
     )
     entity_type_use_case = EntityTypeUseCase(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,
+        directory_dao=directory_dao,
     )
 
     setup_gateway = SetupGateway(
@@ -46,6 +50,7 @@ async def add_system_administrator(
         password_utils,
         entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
+        directory_dao=directory_dao,
     )
 
     domain = (await get_base_directories(session))[0]

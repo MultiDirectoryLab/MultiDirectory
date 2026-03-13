@@ -480,10 +480,11 @@ class AddRequest(BaseRequest):
             ctx.session.add_all(items_to_add)
             await ctx.session.flush()
 
+            entity_type_id = entity_type.id if entity_type else None
             await ctx.entity_type_use_case.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
-                entity_type=entity_type,
+                entity_type_id=entity_type_id,
                 object_class_names=self.object_class_names,
             )
             await ctx.role_use_case.inherit_parent_aces(

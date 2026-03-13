@@ -4,12 +4,13 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import select
+from typing import TYPE_CHECKING
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import CONFIGURATION_DIR_NAME
-from entities import Attribute, Directory
-from ldap_protocol.ldap_schema.dto import CreateDirDTO
+from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
+from ldap_protocol.ldap_schema.dto import AttributeDTO, CreateDirDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
@@ -17,12 +18,9 @@ from ldap_protocol.ldap_schema.exceptions import (
     CantCreateDirectoryWithSchemaLikeAsDirectoryError,
 )
 from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.helpers import (
-    create_object_sid,
-    is_dn_in_base_directory,
-)
-from ldap_protocol.utils.queries import get_base_directories
-from repo.pg.tables import queryable_attr as qa
+
+if TYPE_CHECKING:
+    from entities import Directory
 
 
 class SchemaLikeAsDirectoryCreateUseCase:
@@ -31,83 +29,71 @@ class SchemaLikeAsDirectoryCreateUseCase:
     __session: AsyncSession
     __entity_type_use_case: EntityTypeUseCase
     __role_use_case: RoleUseCase
-    __parent_dir: Directory | None
-    __base_dirs: list[Directory] | None = None
+    __directory_dao: DirectoryDAO
+    __attribute_dao: AttributeDAO
+    __parent_dir: "Directory | None"
 
     def __init__(
         self,
         session: AsyncSession,
         entity_type_use_case: EntityTypeUseCase,
         role_use_case: RoleUseCase,
+        directory_dao: DirectoryDAO,
+        attribute_dao: AttributeDAO,
     ) -> None:
         """Initialize."""
         self.__session = session
         self.__entity_type_use_case = entity_type_use_case
         self.__role_use_case = role_use_case
+        self.__directory_dao = directory_dao
+        self.__attribute_dao = attribute_dao
         self.__parent_dir = None
-        self.__base_dirs = None
-
-    async def _get_configuration_dir(self) -> Directory:
-        """Get parent dir."""
-        query = await self.__session.execute(
-            select(Directory)
-            .where(qa(Directory.name) == CONFIGURATION_DIR_NAME),
-        )  # fmt: skip
-
-        return query.one()[0]
 
     async def create_dir(self, dto: CreateDirDTO) -> None:
         """Create."""
         if not self.__parent_dir:
-            self.__parent_dir = await self._get_configuration_dir()
+            self.__parent_dir = (
+                await self.__directory_dao.get_configuration_dir()
+            )
 
-        self.__base_dirs = await get_base_directories(self.__session)
-
-        dir_ = Directory(
-            is_system=dto.is_system,
-            object_class="",
-            name=dto.name,
+        base_directory_paths_and_sids = (
+            await self.__directory_dao.get_base_directory_paths_with_sid()
         )
-        dir_.groups = []
-        dir_.create_path(self.__parent_dir, dir_.get_dn_prefix())
-        self.__session.add(dir_)
-        await self.__session.flush()
 
-        dir_.parent_id = self.__parent_dir.id
-        await self.__session.refresh(dir_, ["id"])
+        dir_ = await self.__directory_dao.create_directory(
+            name=dto.name,
+            is_system=dto.is_system,
+            parent_dir=self.__parent_dir,
+            parent_dir_id=self.__parent_dir.id,
+        )
 
-        for base_directory in self.__base_dirs:
-            if is_dn_in_base_directory(base_directory, dir_.path_dn):
-                base_dn = base_directory
+        for _path, _sid in base_directory_paths_and_sids:
+            if self.__directory_dao.is_dn_in_base_directory(
+                _path,
+                dir_.path_dn,
+            ):
+                base_dn_sid = _sid
                 break
         else:
             raise CantCreateDirectoryWithSchemaLikeAsDirectoryError(
                 "Cannot create a directory with schema like as directory.",
             )
 
-        dir_.object_sid = create_object_sid(base_dn, dir_.id)
-
-        self.__session.add(
-            Attribute(
-                name=dir_.rdname,
-                value=dir_.name,
-                directory_id=dir_.id,
-            ),
+        dir_.object_sid = self.__directory_dao.get_object_sid(
+            base_dn_sid,
+            dir_.id,
         )
 
-        for attribute_dto in dto.attributes:
-            for value in attribute_dto.values:
-                if not isinstance(value, str):
-                    raise ValueError("Only string values are supported.")
+        attr_dto = AttributeDTO(name=dir_.rdname, values=[dir_.name])
+        await self.__attribute_dao.add_directory_name_attribute(
+            dir_.id,
+            attr_dto,
+        )
 
-                self.__session.add(
-                    Attribute(
-                        directory_id=dir_.id,
-                        name=attribute_dto.name,
-                        value=value,
-                        bvalue=None,
-                    ),
-                )
+        await self.__attribute_dao.add_attributes_from_dto(
+            directory_id=dir_.id,
+            attributes=dto.attributes,
+        )
 
         await self.__session.flush()
 
@@ -116,10 +102,12 @@ class SchemaLikeAsDirectoryCreateUseCase:
             attribute_names=["attributes"],
         )
 
-        dir_.entity_type = (
-            await self.__entity_type_use_case.get_one_raw_by_name(
-                dto.entity_type_name,
-            )
+        entity_type = await self.__entity_type_use_case.get(
+            dto.entity_type_name,
+        )
+        await self.__directory_dao.bind_entity_type(
+            dir_,
+            entity_type.id if entity_type else None,
         )
         await self.__session.flush()
 

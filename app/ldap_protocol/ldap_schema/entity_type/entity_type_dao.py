@@ -11,13 +11,13 @@ from adaptix.conversion import get_converter, link_function
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, EntityType
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
 )
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeAlreadyExistsError,
@@ -45,24 +45,26 @@ class EntityTypeDAO:
 
     __session: AsyncSession
     __attribute_value_validator: AttributeValueValidator
+    __directory_dao: DirectoryDAO
 
     def __init__(
         self,
         session: AsyncSession,
         attribute_value_validator: AttributeValueValidator,
+        directory_dao: DirectoryDAO,
     ) -> None:
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
         self.__attribute_value_validator = attribute_value_validator
+        self.__directory_dao = directory_dao
+
+    def generate_entity_type_name(self, directory: Directory) -> str:
+        return f"{directory.name}_entity_type_{directory.id}"
 
     async def get_all(self) -> list[EntityTypeDTO[int]]:
         """Get all Entity Types."""
-        return [
-            _convert(entity_type)
-            for entity_type in await self.__session.scalars(
-                select(EntityType),
-            )
-        ]
+        res = await self.__session.scalars(select(EntityType))
+        return list(map(_convert, res))
 
     async def create(self, dto: EntityTypeDTO[None]) -> None:
         """Create a new Entity Type."""
@@ -81,24 +83,10 @@ class EntityTypeDAO:
 
     async def update(self, name: str, dto: EntityTypeDTO[int]) -> None:
         """Update an Entity Type."""
-        entity_type = await self.get_one_raw_by_name(name)
+        entity_type = await self._get_one_raw_by_name(name)
 
         try:
             entity_type.name = dto.name
-
-            # Sort object_class_names to ensure a
-            # consistent order for database operations
-            # and to facilitate duplicate detection.
-
-            entity_type.object_class_names = sorted(
-                dto.object_class_names,
-            )
-            result = await self.__session.execute(
-                select(Directory)
-                .join(qa(Directory.entity_type))
-                .where(qa(EntityType.name) == entity_type.name)
-                .options(selectinload(qa(Directory.attributes))),
-            )  # fmt: skip
 
             await self.__session.execute(
                 delete(Attribute)
@@ -115,7 +103,19 @@ class EntityTypeDAO:
                 ),
             )  # fmt: skip
 
-            for directory in result.scalars():
+            # Sort object_class_names to ensure a
+            # consistent order for database operations
+            # and to facilitate duplicate detection.
+
+            entity_type.object_class_names = sorted(
+                dto.object_class_names,
+            )
+            directory_ids = (
+                await self.__directory_dao.get_all_dir_ids_by_entity_type_name(
+                    entity_type.name,
+                )
+            )
+            for directory_id in directory_ids:
                 for object_class_name in entity_type.object_class_names:
                     if not self.__attribute_value_validator.is_value_valid(
                         entity_type.name,
@@ -128,7 +128,7 @@ class EntityTypeDAO:
 
                     self.__session.add(
                         Attribute(
-                            directory_id=directory.id,
+                            directory_id=directory_id,
                             name="objectClass",
                             value=object_class_name,
                         ),
@@ -145,7 +145,7 @@ class EntityTypeDAO:
 
     async def delete(self, name: str) -> None:
         """Delete an Entity Type."""
-        entity_type = await self.get_one_raw_by_name(name)
+        entity_type = await self._get_one_raw_by_name(name)
         await self.__session.delete(entity_type)
         await self.__session.flush()
 
@@ -168,7 +168,7 @@ class EntityTypeDAO:
             session=self.__session,
         )
 
-    async def get_one_raw_by_name(self, name: str) -> EntityType:
+    async def _get_one_raw_by_name(self, name: str) -> EntityType:
         """Get single Entity Type by name."""
         entity_type = await self.__session.scalar(
             select(EntityType)
@@ -183,12 +183,12 @@ class EntityTypeDAO:
 
     async def get(self, name: str) -> EntityTypeDTO:
         """Get single Entity Type by name."""
-        return _convert(await self.get_one_raw_by_name(name))
+        return _convert(await self._get_one_raw_by_name(name))
 
     async def get_entity_type_by_object_class_names(
         self,
         object_class_names: Iterable[str],
-    ) -> EntityType | None:
+    ) -> EntityTypeDTO | None:
         """Get single Entity Type by object class names."""
         list_object_class_names = [name.lower() for name in object_class_names]
         result = await self.__session.execute(
@@ -199,7 +199,8 @@ class EntityTypeDAO:
             ),
         )  # fmt: skip
 
-        return result.scalars().first()
+        entity_type = result.scalars().first()
+        return _convert(entity_type) if entity_type else None
 
     async def get_entity_type_names_include_oc_name(
         self,

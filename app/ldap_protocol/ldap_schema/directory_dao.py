@@ -1,0 +1,105 @@
+"""Directory DAO.
+
+Copyright (c) 2026 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from constants import CONFIGURATION_DIR_NAME
+from entities import Directory, EntityType
+from ldap_protocol.utils.queries import get_base_directories
+from repo.pg.tables import queryable_attr as qa
+
+
+class DirectoryDAO:
+    """Directory DAO."""
+
+    __session: AsyncSession
+
+    def __init__(self, session: AsyncSession) -> None:
+        """Initialize Directory DAO with session."""
+        self.__session = session
+
+    async def create_directory(
+        self,
+        name: str,
+        is_system: bool,
+        parent_dir: Directory,
+        parent_dir_id: int,
+    ) -> Directory:
+        """Create a Directory and return it with id populated."""
+        directory = Directory(
+            is_system=is_system,
+            object_class="",
+            name=name,
+        )
+        directory.groups = []
+        directory.create_path(parent_dir, directory.get_dn_prefix())
+        self.__session.add(directory)
+        await self.__session.flush()
+
+        directory.parent_id = parent_dir_id
+        await self.__session.refresh(directory, ["id"])
+        return directory
+
+    async def get_all_without_entity_type(self) -> list[Directory]:
+        """Get all Directories without Entity Type."""
+        result = await self.__session.scalars(
+            select(Directory)
+            .where(qa(Directory.entity_type_id).is_(None))
+            .options(
+                selectinload(qa(Directory.attributes)),
+                selectinload(qa(Directory.entity_type)),
+            ),
+        )
+        return list(result.all())
+
+    async def get_base_directory_paths_with_sid(self) -> list[tuple[str, str]]:
+        """Get all base directory paths."""
+        base_dirs = await get_base_directories(self.__session)
+        return [
+            (base_dir.path_dn, base_dir.object_sid) for base_dir in base_dirs
+        ]
+
+    def get_object_sid(self, base_dn_sid: str, rid: int) -> str:
+        return f"{base_dn_sid}-{rid}"
+
+    def is_dn_in_base_directory(self, path_dn: str, entry: str) -> bool:
+        """Check if an entry in a base dn."""
+        return entry.lower().endswith(path_dn.lower())
+
+    async def get_configuration_dir(self) -> Directory:
+        """Get configuration directory."""
+        result = await self.__session.execute(
+            select(Directory)
+            .where(qa(Directory.name) == CONFIGURATION_DIR_NAME),
+        )  # fmt: skip
+        return result.scalar_one()
+
+    async def get_all_dir_ids_by_entity_type_name(
+        self,
+        name: str,
+    ) -> list[int]:
+        """Get all Directory IDs by Entity Type name."""
+        result = await self.__session.scalars(
+            select(qa(Directory.id))
+            .join(qa(Directory.entity_type))
+            .where(qa(EntityType.name) == name),
+        )
+        return list(result.all())
+
+    async def bind_entity_type(
+        self,
+        directory: Directory,
+        entity_type_id: int | None,
+    ) -> None:
+        """Ensure the Directory.entity_type relationship is loaded."""
+        directory.entity_type_id = entity_type_id
+        await self.__session.flush()
+        await self.__session.refresh(
+            directory,
+            attribute_names=["entity_type"],
+        )

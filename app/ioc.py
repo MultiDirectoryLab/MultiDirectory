@@ -97,6 +97,7 @@ from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
 from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
     ObjectClassUseCaseLegacy,
 )
+from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
 )
@@ -109,6 +110,7 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
@@ -541,6 +543,7 @@ class MainProvider(Provider):
         AttributeTypeDAOLegacy,
         scope=Scope.REQUEST,
     )
+    attribute_dao = provide(AttributeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
         AttributeTypeSystemFlagsUseCase,
         scope=Scope.REQUEST,
@@ -551,6 +554,7 @@ class MainProvider(Provider):
         scope=Scope.REQUEST,
     )
 
+    directory_dao = provide(DirectoryDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_use_case = provide(
         AttributeTypeUseCase,

@@ -50,15 +50,13 @@ class ObjectClassDAO:
 
     async def get_all(self) -> list[ObjectClassDTO[int, str]]:
         """Get all Object Classes."""
-        return [
-            _convert_model_to_dto(object_class)
-            for object_class in await self.__session.scalars(
-                select(Directory)
-                .join(qa(Directory.entity_type))
-                .where(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS)
-                .options(selectinload(qa(Directory.attributes))),
-            )
-        ]
+        result = await self.__session.scalars(
+            select(Directory)
+            .join(qa(Directory.entity_type))
+            .where(qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS)
+            .options(selectinload(qa(Directory.attributes))),
+        )
+        return list(map(_convert_model_to_dto, result))
 
     async def get_object_class_names_include_attribute_type(
         self,
@@ -80,7 +78,7 @@ class ObjectClassDAO:
 
     async def delete(self, name: str) -> None:
         """Delete Object Class."""
-        object_class = await self.get_dir(name)
+        object_class = await self._get_dir(name)
         await self.__session.delete(object_class)
         await self.__session.flush()
 
@@ -134,7 +132,7 @@ class ObjectClassDAO:
         return True
 
     async def get(self, name: str) -> ObjectClassDTO:
-        dir_ = await self.get_dir(name)
+        dir_ = await self._get_dir(name)
         if not dir_:
             raise ObjectClassNotFoundError(
                 f"Object Class with name '{name}' not found.",
@@ -142,7 +140,7 @@ class ObjectClassDAO:
 
         return _convert_model_to_dto(dir_)
 
-    async def get_dir(self, name: str) -> Directory | None:
+    async def _get_dir(self, name: str) -> Directory | None:
         res = await self.__session.scalars(
             select(Directory)
             .join(qa(Directory.entity_type))

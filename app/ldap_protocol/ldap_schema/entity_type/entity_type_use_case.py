@@ -5,14 +5,11 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import contextlib
-from typing import ClassVar, Iterable
-
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from typing import TYPE_CHECKING, ClassVar, Iterable
 
 from abstract_service import AbstractService
-from entities import Directory, EntityType
 from enums import AuthorizationRules, EntityTypeNames
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -24,7 +21,9 @@ from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
-from repo.pg.tables import queryable_attr as qa
+
+if TYPE_CHECKING:
+    from entities import Directory
 
 
 class EntityTypeUseCase(AbstractService):
@@ -32,15 +31,18 @@ class EntityTypeUseCase(AbstractService):
 
     __entity_type_dao: EntityTypeDAO
     __object_class_dao: ObjectClassDAO
+    __directory_dao: DirectoryDAO
 
     def __init__(
         self,
         entity_type_dao: EntityTypeDAO,
         object_class_dao: ObjectClassDAO,
+        directory_dao: DirectoryDAO,
     ) -> None:
         """Initialize Entity Use Case."""
         self.__entity_type_dao = entity_type_dao
         self.__object_class_dao = object_class_dao
+        self.__directory_dao = directory_dao
 
     async def create(self, dto: EntityTypeDTO) -> None:
         """Create Entity Type."""
@@ -78,9 +80,6 @@ class EntityTypeUseCase(AbstractService):
         """Get Entity Type by name."""
         return await self.__entity_type_dao.get(name)
 
-    async def get_one_raw_by_name(self, name: str) -> EntityType:
-        return await self.__entity_type_dao.get_one_raw_by_name(name)
-
     async def _validate_name(
         self,
         name: str,
@@ -99,7 +98,7 @@ class EntityTypeUseCase(AbstractService):
 
     async def get_entity_type_attributes(self, name: str) -> list[str]:
         """Get entity type attributes."""
-        entity_type = await self.__entity_type_dao.get_one_raw_by_name(name)
+        entity_type = await self.__entity_type_dao.get(name)
 
         if not entity_type.object_class_names:
             return []
@@ -118,7 +117,7 @@ class EntityTypeUseCase(AbstractService):
     async def get_entity_type_by_object_class_names(
         self,
         object_class_names: Iterable[str],
-    ) -> EntityType | None:
+    ) -> EntityTypeDTO | None:
         """Get Entity Type by object class names."""
         return (
             await self.__entity_type_dao.get_entity_type_by_object_class_names(
@@ -132,33 +131,27 @@ class EntityTypeUseCase(AbstractService):
 
     async def attach_entity_type_to_directories(self) -> None:
         """Find all Directories without an Entity Type and attach it to them."""  # noqa: E501
-        result = await self.__session.execute(
-            select(Directory)
-            .where(qa(Directory.entity_type_id).is_(None))
-            .options(
-                selectinload(qa(Directory.attributes)),
-                selectinload(qa(Directory.entity_type)),
-            ),
-        )
+        directories = await self.__directory_dao.get_all_without_entity_type()
 
-        for directory in result.scalars():
+        for directory in directories:
             await self.attach_entity_type_to_directory(
                 directory=directory,
                 is_system_entity_type=False,
             )
 
-        await self.__session.flush()
-
     async def attach_entity_type_to_directory(
         self,
-        directory: Directory,
+        directory: "Directory",
         is_system_entity_type: bool,
-        entity_type: EntityType | None = None,
+        entity_type_id: int | None = None,
         object_class_names: set[str] | None = None,
     ) -> None:
         """Try to find the Entity Type, attach it to the Directory."""
-        if entity_type:
-            directory.entity_type = entity_type
+        if entity_type_id:
+            await self.__directory_dao.bind_entity_type(
+                directory,
+                entity_type_id,
+            )
             return
 
         if object_class_names is None:
@@ -174,8 +167,8 @@ class EntityTypeUseCase(AbstractService):
             )
         )
         if not entity_type:
-            entity_type_name = EntityType.generate_entity_type_name(
-                directory=directory,
+            entity_type_name = (
+                self.__entity_type_dao.generate_entity_type_name(directory)
             )
             with contextlib.suppress(EntityTypeAlreadyExistsError):
                 await self.create(
@@ -190,7 +183,7 @@ class EntityTypeUseCase(AbstractService):
                 object_class_names,
             )
 
-        directory.entity_type = entity_type
+        await self.__directory_dao.bind_entity_type(directory, entity_type.id)  # type: ignore
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
         get.__name__: AuthorizationRules.ENTITY_TYPE_GET,
