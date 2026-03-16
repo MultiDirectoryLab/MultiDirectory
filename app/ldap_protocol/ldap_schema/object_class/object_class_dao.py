@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from entities import Attribute, Directory, EntityType
-from enums import EntityTypeNames
+from enums import EntityTypeNames, KindType
 from ldap_protocol.ldap_schema.object_class.constants import (
     ObjectClassAttributeNames as Names,
 )
@@ -23,14 +23,34 @@ from ..exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
 
 
 def _convert_model_to_dto(dir_: Directory) -> ObjectClassDTO[int, str]:
+    _oids = dir_.attributes_dict.get(Names.OID)
+    oid = _oids[0] if _oids else ""
+
+    _superior_names = dir_.attributes_dict.get(Names.SUPERIOR_NAME)
+    superior_name = _superior_names[0] if _superior_names else ""
+
+    _kinds = dir_.attributes_dict.get(Names.KIND)
+    if not _kinds:
+        raise ValueError(f"Object Class '{dir_.name}' has no kind.")
+    kind = KindType(_kinds[0])
+
+    attribute_types_must = dir_.attributes_dict.get(
+        Names.ATTRIBUTE_TYPES_MUST,
+        [],
+    )
+    attribute_types_may = dir_.attributes_dict.get(
+        Names.ATTRIBUTE_TYPES_MAY,
+        [],
+    )
+
     return ObjectClassDTO(
-        oid=dir_.attributes_dict.get(Names.OID)[0],  # type: ignore
+        oid=oid,
         name=dir_.name,
-        superior_name=dir_.attributes_dict.get(Names.SUPERIOR_NAME)[0],  # type: ignore
-        kind=dir_.attributes_dict.get(Names.KIND)[0],  # type: ignore
+        superior_name=superior_name,
+        kind=kind,
         is_system=dir_.is_system,
-        attribute_types_must=dir_.attributes_dict.get(Names.ATTRIBUTE_TYPES_MUST, []),  # noqa: E501
-        attribute_types_may=dir_.attributes_dict.get(Names.ATTRIBUTE_TYPES_MAY, []),  # noqa: E501
+        attribute_types_must=attribute_types_must,
+        attribute_types_may=attribute_types_may,
         id=dir_.id,
         entity_type_names=set(),
     )  # fmt: skip
@@ -88,6 +108,9 @@ class ObjectClassDAO:
     ) -> PaginationResult[Directory, ObjectClassDTO]:
         """Retrieve paginated Object Classes."""
         filters = [qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS]
+
+        if params.query:
+            filters.append(qa(Directory.name).like(f"%{params.query}%"))
 
         query = (
             select(Directory)
