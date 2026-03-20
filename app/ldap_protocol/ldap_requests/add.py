@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory, Group, User
-from enums import AceType, EntityTypeNames, SamAccountTypeCodes
+from enums import AceType, SamAccountTypeCodes
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -163,14 +163,6 @@ class AddRequest(BaseRequest):
         entity_type = await ctx.entity_type_use_case.get_entity_type_by_object_class_names(  # noqa: E501
             object_class_names=self.object_class_names,
         )
-        if entity_type and entity_type.name in (
-            EntityTypeNames.CONTAINER,
-            EntityTypeNames.ATTRIBUTE_TYPE,
-            EntityTypeNames.OBJECT_CLASS,
-            EntityTypeNames.CONFIGURATION,
-        ):
-            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
-            return
 
         if not ctx.attribute_value_validator.is_value_valid(
             entity_type.name if entity_type else "",

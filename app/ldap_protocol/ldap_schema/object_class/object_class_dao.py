@@ -19,7 +19,11 @@ from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 from repo.pg.tables import queryable_attr as qa
 
 from ..dto import ObjectClassDTO
-from ..exceptions import ObjectClassCantModifyError, ObjectClassNotFoundError
+from ..exceptions import (
+    ObjectClassCantModifyError,
+    ObjectClassNotFoundError,
+    ObjectClassNotSetKindError,
+)
 
 
 def _convert_model_to_dto(dir_: Directory) -> ObjectClassDTO[int, str]:
@@ -31,7 +35,9 @@ def _convert_model_to_dto(dir_: Directory) -> ObjectClassDTO[int, str]:
 
     _kinds = dir_.attributes_dict.get(Names.KIND)
     if not _kinds:
-        raise ValueError(f"Object Class '{dir_.name}' has no kind.")
+        raise ObjectClassNotSetKindError(
+            f"Object Class '{dir_.name}' has no kind.",
+        )
     kind = KindType(_kinds[0])
 
     attribute_types_must = dir_.attributes_dict.get(

@@ -188,7 +188,6 @@ class EntityTypeUseCase(AbstractService):
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
         get.__name__: AuthorizationRules.ENTITY_TYPE_GET,
         create.__name__: AuthorizationRules.ENTITY_TYPE_CREATE,
-        get_paginator.__name__: AuthorizationRules.ENTITY_TYPE_GET_PAGINATOR,
         update.__name__: AuthorizationRules.ENTITY_TYPE_UPDATE,
         delete_all_by_names.__name__: AuthorizationRules.ENTITY_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
         get_entity_type_attributes.__name__: AuthorizationRules.ENTITY_TYPE_GET_ATTRIBUTES,  # noqa: E501

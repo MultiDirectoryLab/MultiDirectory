@@ -15,7 +15,7 @@ from enums import EntityTypeNames
 from repo.pg.tables import queryable_attr as qa
 
 
-class AccessControlEntryMigrationsDAO:
+class AccessControlEntryAttributeTypeRemapDAO:
     """Access control entry DAO."""
 
     __session: AsyncSession
@@ -36,8 +36,10 @@ class AccessControlEntryMigrationsDAO:
                 EntityType,
                 qa(EntityType.id) == qa(Directory.entity_type_id),
             )
-            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE)
-            .where(qa(Directory.name).in_(attribute_names)),
+            .where(
+                qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
+                qa(Directory.name).in_(attribute_names),
+            ),
         )
         directory_by_name = {row.name: row.id for row in directory_rows_q}
 

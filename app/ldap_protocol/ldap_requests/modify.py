@@ -157,7 +157,7 @@ class ModifyRequest(BaseRequest):
         now = datetime.now(timezone.utc) + timedelta(days=max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(  # noqa: C901
+    async def handle(
         self,
         ctx: LDAPModifyRequestContext,
     ) -> AsyncGenerator[ModifyResponse, None]:
@@ -224,16 +224,6 @@ class ModifyRequest(BaseRequest):
             return
 
         entity_type = directory.entity_type
-        if entity_type and entity_type.name in (
-            EntityTypeNames.ATTRIBUTE_TYPE,
-            EntityTypeNames.OBJECT_CLASS,
-            EntityTypeNames.CONFIGURATION,
-        ):
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
-            return
-
         before_attrs = self.get_directory_attrs(directory)
         try:
             for change in self.changes:

@@ -53,10 +53,7 @@ class AttributeTypeUseCaseLegacy(AbstractService):
         """Set replication flag to False for all Attribute Types."""
         await self.__attribute_type_dao_legacy.zero_all_replicated_flags()
 
-    async def set_false_replication_flag(
-        self,
-        names: tuple[str, ...],
-    ) -> None:
+    async def set_false_replication_flag(self, names: tuple[str, ...]) -> None:
         """Set replication flag in systemFlags."""
         await self.__attribute_type_dao_legacy.set_false_replication_flag(
             names,

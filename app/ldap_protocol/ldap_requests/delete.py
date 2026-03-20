@@ -10,7 +10,7 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import joinedload, selectinload
 
 from entities import Directory, Group
-from enums import AceType, EntityTypeNames
+from enums import AceType
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIConnectionError,
@@ -103,17 +103,6 @@ class DeleteRequest(BaseRequest):
         if directory.is_system:
             yield DeleteResponse(
                 result_code=LDAPCodes.UNWILLING_TO_PERFORM,
-            )
-            return
-
-        entity_type = directory.entity_type if directory else None
-        if entity_type and entity_type.name in (
-            EntityTypeNames.ATTRIBUTE_TYPE,
-            EntityTypeNames.OBJECT_CLASS,
-            EntityTypeNames.CONFIGURATION,
-        ):
-            yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
             )
             return
 

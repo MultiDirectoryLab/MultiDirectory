@@ -134,7 +134,7 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
 )
 from ldap_protocol.ldap_schema.schema_create_use_case import (
-    SchemaLikeAsDirectoryCreateUseCase,
+    DirectoryCreateUseCase,
 )
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
@@ -178,7 +178,7 @@ from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
 from ldap_protocol.roles.migrations_ace_dao import (
-    AccessControlEntryMigrationsDAO,
+    AccessControlEntryAttributeTypeRemapDAO,
 )
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -329,8 +329,8 @@ class TestProvider(Provider):
             domain.name,
         )
 
-    schema_create_use_case = provide(
-        SchemaLikeAsDirectoryCreateUseCase,
+    directory_create_use_case = provide(
+        DirectoryCreateUseCase,
         scope=Scope.REQUEST,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
@@ -564,7 +564,7 @@ class TestProvider(Provider):
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     ace_migrations_dao = provide(
-        AccessControlEntryMigrationsDAO,
+        AccessControlEntryAttributeTypeRemapDAO,
         scope=Scope.REQUEST,
     )
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
@@ -1051,7 +1051,7 @@ async def setup_session(
         object_class_dao=object_class_dao,
         directory_dao=directory_dao,
     )
-    schema_create_use_case = SchemaLikeAsDirectoryCreateUseCase(
+    directory_create_use_case = DirectoryCreateUseCase(
         session=session,
         entity_type_use_case=entity_type_use_case,
         role_use_case=role_use_case,
@@ -1062,14 +1062,14 @@ async def setup_session(
         attribute_type_dao=attribute_type_dao,
         object_class_dao=object_class_dao,
         entity_type_dao=entity_type_dao,
-        schema_create_use_case=schema_create_use_case,
+        directory_create_use_case=directory_create_use_case,
     )
 
     attribute_type_use_case = AttributeTypeUseCase(
         attribute_type_dao=attribute_type_dao,
         attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
         object_class_dao=object_class_dao,
-        schema_create_use_case=schema_create_use_case,
+        directory_create_use_case=directory_create_use_case,
     )
 
     audit_policy_dao = AuditPoliciesDAO(session)

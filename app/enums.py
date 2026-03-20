@@ -157,20 +157,17 @@ class AuthorizationRules(IntFlag):
 
     ATTRIBUTE_TYPE_GET = auto()
     ATTRIBUTE_TYPE_CREATE = auto()
-    ATTRIBUTE_TYPE_GET_PAGINATOR = auto()
     ATTRIBUTE_TYPE_UPDATE = auto()
     ATTRIBUTE_TYPE_DELETE_ALL_BY_NAMES = auto()
 
     ENTITY_TYPE_GET = auto()
     ENTITY_TYPE_CREATE = auto()
-    ENTITY_TYPE_GET_PAGINATOR = auto()
     ENTITY_TYPE_UPDATE = auto()
     ENTITY_TYPE_DELETE_ALL_BY_NAMES = auto()
     ENTITY_TYPE_GET_ATTRIBUTES = auto()
 
     OBJECT_CLASS_GET = auto()
     OBJECT_CLASS_CREATE = auto()
-    OBJECT_CLASS_GET_PAGINATOR = auto()
     OBJECT_CLASS_UPDATE = auto()
     OBJECT_CLASS_DELETE_ALL_BY_NAMES = auto()
 

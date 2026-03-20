@@ -30,7 +30,7 @@ from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
 from ldap_protocol.ldap_schema.schema_create_use_case import (
-    SchemaLikeAsDirectoryCreateUseCase,
+    DirectoryCreateUseCase,
 )
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
@@ -41,20 +41,20 @@ class ObjectClassUseCase(AbstractService):
     __attribute_type_dao: AttributeTypeDAO
     __object_class_dao: ObjectClassDAO
     __entity_type_dao: EntityTypeDAO
-    __schema_create_use_case: SchemaLikeAsDirectoryCreateUseCase
+    __directory_create_use_case: DirectoryCreateUseCase
 
     def __init__(
         self,
         attribute_type_dao: AttributeTypeDAO,
         object_class_dao: ObjectClassDAO,
         entity_type_dao: EntityTypeDAO,
-        schema_create_use_case: SchemaLikeAsDirectoryCreateUseCase,
+        directory_create_use_case: DirectoryCreateUseCase,
     ) -> None:
         """Init ObjectClassUseCase."""
         self.__attribute_type_dao = attribute_type_dao
         self.__object_class_dao = object_class_dao
         self.__entity_type_dao = entity_type_dao
-        self.__schema_create_use_case = schema_create_use_case
+        self.__directory_create_use_case = directory_create_use_case
 
     async def get_all(self) -> list[ObjectClassDTO[int, str]]:
         """Get all Object Classes."""
@@ -132,7 +132,7 @@ class ObjectClassUseCase(AbstractService):
             is_system=dto.is_system,
         )
         try:
-            await self.__schema_create_use_case.create_dir(dto=_dto)
+            await self.__directory_create_use_case.create_dir(dto=_dto)
         except IntegrityError:
             raise ObjectClassAlreadyExistsError(
                 f"Object Class with oid '{dto.oid}' and name"
@@ -172,7 +172,6 @@ class ObjectClassUseCase(AbstractService):
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
         get.__name__: AuthorizationRules.OBJECT_CLASS_GET,
         create.__name__: AuthorizationRules.OBJECT_CLASS_CREATE,
-        get_paginator.__name__: AuthorizationRules.OBJECT_CLASS_GET_PAGINATOR,
         update.__name__: AuthorizationRules.OBJECT_CLASS_UPDATE,
         delete_all_by_names.__name__: AuthorizationRules.OBJECT_CLASS_DELETE_ALL_BY_NAMES,  # noqa: E501
     }

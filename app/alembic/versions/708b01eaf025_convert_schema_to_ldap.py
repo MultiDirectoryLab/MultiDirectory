@@ -27,7 +27,7 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
 )
 from ldap_protocol.roles.migrations_ace_dao import (
-    AccessControlEntryMigrationsDAO,
+    AccessControlEntryAttributeTypeRemapDAO,
 )
 from ldap_protocol.utils.queries import get_base_directories
 
@@ -44,6 +44,15 @@ def upgrade(container: AsyncContainer) -> None:
         op.f("AccessControlEntries_attributeTypeId_fkey"),
         "AccessControlEntries",
         type_="foreignkey",
+    )
+
+    op.create_foreign_key(
+        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
+        "AccessControlEntries",
+        "Directory",
+        ["attributeTypeId"],
+        ["id"],
+        ondelete="CASCADE",
     )
 
     async def _update_entity_types(connection: AsyncConnection) -> None:  # noqa: ARG001
@@ -102,7 +111,7 @@ def upgrade(container: AsyncContainer) -> None:
     ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            ace_dao = await cnt.get(AccessControlEntryMigrationsDAO)
+            ace_dao = await cnt.get(AccessControlEntryAttributeTypeRemapDAO)
 
         if not await get_base_directories(session):
             return
@@ -114,15 +123,6 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_ldap_object_classes)
     op.run_async(_rebind_ace_attribute_types_to_directories)
 
-    op.create_foreign_key(
-        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
-        "AccessControlEntries",
-        "Directory",
-        ["attributeTypeId"],
-        ["id"],
-        ondelete="CASCADE",
-    )
-
 
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
@@ -132,7 +132,7 @@ def downgrade(container: AsyncContainer) -> None:
     ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            ace_dao = await cnt.get(AccessControlEntryMigrationsDAO)
+            ace_dao = await cnt.get(AccessControlEntryAttributeTypeRemapDAO)
 
         if not await get_base_directories(session):
             return

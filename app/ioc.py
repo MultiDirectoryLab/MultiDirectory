@@ -122,7 +122,7 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
 )
 from ldap_protocol.ldap_schema.schema_create_use_case import (
-    SchemaLikeAsDirectoryCreateUseCase,
+    DirectoryCreateUseCase,
 )
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
@@ -181,7 +181,7 @@ from ldap_protocol.policies.password.use_cases import (
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.migrations_ace_dao import (
-    AccessControlEntryMigrationsDAO,
+    AccessControlEntryAttributeTypeRemapDAO,
 )
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -572,8 +572,8 @@ class MainProvider(Provider):
             attribute_type_dao_legacy=at_dao_legacy,
         )
 
-    schema_create_use_case = provide(
-        SchemaLikeAsDirectoryCreateUseCase,
+    directory_create_use_case = provide(
+        DirectoryCreateUseCase,
         scope=Scope.REQUEST,
     )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
@@ -619,7 +619,7 @@ class MainProvider(Provider):
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     ace_migrations_dao = provide(
-        AccessControlEntryMigrationsDAO,
+        AccessControlEntryAttributeTypeRemapDAO,
         scope=Scope.REQUEST,
     )
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)

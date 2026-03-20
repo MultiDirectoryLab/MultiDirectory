@@ -14,16 +14,23 @@ from ldap_protocol.ldap_schema.dto import AttributeDTO, CreateDirDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
-from ldap_protocol.ldap_schema.exceptions import (
-    CantCreateDirectoryWithSchemaLikeAsDirectoryError,
-)
+from ldap_protocol.ldap_schema.exceptions import CantCreateDirectoryError
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
 if TYPE_CHECKING:
     from entities import Directory
 
 
-class SchemaLikeAsDirectoryCreateUseCase:
+def _get_object_sid(base_dn_sid: str, rid: int) -> str:
+    return f"{base_dn_sid}-{rid}"
+
+
+def _is_dn_in_base_directory(path_dn: str, entry: str) -> bool:
+    """Check if an entry in a base dn."""
+    return entry.lower().endswith(path_dn.lower())
+
+
+class DirectoryCreateUseCase:
     """Setup use case."""
 
     __session: AsyncSession
@@ -64,25 +71,16 @@ class SchemaLikeAsDirectoryCreateUseCase:
             name=dto.name,
             is_system=dto.is_system,
             parent_dir=self.__parent_dir,
-            parent_dir_id=self.__parent_dir.id,
         )
 
         for _path, _sid in base_directory_paths_and_sids:
-            if self.__directory_dao.is_dn_in_base_directory(
-                _path,
-                dir_.path_dn,
-            ):
+            if _is_dn_in_base_directory(_path, dir_.path_dn):
                 base_dn_sid = _sid
                 break
         else:
-            raise CantCreateDirectoryWithSchemaLikeAsDirectoryError(
-                "Cannot create a directory with schema like as directory.",
-            )
+            raise CantCreateDirectoryError("Cannot create a directory.")
 
-        dir_.object_sid = self.__directory_dao.get_object_sid(
-            base_dn_sid,
-            dir_.id,
-        )
+        dir_.object_sid = _get_object_sid(base_dn_sid, dir_.id)
 
         attr_dto = AttributeDTO(name=dir_.rdname, values=[dir_.name])
         await self.__attribute_dao.add_directory_name_attribute(

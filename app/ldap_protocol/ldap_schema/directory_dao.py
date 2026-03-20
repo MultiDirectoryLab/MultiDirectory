@@ -28,7 +28,6 @@ class DirectoryDAO:
         name: str,
         is_system: bool,
         parent_dir: Directory,
-        parent_dir_id: int,
     ) -> Directory:
         """Create a Directory and return it with id populated."""
         directory = Directory(
@@ -41,7 +40,7 @@ class DirectoryDAO:
         self.__session.add(directory)
         await self.__session.flush()
 
-        directory.parent_id = parent_dir_id
+        directory.parent_id = parent_dir.id
         await self.__session.refresh(directory, ["id"])
         return directory
 
@@ -63,13 +62,6 @@ class DirectoryDAO:
         return [
             (base_dir.path_dn, base_dir.object_sid) for base_dir in base_dirs
         ]
-
-    def get_object_sid(self, base_dn_sid: str, rid: int) -> str:
-        return f"{base_dn_sid}-{rid}"
-
-    def is_dn_in_base_directory(self, path_dn: str, entry: str) -> bool:
-        """Check if an entry in a base dn."""
-        return entry.lower().endswith(path_dn.lower())
 
     async def get_configuration_dir(self) -> Directory:
         """Get configuration directory."""

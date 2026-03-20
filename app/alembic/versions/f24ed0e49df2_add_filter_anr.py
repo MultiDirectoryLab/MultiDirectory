@@ -6,9 +6,12 @@ Create Date: 2025-11-11 08:33:46.685338
 
 """
 
+import json
+
 import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
+from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
@@ -16,6 +19,9 @@ from sqlalchemy.orm import Session
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
     AttributeTypeUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema.raw_definition_parser import (
+    RawDefinitionParser as RDParser,
 )
 
 # revision identifiers, used by Alembic.
@@ -36,6 +42,8 @@ _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES = (
     "physicalDeliveryOfficeName",
     "proxyAddresses",
 )
+
+ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
 @temporary_stub_column("AttributeTypes", "system_flags", sa.Integer())
@@ -68,18 +76,47 @@ def upgrade(container: AsyncContainer) -> None:
         nullable=True,
     )
 
+    async def _ensure_anr_attributes_exist(
+        connection: AsyncConnection,  # noqa: ARG001
+    ) -> None:
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            attribute_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
+
+        existing_attr_types = (
+            await attribute_type_use_case.get_all_raw_by_names(
+                list(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES),
+            )
+        )
+        existing_names = {attr_type.name for attr_type in existing_attr_types}
+        missing_names = set(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES) - existing_names
+        if not missing_names:
+            return
+
+        for raw_definition in ad_2012_r2_schema_json["raw"]["attributeTypes"]:
+            attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(
+                raw_definition,
+            )
+            if attribute_type_dto.name not in missing_names:
+                continue
+
+            await attribute_type_use_case.create(attribute_type_dto)
+            missing_names.remove(attribute_type_dto.name)
+            if not missing_names:
+                break
+
+        await session.flush()
+
+    op.run_async(_ensure_anr_attributes_exist)
+
     async def _mark_anr_included(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             attribute_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        len_updated_attrs = len(
-            await attribute_type_use_case.mark_anr_included_by_attr_names(
-                _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES,
-            ),
+        await attribute_type_use_case.mark_anr_included_by_attr_names(
+            _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES,
         )
-        if len_updated_attrs != len(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES):
-            raise ValueError("Not all expected attributes were found")
 
         await session.flush()
 
