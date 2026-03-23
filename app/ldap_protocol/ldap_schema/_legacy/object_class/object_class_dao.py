@@ -13,7 +13,7 @@ from adaptix.conversion import (
     link_function,
 )
 from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -119,21 +119,6 @@ class ObjectClassDAOLegacy:
         await self.__session.execute(
             delete(Directory)
             .where(qa(Directory.entity_type_id).in_(objcls_subq)),
-        )  # fmt: skip
-
-    async def delete_main_table(self) -> None:
-        await self.__session.execute(
-            text('DROP TABLE IF EXISTS "ObjectClasses" CASCADE'),
-        )
-
-    async def delete_may_table(self) -> None:
-        await self.__session.execute(
-            text('DROP TABLE IF EXISTS "ObjectClassAttributeTypeMayMemberships" CASCADE'),  # noqa: E501
-        )  # fmt: skip
-
-    async def delete_must_table(self) -> None:
-        await self.__session.execute(
-            text('DROP TABLE IF EXISTS "ObjectClassAttributeTypeMustMemberships" CASCADE'),  # noqa: E501
         )  # fmt: skip
 
     async def get(self, name: str) -> ObjectClassDTO[int, AttributeTypeDTO]:

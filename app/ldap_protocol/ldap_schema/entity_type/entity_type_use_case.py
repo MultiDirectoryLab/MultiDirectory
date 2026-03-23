@@ -89,6 +89,10 @@ class EntityTypeUseCase(AbstractService):
                 f"Can't change entity type name {name}",
             )
 
+    async def delete_all_by_names_not_safe(self, names: list[str]) -> None:
+        """Delete all Entity Types by names without any checks."""
+        await self.__entity_type_dao.delete_all_by_names_not_safe(names)
+
     async def get_paginator(
         self,
         params: PaginationParams,

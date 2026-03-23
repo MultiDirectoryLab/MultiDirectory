@@ -46,9 +46,6 @@ class AttributeTypeUseCaseLegacy(AbstractService):
         """Delete all Attribute Type directories."""
         await self.__attribute_type_dao_legacy.delete_all_dirs()
 
-    async def delete_table(self) -> None:
-        await self.__attribute_type_dao_legacy.delete_table()
-
     async def zero_all_replicated_flags(self) -> None:
         """Set replication flag to False for all Attribute Types."""
         await self.__attribute_type_dao_legacy.zero_all_replicated_flags()

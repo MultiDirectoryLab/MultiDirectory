@@ -11,7 +11,7 @@ from adaptix.conversion import (
     link_function,
 )
 from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
-from sqlalchemy import delete, or_, select, text, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,11 +62,6 @@ class AttributeTypeDAOLegacy:
             delete(Directory)
             .where(qa(Directory.entity_type_id).in_(attr_subq)),
         )  # fmt: skip
-
-    async def delete_table(self) -> None:
-        await self.__session.execute(
-            text('DROP TABLE IF EXISTS "AttributeTypes" CASCADE'),
-        )
 
     async def get_object_class_names_include_attribute_type(
         self,

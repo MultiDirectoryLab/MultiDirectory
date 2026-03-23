@@ -1177,11 +1177,6 @@ async def setup_session(
         ]
         await object_class_use_case.create(_oc_dto)  # type: ignore
 
-    await attribute_type_use_case_legacy.delete_table()
-    await object_class_use_case_legacy.delete_may_table()
-    await object_class_use_case_legacy.delete_must_table()
-    await object_class_use_case_legacy.delete_main_table()
-
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
 

@@ -99,16 +99,4 @@ class ObjectClassUseCaseLegacy(AbstractService):
         """Delete all Object Class directories."""
         await self.__object_class_dao_legacy.delete_all_dirs()
 
-    async def delete_main_table(self) -> None:
-        """Delete Object Class table."""
-        await self.__object_class_dao_legacy.delete_main_table()
-
-    async def delete_may_table(self) -> None:
-        """Delete Object Class May membership table."""
-        await self.__object_class_dao_legacy.delete_may_table()
-
-    async def delete_must_table(self) -> None:
-        """Delete Object Class Must membership  table."""
-        await self.__object_class_dao_legacy.delete_must_table()
-
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {}

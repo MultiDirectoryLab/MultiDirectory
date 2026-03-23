@@ -221,11 +221,6 @@ class SetupUseCase:
                 ]
                 await self._object_class_use_case.create(obj_class)  # type: ignore
 
-            await self._attribute_type_use_case_legacy.delete_table()
-            await self._object_class_use_case_legacy.delete_may_table()
-            await self._object_class_use_case_legacy.delete_must_table()
-            await self._object_class_use_case_legacy.delete_main_table()
-
             await self._password_use_cases.create_default_domain_policy()
 
             errors = await (

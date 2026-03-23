@@ -213,6 +213,14 @@ class EntityTypeDAO:
         )  # fmt: skip
         return set(row[0] for row in result.fetchall())
 
+    async def delete_all_by_names_not_safe(self, names: list[str]) -> None:
+        """Delete all Entity Types by names without any checks."""
+        await self.__session.execute(
+            delete(EntityType)
+            .where(qa(EntityType.name).in_(names)),
+        )  # fmt: skip
+        await self.__session.flush()
+
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system and not used Entity Type by their names."""
         await self.__session.execute(
