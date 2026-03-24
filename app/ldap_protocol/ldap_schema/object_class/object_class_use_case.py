@@ -9,6 +9,7 @@ from typing import ClassVar
 from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService
+from constants import OBJECT_CLASS_OBJECT_CLASS_NAMES
 from enums import AuthorizationRules, EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
@@ -111,7 +112,7 @@ class ObjectClassUseCase(AbstractService):
             attributes=(
                 AttributeDTO(
                     name=Names.OBJECT_CLASS,
-                    values=["top", "classSchema"],
+                    values=OBJECT_CLASS_OBJECT_CLASS_NAMES,
                 ),
                 AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
                 AttributeDTO(name=Names.NAME, values=[str(dto.name)]),
