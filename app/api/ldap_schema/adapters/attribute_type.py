@@ -56,6 +56,10 @@ _convert_schema_to_dto = get_converter(
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].id),
         link_function(
+            lambda _: _.ldap_display_name or "",
+            P[AttributeTypeDTO].ldap_display_name,
+        ),
+        link_function(
             lambda _: DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
             P[AttributeTypeDTO].syntax,
         ),
