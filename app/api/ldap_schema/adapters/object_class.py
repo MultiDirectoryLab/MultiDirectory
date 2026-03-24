@@ -56,6 +56,10 @@ _convert_schema_to_dto = get_converter(
             lambda x: x.attribute_type_names_may,
             P[ObjectClassDTO].attribute_types_may,
         ),
+        # link_function(
+        #     lambda _: "",
+        #     P[AttributeTypeDTO].ldap_display_name,
+        # ),
     ],
 )
 

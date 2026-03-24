@@ -23,6 +23,7 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO[int]:
     return AttributeTypeDTO[int](
         id=directory.id,
         name=directory.name,
+        ldap_display_name=directory.attributes_dict[Names.LDAP_DISPLAY_NAME][0],
         oid=directory.attributes_dict[Names.OID][0],
         syntax=directory.attributes_dict[Names.SYNTAX][0],
         single_value=directory.attributes_dict[Names.SINGLE_VALUE][0] == "True",  # noqa: E501

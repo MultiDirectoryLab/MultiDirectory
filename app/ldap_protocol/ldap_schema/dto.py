@@ -18,6 +18,7 @@ class AttributeTypeDTO(Generic[_IdT]):
 
     oid: str
     name: str
+    ldap_display_name: str
     syntax: str
     single_value: bool
     no_user_modification: bool

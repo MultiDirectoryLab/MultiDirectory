@@ -40,6 +40,7 @@ def _convert_update_uschema_to_dto(
     return AttributeTypeDTO[None](
         oid="",
         name="",
+        ldap_display_name="",
         syntax=request.syntax,
         single_value=request.single_value,
         no_user_modification=request.no_user_modification,

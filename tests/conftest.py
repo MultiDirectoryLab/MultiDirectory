@@ -1116,6 +1116,7 @@ async def setup_session(
         AttributeTypeDTO[None](
             oid="1.2.3.4.5.6.7.8",
             name="attr_with_bvalue",
+            ldap_display_name="attrWithBvalue",
             syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
             single_value=True,
             no_user_modification=False,
@@ -1126,6 +1127,7 @@ async def setup_session(
         AttributeTypeDTO[None](
             oid="1.2.3.4.5.6.7.8.9",
             name="testing_attr",
+            ldap_display_name="testingAttr",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=True,
             no_user_modification=False,

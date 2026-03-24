@@ -5,11 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from adaptix import P
-from adaptix.conversion import (
-    allow_unlinked_optional,
-    get_converter,
-    link_function,
-)
+from adaptix.conversion import get_converter, link_function
 from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
 from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -24,13 +20,27 @@ from ldap_protocol.ldap_schema.exceptions import (
 )
 from repo.pg.tables import queryable_attr as qa
 
-_convert_model_to_dto = get_converter(
-    AttributeTypeLegacy,
-    AttributeTypeDTO,
-    recipe=[
-        allow_unlinked_optional(P[AttributeTypeDTO].object_class_names),
-    ],
-)
+
+def _convert_model_to_dto(
+    attr_type: AttributeTypeLegacy,
+) -> AttributeTypeDTO[int]:
+    """Convert AttributeTypeLegacy to AttributeTypeDTO."""
+    ldap_display_name = (
+        f"{attr_type.name[0].lower()}{attr_type.name.replace('-', '')[1:]}"
+    )
+    return AttributeTypeDTO[int](
+        oid=attr_type.oid,
+        name=attr_type.name,
+        ldap_display_name=ldap_display_name,
+        syntax=attr_type.syntax,
+        single_value=attr_type.single_value,
+        no_user_modification=attr_type.no_user_modification,
+        is_system=attr_type.is_system,
+        system_flags=attr_type.system_flags,
+        is_included_anr=attr_type.is_included_anr,
+    )
+
+
 _convert_dto_to_model = get_converter(
     AttributeTypeDTO,
     AttributeTypeLegacy,

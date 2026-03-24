@@ -34,6 +34,10 @@ _convert_model_to_dto = get_converter(
         allow_unlinked_optional(P[ObjectClassDTO].id),
         allow_unlinked_optional(P[ObjectClassDTO].entity_type_names),
         allow_unlinked_optional(P[AttributeTypeDTO].object_class_names),
+        link_function(
+            lambda _: "",
+            P[AttributeTypeDTO].ldap_display_name,
+        ),
         link_function(lambda x: x.kind, P[ObjectClassDTO].kind),
     ],
 )

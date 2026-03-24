@@ -71,12 +71,19 @@ class AttributeTypeUseCase(AbstractService):
 
     async def create(self, dto: AttributeTypeDTO) -> None:
         """Create Attribute Type."""
+        if not dto.ldap_display_name:
+            dto.ldap_display_name = f"{dto.name[0].lower()}{dto.name.replace('-', '')[1:]}"  # noqa: E501  # fmt: skip
+
         _dto = CreateDirDTO(
             name=dto.name,
             entity_type_name=EntityTypeNames.ATTRIBUTE_TYPE,
             attributes=(
                 AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
                 AttributeDTO(name=Names.NAME, values=[str(dto.name)]),
+                AttributeDTO(
+                    name=Names.LDAP_DISPLAY_NAME,
+                    values=[str(dto.ldap_display_name)],
+                ),
                 AttributeDTO(name=Names.SYNTAX, values=[str(dto.syntax)]),
                 AttributeDTO(
                     name=Names.SINGLE_VALUE,

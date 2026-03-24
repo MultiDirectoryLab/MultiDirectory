@@ -132,6 +132,7 @@ async def test_get_entity_type_attributes(http_client: AsyncClient) -> None:
         AttributeTypeSchema(
             oid="1.2.3.100",
             name="testEntityTypeAttr1",
+            ldap_display_name="testEntityTypeAttr1",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=True,
             no_user_modification=False,
@@ -141,6 +142,7 @@ async def test_get_entity_type_attributes(http_client: AsyncClient) -> None:
         AttributeTypeSchema(
             oid="1.2.3.101",
             name="testEntityTypeAttr2",
+            ldap_display_name="testEntityTypeAttr2",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=True,
             no_user_modification=False,

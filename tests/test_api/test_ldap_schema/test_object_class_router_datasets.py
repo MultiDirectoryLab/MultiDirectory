@@ -8,6 +8,7 @@ test_create_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
+                "ldap_display_name": "testAttributeType1",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -17,6 +18,7 @@ test_create_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testAttributeType2",
+                "ldap_display_name": "testAttributeType2",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -26,6 +28,7 @@ test_create_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5.6",
                 "name": "testAttributeType3",
+                "ldap_display_name": "testAttributeType3",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -95,6 +98,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
+                "ldap_display_name": "testAttributeType1",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -121,6 +125,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
+                "ldap_display_name": "testAttributeType1",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -130,6 +135,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testAttributeType2",
+                "ldap_display_name": "testAttributeType2",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -159,6 +165,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4",
                 "name": "testAttributeType1",
+                "ldap_display_name": "testAttributeType1",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -168,6 +175,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5",
                 "name": "testAttributeType2",
+                "ldap_display_name": "testAttributeType2",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,
@@ -177,6 +185,7 @@ test_modify_one_object_class_dataset = [
             {
                 "oid": "1.2.3.4.5.6",
                 "name": "testAttributeType3",
+                "ldap_display_name": "testAttributeType3",
                 "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
                 "single_value": True,
                 "no_user_modification": False,

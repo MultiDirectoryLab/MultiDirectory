@@ -218,6 +218,7 @@ def upgrade(container: AsyncContainer) -> None:
                 AttributeTypeDTO(
                     oid=oid,
                     name=name,
+                    ldap_display_name=name,
                     syntax="1.3.6.1.4.1.1466.115.121.1.15",
                     single_value=True,
                     no_user_modification=False,
