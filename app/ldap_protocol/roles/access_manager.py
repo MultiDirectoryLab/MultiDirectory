@@ -61,7 +61,7 @@ class AccessManager:
                     return False, set(), set()
 
             elif not ace.is_allow and ace.attribute_type_name is not None:
-                forbidden_attributes.add(ace.attribute_type_name)  # type: ignore
+                forbidden_attributes.add(ace.attribute_type_name)
 
             elif ace.is_allow and ace.attribute_type_name is None:
                 return True, forbidden_attributes, set()
