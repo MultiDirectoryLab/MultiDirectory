@@ -22,7 +22,7 @@ from repo.pg.tables import queryable_attr as qa
 def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO[int]:
     return AttributeTypeDTO[int](
         id=directory.id,
-        name=directory.name,
+        name=directory.attributes_dict[Names.LDAP_DISPLAY_NAME][0],
         ldap_display_name=directory.attributes_dict[Names.LDAP_DISPLAY_NAME][0],
         oid=directory.attributes_dict[Names.OID][0],
         syntax=directory.attributes_dict[Names.SYNTAX][0],
