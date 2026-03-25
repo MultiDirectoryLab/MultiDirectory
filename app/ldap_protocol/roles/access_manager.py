@@ -54,16 +54,16 @@ class AccessManager:
             return False, set(), set()
 
         for ace in aces:
-            if not ace.is_allow and ace.attribute_type_id is None:
+            if not ace.is_allow and ace.attribute_type_name is None:
                 if allowed_attributes:
                     return True, set(), allowed_attributes
                 else:
                     return False, set(), set()
 
-            elif not ace.is_allow and ace.attribute_type_id is not None:
+            elif not ace.is_allow and ace.attribute_type_name is not None:
                 forbidden_attributes.add(ace.attribute_type_name)  # type: ignore
 
-            elif ace.is_allow and ace.attribute_type_id is None:
+            elif ace.is_allow and ace.attribute_type_name is None:
                 return True, forbidden_attributes, set()
 
             else:
@@ -172,7 +172,7 @@ class AccessManager:
                 ace.ace_type == ace_type
                 and not ace.is_allow
                 and (
-                    ace.attribute_type_id is None
+                    ace.attribute_type_name is None
                     or attr_name == ace.attribute_type_name
                 )
             ):
@@ -181,7 +181,7 @@ class AccessManager:
                 ace.ace_type == ace_type
                 and ace.is_allow
                 and (
-                    ace.attribute_type_id is None
+                    ace.attribute_type_name is None
                     or attr_name == ace.attribute_type_name
                 )
             ):
@@ -271,7 +271,7 @@ class AccessManager:
             scope=RoleScope.BASE_OBJECT,
             is_allow=True,
             entity_type_id=None,
-            attribute_type_id=None,
+            attribute_type_name=None,
         )
 
         if not aces:
@@ -291,7 +291,6 @@ class AccessManager:
         user_role_ids: list[int],
         query: Select[tuple[Directory]],
         ace_types: list[AceType],
-        load_attribute_type: bool = False,
         require_attribute_type_null: bool = False,
     ) -> Select[tuple[Directory]]:
         """Mutate query to load access control entries.
@@ -312,13 +311,6 @@ class AccessManager:
             base_loader.joinedload(qa(AccessControlEntry.entity_type)),
         ]
 
-        if load_attribute_type:
-            loader_options.append(
-                base_loader.joinedload(
-                    qa(AccessControlEntry.attribute_type),
-                ),
-            )
-
         criteria_conditions = [
             qa(AccessControlEntry.role_id).in_(user_role_ids),
         ]
@@ -334,7 +326,7 @@ class AccessManager:
 
         if require_attribute_type_null:
             criteria_conditions.append(
-                qa(AccessControlEntry.attribute_type_id).is_(None),
+                qa(AccessControlEntry.attribute_type_name).is_(None),
             )
 
         return query.options(

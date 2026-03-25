@@ -75,7 +75,6 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
                     qa(Group.directory),
                 ),
                 selectinload(qa(Role.access_control_entries)).options(
-                    joinedload(qa(AccessControlEntry.attribute_type)),
                     joinedload(qa(AccessControlEntry.entity_type)),
                     joinedload(qa(AccessControlEntry.role)),
                 ),
@@ -108,7 +107,6 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
                     qa(Group.directory),
                 ),
                 selectinload(qa(Role.access_control_entries)).options(
-                    joinedload(qa(AccessControlEntry.attribute_type)),
                     joinedload(qa(AccessControlEntry.entity_type)),
                     joinedload(qa(AccessControlEntry.role)),
                 ),

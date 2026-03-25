@@ -371,6 +371,7 @@ class AccessControlEntry:
     depth: int | None = None
     path: str = ""
     attribute_type_id: int | None = None
+    attribute_type_name: str | None = None
     entity_type_id: int | None = None
     is_allow: bool = False
 
@@ -389,12 +390,6 @@ class AccessControlEntry:
         default_factory=list,
         repr=False,
     )
-
-    @property
-    def attribute_type_name(self) -> str | None:
-        return (
-            self.attribute_type.name.lower() if self.attribute_type else None
-        )
 
     @property
     def entity_type_name(self) -> str | None:

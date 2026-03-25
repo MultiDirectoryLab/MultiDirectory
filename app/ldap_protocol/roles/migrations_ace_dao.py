@@ -63,10 +63,10 @@ class AccessControlEntryAttributeTypeRemapDAO:
             select(qa(AccessControlEntry.id), qa(AttributeTypeLegacy.name))
             .join(
                 AttributeTypeLegacy,
-                qa(AccessControlEntry.attribute_type_id)
-                == qa(AttributeTypeLegacy.id),
+                qa(AccessControlEntry.attribute_type_name)
+                == qa(AttributeTypeLegacy.name),
             )
-            .where(qa(AccessControlEntry.attribute_type_id).is_not(None)),
+            .where(qa(AccessControlEntry.attribute_type_name).is_not(None)),
         )
         return ace_rows_q.all()
 
@@ -102,13 +102,14 @@ class AccessControlEntryAttributeTypeRemapDAO:
             select(qa(AccessControlEntry.id), qa(Directory.name))
             .join(
                 Directory,
-                qa(AccessControlEntry.attribute_type_id) == qa(Directory.id),
+                qa(AccessControlEntry.attribute_type_name)
+                == qa(Directory.name),
             )
             .join(
                 EntityType,
                 qa(EntityType.id) == qa(Directory.entity_type_id),
             )
             .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE)
-            .where(qa(AccessControlEntry.attribute_type_id).is_not(None)),
+            .where(qa(AccessControlEntry.attribute_type_name).is_not(None)),
         )
         return ace_rows_q.all()

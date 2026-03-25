@@ -526,6 +526,7 @@ access_control_entries_table = Table(
         nullable=True,
         key="attribute_type_id",
     ),
+    Column("attribute_type_name", String, nullable=False),
     Column(
         "entityTypeId",
         Integer,
