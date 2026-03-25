@@ -115,7 +115,6 @@ class ObjectClassUseCase(AbstractService):
                     values=OBJECT_CLASS_OBJECT_CLASS_NAMES,
                 ),
                 AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
-                AttributeDTO(name=Names.NAME, values=[str(dto.name)]),
                 AttributeDTO(
                     name=Names.SUPERIOR_NAME,
                     values=[str(dto.superior_name)],

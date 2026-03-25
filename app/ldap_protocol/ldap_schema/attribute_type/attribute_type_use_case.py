@@ -80,7 +80,6 @@ class AttributeTypeUseCase(AbstractService):
             entity_type_name=EntityTypeNames.ATTRIBUTE_TYPE,
             attributes=(
                 AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
-                AttributeDTO(name=Names.NAME, values=[str(dto.name)]),
                 AttributeDTO(
                     name=Names.OBJECT_CLASS,
                     values=ATTRIBUTE_TYPE_OBJECT_CLASS_NAMES,
