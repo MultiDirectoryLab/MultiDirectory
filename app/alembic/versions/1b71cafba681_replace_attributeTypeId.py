@@ -17,7 +17,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:
+def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.add_column(
         "AccessControlEntries",
@@ -34,30 +34,30 @@ def upgrade(container: AsyncContainer) -> None:
         ),
     )
 
-    # op.drop_index(
-    #     op.f("idx_ace_attribute_type_id"),
-    #     table_name="AccessControlEntries",
-    #     postgresql_using="hash",
-    # )
-    # op.drop_constraint(
-    #     op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
-    #     "AccessControlEntries",
-    #     type_="foreignkey",
-    # )
-    # op.drop_column("AccessControlEntries", "attributeTypeId")
+    op.drop_index(
+        op.f("idx_ace_attribute_type_id"),
+        table_name="AccessControlEntries",
+        postgresql_using="hash",
+    )
+    op.drop_constraint(
+        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
+        "AccessControlEntries",
+        type_="foreignkey",
+    )
+    op.drop_column("AccessControlEntries", "attributeTypeId")
 
 
-def downgrade(container: AsyncContainer) -> None:
+def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Downgrade."""
-    # op.add_column(
-    #     "AccessControlEntries",
-    #     sa.Column(
-    #         "attributeTypeId",
-    #         sa.INTEGER(),
-    #         autoincrement=False,
-    #         nullable=True,
-    #     ),
-    # )
+    op.add_column(
+        "AccessControlEntries",
+        sa.Column(
+            "attributeTypeId",
+            sa.INTEGER(),
+            autoincrement=False,
+            nullable=True,
+        ),
+    )
 
     op.execute(
         sa.text(
@@ -70,19 +70,19 @@ def downgrade(container: AsyncContainer) -> None:
         ),
     )
 
-    # op.create_foreign_key(
-    #     op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
-    #     "AccessControlEntries",
-    #     "Directory",
-    #     ["attributeTypeId"],
-    #     ["id"],
-    #     ondelete="CASCADE",
-    # )
-    # op.create_index(
-    #     op.f("idx_ace_attribute_type_id"),
-    #     "AccessControlEntries",
-    #     ["attributeTypeId"],
-    #     unique=False,
-    #     postgresql_using="hash",
-    # )
-    # op.drop_column("AccessControlEntries", "attribute_type_name")
+    op.create_foreign_key(
+        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
+        "AccessControlEntries",
+        "Directory",
+        ["attributeTypeId"],
+        ["id"],
+        ondelete="CASCADE",
+    )
+    op.create_index(
+        op.f("idx_ace_attribute_type_id"),
+        "AccessControlEntries",
+        ["attributeTypeId"],
+        unique=False,
+        postgresql_using="hash",
+    )
+    op.drop_column("AccessControlEntries", "attribute_type_name")

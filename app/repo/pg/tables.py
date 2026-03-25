@@ -519,13 +519,6 @@ access_control_entries_table = Table(
     Column("depth", Integer, nullable=False),
     Column("scope", Enum(RoleScope), nullable=False),
     Column("path", String, nullable=False),
-    Column(
-        "attributeTypeId",
-        Integer,
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        nullable=True,
-        key="attribute_type_id",
-    ),
     Column("attribute_type_name", String, nullable=True),
     Column(
         "entityTypeId",
@@ -535,11 +528,6 @@ access_control_entries_table = Table(
         key="entity_type_id",
     ),
     Column("is_allow", Boolean, nullable=False),
-    Index(
-        "idx_ace_attribute_type_id",
-        "attribute_type_id",
-        postgresql_using="hash",
-    ),
     Index("idx_ace_entity_type_id", "entity_type_id", postgresql_using="hash"),
     Index("idx_ace_role_id_id", "role_id", postgresql_using="hash"),
     Index("idx_ace_scope_hash", "scope", postgresql_using="hash"),
@@ -949,11 +937,6 @@ mapper_registry.map_imperatively(
             Role,
             back_populates="access_control_entries",
             lazy="raise",
-        ),
-        "attribute_type": relationship(
-            Directory,
-            lazy="raise",
-            uselist=False,
         ),
         "entity_type": relationship(EntityType, lazy="raise", uselist=False),
         "directories": relationship(

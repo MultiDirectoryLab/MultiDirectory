@@ -6,11 +6,13 @@ Create Date: 2026-02-24 13:18:06.715730
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import ENTITY_TYPE_DTOS_V2
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
     AttributeTypeUseCaseLegacy,
 )
@@ -124,6 +126,11 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_rebind_ace_attribute_types_to_directories)
 
 
+@temporary_stub_column(
+    "AccessControlEntries",
+    "attribute_type_name",
+    sa.String(),
+)
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
