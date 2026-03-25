@@ -85,4 +85,4 @@ def downgrade(container: AsyncContainer) -> None:
     #     unique=False,
     #     postgresql_using="hash",
     # )
-    op.drop_column("AccessControlEntries", "attribute_type_name")
+    # op.drop_column("AccessControlEntries", "attribute_type_name")

@@ -37,10 +37,6 @@ _convert = get_converter(
             P[AccessControlEntryDTO].role_name,
         ),
         link_function(
-            lambda x: x.attribute_type_id,
-            P[AccessControlEntryDTO].attribute_type_id,
-        ),
-        link_function(
             lambda x: x.entity_type_id,
             P[AccessControlEntryDTO].entity_type_id,
         ),

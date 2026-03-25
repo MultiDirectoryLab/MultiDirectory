@@ -61,13 +61,13 @@ class AccessManager:
                     return False, set(), set()
 
             elif not ace.is_allow and ace.attribute_type_name is not None:
-                forbidden_attributes.add(ace.attribute_type_name)
+                forbidden_attributes.add(ace.attribute_type_name.lower())
 
             elif ace.is_allow and ace.attribute_type_name is None:
                 return True, forbidden_attributes, set()
 
             else:
-                allowed_attributes.add(ace.attribute_type_name)  # type: ignore
+                allowed_attributes.add(ace.attribute_type_name.lower())  # type: ignore
 
         if not allowed_attributes:
             return False, set(), set()
@@ -173,7 +173,7 @@ class AccessManager:
                 and not ace.is_allow
                 and (
                     ace.attribute_type_name is None
-                    or attr_name == ace.attribute_type_name
+                    or attr_name == ace.attribute_type_name.lower()
                 )
             ):
                 return False
@@ -182,7 +182,7 @@ class AccessManager:
                 and ace.is_allow
                 and (
                     ace.attribute_type_name is None
-                    or attr_name == ace.attribute_type_name
+                    or attr_name == ace.attribute_type_name.lower()
                 )
             ):
                 return True
