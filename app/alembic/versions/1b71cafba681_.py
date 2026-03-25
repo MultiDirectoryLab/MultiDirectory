@@ -28,9 +28,9 @@ def upgrade(container: AsyncContainer) -> None:
         sa.text(
             """
             UPDATE "AccessControlEntries" AS ace
-            SET attribute_type_name = at.name
-            FROM "Directory" AS at
-            WHERE ace."attributeTypeId" = at.id
+            SET attribute_type_name = directory.name
+            FROM "Directory" AS directory
+            WHERE ace."attributeTypeId" = directory.id
             """,
         ),
     )
@@ -64,9 +64,9 @@ def downgrade(container: AsyncContainer) -> None:
         sa.text(
             """
             UPDATE "AccessControlEntries" AS ace
-            SET "attributeTypeId" = at.id
-            FROM "Directory" AS at
-            WHERE ace.attribute_type_name = at.name
+            SET "attributeTypeId" = directory.id
+            FROM "Directory" AS directory
+            WHERE ace.attribute_type_name = directory.name
             """,
         ),
     )
