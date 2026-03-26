@@ -1,0 +1,227 @@
+dn: CN=ms-DS-User-Device-Registration,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=ms-DS-User-Device-Registration-Container,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+delete: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2246
+-
+
+dn: CN=User,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+delete: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2244
+-
+
+dn: CN=ms-DS-User-Device-Registration-Link,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=ms-DS-User-Device-Registration-Link-BL,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=ms-DS-Authentication-Level,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=ms-DS-Approximate-Last-Use-Time-Stamp,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=ms-DS-Device-Reference,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=ms-DS-Device-Location,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Device-Location
+adminDisplayName: ms-DS-Device-Location
+adminDescription: The DN under which the device objects will be created.
+ldapDisplayName: msDS-DeviceLocation
+attributeId: 1.2.840.113556.1.4.2261
+omSyntax: 127
+omObjectClass:: KwwCh3McAIVK
+attributeSyntax: 2.5.5.1
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+systemOnly: TRUE
+schemaIdGuid:: yFb74+hd9UWxsdK2zTHnYg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Registered-Owner,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Registered-Owner
+adminDisplayName: ms-DS-Registered-Owner
+adminDescription: Single valued binary attribute containing the primary SID referencing the first user to register the device. The value is not removed during de-registration, but could be managed by an administrator.
+ldapDisplayName: msDS-RegisteredOwner
+attributeId: 1.2.840.113556.1.4.2258
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+schemaIdGuid:: 6SZ2YesBz0KZH85heYIjfg==
+systemFlags: 18
+
+dn: CN=ms-DS-Registered-Users,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Registered-Users
+adminDisplayName: ms-DS-Registered-Users
+adminDescription: Contains the list of users that have registered the device.  Users in this list have all of the features provided by the “Company Portal” app.  And they have SSO to company resources.
+ldapDisplayName: msDS-RegisteredUsers
+attributeId: 1.2.840.113556.1.4.2263
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: FALSE
+instanceType: 4
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+schemaIdGuid:: DBZJBI5ayE+wUgHA9uSPAg==
+systemFlags: 18
+
+dn: CN=ms-DS-Approximate-Last-Logon-Time-Stamp,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Approximate-Last-Logon-Time-Stamp
+adminDisplayName: ms-DS-Approximate-Last-Logon-Time-Stamp
+adminDescription: The approximate time a user last logged on with from the device.
+ldapDisplayName: msDS-ApproximateLastLogonTimeStamp
+attributeId: 1.2.840.113556.1.4.2262
+omSyntax: 65
+attributeSyntax: 2.5.5.16
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+schemaIdGuid:: O5hPo8aEDE+QUKOhSh01pA==
+systemFlags: 16
+
+dn: CN=ms-DS-Device-Object-Version,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Device-Object-Version
+adminDisplayName: ms-DS-Device-Object-Version
+adminDescription: This attribute is used to identify the schema version of the device.
+ldapDisplayName: msDS-DeviceObjectVersion
+attributeId: 1.2.840.113556.1.4.2257
+omSyntax: 2
+attributeSyntax: 2.5.5.9
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+schemaIdGuid:: Wmll73nxak6T3rAeBmgc+w==
+systemFlags: 18
+
+dn: CN=ms-DS-Device-OS-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isSingleValued
+isSingleValued: TRUE
+-
+
+dn: CN=ms-DS-Device-OS-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: searchFlags
+searchFlags: 1
+-
+
+dn: CN=ms-DS-Device-OS-Version,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isSingleValued
+isSingleValued: TRUE
+-
+
+dn: CN=ms-DS-Device-Physical-IDs,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: omSyntax
+omSyntax: 64
+-
+
+dn: CN=ms-DS-Device-Physical-IDs,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: attributeSyntax
+attributeSyntax: 2.5.5.12
+-
+
+dn: CN=ms-DS-Device-Physical-IDs,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: rangeUpper
+rangeUpper: 1024
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMustContain
+systemMustContain: 1.2.840.113556.1.4.2261
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2257
+systemMayContain: 1.2.840.113556.1.4.2258
+systemMayContain: 1.2.840.113556.1.4.2262
+systemMayContain: 1.2.840.113556.1.4.2263
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+delete: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2248
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMustContain
+systemMustContain: 1.2.840.113556.1.4.2248
+systemMustContain: 1.2.840.113556.1.2.13
+systemMustContain: 1.2.840.113556.1.4.867
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 59
+-

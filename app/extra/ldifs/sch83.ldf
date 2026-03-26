@@ -1,0 +1,40 @@
+dn: CN=ms-DS-Expire-Passwords-On-Smart-Card-Only-Accounts,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+CN: ms-DS-Expire-Passwords-On-Smart-Card-Only-Accounts
+attributeID: 1.2.840.113556.1.4.2344
+attributeSyntax: 2.5.5.8
+adminDisplayName: ms-DS-Expire-Passwords-On-Smart-Card-Only-Accounts
+adminDescription: This attribute controls whether the passwords on smart-card-only accounts expire in accordance with the password policy.
+oMSyntax: 1
+lDAPDisplayName: msDS-ExpirePasswordsOnSmartCardOnlyAccounts
+isSingleValued: TRUE
+systemOnly: FALSE
+schemaIDGUID:: SKsXNCTfsU+AsA/LNn4l4w==
+systemFlags: 16
+searchFlags: 0
+instanceType: 4
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Domain-DNS,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2344
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 83
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

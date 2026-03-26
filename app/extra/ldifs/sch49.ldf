@@ -1,0 +1,744 @@
+dn: CN=ms-DNS-Is-Signed,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-IsSigned
+adminDisplayName: ms-DNS-Is-Signed
+adminDescription: An attribute used to define whether or not the DNS zone is signed.
+attributeId: 1.2.840.113556.1.4.2130
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: TIUSqvzYXk2RyjaLjYKb7g==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-NSEC3-OptOut,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-NSEC3OptOut
+adminDisplayName: ms-DNS-NSEC3-OptOut
+adminDescription: An attribute used to define whether or not the DNS zone should be signed using NSEC opt-out.
+attributeId: 1.2.840.113556.1.4.2132
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: iCDqe+KMPEKxkWbsUGsVlQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Signing-Keys,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-SigningKeys
+adminDisplayName: ms-DNS-Signing-Keys
+adminDescription: An attribute that contains the set of encrypted DNSSEC signing keys used by the DNS server to sign the DNS zone.
+attributeId: 1.2.840.113556.1.4.2144
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 8
+rangeUpper: 10000
+schemaIdGuid:: bT5nt9nKnk6zGmPoCY/dYw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Sign-With-NSEC3,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-SignWithNSEC3
+adminDisplayName: ms-DNS-Sign-With-NSEC3
+adminDescription: An attribute used to define whether or not the DNS zone is signed with NSEC3.
+attributeId: 1.2.840.113556.1.4.2131
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: mSGfx6Ft/0aSPB8/gAxyHg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-NSEC3-User-Salt,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-NSEC3UserSalt
+adminDisplayName: ms-DNS-NSEC3-User-Salt
+adminDescription: An attribute that defines a user-specified NSEC3 salt string to use when signing the DNS zone. If empty, random salt will be used.
+attributeId: 1.2.840.113556.1.4.2148
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 510
+schemaIdGuid:: cGfxryKWvE+hKDCId3YFuQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-DNSKEY-Records,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-DNSKEYRecords
+adminDisplayName: ms-DNS-DNSKEY-Records
+adminDescription: An attribute that contains the DNSKEY record set for the root of the DNS zone and the root key signing key signature records.
+attributeId: 1.2.840.113556.1.4.2145
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 8
+rangeUpper: 10000
+schemaIdGuid:: 9VjEKC1gyUqnfLPxvlA6fg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-DS-Record-Set-TTL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-DSRecordSetTTL
+adminDisplayName: ms-DNS-DS-Record-Set-TTL
+adminDescription: An attribute that defines the time-to-live (TTL) value assigned to DS records when signing the DNS zone.
+attributeId: 1.2.840.113556.1.4.2140
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 2592000
+schemaIdGuid:: fJuGKcRk/kKX1fvC+hJBYA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Keymaster-Zones,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-KeymasterZones
+adminDisplayName: ms-DNS-Keymaster-Zones
+adminDescription: A list of Active Directory-integrated zones for which the DNS server is the keymaster.
+attributeId: 1.2.840.113556.1.4.2128
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: O93gCxoEjEGs6S8X0j6dQg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-NSEC3-Iterations,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-NSEC3Iterations
+adminDisplayName: ms-DNS-NSEC3-Iterations
+adminDescription: An attribute that defines how many NSEC3 hash iterations to perform when signing the DNS zone.
+attributeId: 1.2.840.113556.1.4.2138
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 10000
+schemaIdGuid:: qwq3gFmJwE6OkxJudt86yg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Propagation-Time,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-PropagationTime
+adminDisplayName: ms-DNS-Propagation-Time
+adminDescription: An attribute used to define in seconds the expected time required to propagate zone changes through Active Directory.
+attributeId: 1.2.840.113556.1.4.2147
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: Rw00uoEhoEyi9vrkR52rKg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-NSEC3-Current-Salt,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-NSEC3CurrentSalt
+adminDisplayName: ms-DNS-NSEC3-Current-Salt
+adminDescription: An attribute that defines the current NSEC3 salt string being used to sign the DNS zone.
+attributeId: 1.2.840.113556.1.4.2149
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 510
+schemaIdGuid:: MpR9ONGmdESCzQqJquCErg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-RFC5011-Key-Rollovers,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-RFC5011KeyRollovers
+adminDisplayName: ms-DNS-RFC5011-Key-Rollovers
+adminDescription: An attribute that defines whether or not the DNS zone should be maintained using key rollover procedures defined in RFC 5011.
+attributeId: 1.2.840.113556.1.4.2135
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: QDzZJ1oGwEO92M3yx9Egqg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-NSEC3-Hash-Algorithm,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-NSEC3HashAlgorithm
+adminDisplayName: ms-DNS-NSEC3-Hash-Algorithm
+adminDescription: An attribute that defines the NSEC3 hash algorithm to use when signing the DNS zone.
+attributeId: 1.2.840.113556.1.4.2136
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: UlWe/7d9OEGIiAXOMgoDIw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-DS-Record-Algorithms,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-DSRecordAlgorithms
+adminDisplayName: ms-DNS-DS-Record-Algorithms
+adminDescription: An attribute used to define the algorithms used when writing the dsset file during zone signing.
+attributeId: 1.2.840.113556.1.4.2134
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: 0npbXPogu0S+szS5wPZVeQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-DNSKEY-Record-Set-TTL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-DNSKEYRecordSetTTL
+adminDisplayName: ms-DNS-DNSKEY-Record-Set-TTL
+adminDescription: An attribute that defines the time-to-live (TTL) value assigned to DNSKEY records when signing the DNS zone.
+attributeId: 1.2.840.113556.1.4.2139
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 2592000
+schemaIdGuid:: fzFOj9coLESm3x9JH5ezJg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Maintain-Trust-Anchor,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-MaintainTrustAnchor
+adminDisplayName: ms-DNS-Maintain-Trust-Anchor
+adminDescription: An attribute used to define the type of trust anchor to automatically publish in the forest-wide trust anchor store when the DNS zone is signed.
+attributeId: 1.2.840.113556.1.4.2133
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: wWPADdlSVkSeFZwkNKr9lA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-NSEC3-Random-Salt-Length,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-NSEC3RandomSaltLength
+adminDisplayName: ms-DNS-NSEC3-Random-Salt-Length
+adminDescription: An attribute that defines the length in bytes of the random salt used when signing the DNS zone.
+attributeId: 1.2.840.113556.1.4.2137
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 255
+schemaIdGuid:: ZRY2E2yR502lnbHrvQ3hKQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Signing-Key-Descriptors,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-SigningKeyDescriptors
+adminDisplayName: ms-DNS-Signing-Key-Descriptors
+adminDescription: An attribute that contains the set of DNSSEC Signing Key Descriptors (SKDs) used by the DNS server to generate keys and sign the DNS zone.
+attributeId: 1.2.840.113556.1.4.2143
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 8
+rangeUpper: 10000
+schemaIdGuid:: zdhDNLblO0+wmGWaAhSgeQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Signature-Inception-Offset,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-SignatureInceptionOffset
+adminDisplayName: ms-DNS-Signature-Inception-Offset
+adminDescription: An attribute that defines in seconds how far in the past DNSSEC signature validity periods should begin when signing the DNS zone.
+attributeId: 1.2.840.113556.1.4.2141
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 2592000
+schemaIdGuid:: LsPUAxfiYUqWmXu8RymgJg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Parent-Has-Secure-Delegation,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-ParentHasSecureDelegation
+adminDisplayName: ms-DNS-Parent-Has-Secure-Delegation
+adminDescription: An attribute used to define whether the parental delegation to the DNS zone is secure.
+attributeId: 1.2.840.113556.1.4.2146
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+schemaIdGuid:: ZGlcKBrBnkmW2L98daIjxg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DNS-Secure-Delegation-Polling-Period,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDNS-SecureDelegationPollingPeriod
+adminDisplayName: ms-DNS-Secure-Delegation-Polling-Period
+adminDescription: An attribute that defines in seconds the time between polling attempts for child zone key rollovers.
+attributeId: 1.2.840.113556.1.4.2142
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 8
+rangeLower: 0
+rangeUpper: 2592000
+schemaIdGuid:: vvCw9uSoaESP2cPEe4ci+Q==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Authz-Member-Rules-In-Central-Access-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msAuthz-MemberRulesInCentralAccessPolicy
+adminDisplayName: ms-Authz-Member-Rules-In-Central-Access-Policy
+adminDescription: For a central access policy, this attribute identifies the central access rules that comprise the policy.
+attributeId: 1.2.840.113556.1.4.2155
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: ei/yV343w0KYcs7G8h0uPg==
+linkID: 2184
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Authz-Member-Rules-In-Central-Access-Policy-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msAuthz-MemberRulesInCentralAccessPolicyBL
+adminDisplayName: ms-Authz-Member-Rules-In-Central-Access-Policy-BL
+adminDescription: Backlink for ms-Authz-Member-Rules-In-Central-Access-Policy. For a central access rule object, this attribute references one or more central access policies that point to it.
+attributeId: 1.2.840.113556.1.4.2156
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: z2duUd3+lES7OrxQapSIkQ==
+linkID: 2185
+showInAdvancedViewOnly: TRUE
+systemFlags: 17
+
+dn: CN=ms-DS-Claim-Source,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimSource
+adminDisplayName: ms-DS-Claim-Source
+adminDescription: For a claim type, this attribute indicates the source of the claim type. For example, the source can be certificate.
+attributeId: 1.2.840.113556.1.4.2157
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: pvIy+ovy0Ee/kWY+j5EKcg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Authz-Proposed-Security-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msAuthz-ProposedSecurityPolicy
+adminDisplayName: ms-Authz-Proposed-Security-Policy
+adminDescription: For a Central Access Policy Entry, defines the proposed security policy of the objects the CAPE is applied to.
+attributeId: 1.2.840.113556.1.4.2151
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: zr5GubUJakuyWktjozDoDg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Source-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimSourceType
+adminDisplayName: ms-DS-Claim-Source-Type
+adminDescription: For a security principal claim type, lists the type of store the issued claim is sourced from
+attributeId: 1.2.840.113556.1.4.2158
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: BZzxkvqNIkK70SxPAUh3VA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Authz-Effective-Security-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msAuthz-EffectiveSecurityPolicy
+adminDisplayName: ms-Authz-Security-Policy
+adminDescription: For a central access rule, this attribute defines the permission that is applying to the target resources on the central access rule.
+attributeId: 1.2.840.113556.1.4.2150
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: GRmDB5SPtk+KQpFUXcza0w==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Is-Single-Valued,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimIsSingleValued
+adminDisplayName: ms-DS-Claim-Is-Single-Valued
+adminDescription: For a claim type object, this attribute identifies if the claim type or resource property can only contain single value.
+attributeId: 1.2.840.113556.1.4.2160
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: uZ94zbSWSEaCGco3gWGvOA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Authz-Last-Effective-Security-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msAuthz-LastEffectiveSecurityPolicy
+adminDisplayName: ms-Authz-Last-Effective-Security-Policy
+adminDescription: For a Central Access Policy Entry, defines the security policy that was last applied to the objects the CAPE is applied to.
+attributeId: 1.2.840.113556.1.4.2152
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: xoUWji8+okiljVrw6nifoA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Authz-Resource-Condition,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msAuthz-ResourceCondition
+adminDisplayName: ms-Authz-Resource-Condition
+adminDescription: For a central access rule, this attribute is an expression that identifies the scope of the target resource to which the policy applies.
+attributeId: 1.2.840.113556.1.4.2153
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: d3iZgHT4aEyGTW5QioO9vQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Is-Value-Space-Restricted,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimIsValueSpaceRestricted
+adminDisplayName: ms-DS-Claim-Is-Value-Space-Restricted
+adminDescription: For a claim type, this attribute identifies whether a user can input values other than those described in the msDS-ClaimPossibleValues in applications.
+attributeId: 1.2.840.113556.1.4.2159
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: x+QsDMPxgkSFeMYNS7dEIg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Authz-Central-Access-Policy-ID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msAuthz-CentralAccessPolicyID
+adminDisplayName: ms-Authz-Central-Access-Policy-ID
+adminDescription: For a Central Access Policy, this attribute defines a GUID that can be used to identify the set of policies when applied to a resource.
+attributeId: 1.2.840.113556.1.4.2154
+attributeSyntax: 2.5.5.17
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: YJvyYnS+MEaUVi9mkZk6hg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Generation-Id,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-GenerationId
+adminDisplayName: ms-DS-Generation-Id
+adminDescription: For virtual machine snapshot resuming detection. This attribute represents the VM Generation ID.
+attributeId: 1.2.840.113556.1.4.2166
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+rangeLower: 16
+rangeUpper: 16
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: PTldHreMT0uECpc7NswJww==
+showInAdvancedViewOnly: TRUE
+systemFlags: 17
+
+dn: CN=ms-DS-Claim-Shares-Possible-Values-With,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: adminDescription
+adminDescription: For a claim type object, indicates that the possible values of the claims issued are defined on the object this linked attribute points to; overrides msDS-ClaimPossibleValues, msDS-ClaimValueType, and msDS-ClaimIsValueSpaceRestricted, if populated.
+-
+replace: isSingleValued
+isSingleValued: TRUE
+-
+
+dn: CN=ms-DNS-Server-Settings,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDNS-ServerSettings
+adminDisplayName: ms-DNS-Server-Settings
+adminDescription: A container for storing DNS server settings.
+governsId: 1.2.840.113556.1.4.2129
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMayContain: 1.2.840.113556.1.4.2128
+systemPossSuperiors: 1.2.840.113556.1.5.17
+schemaIdGuid:: 7cMv7xhuW0GZ5DEUqMsSSw==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DNS-Server-Settings,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-Authz-Central-Access-Policies,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msAuthz-CentralAccessPolicies
+adminDisplayName: ms-Authz-Central-Access-Policies
+adminDescription: A container of this class can contain Central Access Policy objects.
+governsId: 1.2.840.113556.1.4.2161
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: wyFcVTahWkWTl3lrvTWOJQ==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-Authz-Central-Access-Policies,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-Authz-Central-Access-Rules,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msAuthz-CentralAccessRules
+adminDisplayName: ms-Authz-Central-Access-Rules
+adminDescription: A container of this class can contain Central Access Policy Entry objects.
+governsId: 1.2.840.113556.1.4.2162
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: ehu7mW1gi0+ADuFb5VTKjQ==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-Authz-Central-Access-Rules,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-Authz-Central-Access-Rule,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msAuthz-CentralAccessRule
+adminDisplayName: ms-Authz-Central-Access-Rule
+adminDescription: A class that defines Central Access Rules used to construct a central access policy.
+governsId: 1.2.840.113556.1.4.2163
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMayContain: 1.2.840.113556.1.4.2153
+systemMayContain: 1.2.840.113556.1.4.2152
+systemMayContain: 1.2.840.113556.1.4.2151
+systemMayContain: 1.2.840.113556.1.4.2150
+systemMayContain: 1.2.840.113556.1.2.557
+systemPossSuperiors: 1.2.840.113556.1.4.2162
+schemaIdGuid:: 3AZKWxwl206IEwvdcTJyJg==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-Authz-Central-Access-Rule,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-Authz-Central-Access-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msAuthz-CentralAccessPolicy
+adminDisplayName: ms-Authz-Central-Access-Policy
+adminDescription: A class that defines Central Access Policy objects.
+governsId: 1.2.840.113556.1.4.2164
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMayContain: 1.2.840.113556.1.4.2155
+systemMayContain: 1.2.840.113556.1.4.2154
+systemPossSuperiors: 1.2.840.113556.1.4.2161
+schemaIdGuid:: sJxnpZ1vLEOLdR4+g08Cqg==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-Authz-Central-Access-Policy,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Types,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultHidingValue
+defaultHidingValue: TRUE
+-
+
+dn: CN=ms-DS-Resource-Properties,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultHidingValue
+defaultHidingValue: TRUE
+-
+
+dn: CN=ms-DS-List-Of-Claim-Types,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultHidingValue
+defaultHidingValue: TRUE
+-
+
+dn: CN=ms-DS-Claim-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2157
+systemMayContain: 1.2.840.113556.1.4.2158
+systemMayContain: 1.2.840.113556.1.4.2098
+systemMayContain: 1.2.840.113556.1.4.2159
+systemMayContain: 1.2.840.113556.1.4.2160
+-
+
+dn: CN=Dns-Zone,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2130
+systemMayContain: 1.2.840.113556.1.4.2131
+systemMayContain: 1.2.840.113556.1.4.2132
+systemMayContain: 1.2.840.113556.1.4.2133
+systemMayContain: 1.2.840.113556.1.4.2134
+systemMayContain: 1.2.840.113556.1.4.2135
+systemMayContain: 1.2.840.113556.1.4.2136
+systemMayContain: 1.2.840.113556.1.4.2137
+systemMayContain: 1.2.840.113556.1.4.2138
+systemMayContain: 1.2.840.113556.1.4.2139
+systemMayContain: 1.2.840.113556.1.4.2140
+systemMayContain: 1.2.840.113556.1.4.2141
+systemMayContain: 1.2.840.113556.1.4.2142
+systemMayContain: 1.2.840.113556.1.4.2143
+systemMayContain: 1.2.840.113556.1.4.2144
+systemMayContain: 1.2.840.113556.1.4.2145
+systemMayContain: 1.2.840.113556.1.4.2146
+systemMayContain: 1.2.840.113556.1.4.2147
+systemMayContain: 1.2.840.113556.1.4.2148
+systemMayContain: 1.2.840.113556.1.4.2149
+-
+
+dn: CN=Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2166
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=DS-Clone-Domain-Controller,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+displayName: Allow a DC to create a clone of itself
+rightsGuid: 3e0f7e18-2c7a-4c10-ba82-4d926db99a3e
+appliesTo: 19195a5b-6da0-11d0-afd3-00c04fd930c9
+validAccesses: 256
+localizationDisplayId: 80
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 49
+-

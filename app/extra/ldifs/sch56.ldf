@@ -1,0 +1,19 @@
+# Update element: computer. Remove netboot-DUID from mayContain
+dn: CN=Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+delete: mayContain
+mayContain: 1.2.840.113556.1.4.2234
+-
+
+# Update element: computer. Add netboot-DUID to SystemMayContain
+dn: CN=Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2234
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 56
+-

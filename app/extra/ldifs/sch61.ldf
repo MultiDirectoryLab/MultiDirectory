@@ -1,0 +1,42 @@
+dn: CN=ms-DS-Drs-Farm-ID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Drs-Farm-ID
+adminDisplayName: ms-DS-Drs-Farm-ID
+adminDescription: This attribute stores the name of the federation service this DRS object is associated with.
+ldapDisplayName: msDS-DrsFarmID
+attributeId: 1.2.840.113556.1.4.2265
+omSyntax: 64
+attributeSyntax: 2.5.5.12
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: TRUE
+schemaIdGuid:: ZvdVYC4gzUmovuUrsVnt+w==
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMustContain
+systemMustContain: 1.2.840.113556.1.4.2248
+systemMustContain: 1.2.840.113556.1.4.2265
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 61
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

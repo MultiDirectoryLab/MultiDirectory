@@ -1,0 +1,41 @@
+dn: CN=ms-DS-Is-Compliant,CN=Schema,CN=Configuration,DC=x
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+CN: ms-DS-Is-Compliant
+adminDescription: This attribute is used to determine if the object is compliant with company policies.
+adminDisplayName: msDS-IsCompliant
+lDAPDisplayName: msDS-IsCompliant
+attributeId: 1.2.840.113556.1.4.2314
+oMSyntax: 1
+attributeSyntax: 2.5.5.8
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+schemaIDGUID:: D31SWcC34kyh3XHO9pYykg==
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2314
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 73
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

@@ -1,0 +1,24 @@
+dn: CN=NTDS-DSA,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2061
+-
+
+dn: CN=ms-DS-Managed-Service-Account,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+delete: systemPossSuperiors
+systemPossSuperiors: 1.2.840.113556.1.3.30
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+#increase object version
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 47
+-

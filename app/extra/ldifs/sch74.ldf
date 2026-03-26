@@ -1,0 +1,225 @@
+dn: CN=ms-DS-Key-Id,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-KeyId
+adminDisplayName: msDS-KeyId
+adminDescription: This attribute contains a key identifier.
+attributeId: 1.2.840.113556.1.4.2315
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+searchFlags: 1
+schemaIdGuid:: S/iUwq0vcUu+TJ/FcB9gug==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Key-Material,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-KeyMaterial
+adminDisplayName: msDS-KeyMaterial
+adminDescription: This attribute contains key material.
+attributeId: 1.2.840.113556.1.4.2316
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: nw4uodveMU+PIRMRuVgYLw==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Key-Usage,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-KeyUsage
+adminDisplayName: msDS-KeyUsage
+adminDescription: This attribute identifies the usage scenario for the key.
+attributeId: 1.2.840.113556.1.4.2317
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: TLRx3ropl0WeysM0is4ZFw==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Key-Principal,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-KeyPrincipal
+adminDisplayName: msDS-KeyPrincipal
+adminDescription: This attribute specifies the principal that a key object applies to.
+attributeId: 1.2.840.113556.1.4.2318
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: OyVhvQGUOUGmkzVvxADz6g==
+systemFlags: 16
+instanceType: 4
+linkID: 2218
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Key-Principal-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-KeyPrincipalBL
+adminDisplayName: msDS-KeyPrincipalBL
+adminDescription: This attribute is the backlink for msDS-KeyPrincipal.
+attributeId: 1.2.840.113556.1.4.2319
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: vI8y0XSFUEGIHQsQiIJ4eA==
+systemFlags: 16
+instanceType: 4
+linkID: 2219
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Device-DN,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-DeviceDN
+adminDisplayName: msDS-DeviceDN
+adminDescription: This attribute identifies the registered device from which this key object was provisioned.
+attributeId: 1.2.840.113556.1.4.2320
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: KREsZJk4IUeOIUg545iM5Q==
+systemFlags: 16
+instanceType: 4
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Computer-SID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ComputerSID
+adminDisplayName: msDS-ComputerSID
+adminDescription: This attribute identifies a domain-joined computer.
+attributeId: 1.2.840.113556.1.4.2321
+attributeSyntax: 2.5.5.17
+omSyntax: 4
+isSingleValued: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+searchFlags: 1
+schemaIdGuid:: INf733IILkCZQPzXjbBJug==
+systemFlags: 16
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Custom-Key-Information,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-CustomKeyInformation
+adminDisplayName: msDS-CustomKeyInformation
+adminDescription: This attribute contains additional information about the key.
+attributeId: 1.2.840.113556.1.4.2322
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: iOnltuTlhkyirg2suXCg4Q==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+showInAdvancedViewOnly: TRUE
+
+dn: CN=ms-DS-Key-Approximate-Last-Logon-Time-Stamp,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+adminDisplayName: msDS-KeyApproximateLastLogonTimeStamp
+adminDescription: The approximate time this key was last used in a logon operation.
+ldapDisplayName: msDS-KeyApproximateLastLogonTimeStamp
+attributeId: 1.2.840.113556.1.4.2323
+attributeSyntax: 2.5.5.16
+omSyntax: 65
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+schemaIdGuid:: jcmaZJqbQU2va/YW8qYuSg==
+systemFlags: 16
+showInAdvancedViewOnly: TRUE
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Key-Credential,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-KeyCredential
+adminDisplayName: msDS-KeyCredential
+adminDescription: An instance of this class contains key material.
+governsId: 1.2.840.113556.1.5.297
+objectClassCategory: 1
+rdnAttId: cn
+schemaIdGuid:: Q1Uf7i58akeLP+EfSvbEmA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+defaultHidingValue: FALSE
+showInAdvancedViewOnly: TRUE
+systemOnly: FALSE
+systemFlags: 16
+instanceType: 4
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.3.23
+systemMustContain: 1.2.840.113556.1.4.2315
+systemMayContain: 1.2.840.113556.1.4.2316
+systemMayContain: 1.2.840.113556.1.4.2317
+systemMayContain: 1.2.840.113556.1.4.2318
+systemMayContain: 1.2.840.113556.1.4.2320
+systemMayContain: 1.2.840.113556.1.4.2321
+systemMayContain: 1.2.840.113556.1.4.2322
+systemMayContain: 1.2.840.113556.1.4.2323
+
+dn: CN=User,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+add:  systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2319
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 74
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+

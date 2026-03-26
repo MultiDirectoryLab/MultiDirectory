@@ -1,0 +1,62 @@
+dn: CN=ms-DS-Key-Credential-Link,CN=schema,CN=configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+attributeID: 1.2.840.113556.1.4.2328
+attributeSyntax: 2.5.5.7
+adminDisplayName: ms-DS-Key-Credential-Link
+adminDescription: Contains key material and usage.
+oMSyntax: 127
+oMObjectClass:: KoZIhvcUAQEBCw==
+lDAPDisplayName: msDS-KeyCredentialLink
+isSingleValued: FALSE
+systemOnly: FALSE
+schemaIDGUID:: D9ZHW5BgskCfNypN6I8wYw==
+searchFlags: 0
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+linkId: 2220
+
+dn: CN=ms-DS-Key-Credential-Link-BL,CN=schema,CN=configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+attributeID: 1.2.840.113556.1.4.2329
+attributeSyntax: 2.5.5.1
+oMSyntax: 127
+lDAPDisplayName: msDS-KeyCredentialLink-BL
+isSingleValued: FALSE
+systemOnly: FALSE
+schemaIDGUID:: iNeKk18i7k6Tua0koVnh2w==
+searchFlags: 0
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+linkId: 2221
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=User,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2328
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2328
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 80
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

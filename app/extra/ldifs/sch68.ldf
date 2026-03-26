@@ -1,0 +1,506 @@
+dn: CN=ms-DS-User-Allowed-To-Authenticate-To,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-UserAllowedToAuthenticateTo
+adminDisplayName: ms-DS-User-Allowed-To-Authenticate-To
+adminDescription: This attribute is used to determine if a user has permission to authenticate to a service.
+attributeId: 1.2.840.113556.1.4.2277
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: f6oM3k5yhkKxeRkmce/GZA==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+
+dn: CN=ms-DS-User-Allowed-To-Authenticate-From,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-UserAllowedToAuthenticateFrom
+adminDisplayName: ms-DS-User-Allowed-To-Authenticate-From
+adminDescription: This attribute is used to determine if a user has permission to authenticate from a computer.
+attributeId: 1.2.840.113556.1.4.2278
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: AJZMLOGwfUSN2nSQIle9tQ==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+
+dn: CN=ms-DS-User-TGT-Lifetime,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-UserTGTLifetime
+adminDisplayName: User TGT Lifetime
+adminDescription: This attribute specifies the maximum age of a Kerberos TGT issued to a user in units of 10^(-7) seconds.
+attributeId: 1.2.840.113556.1.4.2279
+attributeSyntax: 2.5.5.16
+omSyntax: 65
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: g8khhZn1D0K5q7EiK9+VwQ==
+systemFlags: 16
+instanceType: 4
+
+dn: CN=ms-DS-Computer-Allowed-To-Authenticate-To,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ComputerAllowedToAuthenticateTo
+adminDisplayName: ms-DS-Computer-Allowed-To-Authenticate-To
+adminDescription: This attribute is used to determine if a computer has permission to authenticate to a service.
+attributeId: 1.2.840.113556.1.4.2280
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: 6atbEH4Hk0e5dO8EELYlcw==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+
+dn: CN=ms-DS-Computer-TGT-Lifetime,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ComputerTGTLifetime
+adminDisplayName: Computer TGT Lifetime
+adminDescription: This attribute specifies the maximum age of a Kerberos TGT issued to a computer in units of 10^(-7) seconds.
+attributeId: 1.2.840.113556.1.4.2281
+attributeSyntax: 2.5.5.16
+omSyntax: 65
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: JHWTLrnfrEykNqW32mT9Zg==
+systemFlags: 16
+instanceType: 4
+
+dn: CN=ms-DS-Service-Allowed-To-Authenticate-To,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ServiceAllowedToAuthenticateTo
+adminDisplayName: ms-DS-Service-Allowed-To-Authenticate-To
+adminDescription: This attribute is used to determine if a service has permission to authenticate to a service.
+attributeId: 1.2.840.113556.1.4.2282
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: MTGX8k2bIEi03gR07zuEnw==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+
+dn: CN=ms-DS-Service-Allowed-To-Authenticate-From,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ServiceAllowedToAuthenticateFrom
+adminDisplayName: ms-DS-Service-Allowed-To-Authenticate-From
+adminDescription: This attribute is used to determine if a service has permission to authenticate from a computer.
+attributeId: 1.2.840.113556.1.4.2283
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: mnDalxY3Zkmx0YOLpTw9iQ==
+systemFlags: 16
+RangeLower: 0
+RangeUpper: 132096
+instanceType: 4
+
+dn: CN=ms-DS-Service-TGT-Lifetime,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ServiceTGTLifetime
+adminDisplayName: Service TGT Lifetime
+adminDescription: This attribute specifies the maximum age of a Kerberos TGT issued to a service in units of 10^(-7) seconds.
+attributeId: 1.2.840.113556.1.4.2284
+attributeSyntax: 2.5.5.16
+omSyntax: 65
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: IDz+XSnKfUCbq4Qh5V63XA==
+systemFlags: 16
+instanceType: 4
+
+dn: CN=ms-DS-Assigned-AuthN-Policy-Silo,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AssignedAuthNPolicySilo
+adminDisplayName: Assigned Authentication Policy Silo
+adminDescription: This attribute specifies which AuthNPolicySilo a principal is assigned to.
+attributeId: 1.2.840.113556.1.4.2285
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: QcE/svUN6kqzPWz0kwd7Pw==
+systemFlags: 16
+instanceType: 4
+linkID: 2202
+
+dn: CN=ms-DS-Assigned-AuthN-Policy-Silo-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AssignedAuthNPolicySiloBL
+adminDisplayName: Assigned Authentication Policy Silo Backlink
+adminDescription: This attribute is the backlink for msDS-AssignedAuthNPolicySilo.
+attributeId: 1.2.840.113556.1.4.2286
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: FAUUM3r10keOxATEZmYAxw==
+systemFlags: 16
+instanceType: 4
+linkID: 2203
+
+dn: CN=ms-DS-AuthN-Policy-Silo-Members,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AuthNPolicySiloMembers
+adminDisplayName: Authentication Policy Silo Members
+adminDescription: This attribute specifies which principals are assigned to the AuthNPolicySilo.
+attributeId: 1.2.840.113556.1.4.2287
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: BR5NFqZIhkio6XeiAG48dw==
+systemFlags: 16
+instanceType: 4
+linkID: 2204
+
+dn: CN=ms-DS-AuthN-Policy-Silo-Members-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AuthNPolicySiloMembersBL
+adminDisplayName: Authentication Policy Silo Members Backlink
+adminDescription: This attribute is the backlink for msDS-AuthNPolicySiloMembers.
+attributeId: 1.2.840.113556.1.4.2288
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: x8v8EeT7UUm0t63fb579RA==
+systemFlags: 16
+instanceType: 4
+linkID: 2205
+
+dn: CN=ms-DS-User-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-UserAuthNPolicy
+adminDisplayName: User Authentication Policy
+adminDescription: This attribute specifies which AuthNPolicy should be applied to users assigned to this silo object.
+attributeId: 1.2.840.113556.1.4.2289
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: 87kmzRXUKkSPeHxhUj7pWw==
+systemFlags: 16
+instanceType: 4
+linkID: 2206
+
+dn: CN=ms-DS-User-AuthN-Policy-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-UserAuthNPolicyBL
+adminDisplayName: User Authentication Policy Backlink
+adminDescription: This attribute is the backlink for msDS-UserAuthNPolicy.
+attributeId: 1.2.840.113556.1.4.2290
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: qfoXL0ddH0uXfqpS+r5lyA==
+systemFlags: 16
+instanceType: 4
+linkID: 2207
+
+dn: CN=ms-DS-Computer-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ComputerAuthNPolicy
+adminDisplayName: Computer Authentication Policy
+adminDescription: This attribute specifies which AuthNPolicy should be applied to computers assigned to this silo object.
+attributeId: 1.2.840.113556.1.4.2291
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: yWO4r6O+D0Sp82FTzGaJKQ==
+systemFlags: 16
+instanceType: 4
+linkID: 2208
+
+dn: CN=ms-DS-Computer-AuthN-Policy-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ComputerAuthNPolicyBL
+adminDisplayName: Computer Authentication Policy Backlink
+adminDescription: This attribute is the backlink for msDS-ComputerAuthNPolicy.
+attributeId: 1.2.840.113556.1.4.2292
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: MmLvK6EwfkWGBHr22/ExuA==
+systemFlags: 16
+instanceType: 4
+linkID: 2209
+
+dn: CN=ms-DS-Service-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ServiceAuthNPolicy
+adminDisplayName: Service Authentication Policy
+adminDescription: This attribute specifies which AuthNPolicy should be applied to services assigned to this silo object.
+attributeId: 1.2.840.113556.1.4.2293
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: lW1qKs4o7km7JG0fwB4xEQ==
+systemFlags: 16
+instanceType: 4
+linkID: 2210
+
+dn: CN=ms-DS-Service-AuthN-Policy-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ServiceAuthNPolicyBL
+adminDisplayName: Service Authentication Policy Backlink
+adminDescription: This attribute is the backlink for msDS-ServiceAuthNPolicy.
+attributeId: 1.2.840.113556.1.4.2294
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: 7CgRLKJao0KzLfCXnKn80g==
+systemFlags: 16
+instanceType: 4
+linkID: 2211
+
+dn: CN=ms-DS-Assigned-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AssignedAuthNPolicy
+adminDisplayName: Assigned Authentication Policy
+adminDescription: This attribute specifies which AuthNPolicy should be applied to this principal.
+attributeId: 1.2.840.113556.1.4.2295
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: 2Ap6uPdUwUmEoOZNEoU1iA==
+systemFlags: 16
+instanceType: 4
+linkID: 2212
+
+dn: CN=ms-DS-Assigned-AuthN-Policy-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AssignedAuthNPolicyBL
+adminDisplayName: Assigned Authentication Policy Backlink
+adminDescription: This attribute is the backlink for msDS-AssignedAuthNPolicy.
+attributeId: 1.2.840.113556.1.4.2296
+attributeSyntax: 2.5.5.1
+omObjectClass:: KwwCh3McAIVK
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: PBsTLZ/T7kqBXo20vBznrA==
+systemFlags: 16
+instanceType: 4
+linkID: 2213
+
+dn: CN=ms-DS-AuthN-Policy-Enforced,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AuthNPolicyEnforced
+adminDisplayName: Authentication Policy Enforced
+adminDescription: This attribute specifies whether the authentication policy is enforced.
+attributeId: 1.2.840.113556.1.4.2297
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: wgxWekXsukSy1yEjatWf1Q==
+instanceType: 4
+systemFlags: 16
+
+dn: CN=ms-DS-AuthN-Policy-Silo-Enforced,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AuthNPolicySiloEnforced
+adminDisplayName: Authentication Policy Silo Enforced
+adminDescription: This attribute specifies whether the authentication policy silo is enforced.
+attributeId: 1.2.840.113556.1.4.2298
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: AhH18uBrPUmHJhVGzbyHcQ==
+instanceType: 4
+systemFlags: 16
+
+dn: CN=ms-DS-AuthN-Policy-Silos,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-AuthNPolicySilos
+adminDisplayName: Authentication Policy Silos
+adminDescription: A container of this class can contain authentication policy silo objects.
+governsId: 1.2.840.113556.1.5.291
+objectClassCategory: 1
+rdnAttId: cn
+schemaIdGuid:: Ckex0oSPHkmnUrQB7gD+XA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-AuthN-Policy-Silos,CN=Schema,CN=Configuration,DC=X
+instanceType: 4
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.3.23
+
+dn: CN=ms-DS-AuthN-Policies,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-AuthNPolicies
+adminDisplayName: Authentication Policies
+adminDescription: A container of this class can contain authentication policy objects.
+governsId: 1.2.840.113556.1.5.293
+objectClassCategory: 1
+rdnAttId: cn
+schemaIdGuid:: Xd+aOpd7fk+rtOW1XBwGtA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-AuthN-Policies,CN=Schema,CN=Configuration,DC=X
+instanceType: 4
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.3.23
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-AuthN-Policy-Silo,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-AuthNPolicySilo
+adminDisplayName: Authentication Policy Silo
+adminDescription: An instance of this class defines authentication policies and related behaviors for assigned users, computers, and services.
+governsId: 1.2.840.113556.1.5.292
+objectClassCategory: 1
+rdnAttId: cn
+schemaIdGuid:: Hkbw+X1piUaSmTfmHWF7DQ==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-AuthN-Policy-Silo,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+instanceType: 4
+systemmaycontain: msDS-AuthNPolicySiloMembers
+systemmaycontain: msDS-UserAuthNPolicy
+systemmaycontain: msDS-ComputerAuthNPolicy
+systemmaycontain: msDS-ServiceAuthNPolicy
+systemmaycontain: msDS-AssignedAuthNPolicySiloBL
+systemmaycontain: msDS-AuthNPolicySiloEnforced
+subClassOf: top
+systemPossSuperiors: msDS-AuthNPolicySilos
+
+dn: CN=ms-DS-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-AuthNPolicy
+adminDisplayName: Authentication Policy
+adminDescription: An instance of this class defines authentication policy behaviors for assigned principals.
+governsId: 1.2.840.113556.1.5.294
+objectClassCategory: 1
+rdnAttId: cn
+schemaIdGuid:: VhFqq8dN9UCRgI5M5C/lzQ==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+instanceType: 4
+systemmaycontain: msDS-UserAllowedToAuthenticateTo
+systemmaycontain: msDS-UserAllowedToAuthenticateFrom
+systemmaycontain: msDS-UserTGTLifetime
+systemmaycontain: msDS-ComputerAllowedToAuthenticateTo
+systemmaycontain: msDS-ComputerTGTLifetime
+systemmaycontain: msDS-ServiceAllowedToAuthenticateTo
+systemmaycontain: msDS-ServiceAllowedToAuthenticateFrom
+systemmaycontain: msDS-ServiceTGTLifetime
+systemmaycontain: msDS-UserAuthNPolicyBL
+systemmaycontain: msDS-ComputerAuthNPolicyBL
+systemmaycontain: msDS-ServiceAuthNPolicyBL
+systemmaycontain: msDS-AssignedAuthNPolicyBL
+systemmaycontain: msDS-AuthNPolicyEnforced
+subClassOf: top
+systemPossSuperiors: msDS-AuthNPolicies
+
+dn: CN=user,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add:  systemmaycontain
+systemmaycontain: msDS-AssignedAuthNPolicy
+systemmaycontain: msDS-AssignedAuthNPolicySilo
+systemmaycontain: msDS-AuthNPolicySiloMembersBL
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 68
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

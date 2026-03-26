@@ -1,0 +1,42 @@
+dn: CN=ms-DS-SyncServerUrl,CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-SyncServerUrl
+ldapDisplayName: msDS-SyncServerUrl
+adminDisplayName: ms-DS-SyncServerUrl
+adminDescription: Use this attribute to store the sync server (Url format) which hosts the user sync folder
+AttributeID: 1.2.840.113556.1.4.2276
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: FALSE
+SystemOnly: FALSE
+searchFlags: 1
+rangeLower: 1
+rangeUpper: 512
+schemaIdGuid:: 0sOst3QqpE+sJeY/6LYSGA==
+showInAdvancedViewOnly: FALSE
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=User,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2276
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 66
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

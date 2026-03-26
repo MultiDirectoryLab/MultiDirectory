@@ -1,0 +1,18 @@
+dn: CN=ms-DS-Managed-Service-Account,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultHidingValue
+defaultHidingValue: FALSE
+-
+
+DN:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+# Increase object version
+dn: CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 46
+-

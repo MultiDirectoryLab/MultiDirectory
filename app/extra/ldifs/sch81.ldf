@@ -1,0 +1,26 @@
+dn: CN=DS-Validated-Write-Computer,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+displayName: Validated write to computer attributes.
+rightsGuid: 9b026da6-0d3c-465c-8bee-5199d7165cba
+appliesTo: bf967a86-0de6-11d0-a285-00aa003049e2
+ShowInAdvancedViewOnly: TRUE
+validAccesses: 8
+
+dn: CN=ms-DS-Key-Credential-Link,CN=schema,CN=configuration,DC=X
+changetype: ntdsSchemaModify
+add: attributeSecurityGUID
+attributeSecurityGUID:: pm0CmzwNXEaL7lGZ1xZcug==
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 81
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

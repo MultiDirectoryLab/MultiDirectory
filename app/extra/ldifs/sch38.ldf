@@ -1,0 +1,19 @@
+dn: CN=ms-DS-AuthenticatedAt-DC,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: systemOnly
+systemOnly: FALSE
+-
+
+dn:
+changetype: ntdsSchemaModify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+# Increase object version
+
+dn: CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 38
+-

@@ -1,0 +1,29 @@
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+delete: systemMustContain
+systemMustContain: 1.2.840.113556.1.4.2265
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Drs-Farm-ID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: isDefunct
+isDefunct: TRUE
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 67
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

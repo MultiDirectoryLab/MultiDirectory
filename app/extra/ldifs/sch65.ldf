@@ -1,0 +1,196 @@
+dn: CN=ms-DS-Registration-Quota,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Maximum-Registration-Inactivity-Period,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Registered-Owner,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Registered-Users,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Approximate-Last-Logon-Time-Stamp,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Is-Enabled,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Device-OS-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Device-OS-Version,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Device-Physical-IDs,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Device-ID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Device-Object-Version,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-Drs-Farm-ID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: showInAdvancedViewOnly
+showInAdvancedViewOnly: TRUE
+-
+
+dn: CN=ms-DS-IsManaged,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-IsManaged
+adminDisplayName: ms-DS-IsManaged
+adminDescription: This attribute is used to indicate the device is managed by a on-premises MDM.
+ldapDisplayName: msDS-IsManaged
+attributeId: 1.2.840.113556.1.4.2270
+omSyntax: 1
+attributeSyntax: 2.5.5.8
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 1
+systemOnly: FALSE
+schemaIdGuid:: zmpoYCds3kOk5fAML40zCQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Cloud-IsManaged,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Cloud-IsManaged
+adminDisplayName: ms-DS-Cloud-IsManaged
+adminDescription: This attribute is used to indicate the device is managed by a cloud MDM.
+ldapDisplayName: msDS-CloudIsManaged
+attributeId: 1.2.840.113556.1.4.2271
+omSyntax: 1
+attributeSyntax: 2.5.5.8
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 1
+systemOnly: FALSE
+schemaIdGuid:: jroVU4+VUku9OBNJowTdYw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Cloud-Anchor,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Cloud-Anchor
+adminDisplayName: ms-DS-Cloud-Anchor
+adminDescription: This attribute is used by the DirSync engine to indicate the object SOA and to maintain the relationship between the on-premises and cloud object.
+ldapDisplayName: msDS-CloudAnchor
+attributeId: 1.2.840.113556.1.4.2273
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: gF5WeNQD40+vrIw7yi82Uw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Cloud-Issuer-Public-Certificates,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Cloud-Issuer-Public-Certificates
+adminDisplayName: ms-DS-Cloud-Issuer-Public-Certificates
+adminDescription: The public keys used by the cloud DRS to sign certificates issued by the Registration Service.
+ldapDisplayName: msDS-CloudIssuerPublicCertificates
+attributeId: 1.2.840.113556.1.4.2274
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: FALSE
+instanceType: 4
+rangeLower: 1
+rangeUpper: 65536
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: T7XoodZL0k+Y4rzukqVUlw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Cloud-IsEnabled,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Cloud-IsEnabled
+adminDisplayName: ms-DS-Cloud-IsEnabled
+adminDescription: This attribute is used to indicate whether cloud DRS is enabled.
+ldapDisplayName: msDS-CloudIsEnabled
+attributeId: 1.2.840.113556.1.4.2275
+omSyntax: 1
+attributeSyntax: 2.5.5.8
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: KIOEiU58b0+gEyjOOtKC3A==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2270
+systemMayContain: 1.2.840.113556.1.4.2271
+systemMayContain: 1.2.840.113556.1.4.2273
+-
+
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2274
+systemMayContain: 1.2.840.113556.1.4.2275
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 65
+-

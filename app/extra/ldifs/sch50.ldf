@@ -1,0 +1,483 @@
+dn: CN=ms-DS-Allowed-To-Act-On-Behalf-Of-Other-Identity,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-AllowedToActOnBehalfOfOtherIdentity
+adminDisplayName: ms-DS-Allowed-To-Act-On-Behalf-Of-Other-Identity
+adminDescription: This attribute is used for access checks to determine if a requestor has permission to act on the behalf of other identities to services running as this account.
+attributeId: 1.2.840.113556.1.4.2182
+attributeSyntax: 2.5.5.15
+omSyntax: 66
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+rangeLower: 0
+rangeUpper: 132096
+schemaIdGuid:: 5cN4P5r3vUaguJ0YEW3ceQ==
+attributeSecurityGuid:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-Version,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-Version
+adminDisplayName: ms-Kds-Version
+adminDescription: Version number of this root key.
+attributeId: 1.2.840.113556.1.4.2176
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+schemaIdGuid:: QHPw1bDmSh6Xvg0zGL2dsQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-DomainID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-DomainID
+adminDisplayName: ms-Kds-DomainID
+adminDescription: Distinguished name of the Domain Controller which generated this root key.
+attributeId: 1.2.840.113556.1.4.2177
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: ggRAlgfPTOmQ6PLvxPBJXg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-KDF-Param,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-KDFParam
+adminDisplayName: ms-Kds-KDF-Param
+adminDescription: Parameters for the key derivation algorithm.
+attributeId: 1.2.840.113556.1.4.2170
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+rangeUpper: 2000
+schemaIdGuid:: cgeAirj0TxW0HC5Cce/3pw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-CreateTime,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-CreateTime
+adminDisplayName: ms-Kds-CreateTime
+adminDescription: The time when this root key was created.
+attributeId: 1.2.840.113556.1.4.2179
+attributeSyntax: 2.5.5.16
+omSyntax: 65
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+schemaIdGuid:: nxEYrpBjRQCzLZfbxwGu9w==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-RootKeyData,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-RootKeyData
+adminDisplayName: ms-Kds-RootKeyData
+adminDescription: Root key.
+attributeId: 1.2.840.113556.1.4.2175
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+rangeUpper: 128
+schemaIdGuid:: J3xiJqIIQAqhsY3OhbQpkw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Primary-Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-PrimaryComputer
+adminDisplayName: ms-DS-Primary-Computer
+adminDescription: For a user or group object, identifies the primary computers.
+attributeId: 1.2.840.113556.1.4.2167
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 1
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: 4vQ9obDb60yCi4suFD6egQ==
+linkID: 2186
+showInAdvancedViewOnly: TRUE
+isMemberOfPartialAttributeSet: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-UseStartTime,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-UseStartTime
+adminDisplayName: ms-Kds-UseStartTime
+adminDescription: The time after which this root key may be used.
+attributeId: 1.2.840.113556.1.4.2178
+attributeSyntax: 2.5.5.16
+omSyntax: 65
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+schemaIdGuid:: fwTcbCL1SreanNlayM39og==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Imaging-Hash-Algorithm,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msImaging-HashAlgorithm
+adminDisplayName: ms-Imaging-Hash-Algorithm
+adminDescription: Contains the name of the hash algorithm used to create the Thumbprint Hash for the Scan Repository/Secure Print Device.
+attributeId: 1.2.840.113556.1.4.2181
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 64
+schemaIdGuid:: tQ3nigZklkGS/vO7VXUgpw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-KDF-AlgorithmID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-KDFAlgorithmID
+adminDisplayName: ms-Kds-KDF-AlgorithmID
+adminDescription: The algorithm name of the key derivation function used to compute keys.
+attributeId: 1.2.840.113556.1.4.2169
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+rangeUpper: 200
+schemaIdGuid:: skgs203RTuyfWK1XnYtEDg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Imaging-Thumbprint-Hash,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msImaging-ThumbprintHash
+adminDisplayName: ms-Imaging-Thumbprint-Hash
+adminDescription: Contains a hash of the security certificate for the Scan Repository/Secure Print Device.
+attributeId: 1.2.840.113556.1.4.2180
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 1024
+schemaIdGuid:: xdvfnAQDaUWV9sT2Y/5a5g==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-PublicKey-Length,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-PublicKeyLength
+adminDisplayName: ms-Kds-PublicKey-Length
+adminDescription: The length of the secret agreement public key.
+attributeId: 1.2.840.113556.1.4.2173
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+schemaIdGuid:: cPQ44805SUWrW/afnlg/4A==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-PrivateKey-Length,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-PrivateKeyLength
+adminDisplayName: ms-Kds-PrivateKey-Length
+adminDescription: The length of the secret agreement private key.
+attributeId: 1.2.840.113556.1.4.2174
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+schemaIdGuid:: oUJfYec3SBGg3TAH4Jz8gQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Is-Primary-Computer-For,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-IsPrimaryComputerFor
+adminDisplayName: ms-DS-Is-Primary-Computer-For
+adminDescription: Backlink atribute for msDS-IsPrimaryComputer.
+attributeId: 1.2.840.113556.1.4.2168
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: rAaMmYc/TkSl3xGwPcilDA==
+linkID: 2187
+showInAdvancedViewOnly: TRUE
+systemFlags: 17
+
+dn: CN=ms-Kds-SecretAgreement-Param,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-SecretAgreementParam
+adminDisplayName: ms-Kds-SecretAgreement-Param
+adminDescription: The parameters for the secret agreement algorithm.
+attributeId: 1.2.840.113556.1.4.2172
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+rangeUpper: 2000
+schemaIdGuid:: MLCZ2e3+dUm4B+ukRNp56Q==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-Kds-SecretAgreement-AlgorithmID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msKds-SecretAgreementAlgorithmID
+adminDisplayName: ms-Kds-SecretAgreement-AlgorithmID
+adminDescription: The name of the secret agreement algorithm to be used with public keys.
+attributeId: 1.2.840.113556.1.4.2171
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+rangeUpper: 200
+schemaIdGuid:: XZcCF14iSsuxXQ2uqLXpkA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Value-Type-Reference,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ValueTypeReference
+adminDisplayName: ms-DS-Value-Type-Reference
+adminDescription: This attribute is used to link a resource property object to its value type.
+attributeId: 1.2.840.113556.1.4.2187
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: hF38eNzBSDGJhFj3ktQdPg==
+linkID: 2188
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Value-Type-Reference-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ValueTypeReferenceBL
+adminDisplayName: ms-DS-Value-Type-Reference-BL
+adminDescription: This is the back link for ms-DS-Value-Type-Reference. It links a value type object back to resource properties.
+attributeId: 1.2.840.113556.1.4.2188
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: rUNVq6EjRTu5N5sxPVR0qA==
+linkID: 2189
+showInAdvancedViewOnly: TRUE
+systemFlags: 17
+
+dn: CN=ms-DS-Is-Possible-Values-Present,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-IsPossibleValuesPresent
+adminDisplayName: ms-DS-Is-Possible-Values-Present
+adminDescription: This attribute identifies if ms-DS-Claim-Possible-Values on linked resource property must have value or must not have value.
+attributeId: 1.2.840.113556.1.4.2186
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: 2tyrb1OMTyCxpJ3wxnwetA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-Kds-Prov-RootKey,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msKds-ProvRootKey
+adminDisplayName: ms-Kds-Prov-RootKey
+adminDescription: Root keys for the Group Key Distribution Service.
+governsId: 1.2.840.113556.1.5.278
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMustContain: 1.2.840.113556.1.4.2179
+systemMustContain: 1.2.840.113556.1.4.2175
+systemMustContain: 1.2.840.113556.1.4.2174
+systemMustContain: 1.2.840.113556.1.4.2173
+systemMustContain: 1.2.840.113556.1.4.2171
+systemMustContain: 1.2.840.113556.1.4.2169
+systemMustContain: 1.2.840.113556.1.4.2178
+systemMustContain: 1.2.840.113556.1.4.2177
+systemMustContain: 1.2.840.113556.1.4.2176
+systemMustContain: 2.5.4.3
+systemMayContain: 1.2.840.113556.1.4.2172
+systemMayContain: 1.2.840.113556.1.4.2170
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: Qf0CquAXGE+Gh7Ijlklzaw==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-Kds-Prov-RootKey,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-Kds-Prov-ServerConfiguration,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msKds-ProvServerConfiguration
+adminDisplayName: ms-Kds-Prov-ServerConfiguration
+adminDescription: Configuration for the Group Key Distribution Service.
+governsId: 1.2.840.113556.1.5.277
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMustContain: 1.2.840.113556.1.4.2176
+systemMayContain: 1.2.840.113556.1.4.2174
+systemMayContain: 1.2.840.113556.1.4.2173
+systemMayContain: 1.2.840.113556.1.4.2172
+systemMayContain: 1.2.840.113556.1.4.2171
+systemMayContain: 1.2.840.113556.1.4.2170
+systemMayContain: 1.2.840.113556.1.4.2169
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: qEPyXiUqpkWLcwinGuZ3zg==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-Kds-Prov-ServerConfiguration,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=Top,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2168
+systemMayContain: 1.2.840.113556.1.4.2188
+-
+
+dn: CN=Group,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2167
+-
+
+dn: CN=User,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2167
+-
+
+dn: CN=Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2180
+systemMayContain: 1.2.840.113556.1.4.2181
+-
+
+dn: CN=Organizational-Person,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2182
+-
+
+dn: CN=ms-DS-Resource-Property,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMustContain
+systemMustContain: 1.2.840.113556.1.4.2187
+-
+
+dn: CN=ms-DS-Value-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ValueType
+adminDisplayName: ms-DS-Value-Type
+adminDescription: An value type object holds value type information for a resource property.
+governsId: 1.2.840.113556.1.5.279
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMustContain: 1.2.840.113556.1.4.2186
+systemMustContain: 1.2.840.113556.1.4.2160
+systemMustContain: 1.2.840.113556.1.4.2159
+systemMustContain: 1.2.840.113556.1.4.2098
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: 33/C4x2wTk+H5wVu7w65Ig==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Value-Type,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Validated-MS-DS-Behavior-Version,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+rightsGuid: d31a8757-2447-4545-8081-3bb610cacbf2
+appliesTo: f0f8ffab-1191-11d0-a060-00aa006c33ed
+displayName: Validated write to MS DS behavior version
+localizationDisplayId: 81
+validAccesses: 8
+showInAdvancedViewOnly: TRUE
+
+
+dn: CN=Validated-MS-DS-Additional-DNS-Host-Name,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+rightsGuid: 80863791-dbe9-4eb8-837e-7f0ab55d9ac7
+appliesTo: bf967a86-0de6-11d0-a285-00aa003049e2
+displayName: Validated write to MS DS Additional DNS Host Name
+localizationDisplayId: 82
+validAccesses: 8
+showInAdvancedViewOnly: TRUE
+
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 50
+-

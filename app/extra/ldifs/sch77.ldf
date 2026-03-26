@@ -1,0 +1,73 @@
+dn: CN=ms-DS-Key-Id,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn: CN=ms-DS-Key-Material,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn: CN=ms-DS-Key-Usage,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn: CN=ms-DS-Key-Principal,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn: CN=ms-DS-Device-DN,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn: CN=ms-DS-Computer-SID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn: CN=ms-DS-Custom-Key-Information,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn: CN=ms-DS-Key-Approximate-Last-Logon-Time-Stamp,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: isMemberOfPartialAttributeSet
+isMemberOfPartialAttributeSet: FALSE
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Key-Credential,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2252
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 77
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+

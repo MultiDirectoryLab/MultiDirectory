@@ -1,0 +1,640 @@
+dn: CN=ms-DS-Members-Of-Resource-Property-List,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-MembersOfResourcePropertyList
+adminDisplayName: ms-DS-Members-Of-Resource-Property-List
+adminDescription: For a resource property list object, this multi-valued link attribute points to one or more resource property objects.
+attributeId: 1.2.840.113556.1.4.2103
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: ERw3Ta1MQUyK0rGAqyvRPA==
+linkID: 2180
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Members-Of-Resource-Property-List-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-MembersOfResourcePropertyListBL
+adminDisplayName: ms-DS-Members-Of-Resource-Property-List-BL
+adminDescription: Backlink for ms-DS-Members-Of-Resource-Property-List. For a resource property object, this attribute references the resource property list object that it is a member of.
+attributeId: 1.2.840.113556.1.4.2104
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: BLdpdLDtaEWlpVn0hix1pw==
+linkID: 2181
+showInAdvancedViewOnly: TRUE
+systemFlags: 17
+
+dn: CN=ms-DS-Claim-Value-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimValueType
+adminDisplayName: ms-DS-Claim-Value-Type
+adminDescription: For a claim type object, specifies the value type of the claims issued.
+attributeId: 1.2.840.113556.1.4.2098
+attributeSyntax: 2.5.5.16
+omSyntax: 65
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: uRdixo7k90e31WVSuK/WGQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Possible-Values,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimPossibleValues
+adminDisplayName: ms-DS-Claim-Possible-Values
+adminDescription: For a claim type or resource property object, this attribute describes the values suggested to a user when the he/she use the claim type or resource property in applications.
+attributeId: 1.2.840.113556.1.4.2097
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 1048576
+schemaIdGuid:: 7u0oLnztP0Wv5JO9hvIXTw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Attribute-Source,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimAttributeSource
+adminDisplayName: ms-DS-Claim-Attribute-Source
+adminDescription: For a claim type object, this attribute points to the attribute that will be used as the source for the claim type.
+attributeId: 1.2.840.113556.1.4.2099
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: PhK87ua6ZkGeWymISot2sA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Type-Applies-To-Class,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimTypeAppliesToClass
+adminDisplayName: ms-DS-Claim-Type-Applies-To-Class
+adminDescription: For a claim type object, this linked attribute points to the AD security principal classes that for which claims should be issued. (For example, a link to the user class).
+attributeId: 1.2.840.113556.1.4.2100
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: TA77anbYfEOutsPkFFTCcg==
+linkID: 2176
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Shares-Possible-Values-With,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimSharesPossibleValuesWith
+adminDisplayName: ms-DS-Claim-Shares-Possible-Values-With
+adminDescription: For a resource property object, this attribute indicates that the suggested values of the claims issued are defined on the object that this linked attribute points to. Overrides ms-DS-Claim-Possible-Values on itself, if populated.
+attributeId: 1.2.840.113556.1.4.2101
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: OtHIUgvOV0+JKxj1pDokAA==
+linkID: 2178
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Shares-Possible-Values-With-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ClaimSharesPossibleValuesWithBL
+adminDisplayName: ms-DS-Claim-Shares-Possible-Values-With-BL
+adminDescription: For a claim type object, this attribute indicates that the possible values described in ms-DS-Claim-Possible-Values are being referenced by other claim type objects.
+attributeId: 1.2.840.113556.1.4.2102
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: 2yLVVJXs9UibvRiA67shgA==
+linkID: 2179
+showInAdvancedViewOnly: TRUE
+systemFlags: 17
+
+dn: CN=ms-DS-Is-Used-As-Resource-Security-Attribute,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-IsUsedAsResourceSecurityAttribute
+adminDisplayName: ms-DS-Is-Used-As-Resource-Security-Attribute
+adminDescription: For a resource property, this attribute indicates whether it is being used as a secure attribute.
+attributeId: 1.2.840.113556.1.4.2095
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: nfjJUTBHjUaitR1JMhLRfg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-KMS-Ids,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-KMSIds
+adminDisplayName: ms-SPP-KMS-Ids
+adminDescription: KMS IDs enabled by the Activation Object
+attributeId: 1.2.840.113556.1.4.2082
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 1
+rangeLower: 16
+rangeUpper: 16
+schemaIdGuid:: 2j5mm0I11kad8DFAJa8rrA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-CSVLK-Pid,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-CSVLKPid
+adminDisplayName: ms-SPP-CSVLK-Pid
+adminDescription: ID of CSVLK product-key used to create the Activation Object
+attributeId: 1.2.840.113556.1.4.2105
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 512
+schemaIdGuid:: DVF/tFBr4Ue1VncseeT/xA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-CSVLK-Sku-Id,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-CSVLKSkuId
+adminDisplayName: ms-SPP-CSVLK-Sku-Id
+adminDescription: SKU ID of CSVLK product-key used to create the Activation Object
+attributeId: 1.2.840.113556.1.4.2081
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeLower: 16
+rangeUpper: 16
+schemaIdGuid:: OfeElnh7bUeNdDGtdpLu9A==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-Phone-License,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-PhoneLicense
+adminDisplayName: ms-SPP-Phone-License
+adminDescription: License used during phone activation of the Active Directory forest
+attributeId: 1.2.840.113556.1.4.2086
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 5242880
+schemaIdGuid:: EtnkZ2LzUkCMeUL0W6eyIQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-Config-License,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-ConfigLicense
+adminDisplayName: ms-SPP-Config-License
+adminDescription: Product-key configuration license used during online/phone activation of the Active Directory forest
+attributeId: 1.2.840.113556.1.4.2087
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 5242880
+schemaIdGuid:: tcRTA5nRsECzxd6zL9nsBg==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-Online-License,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-OnlineLicense
+adminDisplayName: ms-SPP-Online-License
+adminDescription: License used during online activation of the Active Directory forest
+attributeId: 1.2.840.113556.1.4.2085
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 5242880
+schemaIdGuid:: jjaPCRJIzUivt6E2uWgH7Q==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-Confirmation-Id,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-ConfirmationId
+adminDisplayName: ms-SPP-Confirmation-Id
+adminDescription: Confirmation ID (CID) used for phone activation of the Active Directory forest
+attributeId: 1.2.840.113556.1.4.2084
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 512
+schemaIdGuid:: xJeHbtqsSUqHQLC9Bam4MQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-Installation-Id,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-InstallationId
+adminDisplayName: ms-SPP-Installation-Id
+adminDescription: Installation ID (IID) used for phone activation of the Active Directory forest
+attributeId: 1.2.840.113556.1.4.2083
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 512
+schemaIdGuid:: FLG/aXtAOUeiE8ZjgCs+Nw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-Issuance-License,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-IssuanceLicense
+adminDisplayName: ms-SPP-Issuance-License
+adminDescription: Issuance license used during online/phone activation of the Active Directory forest
+attributeId: 1.2.840.113556.1.4.2088
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeUpper: 5242880
+schemaIdGuid:: obN1EK+70kmujcTyXIIzAw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-SPP-CSVLK-Partial-Product-Key,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msSPP-CSVLKPartialProductKey
+adminDisplayName: ms-SPP-CSVLK-Partial-Product-Key
+adminDescription: Last 5 characters of CSVLK product-key used to create the Activation Object
+attributeId: 1.2.840.113556.1.4.2106
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 0
+rangeLower: 5
+rangeUpper: 5
+schemaIdGuid:: kbABplKGOkWzhoetI5t8CA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-TPM-Srk-Pub-Thumbprint,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msTPM-SrkPubThumbprint
+adminDisplayName: TPM-SrkPubThumbprint
+adminDescription: This attribute contains the thumbprint of the SrkPub corresponding to a particular TPM. This helps to index the TPM devices in the directory.
+attributeId: 1.2.840.113556.1.4.2107
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 11
+rangeUpper: 20
+schemaIdGuid:: 6wbXGXZNokSF1hw0K+O+Nw==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-TPM-Owner-Information-Temp,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msTPM-OwnerInformationTemp
+adminDisplayName: TPM-OwnerInformationTemp
+adminDescription: This attribute contains temporary owner information for a particular TPM.
+attributeId: 1.2.840.113556.1.4.2108
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 640
+rangeUpper: 128
+schemaIdGuid:: nYCUyBO1+E+IEfT0P1rHvA==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-TPM-Tpm-Information-For-Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msTPM-TpmInformationForComputer
+adminDisplayName: TPM-TpmInformationForComputer
+adminDescription: This attribute links a Computer object to a TPM object.
+attributeId: 1.2.840.113556.1.4.2109
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 16
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: k3sb6khe1Ua8bE30/aeKNQ==
+linkID: 2182
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-TPM-Tpm-Information-For-Computer-BL,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msTPM-TpmInformationForComputerBL
+adminDisplayName: TPM-TpmInformationForComputerBL
+adminDescription: This attribute links a TPM object to the Computer objects associated with it.
+attributeId: 1.2.840.113556.1.4.2110
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+isSingleValued: FALSE
+systemOnly: TRUE
+searchFlags: 0
+omObjectClass:: KwwCh3McAIVK
+schemaIdGuid:: yYT6FM2OSEO8kW087Ucqtw==
+linkID: 2183
+showInAdvancedViewOnly: TRUE
+systemFlags: 17
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Claim-Types,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ClaimTypes
+adminDisplayName: ms-DS-Claim-Types
+adminDescription: A container of this class can contain claim type objects.
+governsId: 1.2.840.113556.1.5.270
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: NTIJNhXHIUirarVvsoBaWA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Claim-Types,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-DS-Resource-Property-List,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ResourcePropertyList
+adminDisplayName: ms-DS-Resource-Property-List
+adminDescription: An object of this class contains a list of resource properties.
+governsId: 1.2.840.113556.1.5.274
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMayContain: 1.2.840.113556.1.4.2103
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: etTjckKzRU2PVrr/gDyr+Q==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Resource-Property-List,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-DS-Resource-Properties,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ResourceProperties
+adminDisplayName: ms-DS-Resource-Properties
+adminDescription: A container of this class can contain resource properties.
+governsId: 1.2.840.113556.1.5.271
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: hEVKelCzj0es1rS4UtgswA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Resource-Properties,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Type-Property-Base,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ClaimTypePropertyBase
+adminDisplayName: ms-DS-Claim-Type-Property-Base
+adminDescription: An abstract class that defines the base class for claim type or resource property classes.
+governsId: 1.2.840.113556.1.5.269
+objectClassCategory: 2
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMayContain: 1.2.840.113556.1.4.2101
+systemMayContain: 1.2.840.113556.1.2.557
+systemMayContain: 1.2.840.113556.1.4.2097
+schemaIdGuid:: WC9EuJDEh0SKndgLiDJxrQ==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Claim-Type-Property-Base,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-DS-Resource-Property,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ResourceProperty
+adminDisplayName: ms-DS-Resource-Property
+adminDescription: An instance of this class holds the definition of a property on resources. 
+governsId: 1.2.840.113556.1.5.273
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 1.2.840.113556.1.5.269
+systemMayContain: 1.2.840.113556.1.4.2095
+systemPossSuperiors: 1.2.840.113556.1.5.271
+schemaIdGuid:: Xj0oWwSElUGTOYRQGIxQGg==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Resource-Property,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-DS-Claim-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ClaimType
+adminDisplayName: ms-DS-Claim-Type
+adminDescription: An instance of this class holds the definition of a claim type that can be defined on security principals.
+governsId: 1.2.840.113556.1.5.272
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 1.2.840.113556.1.5.269
+systemMayContain: 1.2.840.113556.1.4.2100
+systemMayContain: 1.2.840.113556.1.4.2099
+systemPossSuperiors: 1.2.840.113556.1.5.270
+schemaIdGuid:: fIWjgWlUj02q5sJ2mXYmBA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: FALSE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Claim-Type,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-SPP-Activation-Objects-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msSPP-ActivationObjectsContainer
+adminDisplayName: ms-SPP-Activation-Objects-Container
+adminDescription: Container for Activation Objects used by Active Directory based activation
+governsId: 1.2.840.113556.1.5.266
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemPossSuperiors: 1.2.840.113556.1.3.23
+schemaIdGuid:: K4YvtyW7XU2qUWLFm9+Qrg==
+defaultSecurityDescriptor: O:BAG:BAD: (A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: FALSE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-SPP-Activation-Objects-Container,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-SPP-Activation-Object,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msSPP-ActivationObject
+adminDisplayName: ms-SPP-Activation-Object
+adminDescription: Activation Object used in Active Directory based activation
+governsId: 1.2.840.113556.1.5.267
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMustContain: 1.2.840.113556.1.4.2082
+systemMustContain: 1.2.840.113556.1.4.2081
+systemMustContain: 1.2.840.113556.1.4.2106
+systemMustContain: 1.2.840.113556.1.4.2105
+systemMayContain: 1.2.840.113556.1.4.2088
+systemMayContain: 1.2.840.113556.1.4.2087
+systemMayContain: 1.2.840.113556.1.4.2086
+systemMayContain: 1.2.840.113556.1.4.2085
+systemMayContain: 1.2.840.113556.1.4.2084
+systemMayContain: 1.2.840.113556.1.4.2083
+systemPossSuperiors: 1.2.840.113556.1.5.266
+schemaIdGuid:: jOagUcUNykOTXcHJEb8u5Q==
+defaultSecurityDescriptor: O:BAG:BAD: (A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: FALSE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-SPP-Activation-Object,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-TPM-Information-Objects-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msTPM-InformationObjectsContainer
+adminDisplayName: TPM-InformationObjectsContainer
+adminDescription: Container for TPM objects.
+governsId: 1.2.840.113556.1.5.276
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMustContain: 2.5.4.3
+systemPossSuperiors: 1.2.840.113556.1.5.67
+systemPossSuperiors: 1.2.840.113556.1.5.66
+schemaIdGuid:: vagn4FZk3kWQozhZOHfudA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;LOLCCCRP;;;DC)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-TPM-Information-Objects-Container,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=ms-TPM-Information-Object,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msTPM-InformationObject
+adminDisplayName: TPM-InformationObject
+adminDescription: This class contains recovery information for a Trusted Platform Module (TPM) device.
+governsId: 1.2.840.113556.1.5.275
+objectClassCategory: 1
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+systemMustContain: 1.2.840.113556.1.4.1966
+systemMayContain: 1.2.840.113556.1.4.2108
+systemMayContain: 1.2.840.113556.1.4.2107
+systemPossSuperiors: 1.2.840.113556.1.5.276
+schemaIdGuid:: alsEhaZHQ0KnzGiQcB9mLA==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLO;;;DC)(A;;WP;;;CO)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-TPM-Information-Object,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=Top,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2102
+systemMayContain: 1.2.840.113556.1.4.2104
+-
+
+dn: CN=Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2109
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 48
+-

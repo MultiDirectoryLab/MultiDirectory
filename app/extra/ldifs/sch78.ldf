@@ -1,0 +1,46 @@
+#
+# Optional Feature Object
+#
+dn: CN=Expiring Group Membership Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: systemFlags
+# FLAG_ALLOW_RENAME 0x400000
+systemFlags: 1073741824
+-
+
+dn: CN=Expiring Group Membership Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaModRdn
+newrdn: Privileged Access Management Feature
+deleteoldrdn: 1
+
+dn: CN=Privileged Access Management Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: systemFlags
+# FLAG_DISALLOW_DELETE           0x80000000
+# FLAG_DOMAIN_DISALLOW_RENAME    0x08000000
+# FLAG_DOMAIN_DISALLOW_MOVE      0x04000000
+systemFlags: 2348810240
+-
+
+dn: CN=Shadow Principal Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+# FLAG_DOMAIN_DISALLOW_RENAME    0x08000000
+# FLAG_DOMAIN_DISALLOW_MOVE      0x04000000
+replace: systemFlags
+systemFlags: 201326592
+-
+
+dn: CN=Shadow Principal Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaDelete
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 78
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

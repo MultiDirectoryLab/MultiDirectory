@@ -1,0 +1,35 @@
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultSecurityDescriptor
+defaultSecurityDescriptor: D:(A;;RPLCLORC;;;AU)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+-
+
+dn: CN=ms-DS-Device-Registration-Service-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultSecurityDescriptor
+defaultSecurityDescriptor: D:(A;;RPLCLORC;;;AU)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+delete: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2252
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMustContain
+systemMustContain: 1.2.840.113556.1.4.2252
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 64
+-

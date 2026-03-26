@@ -1,0 +1,72 @@
+dn: CN=Dns-Zone-Scope-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+cn: Dns-Zone-Scope-Container
+adminDisplayName: Dns-Zone-Scope-Container
+adminDescription: Container for Dns Zone Scope objects.
+ldapDisplayName: dnsZoneScopeContainer
+rDNAttID: cn
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;ED)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;CC;;;AU)(A;;RPLCLORC;;;WD)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;CO)
+governsId: 1.2.840.113556.1.5.300
+instanceType: 4
+objectClassCategory: 1
+schemaIdGuid:: k5Bp8lryIEKd6wPfTMSpxQ==
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.5.85
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Dns-Zone-Scope,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+cn: Dns-Zone-Scope
+adminDisplayName: Dns-Zone-Scope
+adminDescription: A zonescope of a zone is another copy of the zone contained in the zone with different set of resource records.
+ldapDisplayName: dnsZoneScope
+rDNAttID: cn
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;ED)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;CC;;;AU)(A;;RPLCLORC;;;WD)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;CO)
+governsId: 1.2.840.113556.1.5.301
+instanceType: 4
+objectClassCategory: 1
+schemaIdGuid:: YYpvaT8tzkCks+J138xJxQ==
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.5.300
+systemMustContain: 0.9.2342.19200300.100.1.25
+systemMayContain: 1.2.840.113556.1.4.1306
+systemMayContain: 1.2.840.113556.1.4.653
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Dns-Node,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemPossSuperiors
+systemPossSuperiors: 1.2.840.113556.1.5.301
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 82
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

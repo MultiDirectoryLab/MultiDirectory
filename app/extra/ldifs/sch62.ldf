@@ -1,0 +1,44 @@
+dn: CN=ms-DS-Issuer-Public-Certificates,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Issuer-Public-Certificates
+adminDisplayName: ms-DS-Issuer-Public-Certificates
+adminDescription: The public keys  of the keys used to sign certificates issued by the Registration Service.
+ldapDisplayName: msDS-IssuerPublicCertificates
+attributeId: 1.2.840.113556.1.4.2269
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: FALSE
+instanceType: 4
+rangeLower: 1
+rangeUpper: 65536
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: /u3xtdK0dkCrD2FINCsL9g==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2269
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 62
+-
+

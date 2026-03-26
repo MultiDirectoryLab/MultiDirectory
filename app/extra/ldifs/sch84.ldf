@@ -1,0 +1,101 @@
+dn: CN=ms-DS-Token-Group-Names,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msds-tokenGroupNames
+adminDisplayName: ms-DS-Token-Group-Names
+adminDescription: The distinguished names of security groups the principal is directly or indirectly a member of.
+attributeId: 1.2.840.113556.1.4.2345
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+omObjectClass:: KwwCh3McAIVK
+isSingleValued: FALSE
+systemOnly: TRUE
+# 0x00000800 (Attribute is returned only on base searches.)
+# searchFlags hex value 0x00000800
+searchFlags: 2048
+schemaIdGuid:: dgVlZZlGyU+NGCbgzQE3pg==
+attributeSecurityGuid:: +IhwA+EK0hG0IgCgyWj5OQ==
+showInAdvancedViewOnly: TRUE
+# 0x00000001 (Attribute is not replicated)
+# 0x00000004 (Attribute is constructed)
+# 0x00000008 (Attribute is operational)
+# 0x00000010 (Attribute is in the base schema)
+# systemFlags hex value 0x0000001D
+systemFlags: 29
+
+dn: CN=ms-DS-Token-Group-Names-Global-And-Universal,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msds-tokenGroupNamesGlobalAndUniversal
+adminDisplayName: ms-DS-Token-Group-Names-Global-And-Universal
+adminDescription: The distinguished names of global and universal security groups the principal is directly or indirectly a member of.
+attributeId: 1.2.840.113556.1.4.2346
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+omObjectClass:: KwwCh3McAIVK
+isSingleValued: FALSE
+systemOnly: TRUE
+# 0x00000800 (Attribute is returned only on base searches.)
+# searchFlags hex value 0x00000800
+searchFlags: 2048
+schemaIdGuid:: 9NEG+iJ5rUq3nLIgH1RBfA==
+attributeSecurityGuid:: +IhwA+EK0hG0IgCgyWj5OQ==
+showInAdvancedViewOnly: TRUE
+# 0x00000001 (Attribute is not replicated)
+# 0x00000004 (Attribute is constructed)
+# 0x00000008 (Attribute is operational)
+# 0x00000010 (Attribute is in the base schema)
+# systemFlags hex value 0x0000001D
+systemFlags: 29
+
+dn: CN=ms-DS-Token-Group-Names-No-GC-Acceptable,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msds-tokenGroupNamesNoGCAcceptable
+adminDisplayName: ms-DS-Token-Group-Names-No-GC-Acceptable
+adminDescription: The distinguished names of security groups the principal is directly or indirectly a member of as reported by the local DC.
+attributeId: 1.2.840.113556.1.4.2347
+attributeSyntax: 2.5.5.1
+omSyntax: 127
+omObjectClass:: KwwCh3McAIVK
+isSingleValued: FALSE
+systemOnly: TRUE
+# 0x00000800 (Attribute is returned only on base searches.)
+# searchFlags hex value 0x00000800
+searchFlags: 2048
+schemaIdGuid:: yMY/UvSaAkqc1z3qEp7rJw==
+attributeSecurityGuid:: +IhwA+EK0hG0IgCgyWj5OQ==
+showInAdvancedViewOnly: TRUE
+# 0x00000001 (Attribute is not replicated)
+# 0x00000004 (Attribute is constructed)
+# 0x00000008 (Attribute is operational)
+# 0x00000010 (Attribute is in the base schema)
+# systemFlags hex value 0x0000001D
+systemFlags: 29
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Security-Principal,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2345
+systemMayContain: 1.2.840.113556.1.4.2346
+systemMayContain: 1.2.840.113556.1.4.2347
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 84
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+

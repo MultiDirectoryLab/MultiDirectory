@@ -1,0 +1,139 @@
+dn: CN=ms-DS-Is-Member-Of-DL-Transitive,CN=Schema,CN=Configuration,DC=X
+# This constructed attribute transitively expands the 
+# linked attribute "isMemberOfDL"
+changetype: ntdsschemaadd
+objectClass: attributeSchema
+lDAPDisplayName: msds-memberOfTransitive
+adminDisplayName: msds-memberOfTransitive
+adminDescription: msds-memberOfTransitive
+attributeID: 1.2.840.113556.1.4.2236
+attributeSyntax: 2.5.5.1
+oMSyntax: 127
+oMObjectClass:: KwwCh3McAIVK
+isSingleValued: FALSE
+systemOnly: TRUE
+# 0x800(only return on base search) 
+searchFlags: 2048
+showInAdvancedViewOnly: TRUE
+schemaIdGuid:: tmYhhkHJJ0eVZUi//ylB3g==
+# 0x10 (base schema) +
+# 0x08 (operational) +
+# 0x04 (constructed) +
+# 0x01 (not replicated)
+systemFlags: 29
+
+dn: CN=ms-DS-Member-Transitive,CN=Schema,CN=Configuration,DC=X
+# This constructed attribute transitively expands the 
+# linked attribute "member"
+changetype: ntdsschemaadd
+objectClass: attributeSchema
+lDAPDisplayName: msds-memberTransitive
+adminDisplayName: msds-memberTransitive
+adminDescription: msds-memberTransitive
+attributeID: 1.2.840.113556.1.4.2238
+attributeSyntax: 2.5.5.1
+oMSyntax: 127
+oMObjectClass:: KwwCh3McAIVK
+isSingleValued: FALSE
+systemOnly: TRUE
+# 0x800(only return on base search) 
+searchFlags: 2048
+showInAdvancedViewOnly: TRUE
+schemaIdGuid:: WzkV4gSR2US4lDmeyeId/A==
+# 0x10 (base schema) +
+# 0x08 (operational) +
+# 0x04 (constructed) +
+# 0x01 (not replicated)
+systemFlags: 29
+
+dn: CN=ms-DS-Parent-Dist-Name,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsschemaadd
+objectClass: attributeSchema
+lDAPDisplayName: msDS-parentdistname
+adminDisplayName: ms-DS-Parent-Dist-Name
+adminDescription: ms-DS-Parent-Dist-Name
+attributeID: 1.2.840.113556.1.4.2203
+attributeSyntax: 2.5.5.1
+oMSyntax: 127
+oMObjectClass:: KwwCh3McAIVK
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+schemaIDGUID:: ff4YuRqXBPSeIZJhq+yXCw==
+showInAdvancedViewOnly: TRUE
+# 0x10 (base schema) + 
+# 0x08 (operational) + 
+# 0x04 (constructed) + 
+# 0x01 (not replicated)
+systemFlags: 29
+
+dn: CN=ms-DS-Repl-Value-Meta-Data-Ext,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ReplValueMetaDataExt
+adminDisplayName: ms-DS-Repl-Value-Meta-Data-Ext
+adminDescription: ms-DS-Repl-Value-Meta-Data-Ext
+attributeId: 1.2.840.113556.1.4.2235
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isSingleValued: FALSE
+systemOnly: FALSE
+searchFlags: 0
+schemaIdGuid:: 79ICHq1EskamfZ/RjXgLyg==
+showInAdvancedViewOnly: TRUE
+# 0x10 (base schema) + 
+# 0x04 (constructed)
+systemFlags: 20
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: cn=Top,cn=Schema,cn=Configuration,dc=X
+changetype: ntdsschemamodify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2238
+systemMayContain: 1.2.840.113556.1.4.2236
+systemMayContain: 1.2.840.113556.1.4.2203
+systemMayContain: 1.2.840.113556.1.4.2235
+-
+
+dn: CN=DS-Set-Owner,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+displayName: Set Owner of an object during creation.
+rightsGuid: 4125c71f-7fac-4ff0-bcb7-f09a41325286
+appliesTo: 26f11b08-a29d-4869-99bb-ef0b99fd883e
+validAccesses: 256
+
+dn: CN=DS-Bypass-Quota,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+displayName: Bypass the quota restrictions during creation.
+rightsGuid: 88a9933e-e5c8-4f2a-9dd7-2527416b8092
+appliesTo: 26f11b08-a29d-4869-99bb-ef0b99fd883e
+validAccesses: 256
+
+dn: CN=DS-Read-Partition-Secrets,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+displayName: Read secret attributes of objects in a Partition
+rightsGuid: 084c93a2-620d-4879-a836-f0ae47de0e89
+appliesTo: 26f11b08-a29d-4869-99bb-ef0b99fd883e
+validAccesses: 256
+
+dn: CN=DS-Write-Partition-Secrets,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+displayName: Write secret attributes of objects in a Partition
+rightsGuid: 94825A8D-B171-4116-8146-1E34D8F54401
+appliesTo: 26f11b08-a29d-4869-99bb-ef0b99fd883e
+validAccesses: 256
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 60
+-

@@ -1,0 +1,82 @@
+dn: CN=ms-DS-User-Allowed-NTLM-Network-Authentication,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-UserAllowedNTLMNetworkAuthentication
+adminDisplayName: ms-DS-User-Allowed-NTLM-Network-Authentication
+adminDescription: This attribute is used to determine if a user is allowed to authenticate using NTLM authentication.
+attributeId: 1.2.840.113556.1.4.2348
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+# searchFlags hex value 0x00000000
+searchFlags: 0
+# schemaIdGuid {7ece040f-9327-4cdc-aad3-037adfe62639}
+schemaIdGuid:: DwTOfieT3Eyq0wN63+YmOQ==
+# attributeSecurityGuid {00000000-0000-0000-0000-000000000000}
+showInAdvancedViewOnly: TRUE
+# systemFlags hex value 0x00000010
+# 0x00000010 (Attribute is in the base schema)
+systemFlags: 16
+
+dn: CN=ms-DS-Service-Allowed-NTLM-Network-Authentication,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ServiceAllowedNTLMNetworkAuthentication
+adminDisplayName: ms-DS-Service-Allowed-NTLM-Network-Authentication
+adminDescription: This attribute is used to determine if a service is allowed to authenticate using NTLM authentication.
+attributeId: 1.2.840.113556.1.4.2349
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+isSingleValued: TRUE
+systemOnly: FALSE
+# searchFlags hex value 0x00000000
+searchFlags: 0
+# schemaIdGuid {278947b9-5222-435e-96b7-1503858c2b48}
+schemaIdGuid:: uUeJJyJSXkOWtxUDhYwrSA==
+# attributeSecurityGuid {00000000-0000-0000-0000-000000000000}
+showInAdvancedViewOnly: TRUE
+# systemFlags hex value 0x00000010
+# 0x00000010 (Attribute is in the base schema)
+systemFlags: 16
+
+dn: CN=ms-DS-Strong-NTLM-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-StrongNTLMPolicy
+adminDisplayName: ms-DS-Strong-NTLM-Policy
+adminDescription: This attribute specifies policy options for NTLM secrets with strong entropy.
+attributeId: 1.2.840.113556.1.4.2350
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: FALSE
+# searchFlags hex value 0x00000000
+searchFlags: 0
+# schemaIdGuid {aacd2170-482a-44c6-b66e-42c2f66a285c}
+schemaIdGuid:: cCHNqipIxkS2bkLC9mooXA==
+# attributeSecurityGuid {00000000-0000-0000-0000-000000000000}
+showInAdvancedViewOnly: TRUE
+# systemFlags hex value 0x00000010
+# 0x00000010 (Attribute is in the base schema)
+systemFlags: 16
+
+dn: CN=ms-DS-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2348
+systemMayContain: 1.2.840.113556.1.4.2349
+systemMayContain: 1.2.840.113556.1.4.2350
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 85
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

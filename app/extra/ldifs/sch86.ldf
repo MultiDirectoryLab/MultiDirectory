@@ -1,0 +1,67 @@
+dn: CN=ms-DS-Source-Anchor,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-SourceAnchor
+adminDisplayName: ms-DS-Source-Anchor
+adminDescription: Unique, immutable identifier for the object in the authoritative directory.
+attributeId: 1.2.840.113556.1.4.2352
+attributeSyntax: 2.5.5.12
+# Syntax: String
+oMSyntax: 64
+isSingleValued: TRUE
+# Note that we do not supply rangeUpper here.  DS API enforces a maximum length of 256 Unicode characters,
+# which may translate to more than 256 multi-byte characters in AD given that the AD syntax for this
+# attribute is not String(Unicode).
+rangeLower: 1
+systemOnly: FALSE
+# searchFlags: +fPDNTATTINDEX for SearchForAddressListObjects
+# searchFlags: fPDNTATTINDEX | fPRESERVEONDELETE
+searchFlags: 10
+schemaIDGUID:: B/QCsEAT60G8oL19k44lqQ==
+# attributeSecurityGuid {00000000-0000-0000-0000-000000000000}
+showInAdvancedViewOnly: TRUE
+# systemFlags hex value 0x00000010
+# 0x00000010 (Attribute is in the base schema)
+systemFlags: 16
+
+dn: CN=ms-DS-Object-SOA,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-ObjectSoa
+adminDisplayName: ms-DS-Object-SOA
+adminDescription: This attribute is used to identify the source of authority of the object.
+attributeId: 1.2.840.113556.1.4.2353
+attributeSyntax: 2.5.5.12
+# Syntax: String
+oMSyntax: 64
+isSingleValued: TRUE
+# Note that we do not supply rangeUpper here.  DS API enforces a maximum length of 256 Unicode characters,
+# which may translate to more than 256 multi-byte characters in AD given that the AD syntax for this
+# attribute is not String(Unicode).
+rangeLower: 1
+systemOnly: FALSE
+searchFlags: 0
+schemaIDGUID:: 9b32NHkuO0yOFD2Tt1qriQ==
+showInAdvancedViewOnly: TRUE
+# systemFlags hex value 0x00000010
+# 0x00000010 (Attribute is in the base schema)
+systemFlags: 16
+
+dn: CN=Top,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2352
+systemMayContain: 1.2.840.113556.1.4.2353
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 86
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

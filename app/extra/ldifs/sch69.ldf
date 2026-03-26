@@ -1,0 +1,23 @@
+dn: CN=ms-DS-AuthN-Policy-Silo,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: defaultHidingValue
+defaultHidingValue: FALSE
+-
+
+dn: CN=ms-DS-AuthN-Policy,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: defaultHidingValue
+defaultHidingValue: FALSE
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 69
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

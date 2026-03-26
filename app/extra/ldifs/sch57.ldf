@@ -1,0 +1,258 @@
+dn: CN=ms-DS-Issuer-Certificates,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Issuer-Certificates
+adminDisplayName: ms-DS-Issuer-Certificates
+adminDescription: The keys used to sign certificates issued by the Registration Service.
+ldapDisplayName: msDS-IssuerCertificates
+attributeId: 1.2.840.113556.1.4.2240
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: FALSE
+instanceType: 4
+rangeLower: 1
+rangeUpper: 65536
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: 2m89a5MIxEOJ+x+1KmYWqQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Registration-Quota,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Registration-Quota
+adminDisplayName: ms-DS-Registration-Quota
+adminDescription: Policy used to limit the number of registrations allowed for a single user.
+ldapDisplayName: msDS-RegistrationQuota
+attributeId: 1.2.840.113556.1.4.2241
+omSyntax: 2
+attributeSyntax: 2.5.5.9
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: woYyymQfeUCWvOYrYQ5zDw==
+systemFlags: 16
+
+dn: CN=ms-DS-Maximum-Registration-Inactivity-Period,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Maximum-Registration-Inactivity-Period
+adminDisplayName: ms-DS-Maximum-Registration-Inactivity-Period
+adminDescription: The maximum ammount of days used to detect inactivty of registration objects.
+ldapDisplayName: msDS-MaximumRegistrationInactivityPeriod
+attributeId: 1.2.840.113556.1.4.2242
+omSyntax: 2
+attributeSyntax: 2.5.5.9
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: OapcCuYFykm4CAJbk2YQ5w==
+systemFlags: 16
+
+dn: CN=ms-DS-Is-Enabled,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Is-Enabled
+adminDisplayName: ms-DS-Is-Enabled
+adminDescription: This attribute is used to enable or disable the user-device relationship.
+ldapDisplayName: msDS-IsEnabled
+attributeId: 1.2.840.113556.1.4.2248
+omSyntax: 1
+attributeSyntax: 2.5.5.8
+isSingleValued: TRUE
+instanceType: 4
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: DlypIoMfgkyUzr6miM/IcQ==
+systemFlags: 16
+
+dn: CN=ms-DS-Device-OS-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Device-OS-Type
+adminDisplayName: ms-DS-Device-OS-Type
+adminDescription: This attribute is used to track the type of device based on the OS.
+ldapDisplayName: msDS-DeviceOSType
+attributeId: 1.2.840.113556.1.4.2249
+omSyntax: 64
+attributeSyntax: 2.5.5.12
+isSingleValued: FALSE
+instanceType: 4
+rangeLower: 0
+rangeUpper: 1024
+searchFlags: 1
+systemOnly: FALSE
+schemaIdGuid:: TUUOELvzy02EX41e3EccWQ==
+systemFlags: 16
+
+dn: CN=ms-DS-Device-OS-Version,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Device-OS-Version
+adminDisplayName: ms-DS-Device-OS-Version
+adminDescription: This attribute is used to track the OS version of the device.
+ldapDisplayName: msDS-DeviceOSVersion
+attributeId: 1.2.840.113556.1.4.2250
+omSyntax: 64
+attributeSyntax: 2.5.5.12
+isSingleValued: FALSE
+instanceType: 4
+rangeLower: 0
+rangeUpper: 512
+searchFlags: 1
+systemOnly: FALSE
+schemaIdGuid:: Y4z7cKtfBEWrnRSzKain+A==
+systemFlags: 16
+
+dn: CN=ms-DS-Device-Physical-IDs,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Device-Physical-IDs
+adminDisplayName: ms-DS-Device-Physical-IDs
+adminDescription: This attribute is used to store identifiers of the physical device.
+ldapDisplayName: msDS-DevicePhysicalIDs
+attributeId: 1.2.840.113556.1.4.2251
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: FALSE
+instanceType: 4
+rangeLower: 1
+rangeUpper: 10485760
+searchFlags: 1
+systemOnly: FALSE
+schemaIdGuid:: FFRhkKCiR0Spk1NAlZm3Tg==
+systemFlags: 16
+
+dn: CN=ms-DS-Device-ID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Device-ID
+adminDisplayName: ms-DS-Device-ID
+adminDescription: This attribute stores the ID of the device.
+ldapDisplayName: msDS-DeviceID
+attributeId: 1.2.840.113556.1.4.2252
+omSyntax: 4
+attributeSyntax: 2.5.5.10
+isSingleValued: TRUE
+instanceType: 4
+rangeLower: 16
+rangeUpper: 16
+searchFlags: 1
+systemOnly: FALSE
+schemaIdGuid:: x4EBw0Jj+0GyeffFZsvgpw==
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device-Registration-Service-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+cn: ms-DS-Device-Registration-Service-Container
+adminDisplayName: ms-DS-Device-Registration-Service-Container
+adminDescription: A class for the container used to house all enrollment services used for device registrations.
+ldapDisplayName: msDS-DeviceRegistrationServiceContainer
+rDNAttID: cn
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+governsId: 1.2.840.113556.1.5.287
+instanceType: 4
+objectClassCategory: 1
+schemaIdGuid:: zlULMc09kkOpbcnjU5fCTw==
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.3.23
+
+dn: CN=ms-DS-Device-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+cn: ms-DS-Device-Container
+adminDisplayName: ms-DS-Device-Container
+adminDescription: A class for the container used to hold device objects.
+ldapDisplayName: msDS-DeviceContainer
+rDNAttID: cn
+defaultSecurityDescriptor: D:(A;;RPLCLORC;;;AU)(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+governsId: 1.2.840.113556.1.5.289
+instanceType: 4
+objectClassCategory: 1
+schemaIdGuid:: WIyefBuQqE627E656fwOEQ==
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.5.67
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+cn: ms-DS-Device-Registration-Service
+adminDisplayName: ms-DS-Device-Registration-Service
+adminDescription: An object of this class holds the registration service configuration used for devices.
+ldapDisplayName: msDS-DeviceRegistrationService
+rDNAttID: cn
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+governsId: 1.2.840.113556.1.5.284
+instanceType: 4
+objectClassCategory: 1
+schemaIdGuid:: Gjq8ltLj00mvEXsN951n9Q==
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.5.287
+systemMayContain: 1.2.840.113556.1.4.2240
+systemMayContain: 1.2.840.113556.1.4.2241
+systemMayContain: 1.2.840.113556.1.4.2242
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+cn: ms-DS-Device
+adminDisplayName: ms-DS-Device
+adminDescription: An object of this type represents a registered device.
+ldapDisplayName: msDS-Device
+rDNAttID: cn
+defaultSecurityDescriptor: D:(A;;RPLCLORC;;;AU)(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+governsId: 1.2.840.113556.1.5.286
+instanceType: 4
+objectClassCategory: 1
+schemaIdGuid:: c7byXUFtdEez6NUujun/mQ==
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+systemFlags: 16
+subClassOf: top
+systemPossSuperiors: 1.2.840.113556.1.5.289
+systemMayContain: 1.2.840.113556.1.4.2248
+systemMayContain: 1.2.840.113556.1.4.2249
+systemMayContain: 1.2.840.113556.1.4.2250
+systemMayContain: 1.2.840.113556.1.4.2251
+systemMayContain: 1.2.840.113556.1.4.2252
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 57
+-

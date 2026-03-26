@@ -1,0 +1,43 @@
+dn: CN=ms-DS-External-Directory-Object-Id,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+adminDisplayName: ms-DS-External-Directory-Object-Id
+adminDescription: ms-DS-External-Directory-Object-Id
+ldapDisplayName: msDS-ExternalDirectoryObjectId
+attributeSecurityGuid:: hri1d0qU0RGuvQAA+ANnwQ==
+attributeId: 1.2.840.113556.1.4.2310
+attributeSyntax: 2.5.5.12
+omSyntax: 64
+isMemberOfPartialAttributeSet: TRUE
+isSingleValued: TRUE
+instanceType: 4
+rangeUpper: 256
+schemaIdGuid:: kL8pva1m4UCIexDfBwQZpg==
+searchFlags: 9
+showInAdvancedViewOnly: FALSE
+systemOnly: FALSE
+systemFlags: 16
+
+dn:
+changetype: ntdsSchemaModify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Mail-Recipient,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: mayContain
+mayContain: 1.2.840.113556.1.4.2310
+-
+
+dn: CN=Top,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2273
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 72
+-

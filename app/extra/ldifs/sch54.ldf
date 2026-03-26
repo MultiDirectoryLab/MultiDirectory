@@ -1,0 +1,17 @@
+dn: CN=User-Account-Restrictions,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: appliesTo
+appliesTo: 7b8b558a-93a5-4af7-adca-c017e67f1057
+-
+
+dn: CN=ms-DS-Allowed-To-Act-On-Behalf-Of-Other-Identity,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: attributeSecurityGuid
+attributeSecurityGuid:: AEIWTMAg0BGnaACqAG4FKQ==
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 54
+-

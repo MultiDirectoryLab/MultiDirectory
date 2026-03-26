@@ -1,0 +1,42 @@
+dn: CN=ms-DS-Device-MDMStatus,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-Device-MDMStatus
+adminDisplayName: ms-DS-Device-MDMStatus
+adminDescription: This attribute is used to manage the mobile device management status of the device.
+ldapDisplayName: msDS-DeviceMDMStatus
+attributeId: 1.2.840.113556.1.4.2308
+omSyntax: 64
+attributeSyntax: 2.5.5.12
+isSingleValued: TRUE
+instanceType: 4
+rangeUpper: 256
+searchFlags: 0
+systemOnly: FALSE
+schemaIdGuid:: lo8K9sRXLEKjrZ4voJzm9w==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2308
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 70
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

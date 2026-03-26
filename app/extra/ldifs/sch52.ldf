@@ -1,0 +1,521 @@
+dn: CN=ms-DS-RID-Pool-Allocation-Enabled,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-RIDPoolAllocationEnabled
+adminDisplayName: ms-DS-RID-Pool-Allocation-Enabled
+adminDescription: This attribute indicates whether RID pool allocation is enabled or not.
+attributeId: 1.2.840.113556.1.4.2213
+attributeSyntax: 2.5.5.8
+omSyntax: 1
+instanceType: 4
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+schemaFlagsEx: 1
+schemaIdGuid:: jHyXJLfBQDO09is3XrcR1w==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=RID-Set-References,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: searchFlags
+searchFlags: 8
+-
+
+dn: CN=Netboot-DUID,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: Netboot-DUID
+ldapDisplayName: netbootDUID
+adminDisplayName: Netboot-DUID
+adminDescription: This attribute is used to store DHCPv6 DUID device ID.
+attributeId: 1.2.840.113556.1.4.2234
+attributeSyntax: 2.5.5.10
+omSyntax: 4
+instanceType: 4
+isSingleValued: TRUE
+searchFlags: 1
+systemFlags: 16
+isMemberOfPartialAttributeSet: TRUE
+systemOnly: FALSE
+rangeLower: 2
+rangeUpper: 128
+schemaIdGuid:: vXAlU3c9T0KCLw1jbcbarQ==
+showInAdvancedViewOnly: TRUE
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=RID-Manager,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2213
+-
+
+dn: CN=domainDNS-Display,CN=409,CN=DisplaySpecifiers,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: adminContextMenu
+adminContextMenu: 3,{2fb1b669-59ea-4f64-b728-05309f2c11c8}
+-
+
+dn: CN=computer-Display,CN=409,CN=DisplaySpecifiers,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: adminPropertyPages
+adminPropertyPages: 13,{2fb1b669-59ea-4f64-b728-05309f2c11c8}
+-
+
+dn: CN=Certificate-AutoEnrollment,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+showInAdvancedViewOnly: TRUE
+appliesTo: e5209ca2-3bba-11d2-90cc-00c04fd91ab1
+displayname: AutoEnrollment
+localizationDisplayId: 83
+rightsGuid: a05b8cc2-17bc-4802-a710-e7c15ab866a2
+validAccesses: 256
+
+# Update element: computer
+dn: CN=Computer,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: mayContain
+mayContain: 1.2.840.113556.1.4.2234
+-
+
+dn: CN=ms-DS-cloudExtensionAttribute1,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute1
+lDAPDisplayName: msDS-cloudExtensionAttribute1
+adminDisplayName: ms-DS-cloudExtensionAttribute1
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2214
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: r+oJl9pJsk2QigRG5eq4RA==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute2,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute2
+lDAPDisplayName: msDS-cloudExtensionAttribute2
+adminDisplayName: ms-DS-cloudExtensionAttribute2
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2215
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: rOBO88HAqUuCyRqQdS8WpQ==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute3,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute3
+lDAPDisplayName: msDS-cloudExtensionAttribute3
+adminDisplayName: ms-DS-cloudExtensionAttribute3
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2216
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: Gsj2gtr6DUqw93BtRoOOtQ==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute4,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute4
+lDAPDisplayName: msDS-cloudExtensionAttribute4
+adminDisplayName: ms-DS-cloudExtensionAttribute4
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2217
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: NzS/nG5OW0iykSKwJVQnPw==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute5,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute5
+lDAPDisplayName: msDS-cloudExtensionAttribute5
+adminDisplayName: ms-DS-cloudExtensionAttribute5
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2218
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: W+gVKUfjUkiquyLlplHIZA==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute6,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute6
+lDAPDisplayName: msDS-cloudExtensionAttribute6
+adminDisplayName: ms-DS-cloudExtensionAttribute6
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2219
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: eSZFYOEo7Eus43EoMzYUVg==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute7,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute7
+lDAPDisplayName: msDS-cloudExtensionAttribute7
+adminDisplayName: ms-DS-cloudExtensionAttribute7
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2220
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: GRN8Sk7jwkCdAGD/eJDyBw==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute8,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute8
+lDAPDisplayName: msDS-cloudExtensionAttribute8
+adminDisplayName: ms-DS-cloudExtensionAttribute8
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2221
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: FMXRPEmEykSBwAIXgYANKg==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute9,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute9
+lDAPDisplayName: msDS-cloudExtensionAttribute9
+adminDisplayName: ms-DS-cloudExtensionAttribute9
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2222
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: LOFjCkAwQUSuJs2Vrw0kfg==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute10,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute10
+lDAPDisplayName: msDS-cloudExtensionAttribute10
+adminDisplayName: ms-DS-cloudExtensionAttribute10
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2223
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: s/wKZ70T/EeQswpSftgatw==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute11,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute11
+lDAPDisplayName: msDS-cloudExtensionAttribute11
+adminDisplayName: ms-DS-cloudExtensionAttribute11
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2224
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: yLuenqV9pkKJJSROEqVuJA==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute12,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute12
+lDAPDisplayName: msDS-cloudExtensionAttribute12
+adminDisplayName: ms-DS-cloudExtensionAttribute12
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2225
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: PcQBPAvhyk+Sskz2FdWwmg==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute13,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute13
+lDAPDisplayName: msDS-cloudExtensionAttribute13
+adminDisplayName: ms-DS-cloudExtensionAttribute13
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2226
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: S0a+KJCreUumsN9DdDHQNg==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute14,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute14
+lDAPDisplayName: msDS-cloudExtensionAttribute14
+adminDisplayName: ms-DS-cloudExtensionAttribute14
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2227
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: ura8zoBuJ0mFYJj+yghqnw==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute15,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute15
+lDAPDisplayName: msDS-cloudExtensionAttribute15
+adminDisplayName: ms-DS-cloudExtensionAttribute15
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2228
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: N9XkqvCKqk2cxmLq24T/Aw==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute16,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute16
+lDAPDisplayName: msDS-cloudExtensionAttribute16
+adminDisplayName: ms-DS-cloudExtensionAttribute16
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2229
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: WyGBlZZRU0ChHm/8r8YsTQ==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute17,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute17
+lDAPDisplayName: msDS-cloudExtensionAttribute17
+adminDisplayName: ms-DS-cloudExtensionAttribute17
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2230
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: 2m08PehrKUKWfi/1u5O0zg==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute18,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute18
+lDAPDisplayName: msDS-cloudExtensionAttribute18
+adminDisplayName: ms-DS-cloudExtensionAttribute18
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2231
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: NDvniKYKaUSYQm6wGzKltQ==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute19,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute19
+lDAPDisplayName: msDS-cloudExtensionAttribute19
+adminDisplayName: ms-DS-cloudExtensionAttribute19
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2232
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: mf51CQeWikaOGMgA0zhzlQ==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-cloudExtensionAttribute20,CN=Schema,CN=Configuration,dc=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+cn: ms-DS-cloudExtensionAttribute20
+lDAPDisplayName: msDS-cloudExtensionAttribute20
+adminDisplayName: ms-DS-cloudExtensionAttribute20
+adminDescription: An attribute used to house an arbitrary cloud-relevant string
+attributeID: 1.2.840.113556.1.4.2233
+attributeSyntax: 2.5.5.12
+oMSyntax: 64
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+isMemberOfPartialAttributeSet: TRUE
+schemaIDGUID:: KGNE9W6LjUmVqCEXSNWs3A==
+attributeSecurityGUID:: hri1d0qU0RGuvQAA+ANnwQ==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn: CN=ms-DS-Cloud-Extensions,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-CloudExtensions
+adminDisplayName: ms-DS-Cloud-Extensions
+adminDescription: A collection of attributes used to house arbitrary cloud-relevant strings.
+governsId: 1.2.840.113556.1.5.283
+objectClassCategory: 3
+rdnAttId: 2.5.4.3
+subClassOf: 2.5.6.0
+MayContain: 1.2.840.113556.1.4.2214
+MayContain: 1.2.840.113556.1.4.2215
+MayContain: 1.2.840.113556.1.4.2216
+MayContain: 1.2.840.113556.1.4.2217
+MayContain: 1.2.840.113556.1.4.2218
+MayContain: 1.2.840.113556.1.4.2219
+MayContain: 1.2.840.113556.1.4.2220
+MayContain: 1.2.840.113556.1.4.2221
+MayContain: 1.2.840.113556.1.4.2222
+MayContain: 1.2.840.113556.1.4.2223
+MayContain: 1.2.840.113556.1.4.2224
+MayContain: 1.2.840.113556.1.4.2225
+MayContain: 1.2.840.113556.1.4.2226
+MayContain: 1.2.840.113556.1.4.2227
+MayContain: 1.2.840.113556.1.4.2228
+MayContain: 1.2.840.113556.1.4.2229
+MayContain: 1.2.840.113556.1.4.2230
+MayContain: 1.2.840.113556.1.4.2231
+MayContain: 1.2.840.113556.1.4.2232
+MayContain: 1.2.840.113556.1.4.2233
+schemaIdGuid:: pIceZCaDcUe6LccG3zXjWg==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+showInAdvancedViewOnly: TRUE
+defaultHidingValue: TRUE
+systemOnly: FALSE
+defaultObjectCategory: CN=ms-DS-Cloud-Extensions,CN=Schema,CN=Configuration,DC=X
+systemFlags: 16
+
+dn: CN=User,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemAuxiliaryClass
+systemAuxiliaryClass: 1.2.840.113556.1.5.283
+-
+
+dn: CN=Personal-Information,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: appliesTo
+appliesTo: 641E87A4-8326-4771-BA2D-C706DF35E35A
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 52
+-

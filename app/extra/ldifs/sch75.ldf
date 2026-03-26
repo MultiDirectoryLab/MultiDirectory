@@ -1,0 +1,56 @@
+dn: CN=ms-DS-Device-Trust-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+CN: ms-DS-Device-Trust-Type
+adminDescription: Represents join type for devices.
+adminDisplayName: msDS-DeviceTrustType
+lDAPDisplayName: msDS-DeviceTrustType
+attributeId: 1.2.840.113556.1.4.2325
+oMSyntax: 2
+attributeSyntax: 2.5.5.9
+instanceType: 4
+isMemberOfPartialAttributeSet: TRUE
+isSingleValued: TRUE
+searchFlags: 0
+showInAdvancedViewOnly: TRUE
+systemOnly: FALSE
+schemaIDGUID:: B2ikxNxqu0uX3mvtGBob/g==
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Device,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2325
+-
+
+#
+# Optional Feature Object
+#
+dn: CN=Expiring Group Membership Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: msDS-OptionalFeature
+msDS-OptionalFeatureFlags: 1
+msDS-OptionalFeatureGUID:: c+hD7OjMQEa0qwf/5KtbzQ==
+msDS-RequiredForestBehaviorVersion: 7
+# 0x800000000
+# 0x080000000
+# 0x040000000
+systemFlags: 2348810240
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 75
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

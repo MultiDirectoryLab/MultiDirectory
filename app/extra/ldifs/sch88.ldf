@@ -1,0 +1,54 @@
+dn: CN=ms-DS-Preferred-Data-Location,CN=schema,CN=configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+attributeID: 1.2.840.113556.1.4.2366
+attributeSyntax: 2.5.5.12
+adminDisplayName: ms-DS-Preferred-Data-Location
+adminDescription: ms-DS-Preferred-Data-Location
+oMSyntax: 64
+lDAPDisplayName: msDS-preferredDataLocation
+isSingleValued: TRUE
+schemaIDGUID:: 3ooM+pRMEEa6zhgO/e4hQA==
+searchFlags: 0
+showInAdvancedViewOnly: FALSE
+systemFlags: 16
+systemOnly: FALSE
+rangeLower: 1
+rangeUpper: 10
+isMemberOfPartialAttributeSet: TRUE
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=User,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2366
+-
+
+dn: CN=Contact,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2366
+-
+
+dn: CN=Group,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2366
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 88
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

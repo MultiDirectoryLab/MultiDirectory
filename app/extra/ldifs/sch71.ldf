@@ -1,0 +1,42 @@
+dn: CN=ms-DS-GeoCoordinates-Altitude,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: systemFlags
+systemFlags: 16
+-
+
+dn: CN=ms-DS-GeoCoordinates-Latitude,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: systemFlags
+systemFlags: 16
+-
+
+dn: CN=ms-DS-GeoCoordinates-Longitude,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: systemFlags
+systemFlags: 16
+-
+
+dn: CN=ms-DS-Device-OS-Version,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: searchFlags
+searchFlags: 1
+-
+
+dn: CN=ms-DS-Device-OS-Type,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: searchFlags
+searchFlags: 1
+-
+
+# Increase schema version
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 71
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

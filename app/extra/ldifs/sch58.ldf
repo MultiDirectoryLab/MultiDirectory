@@ -1,0 +1,17 @@
+dn: CN=ms-DS-Resource-Property-List,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultHidingValue
+defaultHidingValue: FALSE
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 58
+-

@@ -1,0 +1,29 @@
+dn: CN=ms-DS-Issuer-Certificates,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: searchFlags
+searchFlags: 128
+-
+
+dn: CN=ms-DS-Device-Registration-Service,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultSecurityDescriptor
+defaultSecurityDescriptor: D:(A;;RPLCLORC;;;AU)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+-
+
+dn: CN=ms-DS-Device-Registration-Service-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+replace: defaultSecurityDescriptor
+defaultSecurityDescriptor: D:(A;;RPLCLORC;;;AU)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;DA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 63
+-

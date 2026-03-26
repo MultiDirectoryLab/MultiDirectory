@@ -1,0 +1,93 @@
+dn: CN=ms-DS-Shadow-Principal-Sid,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+lDAPDisplayName: msDS-ShadowPrincipalSid
+adminDisplayName: ms-DS-Shadow-Principal-Sid
+adminDescription: Contains the SID of a principal from an external forest.
+attributeID: 1.2.840.113556.1.4.2324
+attributeSyntax: 2.5.5.17
+oMSyntax: 4
+isSingleValued: TRUE
+systemOnly: FALSE
+searchFlags: 1
+schemaIDGUID:: IgfMHbCq70+Vbydv4Z3hBw==
+systemFlags: 16
+instanceType: 4
+showInAdvancedViewOnly: TRUE
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Shadow-Principal-Container,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ShadowPrincipalContainer
+adminDisplayName: ms-DS-Shadow-Principal-Container
+adminDescription: Dedicated container for msDS-ShadowPrincipal objects.
+governsId: 1.2.840.113556.1.5.298
+objectClassCategory: 1
+rdnAttId: cn
+schemaIdGuid:: RVX5ERLXUEy4R9J4FTfGMw==
+defaultSecurityDescriptor: D:(A;;RPWPCRCCDCLCLOLORCWOWDSDDTDTSW;;;EA)(A;;RPWPCRCCDCLCLORCWOWDSDDTSW;;;SY)(A;;RPLCLORC;;;AU)
+defaultHidingValue: FALSE
+showInAdvancedViewOnly: TRUE
+systemOnly: FALSE
+systemFlags: 16
+instanceType: 4
+subClassOf: container
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=ms-DS-Shadow-Principal,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: classSchema
+ldapDisplayName: msDS-ShadowPrincipal
+adminDisplayName: ms-DS-Shadow-Principal
+adminDescription: Represents a principal from an external forest.
+governsId: 1.2.840.113556.1.5.299
+objectClassCategory: 1
+rdnAttId: cn
+schemaIdGuid:: s0wPd0MWnEa3Zu3XeqdeFA==
+defaultHidingValue: FALSE
+showInAdvancedViewOnly: TRUE
+systemOnly: FALSE
+systemFlags: 16
+instanceType: 4
+subClassOf: top
+systemPossSuperiors: msDS-ShadowPrincipalContainer
+systemMayContain: member
+systemMustContain: msDS-ShadowPrincipalSid
+
+dn: CN=Shadow Principal Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: msDS-OptionalFeature
+msDS-OptionalFeatureFlags: 1
+msDS-OptionalFeatureGUID:: KbW388juRVatNjmTdiXpNg==
+msDS-RequiredForestBehaviorVersion: 7
+systemFlags: 2348810240
+
+dn: CN=Shadow Principal Configuration,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: msDS-ShadowPrincipalContainer
+showInAdvancedViewOnly: TRUE
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 76
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+
