@@ -5,9 +5,9 @@ from typing import Annotated
 from dishka.integrations.fastapi import FromDishka
 from fastapi import Query
 
-from api.ldf import error_map, ldf_router
-from api.ldf.adapter import LdfVersionFastAPIAdapter
-from api.ldf.schema import LdfVersionPaginationSchema
+from api.ldifde import error_map, ldf_router
+from api.ldifde.adapter import LdfVersionFastAPIAdapter
+from api.ldifde.schema import LdfVersionPaginationSchema
 from ldap_protocol.utils.pagination import PaginationParams
 
 

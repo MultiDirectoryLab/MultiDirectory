@@ -1,9 +1,11 @@
 """LDF version adapter."""
 
 from api.base_adapter import BaseAdapter
-from api.ldf.schema import LdfVersionPaginationSchema, LdfVersionSchema
-from ldap_protocol.ldf.dto import LdfVersionDTO
-from ldap_protocol.ldf.ldf_use_case import LdfVersionUseCase
+from api.ldifde.schema import LdfVersionPaginationSchema, LdfVersionSchema
+from ldap_protocol.ldif_directory_exchange.ldf_version.dto import LdfVersionDTO
+from ldap_protocol.ldif_directory_exchange.ldf_version.ldf_version_use_case import (  # noqa: E501
+    LdfVersionUseCase,
+)
 from ldap_protocol.utils.pagination import PaginationParams
 
 

@@ -11,7 +11,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DomainCodes
-from ldap_protocol.ldf.exceptions import (
+from ldap_protocol.ldif_directory_exchange.ldf_version.exceptions import (
     LdfVersionAlreadyExistsError,
     LdfVersionNotFoundError,
 )

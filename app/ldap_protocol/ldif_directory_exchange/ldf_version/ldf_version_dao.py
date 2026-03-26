@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import LdfVersion
 from enums import LdfVersionStatus
-from ldap_protocol.ldf.dto import LdfVersionDTO
-from ldap_protocol.ldf.exceptions import (
+from ldap_protocol.ldif_directory_exchange.ldf_version.dto import LdfVersionDTO
+from ldap_protocol.ldif_directory_exchange.ldf_version.exceptions import (
     LdfVersionAlreadyExistsError,
     LdfVersionNotFoundError,
 )

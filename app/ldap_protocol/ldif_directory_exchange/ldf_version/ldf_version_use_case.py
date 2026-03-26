@@ -4,8 +4,10 @@ from typing import ClassVar
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules, LdfVersionStatus
-from ldap_protocol.ldf.dto import LdfVersionDTO
-from ldap_protocol.ldf.ldf_dao import LdfVersionDAO
+from ldap_protocol.ldif_directory_exchange.ldf_version.dto import LdfVersionDTO
+from ldap_protocol.ldif_directory_exchange.ldf_version.ldf_version_dao import (
+    LdfVersionDAO,
+)
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 
