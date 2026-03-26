@@ -18,6 +18,7 @@ from enums import (
     AuditDestinationServiceType,
     AuditSeverity,
     AuthorizationRules,
+    LdfVersionStatus,
     MFAFlags,
     RoleScope,
 )
@@ -32,6 +33,17 @@ class CatalogueSetting:
     id: int | None = field(init=False, default=None)
     name: str = ""
     value: str = ""
+
+
+@dataclass
+class LdfVersion:
+    """LDF version processing record."""
+
+    version: str
+    d_create: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc),
+    )
+    status: LdfVersionStatus | None = None
 
 
 @dataclass

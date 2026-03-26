@@ -45,6 +45,7 @@ from entities import (
     Directory,
     EntityType,
     Group,
+    LdfVersion,
     NetworkPolicy,
     PasswordBanWord,
     PasswordPolicy,
@@ -57,6 +58,7 @@ from enums import (
     AuditDestinationServiceType,
     AuditSeverity,
     KindType,
+    LdfVersionStatus,
     MFAFlags,
     RoleScope,
 )
@@ -105,6 +107,25 @@ settings_table = Table(
     Column("name", String, nullable=False),
     Column("value", String, nullable=False),
     Index("ix_Settings_name", "name", unique=True),
+)
+
+ldf_versions_table = Table(
+    "LdfVersions",
+    metadata,
+    Column("version", String(255), primary_key=True),
+    Column(
+        "d_create",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    ),
+    Column(
+        "status",
+        Enum(LdfVersionStatus, name="ldfversionstatus"),
+        nullable=True,
+    ),
+    Index("ix_LdfVersions_d_create", "d_create"),
+    Index("ix_LdfVersions_status", "status"),
 )
 
 directory_table = Table(
@@ -678,6 +699,11 @@ dedicated_servers_table = Table(
 mapper_registry.map_imperatively(
     CatalogueSetting,
     settings_table,
+)
+
+mapper_registry.map_imperatively(
+    LdfVersion,
+    ldf_versions_table,
 )
 
 mapper_registry.map_imperatively(

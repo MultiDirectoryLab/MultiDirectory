@@ -30,6 +30,7 @@ from api.dns.adapter import DNSFastAPIAdapter
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
 from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
+from api.ldf.adapter import LdfVersionFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
 from api.password_policy.adapter import (
@@ -124,6 +125,8 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
 from ldap_protocol.ldap_schema.schema_create_use_case import (
     DirectoryCreateUseCase,
 )
+from ldap_protocol.ldf.ldf_dao import LdfVersionDAO
+from ldap_protocol.ldf.ldf_use_case import LdfVersionUseCase
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
@@ -625,6 +628,8 @@ class MainProvider(Provider):
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
+    ldf_version_dao = provide(LdfVersionDAO, scope=Scope.REQUEST)
+    ldf_version_use_case = provide(LdfVersionUseCase, scope=Scope.REQUEST)
     dns_use_case = provide(DNSUseCase, scope=Scope.REQUEST)
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
 
@@ -759,6 +764,10 @@ class HTTPProvider(LDAPContextProvider):
     )
     object_class_fastapi_adapter = provide(
         ObjectClassFastAPIAdapter,
+        scope=Scope.REQUEST,
+    )
+    ldf_version_adapter = provide(
+        LdfVersionFastAPIAdapter,
         scope=Scope.REQUEST,
     )
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)

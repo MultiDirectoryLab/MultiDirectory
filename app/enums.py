@@ -108,6 +108,13 @@ class AuditDestinationServiceType(StrEnum):
     SYSLOG = "syslog"
 
 
+class LdfVersionStatus(StrEnum):
+    """LDF file processing status."""
+
+    SUCCESS = "success"
+    ERROR = "error"
+
+
 class RoleConstants(StrEnum):
     """Role constants."""
 
@@ -259,6 +266,7 @@ class DomainCodes(IntEnum):
     DHCP = 12
     LDAP_SCHEMA = 13
     SHADOW = 14
+    LDF = 15
 
 
 class SamAccountTypeCodes(IntEnum):

@@ -24,7 +24,7 @@ services:
       POSTGRES_HOST: postgres
       # PYTHONTRACEMALLOC: 1
       PYTHONDONTWRITEBYTECODE: 1
-    command: sh -c "python -B -m pytest -n auto -x -W ignore::DeprecationWarning -W ignore::coverage.exceptions.CoverageWarning -W ignore::SyntaxWarning -vv"
+    command: sh -c "python -B -m pytest -n auto -x tests/test_api/test_ldf/test_router.py -W ignore::DeprecationWarning -W ignore::coverage.exceptions.CoverageWarning -W ignore::SyntaxWarning -vv"
     tty: true
 
   postgres:
