@@ -31,7 +31,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         sa.Column(
             "status",
             sa.Enum("SUCCESS", "ERROR", name="ldfversionstatus"),
-            nullable=True,
+            nullable=False,
         ),
         sa.PrimaryKeyConstraint("version"),
     )

@@ -122,7 +122,7 @@ ldf_versions_table = Table(
     Column(
         "status",
         Enum(LdfVersionStatus, name="ldfversionstatus"),
-        nullable=True,
+        nullable=False,
     ),
     Index("ix_LdfVersions_d_create", "d_create"),
     Index("ix_LdfVersions_status", "status"),
