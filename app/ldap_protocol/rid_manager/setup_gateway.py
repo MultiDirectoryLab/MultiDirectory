@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from entities import Attribute, Directory
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.rid_manager.exceptions import (
+    RIDManagerBaseDomainNotFoundError,
     RIDManagerDomainControllerNotFoundError,
     RIDManagerSystemContainerNotFoundError,
 )
@@ -182,6 +183,7 @@ class RIDManagerSetupGateway:
 
         if domain_identifer:
             return
+
         domain = await self._session.scalar(
             select(Directory).where(
                 qa(Directory.object_class) == "domain",
@@ -189,7 +191,8 @@ class RIDManagerSetupGateway:
             ),
         )
         if not domain:
-            raise
+            raise RIDManagerBaseDomainNotFoundError("Domain not found")
+
         self._session.add(
             Attribute(
                 name="DomainIdentifier",

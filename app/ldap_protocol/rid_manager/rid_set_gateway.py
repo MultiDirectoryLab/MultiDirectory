@@ -134,10 +134,12 @@ class RIDSetGateway:
     ) -> int:
         """Get previous RID allocation pool from RID Set directory."""
         previous_allocation_pool = await self._session.scalar(
-            select(Attribute).where(
+            select(Attribute)
+            .where(
                 qa(Attribute.name) == "rIDPreviousAllocationPool",
                 qa(Attribute.directory_id) == rid_set.id,
-            ),
+            )
+            .with_for_update(),
         )
         if not (previous_allocation_pool and previous_allocation_pool.value):
             raise RIDManagerRidPreviousAllocationPoolNotFoundError(
@@ -148,10 +150,12 @@ class RIDSetGateway:
     async def get_rid_next_rid(self, rid_set: Directory) -> int:
         """Get next RID from RID Set directory."""
         next_rid = await self._session.scalar(
-            select(Attribute).where(
+            select(Attribute)
+            .where(
                 qa(Attribute.name) == "rIDNextRID",
                 qa(Attribute.directory_id) == rid_set.id,
-            ),
+            )
+            .with_for_update(),
         )
         if not (next_rid and next_rid.value):
             raise RIDManagerRidNextRIDNotFoundError("next RID not found")

@@ -36,7 +36,9 @@ class RIDManagerGateway:
     async def get_rid_available_pool(self) -> int:
         """Get RID available pool."""
         rid_available_pool = await self._session.scalar(
-            select(Attribute).where(qa(Attribute.name) == "rIDAvailablePool"),
+            select(Attribute)
+            .where(qa(Attribute.name) == "rIDAvailablePool")
+            .with_for_update(),
         )
         if not (rid_available_pool and rid_available_pool.value):
             raise RIDManagerAvailablePoolNotFoundError(

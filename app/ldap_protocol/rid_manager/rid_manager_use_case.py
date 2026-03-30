@@ -30,14 +30,15 @@ class RIDManagerUseCase:
 
     async def allocate_pool(self) -> int:
         """Allocate pool."""
-        available_pool = await self._gateway.get_rid_available_pool()
-        lower, upper = from_qword(available_pool)
+        async with self._session.begin_nested():
+            available_pool = await self._gateway.get_rid_available_pool()
+            lower, upper = from_qword(available_pool)
 
-        if lower + self.RID_BLOCK_SIZE > upper:
-            raise RIDManagerPoolExceededError("Available pool exceeded")
+            if lower + self.RID_BLOCK_SIZE > upper:
+                raise RIDManagerPoolExceededError("Available pool exceeded")
 
-        new_available_pool = to_qword(lower + self.RID_BLOCK_SIZE, upper)
-        await self._gateway.update_rid_available_pool(new_available_pool)
+            new_available_pool = to_qword(lower + self.RID_BLOCK_SIZE, upper)
+            await self._gateway.update_rid_available_pool(new_available_pool)
 
         return to_qword(lower, lower + self.RID_BLOCK_SIZE)
 

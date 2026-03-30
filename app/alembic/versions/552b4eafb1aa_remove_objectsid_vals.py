@@ -94,15 +94,26 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        directories = await session.scalars(select(Directory))
+        directory_table = sa.table(
+            "Directory",
+            sa.column("id", sa.Integer),
+            sa.column("objectSid", sa.String),
+        )
 
-        for directory in directories:
-            if not directory.object_sid:
+        result = await session.execute(
+            select(
+                directory_table.c.id,
+                directory_table.c.objectSid,
+            ),
+        )
+
+        for directory_id, object_sid in result:
+            if not object_sid:
                 continue
 
             existing_attr = await session.scalar(
                 select(Attribute).where(
-                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.directory_id) == directory_id,
                     qa(Attribute.name) == "objectSid",
                 ),
             )
@@ -111,8 +122,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                 session.add(
                     Attribute(
                         name="objectSid",
-                        value=directory.object_sid,
-                        directory_id=directory.id,
+                        value=object_sid,
+                        directory_id=directory_id,
                     ),
                 )
 
@@ -389,19 +400,25 @@ def downgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        directories = await session.scalars(select(Directory))
+        directory_table = sa.table(
+            "Directory",
+            sa.column("id", sa.Integer),
+            sa.column("objectSid", sa.String),
+        )
 
-        for directory in directories:
+        result = await session.execute(select(directory_table.c.id))
+
+        for (directory_id,) in result:
             await session.execute(
                 delete(Attribute).where(
-                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.directory_id) == directory_id,
                     qa(Attribute.name) == "DomainIdentifier",
                 ),
             )
 
             attr = await session.scalar(
                 select(Attribute).where(
-                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.directory_id) == directory_id,
                     qa(Attribute.name) == "objectSid",
                 ),
             )
@@ -409,11 +426,15 @@ def downgrade(container: AsyncContainer) -> None:
             if not attr or not attr.value:
                 continue
 
-            directory.object_sid = attr.value
+            await session.execute(
+                update(directory_table)
+                .where(directory_table.c.id == directory_id)
+                .values(objectSid=attr.value),
+            )
 
             await session.execute(
                 delete(Attribute).where(
-                    qa(Attribute.directory_id) == directory.id,
+                    qa(Attribute.directory_id) == directory_id,
                     qa(Attribute.name) == "objectSid",
                 ),
             )

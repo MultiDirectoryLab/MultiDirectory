@@ -558,10 +558,7 @@ class SearchRequest(BaseRequest):
     @staticmethod
     def get_directory_sid(directory: Directory) -> bytes | None:
         """Get objectSid as bytes from directory attributes."""
-        for attr in directory.attributes:
-            if attr.name and attr.name.lower() == "objectsid" and attr.value:
-                return string_to_sid(attr.value)
-        return None
+        return string_to_sid(directory.object_sid)
 
     @staticmethod
     def get_directory_guid(directory: Directory) -> bytes:

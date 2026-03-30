@@ -55,36 +55,37 @@ class RIDSetUseCase:
 
     async def is_pool_exceeded(self, rid_set: Directory) -> bool:
         """Check if RID pool is exceeded."""
+        next_rid = await self._gateway.get_rid_next_rid(rid_set)
         previous_allocation_pool = (
             await self._gateway.get_rid_previous_allocation_pool(rid_set)
         )
         _, upper = from_qword(previous_allocation_pool)
-        next_rid = await self._gateway.get_rid_next_rid(rid_set)
 
         return next_rid + 1 >= upper
 
     async def allocate_next_rid(self, rid_set: Directory) -> int:
         """Allocate next RID."""
-        if await self.is_pool_exceeded(rid_set):
+        async with self._session.begin_nested():
+            if await self.is_pool_exceeded(rid_set):
+                previous_allocation_pool = (
+                    await self._rid_manager_use_case.allocate_pool()
+                )
+                await self.reset_attrs_when_pool_exceeded(
+                    rid_set,
+                    previous_allocation_pool,
+                )
+            current_rid = await self._gateway.get_rid_next_rid(rid_set)
             previous_allocation_pool = (
-                await self._rid_manager_use_case.allocate_pool()
+                await self._gateway.get_rid_previous_allocation_pool(rid_set)
             )
-            await self.reset_attrs_when_pool_exceeded(
+            _, upper = from_qword(previous_allocation_pool)
+            new_rid = current_rid + 1
+            new_allocation_pool = to_qword(new_rid, upper)
+            await self._gateway.update_next_rid_and_pool(
                 rid_set,
-                previous_allocation_pool,
+                new_rid,
+                new_allocation_pool,
             )
-        current_rid = await self._gateway.get_rid_next_rid(rid_set)
-        previous_allocation_pool = (
-            await self._gateway.get_rid_previous_allocation_pool(rid_set)
-        )
-        _, upper = from_qword(previous_allocation_pool)
-        new_rid = current_rid + 1
-        new_allocation_pool = to_qword(new_rid, upper)
-        await self._gateway.update_next_rid_and_pool(
-            rid_set,
-            new_rid,
-            new_allocation_pool,
-        )
         return new_rid
 
     async def reset_attrs_when_pool_exceeded(
@@ -93,6 +94,8 @@ class RIDSetUseCase:
         previous_allocation_pool: int,
     ) -> None:
         """Reset RID pools when pool exceeded."""
+        _ = await self._gateway.get_rid_next_rid(rid_set)  # lock next RID
+
         current_previous_allocation_pool = (
             await self._gateway.get_rid_previous_allocation_pool(
                 rid_set,
