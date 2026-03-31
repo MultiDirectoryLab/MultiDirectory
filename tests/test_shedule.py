@@ -90,8 +90,14 @@ async def test_add_domain_controller(
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
     object_sid_use_case: ObjectSIDUseCase,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test add domain controller."""
+    monkeypatch.setattr(
+        settings,
+        "HOST_MACHINE_SHORT_NAME",
+        f"{settings.HOST_MACHINE_SHORT_NAME}-test",
+    )
     await add_domain_controller(
         settings=settings,
         session=session,

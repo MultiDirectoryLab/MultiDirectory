@@ -1188,7 +1188,7 @@ async def setup_session(
         is_system=False,
     )
     dc_directory = Directory(
-        name=f"{DOMAIN_CONTROLLERS_OU_NAME}-test",
+        name=DOMAIN_CONTROLLERS_OU_NAME,
         object_class="computer",
         is_system=True,
     )
@@ -1199,7 +1199,7 @@ async def setup_session(
     await session.refresh(dc_directory, ["id"])
     await session.flush()
     dc = Directory(
-        name=f"{settings.HOST_MACHINE_SHORT_NAME}-test",
+        name=settings.HOST_MACHINE_SHORT_NAME,
         object_class="computer",
         is_system=True,
     )
