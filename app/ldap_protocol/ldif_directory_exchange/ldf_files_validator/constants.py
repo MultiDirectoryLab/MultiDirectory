@@ -7,8 +7,7 @@ class VersionOperatingSystemMappings(StrEnum):
     """https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/deploy/find-active-directory-schema?tabs=gui#mapping-the-objectversion-attribute."""
 
     SCH91 = "Windows Server 2025"
-    SCH88_WS22 = "Windows Server 2022"
-    SCH88_WS19 = "Windows Server 2019"
+    SCH88 = "Windows Server 2022, Windows Server 2019"
     SCH87 = "Windows Server 2016"
     SCH69 = "Windows Server 2012 R2"
     SCH56 = "Windows Server 2012"
