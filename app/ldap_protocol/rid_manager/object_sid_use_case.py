@@ -42,7 +42,9 @@ class ObjectSIDUseCase:
     ) -> None:
         """Add object SID."""
         if rid is None:
-            domain_controller = await self._rid_manager_use_case.choose_nearest_domain_controller()  # noqa
+            domain_controller = (
+                await self._rid_manager_use_case.get_domain_controller()
+            )
             rid_set = await self._rid_set_use_case.get(domain_controller)
             rid = await self._rid_set_use_case.allocate_next_rid(
                 rid_set,

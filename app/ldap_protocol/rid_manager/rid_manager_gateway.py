@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import DOMAIN_CONTROLLERS_OU_NAME
+from config import Settings
 from entities import Attribute, Directory
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerAvailablePoolNotFoundError,
@@ -20,9 +20,10 @@ from repo.pg.tables import queryable_attr as qa
 class RIDManagerGateway:
     """RID Manager gateway."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, settings: Settings) -> None:
         """Initialize RID Manager gateway."""
         self._session = session
+        self._settings = settings
 
     async def get_rid_manager(self) -> Directory:
         """Get RID Manager directory."""
@@ -56,16 +57,15 @@ class RIDManagerGateway:
 
     async def get_domain_controller(
         self,
-        name: str = DOMAIN_CONTROLLERS_OU_NAME,
     ) -> Directory:
         """Get domain controller."""
-        domain_controllers_ou = await self._session.scalar(
+        domain_controller = await self._session.scalar(
             select(Directory).where(
-                qa(Directory.name) == name,
+                qa(Directory.name) == self._settings.HOST_MACHINE_SHORT_NAME,
             ),
         )
-        if not domain_controllers_ou:
+        if not domain_controller:
             raise RIDManagerDomainControllerNotFoundError(
                 "Domain controller not found",
             )
-        return domain_controllers_ou
+        return domain_controller

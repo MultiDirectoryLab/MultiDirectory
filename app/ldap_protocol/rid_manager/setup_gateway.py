@@ -9,6 +9,7 @@ import secrets
 from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.rid_manager.exceptions import (
@@ -201,3 +202,16 @@ class RIDManagerSetupGateway:
             ),
         )
         await self._session.flush()
+
+    async def get_domain_controller_ou(self) -> Directory:
+        """Get Domain Controller OU directory."""
+        domain_controller_ou = await self._session.scalar(
+            select(Directory).where(
+                qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
+            ),
+        )
+        if not domain_controller_ou:
+            raise RIDManagerDomainControllerNotFoundError(
+                "Domain Controller OU not found",
+            )
+        return domain_controller_ou

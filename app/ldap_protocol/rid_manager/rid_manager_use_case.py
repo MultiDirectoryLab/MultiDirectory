@@ -42,8 +42,6 @@ class RIDManagerUseCase:
 
         return to_qword(lower, lower + self.RID_BLOCK_SIZE)
 
-    async def choose_nearest_domain_controller(self) -> Directory:
+    async def get_domain_controller(self) -> Directory:
         """Locate best Domain Controller via DNS SRV records."""
-        # TODO: нужно через DNS определять ближайший DC # noqa
-        # и использовать его для выдачи RID
         return await self._gateway.get_domain_controller()

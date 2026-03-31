@@ -1124,7 +1124,7 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
-    rid_manager_gateway = RIDManagerGateway(session)
+    rid_manager_gateway = RIDManagerGateway(session, settings)
     rid_manager_use_case = RIDManagerUseCase(
         rid_manager_gateway,
         session,
@@ -1794,11 +1794,12 @@ async def ctx_search(
 @pytest_asyncio.fixture(scope="function")
 async def rid_manager_gateway(
     container: AsyncContainer,
+    settings: Settings,
 ) -> AsyncIterator[RIDManagerGateway]:
     """Get RID Manager gateway."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
-        yield RIDManagerGateway(session)
+        yield RIDManagerGateway(session, settings)
 
 
 @pytest_asyncio.fixture(scope="function")
