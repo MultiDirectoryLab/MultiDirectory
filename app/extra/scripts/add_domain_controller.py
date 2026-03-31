@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Settings
 from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
-from enums import SamAccountTypeCodes, SecurityPrincipalRid
+from enums import SamAccountTypeCodes
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
@@ -41,7 +41,6 @@ async def _add_domain_controller(
     dc_directory.parent_id = dc_ou_dir.id
     await object_sid_use_case.add(
         directory=dc_directory,
-        rid=SecurityPrincipalRid.DOMAIN_CONTROLLERS,
     )
     await session.flush()
 

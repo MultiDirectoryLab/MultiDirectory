@@ -55,7 +55,6 @@ class RIDManagerSetupUseCase:
             qword,
         )
         dc = await self._rid_manager_use_case.get_domain_controller()
-        dc_ou = await self._gateway.get_domain_controller_ou()
         rid_set = await self._create_rid_set(dc)
 
         await self.inherit_aces(

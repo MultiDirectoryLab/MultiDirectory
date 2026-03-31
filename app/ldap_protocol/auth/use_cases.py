@@ -44,7 +44,11 @@ from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.rid_manager import RIDManagerSetupUseCase
+from ldap_protocol.rid_manager import (
+    ObjectSIDUseCase,
+    RIDManagerSetupUseCase,
+    RIDManagerUseCase,
+)
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import create_integer_hash, ft_now
 
@@ -66,6 +70,8 @@ class SetupUseCase:
         session: AsyncSession,
         settings: Settings,
         rid_manager_setup_use_case: RIDManagerSetupUseCase,
+        rid_manager_use_case: RIDManagerUseCase,
+        object_sid_use_case: ObjectSIDUseCase,
     ) -> None:
         """Initialize Setup manager.
 
@@ -85,6 +91,8 @@ class SetupUseCase:
         self._object_class_use_case = object_class_use_case
         self._settings = settings
         self._rid_manager_setup_use_case = rid_manager_setup_use_case
+        self._rid_manager_use_case = rid_manager_use_case
+        self._object_sid_use_case = object_sid_use_case
 
     async def setup(self, dto: SetupDTO) -> None:
         """Perform the initial setup of structure and policies.
@@ -126,7 +134,6 @@ class SetupUseCase:
                     "name": self._settings.HOST_MACHINE_SHORT_NAME,
                     "entity_type_name": EntityTypeNames.COMPUTER,
                     "object_class": "computer",
-                    "objectSid": SecurityPrincipalRid.DOMAIN_CONTROLLERS,
                     "attributes": {
                         "objectClass": ["top"],
                         "userAccountControl": [
@@ -246,6 +253,10 @@ class SetupUseCase:
             await self._role_use_case.create_read_only_role()
             await self._audit_use_case.create_policies()
             await self._rid_manager_setup_use_case.setup()
+            dc = await self._rid_manager_use_case.get_domain_controller()
+            await self._object_sid_use_case.add(
+                directory=dc,
+            )
 
             await self._session.commit()
         except IntegrityError:
