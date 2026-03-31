@@ -14,11 +14,6 @@ class LdfFilesValidator:
     _name_re = re.compile(r"^sch(?P<num>\d+)(?:\.ldf)?$")
 
     def execute(self, paths: list[str]) -> list[str]:
-        """Validate names and return sorted list of paths.
-
-        :param list[str] paths: input list of file paths
-        :return list[str]: sorted list of paths
-        """
         if not paths:
             raise LdfFilesValidationError("LDF file list is empty")
 
