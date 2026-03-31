@@ -63,7 +63,11 @@ from api.password_policy.adapter import (
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from constants import ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2
+from constants import (
+    DOMAIN_CONTROLLERS_OU_NAME,
+    ENTITY_TYPE_DTOS_V1,
+    ENTITY_TYPE_DTOS_V2,
+)
 from entities import Directory
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
@@ -1194,6 +1198,16 @@ async def setup_session(
     dc_directory.parent_id = domain.id
     await session.refresh(dc_directory, ["id"])
     await session.flush()
+    dc = Directory(
+        name=settings.HOST_MACHINE_SHORT_NAME,
+        object_class="computer",
+        is_system=True,
+    )
+    dc.create_path(dc_directory, "cn")
+    session.add(dc)
+    await session.flush()
+    dc.parent_id = dc_directory.id
+    await session.refresh(dc, ["id"])
 
     for _at_dto in (
         AttributeTypeDTO[None](

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from entities import Attribute, Directory
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerDomainIdentifierNotFoundError,
+    RIDManagerObjectSIDNotFoundError,
 )
 from repo.pg.tables import queryable_attr as qa
 
@@ -23,12 +24,16 @@ class ObjectSIDGateway:
 
     async def get(self, directory: Directory) -> str:
         """Get object SID."""
-        return await self._session.scalar(
+        query = await self._session.scalar(
             select(Attribute).where(
                 qa(Attribute.directory_id) == directory.id,
                 qa(Attribute.name) == "objectSid",
             ),
         )
+        if not (query and query.value):
+            raise RIDManagerObjectSIDNotFoundError("object SID not found")
+
+        return query.value
 
     async def add(self, directory: Directory, object_sid: str) -> None:
         """Add object SID."""

@@ -20,6 +20,7 @@ class ErrorCodes(IntEnum):
     RID_ALLOCATION_POOL_NOT_FOUND_ERROR = 9
     RID_PREVIOUS_ALLOCATION_POOL_NOT_FOUND_ERROR = 10
     RID_POOL_EXCEEDED_ERROR = 11
+    RID_OBJECT_SID_NOT_FOUND_ERROR = 12
 
 
 class RIDManagerError(BaseDomainException):
@@ -92,3 +93,9 @@ class RIDManagerBaseDomainNotFoundError(RIDManagerError):
     """RID Manager base domain not found error."""
 
     code = ErrorCodes.RID_BASE_DOMAIN_NOT_FOUND_ERROR
+
+
+class RIDManagerObjectSIDNotFoundError(RIDManagerError):
+    """RID Manager object SID not found error."""
+
+    code = ErrorCodes.RID_OBJECT_SID_NOT_FOUND_ERROR
