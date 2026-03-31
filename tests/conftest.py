@@ -1199,7 +1199,7 @@ async def setup_session(
     await session.refresh(dc_directory, ["id"])
     await session.flush()
     dc = Directory(
-        name=settings.HOST_MACHINE_SHORT_NAME,
+        name=f"{settings.HOST_MACHINE_SHORT_NAME}-test",
         object_class="computer",
         is_system=True,
     )
