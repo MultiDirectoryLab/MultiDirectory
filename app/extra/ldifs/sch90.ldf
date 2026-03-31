@@ -1,0 +1,94 @@
+dn: CN=ms-DS-JetGetRecordSize3,CN=schema,CN=configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+attributeID: 1.2.840.113556.1.4.2377
+attributeSyntax: 2.5.5.12
+adminDisplayName: ms-DS-JetGetRecordSize3
+adminDescription: This attribute dumps the result of JetGetRecordSize3 API.
+oMSyntax: 64
+lDAPDisplayName: msDS-JetGetRecordSize3
+isSingleValued: TRUE
+schemaIDGUID:: L4mhWZ5xo0eVpYYz3Ti6eA==
+searchFlags: 0
+showInAdvancedViewOnly: FALSE
+systemFlags: 20
+systemOnly: FALSE
+
+dn: CN=ms-DS-JetDB-Page-Size,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: attributeSchema
+ldapDisplayName: msDS-JetDBPageSize
+adminDisplayName: ms-DS-JetDB-Page-Size
+adminDescription: Attribute used to indicate what page size the DSA supports.
+attributeId: 1.2.840.113556.1.4.2378
+attributeSyntax: 2.5.5.9
+omSyntax: 2
+isSingleValued: TRUE
+systemOnly: TRUE
+searchFlags: 0
+schemaIdGuid:: YDqC2vBBiUyUKytwpsAD1A==
+showInAdvancedViewOnly: TRUE
+systemFlags: 16
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Top,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2377
+-
+
+dn: CN=NTDS-DSA,CN=Schema,CN=Configuration,DC=X
+changetype: ntdsSchemaModify
+add: systemMayContain
+systemMayContain: 1.2.840.113556.1.4.2378
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+dn: CN=Validated-MS-DS-JetDB-Page-Size,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: controlAccessRight
+rightsGuid: da823a60-41f0-4c89-942b-2b70a6c003d4
+appliesTo: f0f8ffab-1191-11d0-a060-00aa006c33ed
+displayName: Validated write to MS DS Jet Database Page Size
+localizationDisplayId: 84
+validAccesses: 8
+showInAdvancedViewOnly: TRUE
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
+
+#
+# Optional Feature Object
+#
+dn: CN=Database 32k Pages Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=X
+changetype: ntdsSchemaAdd
+objectClass: msDS-OptionalFeature
+msDS-OptionalFeatureGUID:: xiqYUnMeT3WuJHOuJ3WquA==
+msDS-RequiredForestBehaviorVersion: 10
+msDS-OptionalFeatureFlags: 1
+systemFlags: -1946157056
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 90
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-

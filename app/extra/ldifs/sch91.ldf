@@ -1,0 +1,53 @@
+dn: CN=Send-As,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: modify
+add: appliesTo
+appliesTo: 0feb936f-47b3-49f2-9386-1dedc2c23765
+-
+
+dn: CN=Receive-As,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: modify
+add: appliesTo
+appliesTo: 0feb936f-47b3-49f2-9386-1dedc2c23765
+-
+
+dn: CN=Personal-Information,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: modify
+add: appliesTo
+appliesTo: 0feb936f-47b3-49f2-9386-1dedc2c23765
+-
+
+dn: CN=Public-Information,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: modify
+add: appliesTo
+appliesTo: 0feb936f-47b3-49f2-9386-1dedc2c23765
+-
+
+dn: CN=Validated-SPN,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: modify
+add: appliesTo
+appliesTo: 0feb936f-47b3-49f2-9386-1dedc2c23765
+-
+
+dn: CN=Allowed-To-Authenticate,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: modify
+add: appliesTo
+appliesTo: 0feb936f-47b3-49f2-9386-1dedc2c23765
+-
+
+dn: CN=MS-TS-GatewayAccess,CN=Extended-Rights,CN=Configuration,DC=X
+changetype: modify
+add: appliesTo
+appliesTo: 0feb936f-47b3-49f2-9386-1dedc2c23765
+-
+
+dn: CN=Schema,CN=Configuration,DC=X
+changeType: ntdsSchemaModify
+replace: objectVersion
+objectVersion: 91
+-
+
+dn:
+changetype: modify
+add: schemaUpdateNow
+schemaUpdateNow: 1
+-
