@@ -1188,7 +1188,7 @@ async def setup_session(
         is_system=False,
     )
     dc_directory = Directory(
-        name=DOMAIN_CONTROLLERS_OU_NAME,
+        name=f"{DOMAIN_CONTROLLERS_OU_NAME}-test",
         object_class="computer",
         is_system=True,
     )
