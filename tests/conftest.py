@@ -179,6 +179,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
 from ldap_protocol.roles.migrations_ace_dao import (
     AccessControlEntryAttributeTypeRemapDAO,
+    AccessControlEntryDirectoryMappingDAO,
 )
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -565,6 +566,10 @@ class TestProvider(Provider):
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     ace_migrations_dao = provide(
         AccessControlEntryAttributeTypeRemapDAO,
+        scope=Scope.REQUEST,
+    )
+    ace_migrations_dao1 = provide(
+        AccessControlEntryDirectoryMappingDAO,
         scope=Scope.REQUEST,
     )
     access_manager = provide(AccessManager, scope=Scope.REQUEST)

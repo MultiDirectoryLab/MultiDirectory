@@ -4,6 +4,7 @@ Copyright (c) 2025 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
+import sqlalchemy as sa
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +37,7 @@ class AccessControlEntryAttributeTypeRemapDAO:
             ),
             {"attribute_type_entity_name": EntityTypeNames.ATTRIBUTE_TYPE},
         )
+
         await self.__session.execute(
             text(
                 """
@@ -69,6 +71,7 @@ class AccessControlEntryAttributeTypeRemapDAO:
             ),
             {"attribute_type_entity_name": EntityTypeNames.ATTRIBUTE_TYPE},
         )
+
         await self.__session.execute(
             text(
                 """
@@ -81,6 +84,38 @@ class AccessControlEntryAttributeTypeRemapDAO:
                       FROM "AttributeTypes" AS attribute_type
                       WHERE attribute_type.id = ace."attributeTypeId"
                   )
+                """,
+            ),
+        )
+
+
+class AccessControlEntryDirectoryMappingDAO:
+    __session: AsyncSession
+
+    def __init__(self, session: AsyncSession) -> None:
+        """Initialize Access Control Entry DAO with a database session."""
+        self.__session = session
+
+    async def upgrade(self) -> None:
+        await self.__session.execute(
+            sa.text(
+                """
+                UPDATE "AccessControlEntries" AS ace
+                SET attribute_type_name = directory.name
+                FROM "Directory" AS directory
+                WHERE ace."attributeTypeId" = directory.id
+                """,
+            ),
+        )
+
+    async def downgrade(self) -> None:
+        await self.__session.execute(
+            sa.text(
+                """
+                UPDATE "AccessControlEntries" AS ace
+                SET "attributeTypeId" = directory.id
+                FROM "Directory" AS directory
+                WHERE ace.attribute_type_name = directory.name
                 """,
             ),
         )
