@@ -147,3 +147,9 @@ def test_extract_data_from_line_handles_base64_and_utf8() -> None:
     assert name == "changetype"
     assert raw_value == "ntdsSchemaAdd"
     assert is_base64 is False
+
+
+def test_execute_parses_all_ldf_files() -> None:
+    parser = LdfFileParser()
+    for file_path in Path("app/extra/ldifs").glob("*.ldf"):
+        parser.execute(file_path)
