@@ -4,7 +4,7 @@ Copyright (c) 2026 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -22,6 +22,14 @@ class DirectoryDAO:
     def __init__(self, session: AsyncSession) -> None:
         """Initialize Directory DAO with session."""
         self.__session = session
+
+    async def delete_configuration_dir(self) -> None:
+        """Delete a Directory by ID."""
+        await self.__session.execute(
+            delete(Directory)
+            .where(qa(Directory.name) == CONFIGURATION_DIR_NAME),
+        )  # fmt: skip
+        await self.__session.flush()
 
     async def create_directory(
         self,

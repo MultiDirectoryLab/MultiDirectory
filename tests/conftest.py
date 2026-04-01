@@ -121,6 +121,9 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
+from ldap_protocol.ldap_schema.directory_create_use_case import (
+    DirectoryCreateUseCase,
+)
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
@@ -132,9 +135,6 @@ from ldap_protocol.ldap_schema.object_class.object_class_dao import (
 )
 from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
-)
-from ldap_protocol.ldap_schema.schema_create_use_case import (
-    DirectoryCreateUseCase,
 )
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
