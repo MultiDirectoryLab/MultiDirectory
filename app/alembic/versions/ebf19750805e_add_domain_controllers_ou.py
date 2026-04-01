@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from config import Settings
 from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Directory
-from enums import SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -32,6 +32,7 @@ depends_on: None | list[str] = None
 
 _OU_DOMAIN_CONTROLLERS_DATA: dict[str, Any] = {
     "name": DOMAIN_CONTROLLERS_OU_NAME,
+    "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
     "object_class": "organizationalUnit",
     "attributes": {"objectClass": ["top", "container"]},
 }
@@ -66,6 +67,7 @@ def upgrade(container: AsyncContainer) -> None:
         domain_controller_data = [
             {
                 "name": settings.HOST_MACHINE_SHORT_NAME,
+                "entity_type_name": EntityTypeNames.COMPUTER,
                 "object_class": "computer",
                 "attributes": {
                     "objectClass": ["top"],

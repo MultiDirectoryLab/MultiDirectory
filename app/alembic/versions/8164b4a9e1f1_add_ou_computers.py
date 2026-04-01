@@ -13,6 +13,7 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
+from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
@@ -28,6 +29,7 @@ depends_on: None = None
 COMPUTERS = "computers"
 _OU_COMPUTERS_DATA = {
     "name": COMPUTERS,
+    "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
     "object_class": "organizationalUnit",
     "attributes": {"objectClass": ["top", "container"]},
     "children": [],

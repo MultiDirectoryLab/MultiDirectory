@@ -94,6 +94,7 @@ def upgrade(container: AsyncContainer) -> None:
 
 
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
+@temporary_stub_column("Roles", "permissions", sa.String())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 

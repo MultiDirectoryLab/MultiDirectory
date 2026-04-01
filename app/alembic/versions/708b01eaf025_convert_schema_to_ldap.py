@@ -45,22 +45,13 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
+@temporary_stub_column(
+    "AccessControlEntries",
+    "attribute_type_name",
+    sa.String(),
+)
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
-    op.drop_constraint(
-        op.f("AccessControlEntries_attributeTypeId_fkey"),
-        "AccessControlEntries",
-        type_="foreignkey",
-    )
-
-    op.create_foreign_key(
-        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
-        "AccessControlEntries",
-        "Directory",
-        ["attributeTypeId"],
-        ["id"],
-        ondelete="CASCADE",
-    )
 
     async def _update_entity_types(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
@@ -92,7 +83,7 @@ def upgrade(container: AsyncContainer) -> None:
             attributes=(
                 AttributeDTO(
                     name="objectClass",
-                    values=["top", "configuration"],
+                    values=["top", "container", "configuration"],
                 ),
             ),
             is_system=True,
@@ -153,12 +144,28 @@ def upgrade(container: AsyncContainer) -> None:
             return
 
         await ace_dao.upgrade()
+        await session.commit()
+
+    op.drop_constraint(
+        op.f("AccessControlEntries_attributeTypeId_fkey"),
+        "AccessControlEntries",
+        type_="foreignkey",
+    )
 
     op.run_async(_update_entity_types)
     op.run_async(_create_ldap_configuration_directory)
     op.run_async(_create_ldap_attributes)
     op.run_async(_create_ldap_object_classes)
     op.run_async(_rebind_ace_attribute_types_to_directories)
+
+    op.create_foreign_key(
+        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
+        "AccessControlEntries",
+        "Directory",
+        ["attributeTypeId"],
+        ["id"],
+        ondelete="CASCADE",
+    )
 
 
 @temporary_stub_column(
@@ -180,6 +187,7 @@ def downgrade(container: AsyncContainer) -> None:
             return
 
         await ace_dao.downgrade()
+        await session.commit()
 
     async def _delete_ldap_attributes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:

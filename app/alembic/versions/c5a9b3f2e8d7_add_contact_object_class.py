@@ -41,7 +41,7 @@ def upgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
-        await entity_type_use_case.create(
+        await entity_type_use_case.create_not_safe(
             EntityTypeDTO(
                 name=EntityTypeNames.CONTACT,
                 object_class_names=[
