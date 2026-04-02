@@ -8,6 +8,8 @@ class AttributeTypeAttributeNames(StrEnum):
 
     OID = "attributeID"
     NAME = "name"
+    OBJECT_CLASS = "objectClass"
+    LDAP_DISPLAY_NAME = "lDAPDisplayName"
     SYNTAX = "attributeSyntax"
     SINGLE_VALUE = "isSingleValued"
     NO_USER_MODIFICATION = "systemOnly"

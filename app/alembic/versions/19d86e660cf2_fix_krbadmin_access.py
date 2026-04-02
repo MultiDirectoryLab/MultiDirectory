@@ -6,11 +6,13 @@ Create Date: 2026-02-19 11:40:15.805997
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from enums import RoleConstants
+from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.roles.exceptions import RoleNotFoundError
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -23,6 +25,11 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
+@temporary_stub_column(
+    "AccessControlEntries",
+    "attribute_type_name",
+    sa.String(),
+)
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 

@@ -121,6 +121,9 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
+from ldap_protocol.ldap_schema.directory_create_use_case import (
+    DirectoryCreateUseCase,
+)
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
@@ -132,9 +135,6 @@ from ldap_protocol.ldap_schema.object_class.object_class_dao import (
 )
 from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
     ObjectClassUseCase,
-)
-from ldap_protocol.ldap_schema.schema_create_use_case import (
-    DirectoryCreateUseCase,
 )
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
@@ -179,6 +179,7 @@ from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
 from ldap_protocol.roles.migrations_ace_dao import (
     AccessControlEntryAttributeTypeRemapDAO,
+    AccessControlEntryDirectoryMappingDAO,
 )
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -565,6 +566,10 @@ class TestProvider(Provider):
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
     ace_migrations_dao = provide(
         AccessControlEntryAttributeTypeRemapDAO,
+        scope=Scope.REQUEST,
+    )
+    ace_migrations_dao1 = provide(
+        AccessControlEntryDirectoryMappingDAO,
         scope=Scope.REQUEST,
     )
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
@@ -1116,6 +1121,7 @@ async def setup_session(
         AttributeTypeDTO[None](
             oid="1.2.3.4.5.6.7.8",
             name="attr_with_bvalue",
+            ldap_display_name="attrWithBvalue",
             syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
             single_value=True,
             no_user_modification=False,
@@ -1126,6 +1132,7 @@ async def setup_session(
         AttributeTypeDTO[None](
             oid="1.2.3.4.5.6.7.8.9",
             name="testing_attr",
+            ldap_display_name="testingAttr",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=True,
             no_user_modification=False,

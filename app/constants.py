@@ -295,6 +295,8 @@ ENTITY_TYPE_DTOS_V1: tuple[EntityTypeDTO, ...] = (
     ),
 )
 
+ATTRIBUTE_TYPE_OBJECT_CLASS_NAMES = ["top", "attributeSchema"]
+OBJECT_CLASS_OBJECT_CLASS_NAMES = ["top", "classSchema"]
 
 # NOTE: Second time load
 ENTITY_TYPE_DTOS_V2: tuple[EntityTypeDTO, ...] = (
@@ -306,12 +308,12 @@ ENTITY_TYPE_DTOS_V2: tuple[EntityTypeDTO, ...] = (
     EntityTypeDTO(
         name=EntityTypeNames.ATTRIBUTE_TYPE,
         is_system=True,
-        object_class_names=["top", "attributeSchema"],
+        object_class_names=ATTRIBUTE_TYPE_OBJECT_CLASS_NAMES,
     ),
     EntityTypeDTO(
         name=EntityTypeNames.OBJECT_CLASS,
         is_system=True,
-        object_class_names=["top", "classSchema"],
+        object_class_names=OBJECT_CLASS_OBJECT_CLASS_NAMES,
     ),
 )
 
@@ -319,8 +321,8 @@ FIRST_SETUP_DATA = [
     {
         "name": CONFIGURATION_DIR_NAME,
         "entity_type_name": EntityTypeNames.CONFIGURATION,
-        "object_class": "container",
-        "attributes": {"objectClass": ["top", "configuration"]},
+        "object_class": "",
+        "attributes": {"objectClass": ["top", "container", "configuration"]},
     },
     {
         "name": GROUPS_CONTAINER_NAME,

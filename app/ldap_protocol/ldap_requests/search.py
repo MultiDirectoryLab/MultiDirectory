@@ -408,7 +408,6 @@ class SearchRequest(BaseRequest):
             user_role_ids=user.role_ids,
             query=query,
             ace_types=[AceType.READ],
-            load_attribute_type=True,
         )
 
         for base_directory in base_directories:

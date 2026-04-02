@@ -20,7 +20,7 @@ class AccessControlEntryDTO:
     scope: RoleScope
     base_dn: GRANT_DN_STRING
     is_allow: bool
-    attribute_type_id: int | None
+    attribute_type_name: str | None
     entity_type_id: int | None
 
     id: int | None = None

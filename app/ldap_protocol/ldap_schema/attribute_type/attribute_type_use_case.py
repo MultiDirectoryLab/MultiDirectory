@@ -4,11 +4,12 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from sqlalchemy.exc import IntegrityError
 
 from abstract_service import AbstractService
+from constants import ATTRIBUTE_TYPE_OBJECT_CLASS_NAMES
 from enums import AuthorizationRules, EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
     AttributeTypeDAO,
@@ -18,6 +19,9 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_ca
 )
 from ldap_protocol.ldap_schema.attribute_type.constants import (
     AttributeTypeAttributeNames as Names,
+)
+from ldap_protocol.ldap_schema.directory_create_use_case import (
+    DirectoryCreateUseCase,
 )
 from ldap_protocol.ldap_schema.dto import (
     AttributeDTO,
@@ -30,10 +34,10 @@ from ldap_protocol.ldap_schema.exceptions import (
 from ldap_protocol.ldap_schema.object_class.object_class_dao import (
     ObjectClassDAO,
 )
-from ldap_protocol.ldap_schema.schema_create_use_case import (
-    DirectoryCreateUseCase,
-)
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
+
+if TYPE_CHECKING:
+    from entities import Directory
 
 
 class AttributeTypeUseCase(AbstractService):
@@ -43,6 +47,7 @@ class AttributeTypeUseCase(AbstractService):
     __attribute_type_system_flags_use_case: AttributeTypeSystemFlagsUseCase
     __object_class_dao: ObjectClassDAO
     __directory_create_use_case: DirectoryCreateUseCase
+    __parent_dir: "Directory | None"
 
     def __init__(
         self,
@@ -56,6 +61,7 @@ class AttributeTypeUseCase(AbstractService):
         self.__attribute_type_system_flags_use_case = attribute_type_system_flags_use_case  # noqa: E501 # fmt: skip
         self.__object_class_dao = object_class_dao
         self.__directory_create_use_case = directory_create_use_case
+        self.__parent_dir = None
 
     async def get(self, name: str) -> AttributeTypeDTO[int]:
         """Get Attribute Type by name."""
@@ -71,12 +77,27 @@ class AttributeTypeUseCase(AbstractService):
 
     async def create(self, dto: AttributeTypeDTO) -> None:
         """Create Attribute Type."""
+        if not self.__parent_dir:
+            self.__parent_dir = (
+                await self.__directory_create_use_case.get_configuration_dir()
+            )
+
+        if not dto.ldap_display_name:
+            dto.ldap_display_name = f"{dto.name[0].lower()}{dto.name.replace('-', '')[1:]}"  # noqa: E501  # fmt: skip
+
         _dto = CreateDirDTO(
             name=dto.name,
             entity_type_name=EntityTypeNames.ATTRIBUTE_TYPE,
             attributes=(
                 AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
-                AttributeDTO(name=Names.NAME, values=[str(dto.name)]),
+                AttributeDTO(
+                    name=Names.OBJECT_CLASS,
+                    values=ATTRIBUTE_TYPE_OBJECT_CLASS_NAMES,
+                ),
+                AttributeDTO(
+                    name=Names.LDAP_DISPLAY_NAME,
+                    values=[str(dto.ldap_display_name)],
+                ),
                 AttributeDTO(name=Names.SYNTAX, values=[str(dto.syntax)]),
                 AttributeDTO(
                     name=Names.SINGLE_VALUE,
@@ -98,7 +119,10 @@ class AttributeTypeUseCase(AbstractService):
             is_system=dto.is_system,
         )
         try:
-            await self.__directory_create_use_case.create_dir(dto=_dto)
+            await self.__directory_create_use_case.create_dir(
+                dto=_dto,
+                parent_dir=self.__parent_dir,
+            )
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(
                 f"Attribute Type with oid '{dto.oid}' and name"

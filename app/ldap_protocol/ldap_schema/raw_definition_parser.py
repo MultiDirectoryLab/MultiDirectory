@@ -47,9 +47,11 @@ class RawDefinitionParser:
         if not name:
             raise ValueError("Attribute Type name is required")
 
+        ldap_display_name = f"{name[0].lower()}{name.replace('-', '')[1:]}"
         return AttributeTypeDTO(
             oid=attribute_type_info.oid,
             name=name,
+            ldap_display_name=ldap_display_name,
             syntax=attribute_type_info.syntax,
             single_value=attribute_type_info.single_value,
             no_user_modification=attribute_type_info.no_user_modification,

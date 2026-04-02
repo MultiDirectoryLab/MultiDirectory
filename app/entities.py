@@ -370,16 +370,11 @@ class AccessControlEntry:
     role_id: int | None = None
     depth: int | None = None
     path: str = ""
-    attribute_type_id: int | None = None
+    attribute_type_name: str | None = None
     entity_type_id: int | None = None
     is_allow: bool = False
 
     role: Role | None = field(init=False, default=None, repr=False)
-    attribute_type: Directory | None = field(
-        init=False,
-        default=None,
-        repr=False,
-    )
     entity_type: EntityType | None = field(
         init=False,
         default=None,
@@ -389,12 +384,6 @@ class AccessControlEntry:
         default_factory=list,
         repr=False,
     )
-
-    @property
-    def attribute_type_name(self) -> str | None:
-        return (
-            self.attribute_type.name.lower() if self.attribute_type else None
-        )
 
     @property
     def entity_type_name(self) -> str | None:

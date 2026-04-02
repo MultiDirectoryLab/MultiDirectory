@@ -23,6 +23,7 @@ async def test_attribute_type_system_flags_use_case_is_not_replicated(
         AttributeTypeDTO(
             oid="1.2.3.4",
             name="objectClass123",
+            ldap_display_name="objectClass123",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=True,
             no_user_modification=False,
@@ -47,6 +48,7 @@ async def test_attribute_type_system_flags_use_case_is_replicated(
         AttributeTypeDTO(
             oid="1.2.3.4",
             name="objectClass123",
+            ldap_display_name="objectClass123",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=True,
             no_user_modification=False,

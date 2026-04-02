@@ -32,6 +32,7 @@ async def test_create_one_attribute_type(
     schema = AttributeTypeSchema[None](
         oid="1.2.3.4",
         name="testAttribute",
+        ldap_display_name="testAttribute",
         syntax="1.3.6.1.4.1.1466.115.121.1.15",
         single_value=True,
         no_user_modification=False,
@@ -57,6 +58,7 @@ async def test_create_attribute_type_conflict_when_already_exists(
     schema = AttributeTypeSchema(
         oid="1.2.3.4",
         name="testAttribute",
+        ldap_display_name="testAttribute",
         syntax="1.3.6.1.4.1.1466.115.121.1.15",
         single_value=True,
         no_user_modification=False,
@@ -99,6 +101,7 @@ async def test_modify_one_attribute_type_raise_404(
     schema = AttributeTypeSchema(
         oid="1.2.3.4",
         name="testAttributeType1",
+        ldap_display_name="testAttributeType1",
         syntax="1.3.6.1.4.1.1466.115.121.1.15",
         single_value=True,
         no_user_modification=False,

@@ -40,6 +40,7 @@ def _convert_update_uschema_to_dto(
     return AttributeTypeDTO[None](
         oid="",
         name="",
+        ldap_display_name="",
         syntax=request.syntax,
         single_value=request.single_value,
         no_user_modification=request.no_user_modification,
@@ -54,6 +55,10 @@ _convert_schema_to_dto = get_converter(
     AttributeTypeDTO[None],
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].id),
+        link_function(
+            lambda _: _.ldap_display_name or "",
+            P[AttributeTypeDTO].ldap_display_name,
+        ),
         link_function(
             lambda _: DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
             P[AttributeTypeDTO].syntax,
