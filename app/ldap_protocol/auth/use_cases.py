@@ -5,6 +5,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 import copy
+from itertools import chain
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,17 +14,33 @@ from config import Settings
 from constants import (
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_CONTROLLERS_OU_NAME,
+    ENTITY_TYPE_DTOS_V1,
+    ENTITY_TYPE_DTOS_V2,
     FIRST_SETUP_DATA,
     USERS_CONTAINER_NAME,
 )
-from enums import SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
     ForbiddenError,
 )
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
+    AttributeTypeUseCase,
+)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
+    ObjectClassUseCase,
+)
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
@@ -36,6 +53,10 @@ class SetupUseCase:
 
     def __init__(
         self,
+        attribute_type_use_case_legacy: AttributeTypeUseCaseLegacy,
+        attribute_type_use_case: AttributeTypeUseCase,
+        object_class_use_case_legacy: ObjectClassUseCaseLegacy,
+        object_class_use_case: ObjectClassUseCase,
         setup_gateway: SetupGateway,
         entity_type_use_case: EntityTypeUseCase,
         password_use_cases: PasswordPolicyUseCases,
@@ -56,6 +77,10 @@ class SetupUseCase:
         self._role_use_case = role_use_case
         self._audit_use_case = audit_use_case
         self._session = session
+        self._attribute_type_use_case_legacy = attribute_type_use_case_legacy
+        self._attribute_type_use_case = attribute_type_use_case
+        self._object_class_use_case_legacy = object_class_use_case_legacy
+        self._object_class_use_case = object_class_use_case
         self._settings = settings
 
     async def setup(self, dto: SetupDTO) -> None:
@@ -68,7 +93,9 @@ class SetupUseCase:
         """
         if await self.is_setup():
             raise AlreadyConfiguredError("Setup already performed")
-        await self._entity_type_use_case.create_for_first_setup()
+
+        for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
+            await self._entity_type_use_case.create_not_safe(entity_type_dto)
 
         data = copy.deepcopy(FIRST_SETUP_DATA)
         data.append(self._create_user_data(dto))
@@ -86,6 +113,7 @@ class SetupUseCase:
     def _create_domain_controller_data(self) -> dict:
         return {
             "name": DOMAIN_CONTROLLERS_OU_NAME,
+            "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
             "object_class": "organizationalUnit",
             "attributes": {
                 "objectClass": ["top", "container"],
@@ -93,6 +121,7 @@ class SetupUseCase:
             "children": [
                 {
                     "name": self._settings.HOST_MACHINE_SHORT_NAME,
+                    "entity_type_name": EntityTypeNames.COMPUTER,
                     "object_class": "computer",
                     "attributes": {
                         "objectClass": ["top"],
@@ -121,11 +150,13 @@ class SetupUseCase:
         """
         return {
             "name": USERS_CONTAINER_NAME,
+            "entity_type_name": EntityTypeNames.CONTAINER,
             "object_class": "container",
             "attributes": {"objectClass": ["top"]},
             "children": [
                 {
                     "name": dto.username,
+                    "entity_type_name": EntityTypeNames.USER,
                     "object_class": "user",
                     "organizationalPerson": {
                         "sam_account_name": dto.username,
@@ -173,6 +204,23 @@ class SetupUseCase:
                 dn=dto.domain,
                 is_system=True,
             )
+
+            attrs = await self._attribute_type_use_case_legacy.get_all()
+            for attr in attrs:
+                await self._attribute_type_use_case.create(attr)
+
+            obj_classes = await self._object_class_use_case_legacy.get_all()
+            for obj_class in obj_classes:
+                obj_class.attribute_types_may = [
+                    _.name  # type: ignore
+                    for _ in obj_class.attribute_types_may
+                ]
+                obj_class.attribute_types_must = [
+                    _.name  # type: ignore
+                    for _ in obj_class.attribute_types_must
+                ]
+                await self._object_class_use_case.create(obj_class)  # type: ignore
+
             await self._password_use_cases.create_default_domain_policy()
 
             errors = await (

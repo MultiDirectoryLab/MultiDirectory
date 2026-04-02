@@ -11,15 +11,17 @@ from api.base_adapter import BaseAdapter
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
     BaseLDAPSchemaAdapter,
 )
+from api.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
 from api.ldap_schema.schema import (
     ObjectClassPaginationSchema,
     ObjectClassSchema,
     ObjectClassUpdateSchema,
 )
 from enums import KindType
-from ldap_protocol.ldap_schema.constants import DEFAULT_OBJECT_CLASS_IS_SYSTEM
-from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.dto import ObjectClassDTO
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
+    ObjectClassUseCase,
+)
 
 
 def _convert_update_schema_to_dto(
@@ -57,20 +59,20 @@ _convert_schema_to_dto = get_converter(
     ],
 )
 
-_convert_dto_to_schema = get_converter(
-    ObjectClassDTO[int, AttributeTypeDTO],
-    ObjectClassSchema[int],
-    recipe=[
-        link_function(
-            lambda dto: [attr.name for attr in dto.attribute_types_must],
-            P[ObjectClassSchema].attribute_type_names_must,
-        ),
-        link_function(
-            lambda dto: [attr.name for attr in dto.attribute_types_may],
-            P[ObjectClassSchema].attribute_type_names_may,
-        ),
-    ],
-)
+
+def _convert_dto_to_schema(dto: ObjectClassDTO) -> ObjectClassSchema[int]:
+    """Map DTO object to API schema with explicit attribute name fields."""
+    return ObjectClassSchema(
+        oid=dto.oid,
+        name=dto.name,
+        superior_name=dto.superior_name,
+        kind=dto.kind,
+        is_system=dto.is_system,
+        attribute_type_names_must=dto.attribute_types_must,
+        attribute_type_names_may=dto.attribute_types_may,
+        id=dto.id,
+        entity_type_names=dto.entity_type_names,
+    )
 
 
 class ObjectClassFastAPIAdapter(

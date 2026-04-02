@@ -17,18 +17,18 @@ from api.base_adapter import BaseAdapter
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
     BaseLDAPSchemaAdapter,
 )
+from api.ldap_schema.constants import (
+    DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
+    DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
+    DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
+)
 from api.ldap_schema.schema import (
     AttributeTypePaginationSchema,
     AttributeTypeSchema,
     AttributeTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
-)
-from ldap_protocol.ldap_schema.constants import (
-    DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-    DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-    DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
 )
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 
@@ -37,9 +37,10 @@ def _convert_update_uschema_to_dto(
     request: AttributeTypeUpdateSchema,
 ) -> AttributeTypeDTO[None]:
     """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
-    return AttributeTypeDTO(
+    return AttributeTypeDTO[None](
         oid="",
         name="",
+        ldap_display_name="",
         syntax=request.syntax,
         single_value=request.single_value,
         no_user_modification=request.no_user_modification,
@@ -54,6 +55,10 @@ _convert_schema_to_dto = get_converter(
     AttributeTypeDTO[None],
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].id),
+        link_function(
+            lambda _: _.ldap_display_name or "",
+            P[AttributeTypeDTO].ldap_display_name,
+        ),
         link_function(
             lambda _: DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
             P[AttributeTypeDTO].syntax,

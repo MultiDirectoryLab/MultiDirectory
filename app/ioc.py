@@ -85,20 +85,45 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
+    AttributeTypeDAOLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
+    ObjectClassDAOLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
+    AttributeTypeDAO,
+)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.directory_create_use_case import (
+    DirectoryCreateUseCase,
+)
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
+    ObjectClassUseCase,
+)
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
@@ -155,6 +180,10 @@ from ldap_protocol.policies.password.use_cases import (
 )
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
+from ldap_protocol.roles.migrations_ace_dao import (
+    AccessControlEntryAttributeTypeRemapDAO,
+    AccessControlEntryDirectoryMappingDAO,
+)
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.rootdse.gateway import SADomainGateway
@@ -511,17 +540,57 @@ class MainProvider(Provider):
         scope=Scope.RUNTIME,
     )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    attribute_type_dao_legacy = provide(
+        AttributeTypeDAOLegacy,
+        scope=Scope.REQUEST,
+    )
+    attribute_dao = provide(AttributeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
         AttributeTypeSystemFlagsUseCase,
         scope=Scope.REQUEST,
     )
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    object_class_dao_legacy = provide(
+        ObjectClassDAOLegacy,
+        scope=Scope.REQUEST,
+    )
+
+    directory_dao = provide(DirectoryDAO, scope=Scope.REQUEST)
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_use_case = provide(
         AttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
+
+    @provide(scope=Scope.REQUEST)
+    def get_attribute_type_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeUseCaseLegacy:
+        """Legacy attribute type use case on a single session."""
+        at_dao_legacy = AttributeTypeDAOLegacy(session)
+        return AttributeTypeUseCaseLegacy(
+            attribute_type_dao_legacy=at_dao_legacy,
+        )
+
+    directory_create_use_case = provide(
+        DirectoryCreateUseCase,
+        scope=Scope.REQUEST,
+    )
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
+
+    @provide(scope=Scope.REQUEST)
+    def get_object_class_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassUseCaseLegacy:
+        """Legacy object class use case sharing one session for all DAOs."""
+        at_dao_legacy = AttributeTypeDAOLegacy(session)
+        oc_dao_legacy = ObjectClassDAOLegacy(session)
+        return ObjectClassUseCaseLegacy(
+            object_class_dao_legacy=oc_dao_legacy,
+            attribute_type_dao_legacy=at_dao_legacy,
+        )
 
     user_password_history_use_cases = provide(
         UserPasswordHistoryUseCases,
@@ -550,6 +619,14 @@ class MainProvider(Provider):
     access_manager = provide(AccessManager, scope=Scope.RUNTIME)
     role_dao = provide(RoleDAO, scope=Scope.REQUEST)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
+    ace_migrations_dao = provide(
+        AccessControlEntryAttributeTypeRemapDAO,
+        scope=Scope.REQUEST,
+    )
+    ace_directory_mapping_dao = provide(
+        AccessControlEntryDirectoryMappingDAO,
+        scope=Scope.REQUEST,
+    )
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)

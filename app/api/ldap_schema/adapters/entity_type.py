@@ -10,14 +10,16 @@ from api.base_adapter import BaseAdapter
 from api.ldap_schema.adapters.base_ldap_schema_adapter import (
     BaseLDAPSchemaAdapter,
 )
+from api.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
 from api.ldap_schema.schema import (
     EntityTypePaginationSchema,
     EntityTypeSchema,
     EntityTypeUpdateSchema,
 )
-from ldap_protocol.ldap_schema.constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 
 
 def _convert_update_chema_to_dto(

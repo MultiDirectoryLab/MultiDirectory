@@ -124,7 +124,7 @@ async def test_get_list_object_classes_with_pagination(
 ) -> None:
     """Test retrieving a list of object classes."""
     page_number = 1
-    page_size = 25
+    page_size = 7
     response = await http_client.get(
         f"/schema/object_classes?page_number={page_number}&page_size={page_size}",
     )
@@ -170,6 +170,7 @@ async def test_modify_one_object_class(
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     object_class = response.json()
+
     assert set(object_class.get("attribute_type_names_must")) == set(
         new_statement.get("attribute_type_names_must"),
     )

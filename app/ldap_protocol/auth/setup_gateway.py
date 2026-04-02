@@ -12,10 +12,14 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory, Group, NetworkPolicy, User
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 from ldap_protocol.utils.async_cache import base_directories_cache
 from ldap_protocol.utils.helpers import create_object_sid, generate_domain_sid
 from ldap_protocol.utils.queries import get_domain_object_class
@@ -30,8 +34,9 @@ class SetupGateway:
         self,
         session: AsyncSession,
         password_utils: PasswordUtils,
-        entity_type_dao: EntityTypeDAO,
+        entity_type_use_case: EntityTypeUseCase,
         attribute_value_validator: AttributeValueValidator,
+        directory_dao: DirectoryDAO,
     ) -> None:
         """Initialize Setup use case.
 
@@ -41,8 +46,9 @@ class SetupGateway:
         """
         self._session = session
         self._password_utils = password_utils
-        self._entity_type_dao = entity_type_dao
+        self._entity_type_use_case = entity_type_use_case
         self._attribute_value_validator = attribute_value_validator
+        self._directory_dao = directory_dao
 
     async def is_setup(self) -> bool:
         """Check if setup is performed.
@@ -96,9 +102,13 @@ class SetupGateway:
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await self._entity_type_dao.attach_entity_type_to_directory(
-                directory=domain,
-                is_system_entity_type=True,
+
+            entity_type = await self._entity_type_use_case.get(
+                EntityTypeNames.DOMAIN,
+            )
+            await self._directory_dao.bind_entity_type(
+                domain,
+                entity_type.id if entity_type else None,
             )
             if not self._attribute_value_validator.is_directory_valid(domain):
                 raise ValueError(
@@ -216,9 +226,17 @@ class SetupGateway:
             attribute_names=["attributes", "user"],
             with_for_update=None,
         )
-        await self._entity_type_dao.attach_entity_type_to_directory(
+
+        entity_type = None
+        if entity_type_name := data.get("entity_type_name"):
+            entity_type = await self._entity_type_use_case.get(
+                entity_type_name,
+            )
+        entity_type_id = entity_type.id if entity_type else None
+        await self._entity_type_use_case.attach_entity_type_to_directory(
             directory=dir_,
             is_system_entity_type=True,
+            entity_type_id=entity_type_id,
         )
         if not self._attribute_value_validator.is_directory_valid(dir_):
             raise ValueError("Invalid directory attribute values")

@@ -22,14 +22,8 @@ from sqlalchemy.sql.elements import (
 )
 from sqlalchemy.sql.expression import false as sql_false
 
-from entities import (
-    Attribute,
-    AttributeType,
-    Directory,
-    EntityType,
-    Group,
-    User,
-)
+from entities import Attribute, Directory, EntityType, Group, User
+from enums import EntityTypeNames
 from ldap_protocol.utils.helpers import ft_to_dt
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
 from repo.pg.tables import (
@@ -114,11 +108,18 @@ class FilterInterpreterProtocol(Protocol):
 
         if is_first_char_equal:
             vl = normalized.replace("=", "")
+
             attributes_expr.append(
                 and_(
                     qa(Attribute.name).in_(
-                        select(qa(AttributeType.name))
-                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                        select(qa(Directory.name))
+                        .join(qa(Directory.entity_type))
+                        .join(qa(Directory.attributes))
+                        .where(
+                            qa(Attribute.name) == "aNR",
+                            qa(Attribute.value) == "True",
+                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
+                        ),
                     ),
                     func.lower(Attribute.value) == vl,
                 ),
@@ -144,8 +145,14 @@ class FilterInterpreterProtocol(Protocol):
             attributes_expr.append(
                 and_(
                     qa(Attribute.name).in_(
-                        select(qa(AttributeType.name))
-                        .where(qa(AttributeType.is_included_anr).is_(True)),
+                        select(qa(Directory.name))
+                        .join(qa(Directory.entity_type))
+                        .join(qa(Directory.attributes))
+                        .where(
+                            qa(Attribute.name) == "aNR",
+                            qa(Attribute.value) == "True",
+                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
+                        ),
                     ),
                     qa(Attribute.value).ilike(vl),
                 ),
@@ -207,9 +214,14 @@ class FilterInterpreterProtocol(Protocol):
         attributes_expr.append(
             and_(
                 qa(Attribute.name).in_(
-                    select(qa(AttributeType.name)).where(
-                        qa(AttributeType.name) == "legacyExchangeDN",
-                        qa(AttributeType.is_included_anr).is_(True),
+                    select(qa(Directory.name))
+                    .join(qa(Directory.entity_type))
+                    .join(qa(Directory.attributes))
+                    .where(
+                        qa(Directory.name) == "legacyExchangeDN",
+                        qa(Attribute.name) == "aNR",
+                        qa(Attribute.value) == "True",
+                        qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
                     ),
                 ),
                 qa(Attribute.value) == normalized.replace("=", ""),

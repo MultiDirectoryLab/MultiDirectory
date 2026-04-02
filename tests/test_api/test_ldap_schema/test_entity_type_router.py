@@ -4,7 +4,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from constants import ENTITY_TYPE_DATAS
+from api.ldap_schema.schema import AttributeTypeSchema, EntityTypeSchema
+from constants import ENTITY_TYPE_DTOS_V1
 from enums import EntityTypeNames
 
 from .test_entity_type_router_datasets import (
@@ -123,6 +124,75 @@ async def test_get_list_entity_types_with_pagination(
     assert len(response.json().get("items")) == page_size
 
 
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("session")
+async def test_get_entity_type_attributes(http_client: AsyncClient) -> None:
+    """Test retrieving attribute names for an entity type."""
+    attribute_types = [
+        AttributeTypeSchema(
+            oid="1.2.3.100",
+            name="testEntityTypeAttr1",
+            ldap_display_name="testEntityTypeAttr1",
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_system=False,
+            is_included_anr=False,
+        ),
+        AttributeTypeSchema(
+            oid="1.2.3.101",
+            name="testEntityTypeAttr2",
+            ldap_display_name="testEntityTypeAttr2",
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_system=False,
+            is_included_anr=False,
+        ),
+    ]
+    for attribute_type in attribute_types:
+        response = await http_client.post(
+            "/schema/attribute_type",
+            json=attribute_type.model_dump(),
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    object_class_name = "testEntityTypeObjectClass"
+    response = await http_client.post(
+        "/schema/object_class",
+        json={
+            "oid": "1.2.3.102",
+            "name": object_class_name,
+            "superior_name": None,
+            "kind": "STRUCTURAL",
+            "is_system": False,
+            "attribute_type_names_must": ["testEntityTypeAttr1"],
+            "attribute_type_names_may": ["testEntityTypeAttr2"],
+        },
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    entity_type_name = "testEntityTypeWithAttrs"
+    response = await http_client.post(
+        "/schema/entity_type",
+        json=EntityTypeSchema(
+            name=entity_type_name,
+            object_class_names=[object_class_name],
+            is_system=False,
+        ).model_dump(),
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.get(
+        f"/schema/entity_type/{entity_type_name}/attrs",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert set(response.json()) == {
+        "testEntityTypeAttr1",
+        "testEntityTypeAttr2",
+    }
+
+
 @pytest.mark.parametrize(
     "dataset",
     test_modify_entity_type_with_duplicates_dataset,
@@ -215,19 +285,19 @@ async def test_modify_primary_entity_type_name(
 ) -> None:
     """Test modifying a primary entity type name."""
     new_statement = "TestEntityTypeName"
-    entity_type_data = ENTITY_TYPE_DATAS[0]
+    entity_type_dto = ENTITY_TYPE_DTOS_V1[0]
     response = await http_client.patch(
-        f"/schema/entity_type/{entity_type_data['name']}",
-        json={
-            "name": new_statement,
-            "is_system": True,
-            "object_class_names": entity_type_data["object_class_names"],
-        },
+        f"/schema/entity_type/{entity_type_dto.name}",
+        json=EntityTypeSchema(
+            name=new_statement,
+            object_class_names=entity_type_dto.object_class_names,
+            is_system=entity_type_dto.is_system,
+        ).model_dump(),
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     response = await http_client.get(
-        f"/schema/entity_type/{entity_type_data['name']}",
+        f"/schema/entity_type/{entity_type_dto.name}",
     )
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)

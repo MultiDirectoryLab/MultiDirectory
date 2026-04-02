@@ -9,7 +9,7 @@ from typing import AsyncIterator
 import pytest_asyncio
 from dishka import AsyncContainer, Scope
 
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
 

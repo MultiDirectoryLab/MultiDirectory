@@ -18,6 +18,7 @@ class AttributeTypeDTO(Generic[_IdT]):
 
     oid: str
     name: str
+    ldap_display_name: str
     syntax: str
     single_value: bool
     no_user_modification: bool
@@ -54,3 +55,17 @@ class EntityTypeDTO(Generic[_IdT]):
     is_system: bool
     object_class_names: list[str]
     id: _IdT = None  # type: ignore
+
+
+@dataclass
+class AttributeDTO:
+    name: str
+    values: list[str]
+
+
+@dataclass
+class CreateDirDTO:
+    name: str
+    entity_type_name: EntityTypeNames
+    attributes: tuple[AttributeDTO, ...]
+    is_system: bool

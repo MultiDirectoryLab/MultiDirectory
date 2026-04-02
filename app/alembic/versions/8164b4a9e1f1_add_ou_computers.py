@@ -13,6 +13,7 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
+from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import get_base_directories
@@ -28,13 +29,14 @@ depends_on: None = None
 COMPUTERS = "computers"
 _OU_COMPUTERS_DATA = {
     "name": COMPUTERS,
+    "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
     "object_class": "organizationalUnit",
     "attributes": {"objectClass": ["top", "container"]},
     "children": [],
 }
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     from ldap_protocol.auth.setup_gateway import SetupGateway
@@ -83,7 +85,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_ou_computers)
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 

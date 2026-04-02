@@ -183,7 +183,6 @@ class ModifyRequest(BaseRequest):
             user_role_ids=ctx.ldap_session.user.role_ids,
             query=query,
             ace_types=[AceType.WRITE, AceType.DELETE],
-            load_attribute_type=True,
         )
 
         directory = await ctx.session.scalar(query)
@@ -223,8 +222,8 @@ class ModifyRequest(BaseRequest):
             yield ModifyResponse(result_code=LDAPCodes.NOT_ALLOWED_ON_RDN)
             return
 
-        before_attrs = self.get_directory_attrs(directory)
         entity_type = directory.entity_type
+        before_attrs = self.get_directory_attrs(directory)
         try:
             for change in self.changes:
                 if change.l_type in Directory.ro_fields:
@@ -300,7 +299,7 @@ class ModifyRequest(BaseRequest):
                 )
 
             if "objectclass" in names:
-                await ctx.entity_type_dao.attach_entity_type_to_directory(
+                await ctx.entity_type_use_case.attach_entity_type_to_directory(
                     directory=directory,
                     is_system_entity_type=False,
                 )

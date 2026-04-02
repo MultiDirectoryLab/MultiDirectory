@@ -14,8 +14,10 @@ from sqlalchemy.orm import joinedload, subqueryload
 from config import Settings
 from entities import Directory
 from enums import AceType, EntityTypeNames, RoleScope
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
+    AttributeTypeDAO,
+)
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
 from ldap_protocol.utils.queries import get_filter_from_path
@@ -58,7 +60,7 @@ async def test_multiple_access(
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=user_account_control_attr.id,
+            attribute_type_name=user_account_control_attr.name,
             is_allow=True,
         ),
         AccessControlEntryDTO(
@@ -67,7 +69,7 @@ async def test_multiple_access(
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=user_principal_name.id,
+            attribute_type_name=user_principal_name.name,
             is_allow=True,
         ),
         AccessControlEntryDTO(
@@ -76,7 +78,7 @@ async def test_multiple_access(
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=posix_email_attr.id,
+            attribute_type_name=posix_email_attr.name,
             is_allow=True,
         ),
         AccessControlEntryDTO(
@@ -85,7 +87,7 @@ async def test_multiple_access(
             scope=RoleScope.WHOLE_SUBTREE,
             base_dn="cn=russia,cn=Users,dc=md,dc=test",
             entity_type_id=user_entity_type.id,
-            attribute_type_id=posix_email_attr.id,
+            attribute_type_name=posix_email_attr.name,
             is_allow=True,
         ),
     ]

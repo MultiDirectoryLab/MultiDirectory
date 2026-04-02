@@ -30,8 +30,11 @@ launch:  ## run standalone app without tty container
 	docker compose down
 	docker compose run sh -c "python multidirectory.py --migrate && python ."
 
-rerun_last_migration:  ## re-run migration
+rerun_last_migration:
 	docker exec -it multidirectory_api sh -c "alembic downgrade -1; python multidirectory.py --migrate;"
+
+rerun_all_migrations:
+	docker exec -it multidirectory_api sh -c "alembic downgrade base; python multidirectory.py --migrate;"
 
 down:  ## shutdown services
 	docker compose -f docker-compose.test.yml down --remove-orphans

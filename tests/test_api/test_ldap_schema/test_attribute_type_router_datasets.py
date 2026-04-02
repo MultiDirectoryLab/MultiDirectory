@@ -2,7 +2,10 @@
 
 from fastapi import status
 
-from api.ldap_schema.schema import AttributeTypeSchema
+from api.ldap_schema.schema import (
+    AttributeTypeSchema,
+    AttributeTypeUpdateSchema,
+)
 
 test_modify_one_attribute_type_dataset = [
     {
@@ -10,18 +13,19 @@ test_modify_one_attribute_type_dataset = [
         "attribute_type_schema": AttributeTypeSchema(
             oid="1.2.3.4",
             name="testAttributeType0",
+            ldap_display_name="testAttributeType0",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=False,
             no_user_modification=False,
             is_system=False,
             is_included_anr=False,
         ),
-        "attribute_type_changes": {
-            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
-            "single_value": True,
-            "no_user_modification": False,
-            "is_included_anr": False,
-        },
+        "attribute_type_changes": AttributeTypeUpdateSchema(
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_included_anr=False,
+        ),
         "status_code": status.HTTP_200_OK,
     },
     {
@@ -29,18 +33,19 @@ test_modify_one_attribute_type_dataset = [
         "attribute_type_schema": AttributeTypeSchema(
             oid="1.2.3.4",
             name="testAttributeType1",
+            ldap_display_name="testAttributeType1",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=True,
             no_user_modification=False,
             is_system=False,
             is_included_anr=False,
         ),
-        "attribute_type_changes": {
-            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
-            "single_value": True,
-            "no_user_modification": False,
-            "is_included_anr": False,
-        },
+        "attribute_type_changes": AttributeTypeUpdateSchema(
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_included_anr=False,
+        ),
         "status_code": status.HTTP_400_BAD_REQUEST,
     },
     {
@@ -48,18 +53,19 @@ test_modify_one_attribute_type_dataset = [
         "attribute_type_schema": AttributeTypeSchema(
             oid="1.2.3.4",
             name="testAttributeType2",
+            ldap_display_name="testAttributeType2",
             syntax="1.3.6.1.4.1.1466.115.121.1.15",
             single_value=False,
             no_user_modification=False,
             is_system=True,
             is_included_anr=False,
         ),
-        "attribute_type_changes": {
-            "syntax": "1.3.6.1.4.1.1466.115.121.1.15",
-            "single_value": True,
-            "no_user_modification": False,
-            "is_included_anr": False,
-        },
+        "attribute_type_changes": AttributeTypeUpdateSchema(
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_included_anr=False,
+        ),
         "status_code": status.HTTP_200_OK,
     },
 ]
@@ -70,6 +76,7 @@ test_delete_bulk_attribute_types_dataset = [
             AttributeTypeSchema(
                 oid="1.2.3.4",
                 name="testAttributeType1",
+                ldap_display_name="testAttributeType1",
                 syntax="1.3.6.1.4.1.1466.115.121.1.15",
                 single_value=True,
                 no_user_modification=False,
@@ -79,6 +86,7 @@ test_delete_bulk_attribute_types_dataset = [
             AttributeTypeSchema(
                 oid="1.2.3.4.5",
                 name="testAttributeType2",
+                ldap_display_name="testAttributeType2",
                 syntax="1.3.6.1.4.1.1466.115.121.1.15",
                 single_value=True,
                 no_user_modification=False,
@@ -97,6 +105,7 @@ test_delete_bulk_attribute_types_dataset = [
             AttributeTypeSchema(
                 oid="1.2.3.4",
                 name="testAttributeType1",
+                ldap_display_name="testAttributeType1",
                 syntax="1.3.6.1.4.1.1466.115.121.1.15",
                 single_value=True,
                 no_user_modification=False,

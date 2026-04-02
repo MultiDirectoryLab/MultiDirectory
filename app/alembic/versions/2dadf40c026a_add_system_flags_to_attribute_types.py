@@ -6,19 +6,15 @@ Create Date: 2026-02-04 09:33:33.218126
 
 """
 
-import contextlib
-
 import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from entities import AttributeType
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
-    AttributeTypeUseCase,
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
 )
-from ldap_protocol.ldap_schema.exceptions import AttributeTypeNotFoundError
 
 # revision identifiers, used by Alembic.
 revision: None | str = "2dadf40c026a"
@@ -27,7 +23,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-_NON_REPLICATED_ATTRIBUTES_TYPE_NAMES = (
+_NON_REPLICATED_ATTRIBUTES_TYPE_NAMES: tuple[str, ...] = (
     "badPasswordTime",
     "badPwdCount",
     "bridgeheadServerListBL",
@@ -144,23 +140,28 @@ def upgrade(container: AsyncContainer) -> None:
         ),
     )
 
-    session.execute(sa.update(AttributeType).values({"system_flags": 0}))
-
-    async def _set_attr_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _zero_all_replicated_flags(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            at_type_use_case = await cnt.get(AttributeTypeUseCase)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        for name in _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES:
-            with contextlib.suppress(AttributeTypeNotFoundError):
-                await at_type_use_case.set_attr_replication_flag(
-                    name,
-                    need_to_replicate=False,
-                )
+        await at_type_use_case.zero_all_replicated_flags()
+        await session.commit()
+
+    op.run_async(_zero_all_replicated_flags)
+
+    async def _set_false_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
+
+        await at_type_use_case.set_false_replication_flag(
+            _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES,
+        )
 
         await session.commit()
 
-    op.run_async(_set_attr_replication_flag)
+    op.run_async(_set_false_replication_flag)
 
     op.alter_column("AttributeTypes", "system_flags", nullable=False)
 

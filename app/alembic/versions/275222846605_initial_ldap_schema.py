@@ -12,15 +12,26 @@ import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
 from ldap3.protocol.schemas.ad2012R2 import ad_2012_r2_schema
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, or_
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
-from entities import Attribute, AttributeType, ObjectClass
+from entities import Attribute
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
+    AttributeTypeDAOLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
+    ObjectClassDAOLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
+)
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.utils.raw_definition_parser import (
+from ldap_protocol.ldap_schema.raw_definition_parser import (
     RawDefinitionParser as RDParser,
 )
 from repo.pg.tables import queryable_attr as qa
@@ -35,7 +46,7 @@ depends_on: None | str = None
 ad_2012_r2_schema_json = json.loads(ad_2012_r2_schema)
 
 
-@temporary_stub_column("entity_type_id", sa.Integer())
+@temporary_stub_column("Directory", "entity_type_id", sa.Integer())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
@@ -184,91 +195,123 @@ def upgrade(container: AsyncContainer) -> None:
 
     # NOTE: catalog is a non-existent object class
     session.execute(
-        delete(Attribute).where(
+        delete(Attribute)
+        .where(
             or_(
                 qa(Attribute.name) == "objectClass",
                 qa(Attribute.name) == "objectclass",
             ),
             qa(Attribute.value) == "catalog",
         ),
-    )
+    )  # fmt: skip
 
-    # NOTE: Load attributeTypes into the database
-    at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
-        "attributeTypes"
-    ]
-    at_raw_definitions.extend(
-        [
-            "( 1.2.840.113556.1.4.9999 NAME 'entityTypeName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE NO-USER-MODIFICATION )",  # noqa: E501
-            #
-            # Kerberos schema: https://github.com/krb5/krb5/blob/master/src/plugins/kdb/ldap/libkdb_ldap/kerberos.schema
-            "( 2.16.840.1.113719.1.301.4.1.1 NAME 'krbPrincipalName' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
-            "( 1.2.840.113554.1.4.1.6.1 NAME 'krbCanonicalName' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.3.1 NAME 'krbPrincipalType' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.5.1 NAME 'krbUPEnabled' DESC 'Boolean' SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.6.1 NAME 'krbPrincipalExpiration' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.8.1 NAME 'krbTicketFlags' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.9.1 NAME 'krbMaxTicketLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.10.1 NAME 'krbMaxRenewableAge' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.14.1 NAME 'krbRealmReferences' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.15.1 NAME 'krbLdapServers' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.17.1 NAME 'krbKdcServers' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.18.1 NAME 'krbPwdServers' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.24.1 NAME 'krbHostServer' EQUALITY caseExactIA5Match SYNTAX 1 3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.25.1 NAME 'krbSearchScope' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.26.1 NAME 'krbPrincipalReferences' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.28.1 NAME 'krbPrincNamingAttr' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.29.1 NAME 'krbAdmServers' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.30.1 NAME 'krbMaxPwdLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.31.1 NAME 'krbMinPwdLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.32.1 NAME 'krbPwdMinDiffChars'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.33.1 NAME 'krbPwdMinLength'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.34.1 NAME 'krbPwdHistoryLength'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
-            "( 1.3.6.1.4.1.5322.21.2.1 NAME 'krbPwdMaxFailure'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 1.3.6.1.4.1.5322.21.2.2 NAME 'krbPwdFailureCountInterval'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 1.3.6.1.4.1.5322.21.2.3 NAME 'krbPwdLockoutDuration'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 1.2.840.113554.1.4.1.6.2 NAME 'krbPwdAttributes' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 1.2.840.113554.1.4.1.6.3 NAME 'krbPwdMaxLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 1.2.840.113554.1.4.1.6.4 NAME 'krbPwdMaxRenewableLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
-            "( 1.2.840.113554.1.4.1.6.5 NAME 'krbPwdAllowedKeysalts' EQUALITY caseIgnoreIA5Match SYNTAX 1 3.6.1.4.1.1466.115.121.1.26 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.36.1 NAME 'krbPwdPolicyReference' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.37.1 NAME 'krbPasswordExpiration' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.39.1 NAME 'krbPrincipalKey' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.40.1 NAME 'krbTicketPolicyReference' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.41.1 NAME 'krbSubTrees' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.42.1 NAME 'krbDefaultEncSaltTypes' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.43.1 NAME 'krbSupportedEncSaltTypes' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.44.1 NAME 'krbPwdHistory' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.45.1 NAME 'krbLastPwdChange' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
-            "( 1.3.6.1.4.1.5322.21.2.5 NAME 'krbLastAdminUnlock' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.46.1 NAME 'krbMKey' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.47.1 NAME 'krbPrincipalAliases' EQUALITY caseExactIA5Match SYNTAX 1 3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.48.1 NAME 'krbLastSuccessfulAuth' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.49.1 NAME 'krbLastFailedAuth' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.50.1 NAME 'krbLoginFailedCount'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.51.1 NAME 'krbExtraData' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.52.1 NAME 'krbObjectReferences' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.4.53.1 NAME 'krbPrincContainerRef' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
-            "( 2.16.840.1.113730.3.8.15.2.1 NAME 'krbPrincipalAuthInd' EQUALITY caseExactMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
-            "( 1.3.6.1.4.1.5322.21.2.4 NAME 'krbAllowedToDelegateTo' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
-        ],
-    )
-    at_raw_definitions_filtered = [
-        definition
-        for definition in at_raw_definitions
-        if "name 'ms" not in definition.lower()
-    ]
-    for at_raw_definition in at_raw_definitions_filtered:
-        attribute_type = RDParser.create_attribute_type_by_raw(
-            raw_definition=at_raw_definition,
+    async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
+        async with container(scope=Scope.REQUEST) as cnt:
+            session = await cnt.get(AsyncSession)
+            at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
+
+        for oid, name in (
+            ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
+            ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
+        ):
+            await at_type_use_case.create(
+                AttributeTypeDTO(
+                    oid=oid,
+                    name=name,
+                    ldap_display_name=name,
+                    syntax="1.3.6.1.4.1.1466.115.121.1.15",
+                    single_value=True,
+                    no_user_modification=False,
+                    is_system=True,
+                    system_flags=0,
+                    is_included_anr=False,
+                ),
+            )
+
+        await session.flush()
+
+        # NOTE: Load attributeTypes into the database
+        at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
+            "attributeTypes"
+        ]
+        at_raw_definitions.extend(
+            [
+                "( 1.2.840.113556.1.4.9999 NAME 'entityTypeName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE NO-USER-MODIFICATION )",  # noqa: E501
+                #
+                # Kerberos schema: https://github.com/krb5/krb5/blob/master/src/plugins/kdb/ldap/libkdb_ldap/kerberos.schema
+                "( 2.16.840.1.113719.1.301.4.1.1 NAME 'krbPrincipalName' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
+                "( 1.2.840.113554.1.4.1.6.1 NAME 'krbCanonicalName' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.3.1 NAME 'krbPrincipalType' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.5.1 NAME 'krbUPEnabled' DESC 'Boolean' SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.6.1 NAME 'krbPrincipalExpiration' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.8.1 NAME 'krbTicketFlags' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.9.1 NAME 'krbMaxTicketLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.10.1 NAME 'krbMaxRenewableAge' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.14.1 NAME 'krbRealmReferences' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.15.1 NAME 'krbLdapServers' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.17.1 NAME 'krbKdcServers' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.18.1 NAME 'krbPwdServers' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.24.1 NAME 'krbHostServer' EQUALITY caseExactIA5Match SYNTAX 1 3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.25.1 NAME 'krbSearchScope' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.26.1 NAME 'krbPrincipalReferences' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.28.1 NAME 'krbPrincNamingAttr' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.29.1 NAME 'krbAdmServers' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.30.1 NAME 'krbMaxPwdLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.31.1 NAME 'krbMinPwdLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.32.1 NAME 'krbPwdMinDiffChars'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.33.1 NAME 'krbPwdMinLength'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.34.1 NAME 'krbPwdHistoryLength'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
+                "( 1.3.6.1.4.1.5322.21.2.1 NAME 'krbPwdMaxFailure'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 1.3.6.1.4.1.5322.21.2.2 NAME 'krbPwdFailureCountInterval'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 1.3.6.1.4.1.5322.21.2.3 NAME 'krbPwdLockoutDuration'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 1.2.840.113554.1.4.1.6.2 NAME 'krbPwdAttributes' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 1.2.840.113554.1.4.1.6.3 NAME 'krbPwdMaxLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 1.2.840.113554.1.4.1.6.4 NAME 'krbPwdMaxRenewableLife' EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)",  # noqa: E501
+                "( 1.2.840.113554.1.4.1.6.5 NAME 'krbPwdAllowedKeysalts' EQUALITY caseIgnoreIA5Match SYNTAX 1 3.6.1.4.1.1466.115.121.1.26 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.36.1 NAME 'krbPwdPolicyReference' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.37.1 NAME 'krbPasswordExpiration' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.39.1 NAME 'krbPrincipalKey' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.40.1 NAME 'krbTicketPolicyReference' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.41.1 NAME 'krbSubTrees' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.42.1 NAME 'krbDefaultEncSaltTypes' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.43.1 NAME 'krbSupportedEncSaltTypes' EQUALITY caseIgnoreMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.44.1 NAME 'krbPwdHistory' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.45.1 NAME 'krbLastPwdChange' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
+                "( 1.3.6.1.4.1.5322.21.2.5 NAME 'krbLastAdminUnlock' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.46.1 NAME 'krbMKey' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.47.1 NAME 'krbPrincipalAliases' EQUALITY caseExactIA5Match SYNTAX 1 3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.48.1 NAME 'krbLastSuccessfulAuth' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.49.1 NAME 'krbLastFailedAuth' EQUALITY generalizedTimeMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.50.1 NAME 'krbLoginFailedCount'  EQUALITY integerMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.27  SINGLE-VALUE)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.51.1 NAME 'krbExtraData' EQUALITY octetStringMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.40)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.52.1 NAME 'krbObjectReferences' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113719.1.301.4.53.1 NAME 'krbPrincContainerRef' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
+                "( 2.16.840.1.113730.3.8.15.2.1 NAME 'krbPrincipalAuthInd' EQUALITY caseExactMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
+                "( 1.3.6.1.4.1.5322.21.2.4 NAME 'krbAllowedToDelegateTo' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
+            ],
         )
-        session.add(attribute_type)
-    session.commit()
+
+        at_raw_definitions_filtered = [
+            definition
+            for definition in at_raw_definitions
+            if "name 'ms" not in definition.lower()
+        ]
+
+        for at_raw_definition in at_raw_definitions_filtered:
+            attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(
+                raw_definition=at_raw_definition,
+            )
+            await at_type_use_case.create(attribute_type_dto)
+
+        await session.commit()
+
+    op.run_async(_create_attribute_types)
 
     # NOTE: Load objectClasses into the database
     async def _create_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+            oc_use_case = await cnt.get(ObjectClassUseCaseLegacy)
 
         oc_already_created_oids = set()
         oc_first_priority_raw_definitions = (
@@ -308,11 +351,12 @@ def upgrade(container: AsyncContainer) -> None:
             )
             oc_already_created_oids.add(object_class_info.oid)
 
-            object_class = await RDParser.create_object_class_by_info(
-                session=session,
-                object_class_info=object_class_info,
+            object_class_dto = (
+                await RDParser.collect_object_class_dto_from_info(
+                    object_class_info=object_class_info,
+                )
             )
-            session.add(object_class)
+            await oc_use_case.create(object_class_dto)
 
         oc_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
             "objectClasses"
@@ -330,46 +374,29 @@ def upgrade(container: AsyncContainer) -> None:
             if object_class_info.oid in oc_already_created_oids:
                 continue
 
-            object_class = await RDParser.create_object_class_by_info(
-                session=session,
-                object_class_info=object_class_info,
+            object_class_dto = (
+                await RDParser.collect_object_class_dto_from_info(
+                    object_class_info=object_class_info,
+                )
             )
-            session.add(object_class)
+            await oc_use_case.create(object_class_dto)
 
         await session.commit()
-        await session.close()
 
     op.run_async(_create_object_classes)
-
-    async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
-        async with container(scope=Scope.REQUEST) as cnt:
-            session = await cnt.get(AsyncSession)
-            attribute_type_dao = await cnt.get(AttributeTypeDAO)
-
-        for oid, name in (
-            ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
-            ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
-        ):
-            await attribute_type_dao.create(
-                AttributeTypeDTO(
-                    oid=oid,
-                    name=name,
-                    syntax="1.3.6.1.4.1.1466.115.121.1.15",
-                    single_value=True,
-                    no_user_modification=False,
-                    is_system=True,
-                    system_flags=0,
-                    is_included_anr=False,
-                ),
-            )
-
-        await session.commit()
-
-    op.run_async(_create_attribute_types)
 
     async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+            attribute_type_dao_legacy = AttributeTypeDAOLegacy(session=session)
+            object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
+            attribute_type_use_case = AttributeTypeUseCaseLegacy(
+                attribute_type_dao_legacy=attribute_type_dao_legacy,
+            )
+            object_class_use_case = ObjectClassUseCaseLegacy(
+                attribute_type_dao_legacy=attribute_type_dao_legacy,
+                object_class_dao_legacy=object_class_dao_legacy,
+            )
 
         for oc_name, at_names in (
             ("user", ["nsAccountLock", "shadowExpire"]),
@@ -377,22 +404,18 @@ def upgrade(container: AsyncContainer) -> None:
             ("posixAccount", ["posixEmail"]),
             ("organizationalUnit", ["title", "jpegPhoto"]),
         ):
-            object_class = await session.scalar(
-                select(ObjectClass)
-                .filter_by(name=oc_name)
-                .options(selectinload(qa(ObjectClass.attribute_types_may))),
-            )
+            object_class = await object_class_use_case.get_raw_by_name(oc_name)
 
             if not object_class:
                 continue
 
-            attribute_types = await session.scalars(
-                select(AttributeType)
-                .where(qa(AttributeType.name).in_(at_names),
-                ),
-            )  # fmt: skip
+            attribute_types = (
+                await attribute_type_use_case.get_all_raw_by_names(
+                    at_names,
+                )
+            )
 
-            object_class.attribute_types_may.extend(attribute_types.all())
+            object_class.attribute_types_may.extend(attribute_types)
 
         await session.commit()
 
@@ -442,4 +465,3 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.drop_index("ix_AttributeTypes_name", table_name="AttributeTypes")
     op.drop_index("ix_AttributeTypes_oid", table_name="AttributeTypes")
     op.drop_table("AttributeTypes")
-    # ### end Alembic commands ###

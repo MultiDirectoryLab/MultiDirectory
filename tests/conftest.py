@@ -9,6 +9,7 @@ import os
 import uuid
 from contextlib import suppress
 from dataclasses import dataclass
+from itertools import chain
 from typing import AsyncGenerator, AsyncIterator, Generator, Iterator
 from unittest.mock import AsyncMock, Mock
 
@@ -62,8 +63,7 @@ from api.password_policy.adapter import (
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from constants import ENTITY_TYPE_DATAS
-from entities import AttributeType
+from constants import ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.auth import AuthManager, MFAManager
@@ -96,21 +96,46 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema.attribute_type_dao import AttributeTypeDAO
-from ldap_protocol.ldap_schema.attribute_type_system_flags_use_case import (
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
+    AttributeTypeDAOLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
+    AttributeTypeUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
+    ObjectClassDAOLegacy,
+)
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
+    ObjectClassUseCaseLegacy,
+)
+from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
+    AttributeTypeDAO,
+)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
     AttributeTypeSystemFlagsUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_type_use_case import (
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
     AttributeTypeUseCase,
 )
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
-from ldap_protocol.ldap_schema.object_class_dao import ObjectClassDAO
-from ldap_protocol.ldap_schema.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.ldap_schema.directory_create_use_case import (
+    DirectoryCreateUseCase,
+)
+from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
+from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
+    ObjectClassUseCase,
+)
 from ldap_protocol.master_check_use_case import (
     MasterCheckUseCase,
     MasterGatewayProtocol,
@@ -152,6 +177,10 @@ from ldap_protocol.policies.password.use_cases import (
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
+from ldap_protocol.roles.migrations_ace_dao import (
+    AccessControlEntryAttributeTypeRemapDAO,
+    AccessControlEntryDirectoryMappingDAO,
+)
 from ldap_protocol.roles.role_dao import RoleDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.rootdse.gateway import SADomainGateway
@@ -163,7 +192,12 @@ from ldap_protocol.session_storage.repository import SessionRepository
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
 from repo.pg.master_gateway import PGMasterGateway
-from tests.constants import TEST_DATA
+from tests.constants import (
+    TEST_DATA,
+    admin_user_data_dict,
+    user_data_dict,
+    user_with_login_perm_data_dict,
+)
 
 
 class TestProvider(Provider):
@@ -296,8 +330,24 @@ class TestProvider(Provider):
             domain.name,
         )
 
+    directory_create_use_case = provide(
+        DirectoryCreateUseCase,
+        scope=Scope.REQUEST,
+    )
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
+    attribute_type_dao_legacy = provide(
+        AttributeTypeDAOLegacy,
+        scope=Scope.REQUEST,
+    )
+
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
+    object_class_dao_legacy = provide(
+        ObjectClassDAOLegacy,
+        scope=Scope.REQUEST,
+    )
+    attribute_dao = provide(AttributeDAO, scope=Scope.REQUEST)
+    directory_dao = provide(DirectoryDAO, scope=Scope.REQUEST)
+
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
     attribute_type_system_flags_use_case = provide(
         AttributeTypeSystemFlagsUseCase,
@@ -307,7 +357,32 @@ class TestProvider(Provider):
         AttributeTypeUseCase,
         scope=Scope.REQUEST,
     )
+
+    @provide(scope=Scope.REQUEST)
+    def get_attribute_type_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> AttributeTypeUseCaseLegacy:
+        """Legacy attribute type use case bound to a single session."""
+        at_dao_legacy = AttributeTypeDAOLegacy(session=session)
+        return AttributeTypeUseCaseLegacy(
+            attribute_type_dao_legacy=at_dao_legacy,
+        )
+
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
+
+    @provide(scope=Scope.REQUEST)
+    def get_object_class_use_case_legacy(
+        self,
+        session: AsyncSession,
+    ) -> ObjectClassUseCaseLegacy:
+        """Legacy object class use case bound to a single session for all DAOs."""  # noqa: E501
+        at_dao_legacy = AttributeTypeDAOLegacy(session=session)
+        oc_dao_legacy = ObjectClassDAOLegacy(session=session)
+        return ObjectClassUseCaseLegacy(
+            attribute_type_dao_legacy=at_dao_legacy,
+            object_class_dao_legacy=oc_dao_legacy,
+        )
 
     user_password_history_use_cases = provide(
         UserPasswordHistoryUseCases,
@@ -373,7 +448,7 @@ class TestProvider(Provider):
             autocommit=False,
         )
 
-    @provide(scope=Scope.APP, cache=False)
+    @provide(scope=Scope.APP)
     async def get_session(
         self,
         engine: AsyncEngine,
@@ -489,6 +564,14 @@ class TestProvider(Provider):
 
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
+    ace_migrations_dao = provide(
+        AccessControlEntryAttributeTypeRemapDAO,
+        scope=Scope.REQUEST,
+    )
+    ace_migrations_dao1 = provide(
+        AccessControlEntryDirectoryMappingDAO,
+        scope=Scope.REQUEST,
+    )
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
@@ -944,24 +1027,55 @@ async def setup_session(
     password_utils: PasswordUtils,
 ) -> None:
     """Get session and acquire after completion."""
-    object_class_dao = ObjectClassDAO(session)
+    role_dao = RoleDAO(session)
+    ace_dao = AccessControlEntryDAO(session)
+    role_use_case = RoleUseCase(role_dao, ace_dao)
     attribute_value_validator = AttributeValueValidator()
+    attribute_type_dao = AttributeTypeDAO(session)
+    attribute_type_system_flags_use_case = AttributeTypeSystemFlagsUseCase()
+    object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
+    attribute_type_dao_legacy = AttributeTypeDAOLegacy(session=session)
+    object_class_use_case_legacy = ObjectClassUseCaseLegacy(
+        attribute_type_dao_legacy=attribute_type_dao_legacy,
+        object_class_dao_legacy=object_class_dao_legacy,
+    )
+    attribute_type_use_case_legacy = AttributeTypeUseCaseLegacy(
+        attribute_type_dao_legacy=attribute_type_dao_legacy,
+    )
+
+    object_class_dao = ObjectClassDAO(session)
+    directory_dao = DirectoryDAO(session)
+    attribute_dao = AttributeDAO(session)
     entity_type_dao = EntityTypeDAO(
         session,
-        object_class_dao=object_class_dao,
         attribute_value_validator=attribute_value_validator,
+        directory_dao=directory_dao,
     )
-    for entity_type_data in ENTITY_TYPE_DATAS:
-        await entity_type_dao.create(
-            dto=EntityTypeDTO(
-                id=None,
-                name=entity_type_data["name"],
-                object_class_names=entity_type_data["object_class_names"],
-                is_system=True,
-            ),
-        )
+    entity_type_use_case = EntityTypeUseCase(
+        entity_type_dao=entity_type_dao,
+        object_class_dao=object_class_dao,
+        directory_dao=directory_dao,
+    )
+    directory_create_use_case = DirectoryCreateUseCase(
+        session=session,
+        entity_type_use_case=entity_type_use_case,
+        role_use_case=role_use_case,
+        directory_dao=directory_dao,
+        attribute_dao=attribute_dao,
+    )
+    object_class_use_case = ObjectClassUseCase(
+        attribute_type_dao=attribute_type_dao,
+        object_class_dao=object_class_dao,
+        entity_type_dao=entity_type_dao,
+        directory_create_use_case=directory_create_use_case,
+    )
 
-    await session.flush()
+    attribute_type_use_case = AttributeTypeUseCase(
+        attribute_type_dao=attribute_type_dao,
+        attribute_type_system_flags_use_case=attribute_type_system_flags_use_case,
+        object_class_dao=object_class_dao,
+        directory_create_use_case=directory_create_use_case,
+    )
 
     audit_policy_dao = AuditPoliciesDAO(session)
     audit_destination_dao = AuditDestinationDAO(session)
@@ -987,9 +1101,15 @@ async def setup_session(
     setup_gateway = SetupGateway(
         session,
         password_utils,
-        entity_type_dao,
+        entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
+        directory_dao=directory_dao,
     )
+
+    for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
+        await entity_type_use_case.create_not_safe(entity_type_dto)
+    await session.flush()
+
     await audit_use_case.create_policies()
     await setup_gateway.setup_enviroment(
         dn="md.test",
@@ -997,12 +1117,76 @@ async def setup_session(
         is_system=False,
     )
 
+    for _at_dto in (
+        AttributeTypeDTO[None](
+            oid="1.2.3.4.5.6.7.8",
+            name="attr_with_bvalue",
+            ldap_display_name="attrWithBvalue",
+            syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+            system_flags=0,
+            is_included_anr=False,
+        ),
+        AttributeTypeDTO[None](
+            oid="1.2.3.4.5.6.7.8.9",
+            name="testing_attr",
+            ldap_display_name="testingAttr",
+            syntax="1.3.6.1.4.1.1466.115.121.1.15",
+            single_value=True,
+            no_user_modification=False,
+            is_system=True,
+            system_flags=0,
+            is_included_anr=False,
+        ),
+    ):
+        await attribute_type_use_case.create(_at_dto)
+
+    for attr_type_name in (
+        "description",
+        "posixEmail",
+        "userPrincipalName",
+        "userAccountControl",
+        "cn",
+        "objectClass",
+    ):
+        _at = await attribute_type_use_case_legacy.get(
+            attr_type_name,
+        )
+        if not _at:
+            raise ValueError(
+                f"setup_session:: AttributeType {attr_type_name} not found",
+            )
+        await attribute_type_use_case.create(_at)
+
+    for _obj_class_name in (
+        "top",
+        "person",
+        "organizationalPerson",
+        "user",
+        "domain",
+        "container",
+        "organization",
+        "domainDNS",
+        "group",
+        "inetOrgPerson",
+        "posixAccount",
+    ):
+        _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
+        _oc_dto.attribute_types_may = [
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_may
+        ]
+        _oc_dto.attribute_types_must = [
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_must
+        ]
+        await object_class_use_case.create(_oc_dto)  # type: ignore
+
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
 
-    role_dao = RoleDAO(session)
-    ace_dao = AccessControlEntryDAO(session)
-    role_use_case = RoleUseCase(role_dao, ace_dao)
     await role_use_case.create_domain_admins_role()
 
     await role_use_case._role_dao.create(  # noqa: SLF001
@@ -1015,26 +1199,6 @@ async def setup_session(
         ),
     )
 
-    session.add(
-        AttributeType(
-            oid="1.2.3.4.5.6.7.8",
-            name="attr_with_bvalue",
-            syntax="1.3.6.1.4.1.1466.115.121.1.40",  # Octet String
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-        ),
-    )
-    session.add(
-        AttributeType(
-            oid="1.2.3.4.5.6.7.8.9",
-            name="testing_attr",
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_system=True,
-        ),
-    )
     await session.commit()
 
 
@@ -1106,17 +1270,26 @@ async def entity_type_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[EntityTypeDAO]:
     """Get session and acquire after completion."""
-    async with container(scope=Scope.APP) as container:
+    async with container(scope=Scope.REQUEST) as container:
         session = await container.get(AsyncSession)
-        object_class_dao = ObjectClassDAO(session)
         attribute_value_validator = await container.get(
             AttributeValueValidator,
         )
+        directory_dao = await container.get(DirectoryDAO)
         yield EntityTypeDAO(
             session,
-            object_class_dao,
             attribute_value_validator=attribute_value_validator,
+            directory_dao=directory_dao,
         )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def entity_type_use_case(
+    container: AsyncContainer,
+) -> AsyncIterator[EntityTypeUseCase]:
+    """Get entity type use case."""
+    async with container(scope=Scope.REQUEST) as container:
+        yield await container.get(EntityTypeUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -1198,7 +1371,7 @@ async def attribute_type_dao(
     container: AsyncContainer,
 ) -> AsyncIterator[AttributeTypeDAO]:
     """Get session and acquire after completion."""
-    async with container(scope=Scope.APP) as container:
+    async with container(scope=Scope.REQUEST) as container:
         session = await container.get(AsyncSession)
         yield AttributeTypeDAO(session)
 
@@ -1395,12 +1568,6 @@ def creds(user: dict) -> TestCreds:
 
 
 @pytest.fixture
-def user() -> dict:
-    """Get user data."""
-    return TEST_DATA[1]["children"][0]["organizationalPerson"]  # type: ignore
-
-
-@pytest.fixture
 def creds_with_login_perm(user_with_login_perm: dict) -> TestCreds:
     """Get creds from test data."""
     return TestCreds(
@@ -1419,15 +1586,21 @@ def admin_creds(admin_user: dict) -> TestAdminCreds:
 
 
 @pytest.fixture
-def user_with_login_perm() -> dict:
+def user() -> dict:
     """Get user data."""
-    return TEST_DATA[1]["children"][2]["organizationalPerson"]  # type: ignore
+    return user_data_dict
 
 
 @pytest.fixture
 def admin_user() -> dict:
     """Get admin user data."""
-    return TEST_DATA[1]["children"][1]["organizationalPerson"]  # type: ignore
+    return admin_user_data_dict
+
+
+@pytest.fixture
+def user_with_login_perm() -> dict:
+    """Get user data."""
+    return user_with_login_perm_data_dict
 
 
 @pytest.fixture

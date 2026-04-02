@@ -24,7 +24,7 @@ branch_labels: None = None
 depends_on: None = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     op.create_table(

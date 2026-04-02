@@ -32,8 +32,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_column("entity_type_id", sa.Integer())
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "entity_type_id", sa.Integer())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -76,8 +76,8 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_readonly_grp_and_plcy)
 
 
-@temporary_stub_column("entity_type_id", sa.Integer())
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "entity_type_id", sa.Integer())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 

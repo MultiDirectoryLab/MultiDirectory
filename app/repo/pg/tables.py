@@ -8,6 +8,7 @@ from __future__ import annotations
 import uuid
 from typing import Literal, TypeVar, cast
 
+from entities_legacy import AttributeTypeLegacy, ObjectClassLegacy
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -36,7 +37,6 @@ from sqlalchemy.sql.compiler import DDLCompiler
 from entities import (
     AccessControlEntry,
     Attribute,
-    AttributeType,
     AuditDestination,
     AuditPolicy,
     AuditPolicyTrigger,
@@ -46,7 +46,6 @@ from entities import (
     EntityType,
     Group,
     NetworkPolicy,
-    ObjectClass,
     PasswordBanWord,
     PasswordPolicy,
     Role,
@@ -520,13 +519,7 @@ access_control_entries_table = Table(
     Column("depth", Integer, nullable=False),
     Column("scope", Enum(RoleScope), nullable=False),
     Column("path", String, nullable=False),
-    Column(
-        "attributeTypeId",
-        Integer,
-        ForeignKey("AttributeTypes.id", ondelete="CASCADE"),
-        nullable=True,
-        key="attribute_type_id",
-    ),
+    Column("attribute_type_name", String, nullable=True),
     Column(
         "entityTypeId",
         Integer,
@@ -535,11 +528,6 @@ access_control_entries_table = Table(
         key="entity_type_id",
     ),
     Column("is_allow", Boolean, nullable=False),
-    Index(
-        "idx_ace_attribute_type_id",
-        "attribute_type_id",
-        postgresql_using="hash",
-    ),
     Index("idx_ace_entity_type_id", "entity_type_id", postgresql_using="hash"),
     Index("idx_ace_role_id_id", "role_id", postgresql_using="hash"),
     Index("idx_ace_scope_hash", "scope", postgresql_using="hash"),
@@ -950,11 +938,6 @@ mapper_registry.map_imperatively(
             back_populates="access_control_entries",
             lazy="raise",
         ),
-        "attribute_type": relationship(
-            AttributeType,
-            lazy="raise",
-            uselist=False,
-        ),
         "entity_type": relationship(EntityType, lazy="raise", uselist=False),
         "directories": relationship(
             Directory,
@@ -966,26 +949,26 @@ mapper_registry.map_imperatively(
 )
 
 mapper_registry.map_imperatively(
-    AttributeType,
+    AttributeTypeLegacy,
     attribute_types_table,
 )
 
 mapper_registry.map_imperatively(
-    ObjectClass,
+    ObjectClassLegacy,
     object_classes_table,
     properties={
         "superior": relationship(
-            ObjectClass,
+            ObjectClassLegacy,
             remote_side=[object_classes_table.c.name],
             lazy="raise",
         ),
         "attribute_types_must": relationship(
-            AttributeType,
+            AttributeTypeLegacy,
             secondary=object_class_attr_must_table,
             lazy="raise",
         ),
         "attribute_types_may": relationship(
-            AttributeType,
+            AttributeTypeLegacy,
             secondary=object_class_attr_may_table,
             lazy="raise",
         ),

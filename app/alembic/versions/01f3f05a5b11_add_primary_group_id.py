@@ -21,7 +21,10 @@ from extra.alembic_utils import temporary_stub_column
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.queries import (
     create_group,
@@ -38,7 +41,7 @@ branch_labels: None | str = None
 depends_on: None = None
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
@@ -46,6 +49,7 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             entity_type_dao = await cnt.get(EntityTypeDAO)
+            entity_type_use_case = await cnt.get(EntityTypeUseCase)
             role_use_case = await cnt.get(RoleUseCase)
 
         base_dn_list = await get_base_directories(session)
@@ -104,7 +108,10 @@ def upgrade(container: AsyncContainer) -> None:
                 attribute_names=["attributes"],
                 with_for_update=None,
             )
-            await entity_type_dao.attach_entity_type_to_directory(dir_, False)
+            await entity_type_use_case.attach_entity_type_to_directory(
+                dir_,
+                False,
+            )
             await role_use_case.inherit_parent_aces(
                 parent_directory=parent,
                 directory=dir_,
@@ -169,7 +176,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_add_primary_group_id)
 
 
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()

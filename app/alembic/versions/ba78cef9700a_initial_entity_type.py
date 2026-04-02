@@ -13,12 +13,12 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from constants import ENTITY_TYPE_DATAS
+from constants import ENTITY_TYPE_DTOS_V1
 from entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
@@ -29,8 +29,8 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-@temporary_stub_column("entity_type_id", sa.Integer())
-@temporary_stub_column("is_system", sa.Boolean())
+@temporary_stub_column("Directory", "entity_type_id", sa.Integer())
+@temporary_stub_column("Directory", "is_system", sa.Boolean())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade database schema and data, creating Entity Types."""
     op.create_table(
@@ -105,14 +105,8 @@ def upgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
-        for entity_type_data in ENTITY_TYPE_DATAS:
-            await entity_type_use_case.create(
-                EntityTypeDTO(
-                    name=entity_type_data["name"],
-                    object_class_names=entity_type_data["object_class_names"],
-                    is_system=True,
-                ),
-            )
+        for entity_type_dto in ENTITY_TYPE_DTOS_V1:
+            await entity_type_use_case.create_not_safe(entity_type_dto)
 
         await session.commit()
 
@@ -159,12 +153,12 @@ def upgrade(container: AsyncContainer) -> None:
     ) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            entity_type_dao = await cnt.get(EntityTypeDAO)
+            entity_type_use_case = await cnt.get(EntityTypeUseCase)
 
         if not await get_base_directories(session):
             return
 
-        await entity_type_dao.attach_entity_type_to_directories()
+        await entity_type_use_case.attach_entity_type_to_directories()
 
         await session.commit()
 

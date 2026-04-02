@@ -14,7 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from entities import EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
@@ -39,7 +41,7 @@ def upgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
-        await entity_type_use_case.create(
+        await entity_type_use_case.create_not_safe(
             EntityTypeDTO(
                 name=EntityTypeNames.CONTACT,
                 object_class_names=[

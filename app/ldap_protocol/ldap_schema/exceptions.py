@@ -22,12 +22,20 @@ class ErrorCodes(IntEnum):
     ENTITY_TYPE_NOT_FOUND_ERROR = 7
     ENTITY_TYPE_CANT_MODIFY_ERROR = 8
     ENTITY_TYPE_ALREADY_EXISTS_ERROR = 9
+    CANT_CREATE_DIRECTORY = 10
+    OBJECT_CLASS_NOT_SET_KIND_ERROR = 11
 
 
 class LdapSchemaError(BaseDomainException):
     """Raised when an LDAP Schema error occurs."""
 
     code: ErrorCodes = ErrorCodes.BASE_ERROR
+
+
+class CantCreateDirectoryError(LdapSchemaError):
+    """Raised when trying to create directory with schema like as directory."""
+
+    code = ErrorCodes.CANT_CREATE_DIRECTORY
 
 
 class AttributeTypeNotFoundError(LdapSchemaError):
@@ -52,6 +60,12 @@ class ObjectClassNotFoundError(LdapSchemaError):
     """Raised when an object class is not found."""
 
     code = ErrorCodes.OBJECT_CLASS_NOT_FOUND_ERROR
+
+
+class ObjectClassNotSetKindError(LdapSchemaError):
+    """Raised when an object class is not found."""
+
+    code = ErrorCodes.OBJECT_CLASS_NOT_SET_KIND_ERROR
 
 
 class ObjectClassCantModifyError(LdapSchemaError):

@@ -6,12 +6,16 @@ import sqlalchemy as sa
 from alembic import op
 
 
-def temporary_stub_column(column_name: str, type_: Any) -> Callable:
-    """Add and drop a temporary column in the 'Directory' table.
+def temporary_stub_column(
+    table_name: str,
+    column_name: str,
+    type_: Any,
+) -> Callable:
+    """Add and drop a temporary column in the table.
 
     State of the database at the time of migration
-    doesn't contain the specified column in the 'Directory' table,
-    but 'Directory' model has the column.
+    doesn't contain the specified column in the table,
+    but model has the column.
 
     Before starting the migration, add the specified column.
     Then migration completed, delete the column.
@@ -27,11 +31,11 @@ def temporary_stub_column(column_name: str, type_: Any) -> Callable:
     def decorator(func: Callable) -> Callable:
         def wrapper(*args: tuple, **kwargs: dict) -> None:
             op.add_column(
-                "Directory",
+                table_name,
                 sa.Column(column_name, type_, nullable=True),
             )
             func(*args, **kwargs)
-            op.drop_column("Directory", column_name)
+            op.drop_column(table_name, column_name)
             return None
 
         return wrapper

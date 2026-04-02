@@ -68,10 +68,7 @@ class BaseLDAPSchemaAdapter(
     _converter_update_sch_to_dto: staticmethod[[UpdateSchemaT], DtoT]
 
     async def create(self, data: SchemaT) -> None:
-        """Create a new entity.
-
-        :param request_data: Data for creating entity.
-        """
+        """Create a new entity."""
         dto = self._converter_to_dto(data)
         await self._service.create(dto)
 
@@ -79,11 +76,7 @@ class BaseLDAPSchemaAdapter(
         self,
         name: str,
     ) -> SchemaT:
-        """Get a single entity by name.
-
-        :param str name: Name of the entity.
-        :return: Entity schema.
-        """
+        """Get a single entity by name."""
         attribute_type = await self._service.get(name)
         return self._converter_to_schema(attribute_type)
 
@@ -91,11 +84,7 @@ class BaseLDAPSchemaAdapter(
         self,
         params: PaginationParams,
     ) -> PaginationSchemaT:
-        """Get a list of entities with pagination.
-
-        :param PaginationParams params: Pagination parameters.
-        :return: Paginated result schema.
-        """
+        """Get a list of entities with pagination."""
         pagination_result = await self._service.get_paginator(params)
 
         items: list[SchemaT] = [
@@ -112,11 +101,7 @@ class BaseLDAPSchemaAdapter(
         name: str,
         data: UpdateSchemaT,
     ) -> None:
-        """Modify an entity.
-
-        :param str name: Name of the entity to modify.
-        :param data: Updated data.
-        """
+        """Modify an entity."""
         dto = self._converter_update_sch_to_dto(data)
         await self._service.update(name, dto)
 
@@ -124,8 +109,5 @@ class BaseLDAPSchemaAdapter(
         self,
         names: LimitedListType,
     ) -> None:
-        """Delete multiple entities.
-
-        :param LimitedListType names: Names of entities to delete.
-        """
+        """Delete multiple entities."""
         await self._service.delete_all_by_names(names)

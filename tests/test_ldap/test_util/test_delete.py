@@ -180,7 +180,7 @@ async def test_ldap_delete_w_access_control(
         ace_type=AceType.DELETE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=None,
         is_allow=True,
     )

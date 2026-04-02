@@ -5,26 +5,57 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
 from constants import (
+    CONFIGURATION_DIR_NAME,
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_COMPUTERS_GROUP_NAME,
     DOMAIN_USERS_GROUP_NAME,
     GROUPS_CONTAINER_NAME,
     USERS_CONTAINER_NAME,
 )
-from enums import SamAccountTypeCodes
+from enums import EntityTypeNames, SamAccountTypeCodes
 from ldap_protocol.objects import UserAccountControlFlag
+
+user_data_dict = {
+    "sam_account_name": "user0",
+    "user_principal_name": "user0",
+    "mail": "user0@mail.com",
+    "display_name": "user0",
+    "password": "password",
+    "groups": [DOMAIN_ADMIN_GROUP_NAME],
+}
+
+admin_user_data_dict = {
+    "sam_account_name": "user_admin",
+    "user_principal_name": "user_admin",
+    "mail": "user_admin@mail.com",
+    "display_name": "user_admin",
+    "password": "password",
+    "groups": [DOMAIN_ADMIN_GROUP_NAME],
+}
+
+user_with_login_perm_data_dict = {
+    "sam_account_name": "user_admin_for_roles",
+    "user_principal_name": "user_admin_for_roles",
+    "mail": "user_admin_for_roles@mail.com",
+    "display_name": "user_admin_for_roles",
+    "password": "password",
+    "groups": ["admin login only"],
+}
+
 
 TEST_DATA = [
     {
         "name": GROUPS_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
         "attributes": {
-            "objectClass": ["top"],
+            "objectClass": ["top", "container"],
             "sAMAccountName": ["groups"],
         },
         "children": [
             {
                 "name": DOMAIN_ADMIN_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -39,6 +70,7 @@ TEST_DATA = [
             },
             {
                 "name": "developers",
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "groups": [DOMAIN_ADMIN_GROUP_NAME],
                 "attributes": {
@@ -53,6 +85,7 @@ TEST_DATA = [
             },
             {
                 "name": "admin login only",
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -66,6 +99,7 @@ TEST_DATA = [
             },
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -79,6 +113,7 @@ TEST_DATA = [
             },
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -94,20 +129,15 @@ TEST_DATA = [
     },
     {
         "name": USERS_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
         "attributes": {"objectClass": ["top"]},
         "children": [
             {
                 "name": "user0",
+                "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
-                "organizationalPerson": {
-                    "sam_account_name": "user0",
-                    "user_principal_name": "user0",
-                    "mail": "user0@mail.com",
-                    "display_name": "user0",
-                    "password": "password",
-                    "groups": [DOMAIN_ADMIN_GROUP_NAME],
-                },
+                "organizationalPerson": user_data_dict,
                 "attributes": {
                     "givenName": ["John"],
                     "surname": ["Lennon"],
@@ -129,15 +159,9 @@ TEST_DATA = [
             },
             {
                 "name": "user_admin",
+                "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
-                "organizationalPerson": {
-                    "sam_account_name": "user_admin",
-                    "user_principal_name": "user_admin",
-                    "mail": "user_admin@mail.com",
-                    "display_name": "user_admin",
-                    "password": "password",
-                    "groups": [DOMAIN_ADMIN_GROUP_NAME],
-                },
+                "organizationalPerson": admin_user_data_dict,
                 "attributes": {
                     "objectClass": [
                         "top",
@@ -156,15 +180,9 @@ TEST_DATA = [
             },
             {
                 "name": "user_admin_for_roles",
+                "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
-                "organizationalPerson": {
-                    "sam_account_name": "user_admin_for_roles",
-                    "user_principal_name": "user_admin_for_roles",
-                    "mail": "user_admin_for_roles@mail.com",
-                    "display_name": "user_admin_for_roles",
-                    "password": "password",
-                    "groups": ["admin login only"],
-                },
+                "organizationalPerson": user_with_login_perm_data_dict,
                 "attributes": {
                     "objectClass": [
                         "top",
@@ -183,6 +201,7 @@ TEST_DATA = [
             },
             {
                 "name": "user_non_admin",
+                "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_account_name": "user_non_admin",
@@ -211,6 +230,7 @@ TEST_DATA = [
             },
             {
                 "name": "russia",
+                "entity_type_name": EntityTypeNames.CONTAINER,
                 "object_class": "container",
                 "attributes": {
                     "objectClass": ["top"],
@@ -219,6 +239,7 @@ TEST_DATA = [
                 "children": [
                     {
                         "name": "moscow",
+                        "entity_type_name": EntityTypeNames.CONTAINER,
                         "object_class": "container",
                         "attributes": {
                             "objectClass": ["top"],
@@ -227,6 +248,7 @@ TEST_DATA = [
                         "children": [
                             {
                                 "name": "user1",
+                                "entity_type_name": EntityTypeNames.USER,
                                 "object_class": "user",
                                 "organizationalPerson": {
                                     "sam_account_name": "user1",
@@ -262,11 +284,13 @@ TEST_DATA = [
     },
     {
         "name": "test_bit_rules",
+        "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class": "organizationalUnit",
         "attributes": {"objectClass": ["top", "container"]},
         "children": [
             {
                 "name": "user_admin_1",
+                "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_account_name": "user_admin_1",
@@ -299,6 +323,7 @@ TEST_DATA = [
             },
             {
                 "name": "user_admin_2",
+                "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_account_name": "user_admin_2",
@@ -329,6 +354,7 @@ TEST_DATA = [
             },
             {
                 "name": "user_admin_3",
+                "entity_type_name": EntityTypeNames.USER,
                 "object_class": "user",
                 "organizationalPerson": {
                     "sam_account_name": "user_admin_3",
@@ -358,6 +384,7 @@ TEST_DATA = [
     },
     {
         "name": "testModifyDn1",
+        "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class": "organizationalUnit",
         "attributes": {
             "objectClass": ["top", "container"],
@@ -366,6 +393,7 @@ TEST_DATA = [
         "children": [
             {
                 "name": "testModifyDn2",
+                "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
                 "object_class": "organizationalUnit",
                 "attributes": {
                     "objectClass": ["top", "container"],
@@ -374,6 +402,7 @@ TEST_DATA = [
                 "children": [
                     {
                         "name": "testGroup1",
+                        "entity_type_name": EntityTypeNames.GROUP,
                         "object_class": "group",
                         "attributes": {
                             "objectClass": ["top", "posixGroup"],
@@ -391,6 +420,7 @@ TEST_DATA = [
             },
             {
                 "name": "testGroup2",
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -406,6 +436,7 @@ TEST_DATA = [
     },
     {
         "name": "testModifyDn3",
+        "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class": "organizationalUnit",
         "attributes": {
             "objectClass": ["top", "container"],
@@ -414,6 +445,7 @@ TEST_DATA = [
         "children": [
             {
                 "name": "testGroup3",
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -427,10 +459,18 @@ TEST_DATA = [
             },
         ],
     },
+    {
+        "name": CONFIGURATION_DIR_NAME,
+        "entity_type_name": EntityTypeNames.CONFIGURATION,
+        "object_class": "",
+        "attributes": {"objectClass": ["top", "container", "configuration"]},
+        "children": [],
+    },
 ]
 
 TEST_SYSTEM_ADMIN_DATA = {
     "name": "System Administrator",
+    "entity_type_name": EntityTypeNames.USER,
     "object_class": "user",
     "organizationalPerson": {
         "sam_account_name": "system_admin",

@@ -21,7 +21,7 @@ from entities import Directory, Group
 from enums import AceType, EntityTypeNames, RoleScope
 from ldap_protocol.kerberos.base import AbstractKadmin
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.objects import Operation
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
@@ -730,7 +730,7 @@ async def test_ldap_modify_with_ap(
         ace_type=AceType.WRITE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=None,
         is_allow=True,
     )
@@ -744,7 +744,7 @@ async def test_ldap_modify_with_ap(
         ace_type=AceType.DELETE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=None,
         is_allow=True,
     )
@@ -1187,7 +1187,7 @@ async def test_modify_dn_rename_with_ap(
         ace_type=AceType.WRITE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=rdn_attr.id,
+        attribute_type_name=rdn_attr.name,
         entity_type_id=user_entity_type.id,
         is_allow=True,
     )
@@ -1196,7 +1196,7 @@ async def test_modify_dn_rename_with_ap(
         ace_type=AceType.DELETE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=rdn_attr.id,
+        attribute_type_name=rdn_attr.name,
         entity_type_id=user_entity_type.id,
         is_allow=True,
     )
@@ -1242,7 +1242,7 @@ async def test_modify_dn_rename_with_ap(
         assert ace_before.role_id == ace_after.role_id
         assert ace_before.ace_type == ace_after.ace_type
         assert ace_before.scope == ace_after.scope
-        assert ace_before.attribute_type_id == ace_after.attribute_type_id
+        assert ace_before.attribute_type_name == ace_after.attribute_type_name
         assert ace_before.entity_type_id == ace_after.entity_type_id
         assert ace_before.is_allow == ace_after.is_allow
 
@@ -1298,7 +1298,7 @@ async def test_modify_dn_move_with_ap(
         ace_type=AceType.WRITE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=rdn_attr.id,
+        attribute_type_name=rdn_attr.name,
         entity_type_id=user_entity_type.id,
         is_allow=True,
     )
@@ -1307,7 +1307,7 @@ async def test_modify_dn_move_with_ap(
         ace_type=AceType.CREATE_CHILD,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=new_parent_dn,
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=user_entity_type.id,
         is_allow=True,
     )
@@ -1316,7 +1316,7 @@ async def test_modify_dn_move_with_ap(
         ace_type=AceType.DELETE,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=dn,
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=user_entity_type.id,
         is_allow=True,
     )
@@ -1375,7 +1375,7 @@ async def test_modify_dn_move_with_ap(
         assert ace_before.role_id == ace_after.role_id
         assert ace_before.ace_type == ace_after.ace_type
         assert ace_before.scope == ace_after.scope
-        assert ace_before.attribute_type_id == ace_after.attribute_type_id
+        assert ace_before.attribute_type_name == ace_after.attribute_type_name
         assert ace_before.entity_type_id == ace_after.entity_type_id
         assert ace_before.is_allow == ace_after.is_allow
 

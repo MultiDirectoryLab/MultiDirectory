@@ -9,11 +9,9 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, Field
 
 from enums import EntityTypeNames, KindType
-from ldap_protocol.ldap_schema.constants import (
-    DEFAULT_ENTITY_TYPE_IS_SYSTEM,
-    OID_REGEX_PATTERN,
-)
 from ldap_protocol.utils.pagination import BasePaginationSchema
+
+from .constants import DEFAULT_ENTITY_TYPE_IS_SYSTEM, OID_REGEX_PATTERN
 
 _IdT = TypeVar("_IdT", int, None)
 
@@ -24,6 +22,7 @@ class AttributeTypeSchema(BaseModel, Generic[_IdT]):
     id: _IdT = Field(default=None)  # type: ignore[assignment]
     oid: str = Field(pattern=OID_REGEX_PATTERN, max_length=128)
     name: str = Field(min_length=1, max_length=255)
+    ldap_display_name: str | None = Field(default=None, max_length=255)
     syntax: str
     single_value: bool
     no_user_modification: bool

@@ -32,6 +32,7 @@ async def test_create_one_attribute_type(
     schema = AttributeTypeSchema[None](
         oid="1.2.3.4",
         name="testAttribute",
+        ldap_display_name="testAttribute",
         syntax="1.3.6.1.4.1.1466.115.121.1.15",
         single_value=True,
         no_user_modification=False,
@@ -57,6 +58,7 @@ async def test_create_attribute_type_conflict_when_already_exists(
     schema = AttributeTypeSchema(
         oid="1.2.3.4",
         name="testAttribute",
+        ldap_display_name="testAttribute",
         syntax="1.3.6.1.4.1.1466.115.121.1.15",
         single_value=True,
         no_user_modification=False,
@@ -82,7 +84,7 @@ async def test_get_list_attribute_types_with_pagination(
 ) -> None:
     """Test retrieving a list of attribute types."""
     page_number = 1
-    page_size = 50
+    page_size = 3
     response = await http_client.get(
         f"/schema/attribute_types?page_number={page_number}&page_size={page_size}",
     )
@@ -99,6 +101,7 @@ async def test_modify_one_attribute_type_raise_404(
     schema = AttributeTypeSchema(
         oid="1.2.3.4",
         name="testAttributeType1",
+        ldap_display_name="testAttributeType1",
         syntax="1.3.6.1.4.1.1466.115.121.1.15",
         single_value=True,
         no_user_modification=False,
@@ -133,7 +136,7 @@ async def test_modify_one_attribute_type(
 
     response = await http_client.patch(
         f"/schema/attribute_type/{attribute_type_name}",
-        json=dataset["attribute_type_changes"],
+        json=dataset["attribute_type_changes"].model_dump(),
     )
     assert response.status_code == dataset["status_code"]
 
@@ -142,7 +145,9 @@ async def test_modify_one_attribute_type(
             f"/schema/attribute_type/{attribute_type_name}",
         )
         attribute_type_json = response.json()
-        for field_name, value in dataset["attribute_type_changes"].items():
+        for field_name, value in (
+            dataset["attribute_type_changes"].model_dump().items()
+        ):
             assert attribute_type_json.get(field_name) == value
 
 

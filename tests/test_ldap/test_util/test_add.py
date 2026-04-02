@@ -301,7 +301,7 @@ async def test_ldap_add_access_control(
         ace_type=AceType.CREATE_CHILD,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=None,
         is_allow=True,
     )
@@ -311,7 +311,7 @@ async def test_ldap_add_access_control(
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn=base_dn,
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=None,
         is_allow=True,
     )

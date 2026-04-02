@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from constants import DOMAIN_COMPUTERS_GROUP_NAME, DOMAIN_USERS_GROUP_NAME
 from entities import Attribute, Directory, Group, User
-from enums import AceType, EntityTypeNames, SamAccountTypeCodes
+from enums import AceType, SamAccountTypeCodes
 from ldap_protocol.asn1parser import ASN1Row
 from ldap_protocol.kerberos.exceptions import (
     KRBAPIAddPrincipalError,
@@ -160,14 +160,9 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        entity_type = (
-            await ctx.entity_type_dao.get_entity_type_by_object_class_names(
-                object_class_names=self.object_class_names,
-            )
+        entity_type = await ctx.entity_type_use_case.get_entity_type_by_object_class_names(  # noqa: E501
+            object_class_names=self.object_class_names,
         )
-        if entity_type and entity_type.name == EntityTypeNames.CONTAINER:
-            yield AddResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
-            return
 
         if not ctx.attribute_value_validator.is_value_valid(
             entity_type.name if entity_type else "",
@@ -477,10 +472,11 @@ class AddRequest(BaseRequest):
             ctx.session.add_all(items_to_add)
             await ctx.session.flush()
 
-            await ctx.entity_type_dao.attach_entity_type_to_directory(
+            entity_type_id = entity_type.id if entity_type else None
+            await ctx.entity_type_use_case.attach_entity_type_to_directory(
                 directory=new_dir,
                 is_system_entity_type=False,
-                entity_type=entity_type,
+                entity_type_id=entity_type_id,
                 object_class_names=self.object_class_names,
             )
             await ctx.role_use_case.inherit_parent_aces(

@@ -4,10 +4,10 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from typing import TypedDict
-
 from enums import EntityTypeNames, SamAccountTypeCodes
+from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 
+CONFIGURATION_DIR_NAME = "Configuration"
 GROUPS_CONTAINER_NAME = "Groups"
 COMPUTERS_CONTAINER_NAME = "Computers"
 USERS_CONTAINER_NAME = "Users"
@@ -223,36 +223,36 @@ DATA = [
 ]
 
 
-class EntityTypeData(TypedDict):
-    """Entity Type data."""
-
-    name: EntityTypeNames
-    object_class_names: list[str]
-
-
-ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
-    EntityTypeData(
+# NOTE: First time load
+ENTITY_TYPE_DTOS_V1: tuple[EntityTypeDTO, ...] = (
+    EntityTypeDTO(
         name=EntityTypeNames.DOMAIN,
+        is_system=True,
         object_class_names=["top", "domain", "domainDNS"],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.COMPUTER,
+        is_system=True,
         object_class_names=["top", "computer"],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.CONTAINER,
+        is_system=True,
         object_class_names=["top", "container"],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.ORGANIZATIONAL_UNIT,
+        is_system=True,
         object_class_names=["top", "container", "organizationalUnit"],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.GROUP,
+        is_system=True,
         object_class_names=["top", "group", "posixGroup"],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.USER,
+        is_system=True,
         object_class_names=[
             "top",
             "user",
@@ -263,8 +263,9 @@ ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
             "inetOrgPerson",
         ],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.CONTACT,
+        is_system=True,
         object_class_names=[
             "top",
             "person",
@@ -273,28 +274,59 @@ ENTITY_TYPE_DATAS: tuple[EntityTypeData, ...] = (
             "mailRecipient",
         ],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.KRB_CONTAINER,
+        is_system=True,
         object_class_names=["krbContainer"],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.KRB_PRINCIPAL,
+        is_system=True,
         object_class_names=[
             "krbprincipal",
             "krbprincipalaux",
             "krbTicketPolicyAux",
         ],
     ),
-    EntityTypeData(
+    EntityTypeDTO(
         name=EntityTypeNames.KRB_REALM_CONTAINER,
+        is_system=True,
         object_class_names=["top", "krbrealmcontainer", "krbticketpolicyaux"],
     ),
 )
 
+ATTRIBUTE_TYPE_OBJECT_CLASS_NAMES = ["top", "attributeSchema"]
+OBJECT_CLASS_OBJECT_CLASS_NAMES = ["top", "classSchema"]
+
+# NOTE: Second time load
+ENTITY_TYPE_DTOS_V2: tuple[EntityTypeDTO, ...] = (
+    EntityTypeDTO(
+        name=EntityTypeNames.CONFIGURATION,
+        is_system=True,
+        object_class_names=["top", "container", "configuration"],
+    ),
+    EntityTypeDTO(
+        name=EntityTypeNames.ATTRIBUTE_TYPE,
+        is_system=True,
+        object_class_names=ATTRIBUTE_TYPE_OBJECT_CLASS_NAMES,
+    ),
+    EntityTypeDTO(
+        name=EntityTypeNames.OBJECT_CLASS,
+        is_system=True,
+        object_class_names=OBJECT_CLASS_OBJECT_CLASS_NAMES,
+    ),
+)
 
 FIRST_SETUP_DATA = [
     {
+        "name": CONFIGURATION_DIR_NAME,
+        "entity_type_name": EntityTypeNames.CONFIGURATION,
+        "object_class": "",
+        "attributes": {"objectClass": ["top", "container", "configuration"]},
+    },
+    {
         "name": GROUPS_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
         "attributes": {
             "objectClass": ["top"],
@@ -303,6 +335,7 @@ FIRST_SETUP_DATA = [
         "children": [
             {
                 "name": DOMAIN_ADMIN_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -318,6 +351,7 @@ FIRST_SETUP_DATA = [
             },
             {
                 "name": DOMAIN_USERS_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -333,6 +367,7 @@ FIRST_SETUP_DATA = [
             },
             {
                 "name": READ_ONLY_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -348,6 +383,7 @@ FIRST_SETUP_DATA = [
             },
             {
                 "name": DOMAIN_COMPUTERS_GROUP_NAME,
+                "entity_type_name": EntityTypeNames.GROUP,
                 "object_class": "group",
                 "attributes": {
                     "objectClass": ["top", "posixGroup"],
@@ -365,6 +401,7 @@ FIRST_SETUP_DATA = [
     },
     {
         "name": COMPUTERS_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
         "attributes": {"objectClass": ["top"]},
         "children": [],
