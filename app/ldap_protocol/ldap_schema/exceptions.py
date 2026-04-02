@@ -63,7 +63,7 @@ class ObjectClassNotFoundError(LdapSchemaError):
 
 
 class ObjectClassNotSetKindError(LdapSchemaError):
-    """Raised when an object class is not found."""
+    """Raised when an object class is not set kind (structural, auxiliary or abstract)."""  # noqa: E501
 
     code = ErrorCodes.OBJECT_CLASS_NOT_SET_KIND_ERROR
 

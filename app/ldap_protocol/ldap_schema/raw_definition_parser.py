@@ -67,7 +67,7 @@ class RawDefinitionParser:
         """Create Object Class by ObjectClassInfo."""
         name = RawDefinitionParser._list_to_string(object_class_info.name)
         if not name:
-            raise ValueError("Attribute Type name is required")
+            raise ValueError("Object Class name is required")
 
         return ObjectClassDTO(
             oid=object_class_info.oid,

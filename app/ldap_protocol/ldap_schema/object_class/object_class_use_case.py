@@ -19,7 +19,7 @@ from ldap_protocol.ldap_schema.directory_create_use_case import (
 )
 from ldap_protocol.ldap_schema.dto import (
     AttributeDTO,
-    CreateDirDTO,
+    DirCreateDTO,
     ObjectClassDTO,
 )
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
@@ -116,34 +116,40 @@ class ObjectClassUseCase(AbstractService):
                     "not found in schema.",
                 )
 
-        _dto = CreateDirDTO(
-            name=dto.name,
-            entity_type_name=EntityTypeNames.OBJECT_CLASS,
-            attributes=(
-                AttributeDTO(
-                    name=Names.OBJECT_CLASS,
-                    values=OBJECT_CLASS_OBJECT_CLASS_NAMES,
-                ),
-                AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
+        attributes = [
+            AttributeDTO(
+                name=Names.OBJECT_CLASS,
+                values=OBJECT_CLASS_OBJECT_CLASS_NAMES,
+            ),
+            AttributeDTO(name=Names.OID, values=[str(dto.oid)]),
+            AttributeDTO(name=Names.KIND, values=[dto.kind.value]),
+            AttributeDTO(
+                name=Names.ATTRIBUTE_TYPES_MUST,
+                values=dto.attribute_types_must,
+            ),
+            AttributeDTO(
+                name=Names.ATTRIBUTE_TYPES_MAY,
+                values=dto.attribute_types_may,
+            ),
+        ]
+
+        if dto.superior_name:
+            attributes.append(
                 AttributeDTO(
                     name=Names.SUPERIOR_NAME,
-                    values=[str(dto.superior_name)],
+                    values=[dto.superior_name],
                 ),
-                AttributeDTO(name=Names.KIND, values=[str(dto.kind)]),
-                AttributeDTO(
-                    name=Names.ATTRIBUTE_TYPES_MUST,
-                    values=dto.attribute_types_must,
-                ),
-                AttributeDTO(
-                    name=Names.ATTRIBUTE_TYPES_MAY,
-                    values=dto.attribute_types_may,
-                ),
-            ),
+            )
+
+        _dir_create_dto = DirCreateDTO(
+            name=dto.name,
+            entity_type_name=EntityTypeNames.OBJECT_CLASS,
+            attributes=tuple(attributes),
             is_system=dto.is_system,
         )
         try:
             await self.__directory_create_use_case.create_dir(
-                dto=_dto,
+                dto=_dir_create_dto,
                 parent_dir=self.__parent_dir,
             )
         except IntegrityError:

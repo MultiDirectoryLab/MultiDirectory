@@ -27,4 +27,4 @@ async def test_bind_whoami(
     """Test anonymous pwd change."""
     result = await ldap_client.whoami()
 
-    assert result == "u:user0"
+    assert result == "u:user0@md.test"

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
-from ldap_protocol.ldap_schema.dto import AttributeDTO, CreateDirDTO
+from ldap_protocol.ldap_schema.dto import AttributeDTO, DirCreateDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
@@ -64,7 +64,7 @@ class DirectoryCreateUseCase:
 
     async def create_dir(
         self,
-        dto: CreateDirDTO,
+        dto: DirCreateDTO,
         parent_dir: "Directory",
     ) -> None:
         """Create."""

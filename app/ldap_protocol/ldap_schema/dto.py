@@ -64,7 +64,7 @@ class AttributeDTO:
 
 
 @dataclass
-class CreateDirDTO:
+class DirCreateDTO:
     name: str
     entity_type_name: EntityTypeNames
     attributes: tuple[AttributeDTO, ...]
