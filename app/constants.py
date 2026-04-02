@@ -321,8 +321,8 @@ FIRST_SETUP_DATA = [
     {
         "name": CONFIGURATION_DIR_NAME,
         "entity_type_name": EntityTypeNames.CONFIGURATION,
-        "object_class": "container",
-        "attributes": {"objectClass": ["top", "configuration"]},
+        "object_class": "",
+        "attributes": {"objectClass": ["top", "container", "configuration"]},
     },
     {
         "name": GROUPS_CONTAINER_NAME,

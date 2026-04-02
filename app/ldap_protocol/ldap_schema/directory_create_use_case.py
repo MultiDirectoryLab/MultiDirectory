@@ -38,7 +38,6 @@ class DirectoryCreateUseCase:
     __role_use_case: RoleUseCase
     __directory_dao: DirectoryDAO
     __attribute_dao: AttributeDAO
-    __parent_dir: "Directory | None"
 
     def __init__(
         self,
@@ -54,15 +53,21 @@ class DirectoryCreateUseCase:
         self.__role_use_case = role_use_case
         self.__directory_dao = directory_dao
         self.__attribute_dao = attribute_dao
-        self.__parent_dir = None
 
-    async def create_dir(self, dto: CreateDirDTO) -> None:
+    async def get_configuration_dir(self) -> "Directory":
+        """Get configuration directory."""
+        return await self.__directory_dao.get_configuration_dir()
+
+    async def delete_configuration_dir(self) -> None:
+        """Delete configuration directory."""
+        await self.__directory_dao.delete_configuration_dir()
+
+    async def create_dir(
+        self,
+        dto: CreateDirDTO,
+        parent_dir: "Directory",
+    ) -> None:
         """Create."""
-        if not self.__parent_dir:
-            self.__parent_dir = (
-                await self.__directory_dao.get_configuration_dir()
-            )
-
         base_directory_paths_and_sids = (
             await self.__directory_dao.get_base_directory_paths_with_sid()
         )
@@ -70,7 +75,7 @@ class DirectoryCreateUseCase:
         dir_ = await self.__directory_dao.create_directory(
             name=dto.name,
             is_system=dto.is_system,
-            parent_dir=self.__parent_dir,
+            parent_dir=parent_dir,
         )
 
         for _path, _sid in base_directory_paths_and_sids:
@@ -110,7 +115,7 @@ class DirectoryCreateUseCase:
         await self.__session.flush()
 
         await self.__role_use_case.inherit_parent_aces(
-            parent_directory=self.__parent_dir,
+            parent_directory=parent_dir,
             directory=dir_,
         )
         await self.__session.flush()

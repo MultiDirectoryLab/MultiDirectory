@@ -183,7 +183,6 @@ class ModifyRequest(BaseRequest):
             user_role_ids=ctx.ldap_session.user.role_ids,
             query=query,
             ace_types=[AceType.WRITE, AceType.DELETE],
-            load_attribute_type=True,
         )
 
         directory = await ctx.session.scalar(query)

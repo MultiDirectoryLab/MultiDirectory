@@ -37,10 +37,6 @@ _convert = get_converter(
             P[AccessControlEntryDTO].role_name,
         ),
         link_function(
-            lambda x: x.attribute_type_id,
-            P[AccessControlEntryDTO].attribute_type_id,
-        ),
-        link_function(
             lambda x: x.entity_type_id,
             P[AccessControlEntryDTO].entity_type_id,
         ),
@@ -66,7 +62,6 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         query = (
             select(AccessControlEntry)
             .options(
-                joinedload(qa(AccessControlEntry.attribute_type)),
                 joinedload(qa(AccessControlEntry.entity_type)),
                 joinedload(qa(AccessControlEntry.role)),
                 selectinload(qa(AccessControlEntry.directories)),
@@ -96,7 +91,6 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         access_control_entries = (
             await self._session.scalars(
                 select(AccessControlEntry).options(
-                    joinedload(qa(AccessControlEntry.attribute_type)),
                     joinedload(qa(AccessControlEntry.entity_type)),
                     joinedload(qa(AccessControlEntry.role)),
                 ),
@@ -172,7 +166,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
             path=dto.base_dn,
             scope=RoleScope(dto.scope.value),
             entity_type_id=dto.entity_type_id,
-            attribute_type_id=dto.attribute_type_id,
+            attribute_type_name=dto.attribute_type_name,
             is_allow=dto.is_allow,
             directories=directories,
         )
@@ -214,7 +208,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
                 path=ace.base_dn,
                 scope=RoleScope(ace.scope.value),
                 entity_type_id=ace.entity_type_id,
-                attribute_type_id=ace.attribute_type_id,
+                attribute_type_name=ace.attribute_type_name,
                 is_allow=ace.is_allow,
                 directories=directory_cache[cache_key],
             )
@@ -240,7 +234,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         ace.role_id = dto.role_id
         ace.ace_type = dto.ace_type
         ace.entity_type_id = dto.entity_type_id
-        ace.attribute_type_id = dto.attribute_type_id
+        ace.attribute_type_name = dto.attribute_type_name
         ace.is_allow = dto.is_allow
 
         if dto.scope != ace.scope or dto.base_dn != ace.path:

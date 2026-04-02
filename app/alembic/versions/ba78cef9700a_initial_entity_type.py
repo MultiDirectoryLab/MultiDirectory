@@ -106,7 +106,7 @@ def upgrade(container: AsyncContainer) -> None:
             return
 
         for entity_type_dto in ENTITY_TYPE_DTOS_V1:
-            await entity_type_use_case.create(entity_type_dto)
+            await entity_type_use_case.create_not_safe(entity_type_dto)
 
         await session.commit()
 

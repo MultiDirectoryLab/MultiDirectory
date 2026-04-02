@@ -211,7 +211,6 @@ class ModifyDNRequest(BaseRequest):
             user_role_ids=ctx.ldap_session.user.role_ids,
             query=query,
             ace_types=[AceType.DELETE, AceType.WRITE],
-            load_attribute_type=True,
         )
 
         directory = await ctx.session.scalar(query)
@@ -274,7 +273,7 @@ class ModifyDNRequest(BaseRequest):
                 for ace in directory.access_control_entries
                 if (
                     ace.ace_type == AceType.DELETE
-                    and ace.attribute_type is None
+                    and ace.attribute_type_name is None
                 )
             ]
 

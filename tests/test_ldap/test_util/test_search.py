@@ -544,7 +544,7 @@ async def test_ldap_search_access_control_denied(
         ace_type=AceType.READ,
         scope=RoleScope.WHOLE_SUBTREE,
         base_dn="cn=Groups,dc=md,dc=test",
-        attribute_type_id=None,
+        attribute_type_name=None,
         entity_type_id=None,
         is_allow=True,
     )
