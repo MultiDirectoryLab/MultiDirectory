@@ -26,7 +26,7 @@ from ldap_protocol.ldap_schema.directory_create_use_case import (
 from ldap_protocol.ldap_schema.dto import (
     AttributeDTO,
     AttributeTypeDTO,
-    CreateDirDTO,
+    DirCreateDTO,
 )
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
@@ -85,7 +85,7 @@ class AttributeTypeUseCase(AbstractService):
         if not dto.ldap_display_name:
             dto.ldap_display_name = f"{dto.name[0].lower()}{dto.name.replace('-', '')[1:]}"  # noqa: E501  # fmt: skip
 
-        _dto = CreateDirDTO(
+        _dto = DirCreateDTO(
             name=dto.name,
             entity_type_name=EntityTypeNames.ATTRIBUTE_TYPE,
             attributes=(

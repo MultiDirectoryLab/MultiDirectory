@@ -60,13 +60,16 @@ class EntityTypeUseCase(AbstractService):
         """Update Entity Type."""
         try:
             entity_type = await self.get(name)
-
         except EntityTypeNotFoundError:
-            raise EntityTypeCantModifyError
+            raise EntityTypeCantModifyError(
+                "Can't update non-existent Entity Type.",
+            )
+
         if entity_type.is_system:
             raise EntityTypeCantModifyError(
                 f"Entity Type '{dto.name}' is system and cannot be modified.",
             )
+
         if name != dto.name:
             await self._validate_name(name=dto.name)
 

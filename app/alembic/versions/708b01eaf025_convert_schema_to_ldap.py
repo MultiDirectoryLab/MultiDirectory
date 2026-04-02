@@ -26,7 +26,7 @@ from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
 from ldap_protocol.ldap_schema.directory_create_use_case import (
     DirectoryCreateUseCase,
 )
-from ldap_protocol.ldap_schema.dto import AttributeDTO, CreateDirDTO
+from ldap_protocol.ldap_schema.dto import AttributeDTO, DirCreateDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
@@ -77,7 +77,7 @@ def upgrade(container: AsyncContainer) -> None:
         if not base_dirs:
             return
 
-        _dto = CreateDirDTO(
+        _dto = DirCreateDTO(
             name=CONFIGURATION_DIR_NAME,
             entity_type_name=EntityTypeNames.CONFIGURATION,
             attributes=(

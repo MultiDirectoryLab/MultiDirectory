@@ -66,8 +66,11 @@ class AccessManager:
             elif ace.is_allow and ace.attribute_type_name is None:
                 return True, forbidden_attributes, set()
 
+            elif ace.attribute_type_name is not None:
+                allowed_attributes.add(ace.attribute_type_name.lower())
+
             else:
-                allowed_attributes.add(ace.attribute_type_name.lower())  # type: ignore
+                raise ValueError(f"Invalid ACE configuration: {ace}")
 
         if not allowed_attributes:
             return False, set(), set()

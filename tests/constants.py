@@ -17,8 +17,8 @@ from ldap_protocol.objects import UserAccountControlFlag
 
 user_data_dict = {
     "sam_account_name": "user0",
-    "user_principal_name": "user0",
-    "mail": "user0@mail.com",
+    "user_principal_name": "user0@md.test",
+    "mail": "user0@md.test",
     "display_name": "user0",
     "password": "password",
     "groups": [DOMAIN_ADMIN_GROUP_NAME],
@@ -26,8 +26,8 @@ user_data_dict = {
 
 admin_user_data_dict = {
     "sam_account_name": "user_admin",
-    "user_principal_name": "user_admin",
-    "mail": "user_admin@mail.com",
+    "user_principal_name": "user_admin@md.test",
+    "mail": "user_admin@md.test",
     "display_name": "user_admin",
     "password": "password",
     "groups": [DOMAIN_ADMIN_GROUP_NAME],
@@ -35,8 +35,8 @@ admin_user_data_dict = {
 
 user_with_login_perm_data_dict = {
     "sam_account_name": "user_admin_for_roles",
-    "user_principal_name": "user_admin_for_roles",
-    "mail": "user_admin_for_roles@mail.com",
+    "user_principal_name": "user_admin_for_roles@md.test",
+    "mail": "user_admin_for_roles@md.test",
     "display_name": "user_admin_for_roles",
     "password": "password",
     "groups": ["admin login only"],
@@ -462,8 +462,8 @@ TEST_DATA = [
     {
         "name": CONFIGURATION_DIR_NAME,
         "entity_type_name": EntityTypeNames.CONFIGURATION,
-        "object_class": "",
-        "attributes": {"objectClass": ["top", "container", "configuration"]},
+        "object_class": "container",
+        "attributes": {"objectClass": ["top", "configuration"]},
         "children": [],
     },
 ]
