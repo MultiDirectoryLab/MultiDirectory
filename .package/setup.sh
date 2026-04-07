@@ -66,6 +66,13 @@ if ! get_env_var "DOMAIN"; then
     done
 fi
 
+# Add domain to /etc/hosts
+domain="$(. ./.env 2>/dev/null; printf '%s' "$DOMAIN")"
+host="127.0.0.1 ${domain}"
+if ! grep -qFx "$host" /etc/hosts 2>/dev/null; then
+    printf '%s\n' "$host" | sudo tee -a /etc/hosts >/dev/null
+fi
+
 # SECRET_KEY
 if ! get_env_var "SECRET_KEY"; then
     secret_key=$(openssl rand -hex 32)
