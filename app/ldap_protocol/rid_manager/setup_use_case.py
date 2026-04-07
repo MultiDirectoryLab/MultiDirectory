@@ -51,22 +51,18 @@ class RIDManagerSetupUseCase:
             qword,
         )
         dc = await self._rid_manager_use_case.get_domain_controller()
-        rid_set = await self._rid_set_use_case.add(
+        await self._rid_set_use_case.add(
             dc,
             await self._rid_set_use_case.generate_rid_set_attrs(),
         )
 
         await self.inherit_aces(
             rid_manager_dir,
-            dc,
-            rid_set,
         )
 
     async def inherit_aces(
         self,
         rid_manager_dir: Directory,
-        domain_controller: Directory,
-        rid_set: Directory,
     ) -> None:
         """Inherit ACEs from domain root to RID Manager directory.
 
@@ -79,11 +75,6 @@ class RIDManagerSetupUseCase:
         await self._role_use_case.inherit_parent_aces(
             parent_directory=await self._gateway.get_system_container(),
             directory=rid_manager_dir,
-        )
-
-        await self._role_use_case.inherit_parent_aces(
-            parent_directory=domain_controller,
-            directory=rid_set,
         )
 
     async def create_domain_identifier(self) -> None:

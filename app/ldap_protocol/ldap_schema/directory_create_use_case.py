@@ -8,14 +8,12 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from enums import SidPrefix
 from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import AttributeDTO, DirCreateDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
-from ldap_protocol.ldap_schema.exceptions import CantCreateDirectoryError
 from ldap_protocol.rid_manager import ObjectSIDUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
@@ -72,27 +70,10 @@ class DirectoryCreateUseCase:
         parent_dir: "Directory",
     ) -> None:
         """Create."""
-        base_directory_paths_and_sids = (
-            await self.__directory_dao.get_base_directory_paths_with_sid()
-        )
-
         dir_ = await self.__directory_dao.create_directory(
             name=dto.name,
             is_system=dto.is_system,
             parent_dir=parent_dir,
-        )
-
-        for _path, _sid in base_directory_paths_and_sids:
-            if _is_dn_in_base_directory(_path, dir_.path_dn):
-                base_dn_sid = _sid
-                break
-        else:
-            raise CantCreateDirectoryError("Cannot create a directory.")
-
-        await self.__object_sid_use_case.add(
-            directory_id=dir_.id,
-            rid=int(base_dn_sid),
-            sid_prefix=SidPrefix.BUILT_IN_DOMAIN,
         )
 
         attr_dto = AttributeDTO(name=dir_.rdname, values=[dir_.name])

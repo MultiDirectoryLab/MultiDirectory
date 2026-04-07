@@ -1178,8 +1178,7 @@ async def setup_session(
     )
     for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
         await entity_type_use_case.create_not_safe(entity_type_dto)
-    await session.flush()
-    await audit_use_case.create_policies()
+
     domain = await setup_gateway.create_base_domain("md.test")
     await rid_manager_setup_use_case.create_domain_identifier()
 
@@ -1188,6 +1187,52 @@ async def setup_session(
         data=TEST_DATA,
         is_system=False,
     )
+
+    for attr_type_name in (
+        "description",
+        "posixEmail",
+        "userPrincipalName",
+        "userAccountControl",
+        "cn",
+        "objectClass",
+    ):
+        _at = await attribute_type_use_case_legacy.get(
+            attr_type_name,
+        )
+        if not _at:
+            raise ValueError(
+                f"setup_session:: AttributeType {attr_type_name} not found",
+            )
+        await attribute_type_use_case.create(_at)
+
+    for _obj_class_name in (
+        "top",
+        "person",
+        "organizationalPerson",
+        "user",
+        "domain",
+        "container",
+        "organization",
+        "domainDNS",
+        "group",
+        "inetOrgPerson",
+        "posixAccount",
+        "rIDManager",
+        "rIDSet",
+    ):
+        _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
+        _oc_dto.attribute_types_may = [
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_may
+        ]
+        _oc_dto.attribute_types_must = [
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_must
+        ]
+        await object_class_use_case.create(_oc_dto)  # type: ignore
+
+    await session.flush()
+
     dc_directory = Directory(
         name=DOMAIN_CONTROLLERS_OU_NAME,
         object_class="computer",
@@ -1235,47 +1280,6 @@ async def setup_session(
         ),
     ):
         await attribute_type_use_case.create(_at_dto)
-
-    for attr_type_name in (
-        "description",
-        "posixEmail",
-        "userPrincipalName",
-        "userAccountControl",
-        "cn",
-        "objectClass",
-    ):
-        _at = await attribute_type_use_case_legacy.get(
-            attr_type_name,
-        )
-        if not _at:
-            raise ValueError(
-                f"setup_session:: AttributeType {attr_type_name} not found",
-            )
-        await attribute_type_use_case.create(_at)
-
-    for _obj_class_name in (
-        "top",
-        "person",
-        "organizationalPerson",
-        "user",
-        "domain",
-        "container",
-        "organization",
-        "domainDNS",
-        "group",
-        "inetOrgPerson",
-        "posixAccount",
-    ):
-        _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
-        _oc_dto.attribute_types_may = [
-            _.name  # type: ignore
-            for _ in _oc_dto.attribute_types_may
-        ]
-        _oc_dto.attribute_types_must = [
-            _.name  # type: ignore
-            for _ in _oc_dto.attribute_types_must
-        ]
-        await object_class_use_case.create(_oc_dto)  # type: ignore
 
     await audit_use_case.create_policies()
 

@@ -327,6 +327,7 @@ FIRST_SETUP_DATA = [
     },
     {
         "name": SYSTEM_CONTAINER_NAME,
+        "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class": "organizationalUnit",
         "attributes": {
             "objectClass": ["top", "container"],

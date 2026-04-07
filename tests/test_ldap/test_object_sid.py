@@ -63,12 +63,15 @@ async def test_rid_set_reset_pool(
 
     available_pool_before = await rid_manager_gateway.get_rid_available_pool()
     lower_before, _ = from_qword(available_pool_before)
+    allocation_pool_before = await rid_set_gateway.get_rid_allocation_pool(
+        rid_set_id,
+    )
     previous_pool_before = (
         await rid_set_gateway.get_rid_previous_allocation_pool(rid_set_id)
     )
 
     _, upper = from_qword(previous_pool_before)
-    await rid_set_gateway.update_next_rid(rid_set_id, upper - 1)
+    await rid_set_gateway.update_next_rid(rid_set_id, upper)
 
     current_next_rid = await rid_set_gateway.get_rid_next_rid(rid_set_id)
     assert (
@@ -79,7 +82,7 @@ async def test_rid_set_reset_pool(
         is True
     )
 
-    next_rid = await rid_set_use_case.allocate_next_rid(rid_set_id)
+    await rid_set_use_case.allocate_next_rid(rid_set_id)
     current_next_rid = await rid_set_gateway.get_rid_next_rid(rid_set_id)
     previous_pool_mid = await rid_set_gateway.get_rid_previous_allocation_pool(
         rid_set_id,
@@ -104,11 +107,11 @@ async def test_rid_set_reset_pool(
     )
 
     assert lower_after == lower_before + RIDManagerUseCase.RID_BLOCK_SIZE
-    assert previous_pool_after == to_qword(
-        next_rid,
+    assert allocation_pool_after == to_qword(
+        lower_before,
         lower_before + RIDManagerUseCase.RID_BLOCK_SIZE,
     )
-    assert allocation_pool_after == previous_pool_before
+    assert previous_pool_after == allocation_pool_before
 
 
 @pytest.mark.asyncio
