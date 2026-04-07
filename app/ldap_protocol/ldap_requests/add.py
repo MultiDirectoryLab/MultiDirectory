@@ -104,9 +104,9 @@ class AddRequest(BaseRequest):
                 type=attr.value[0].value,
                 vals=[val.value for val in attr.value[1].value],
             )
-            for attr in attributes.value  # type: ignore
+            for attr in attributes.value
         ]
-        return cls(entry=entry.value, attributes=attributes)  # type: ignore
+        return cls(entry=entry.value, attributes=attributes)
 
     async def handle(  # noqa: C901
         self,
@@ -214,7 +214,7 @@ class AddRequest(BaseRequest):
 
             await ctx.session.flush()
             await ctx.object_sid_use_case.add(
-                directory=new_dir,
+                directory_id=new_dir.id,
             )
             await ctx.session.flush()
         except IntegrityError:

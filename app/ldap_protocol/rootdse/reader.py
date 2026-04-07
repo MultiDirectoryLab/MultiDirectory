@@ -102,7 +102,7 @@ class DCInfoReader:
         domain = await self._gw.get_domain()
         dns = domain.name.lower()
         nb_domain = dns.split(".")[0].upper()
-        object_sid = await self._object_sid_use_case.get(domain)
+        object_sid = await self._object_sid_use_case.get(domain.id)
 
         return DomainControllerInfo(
             net_bios_domain=nb_domain,

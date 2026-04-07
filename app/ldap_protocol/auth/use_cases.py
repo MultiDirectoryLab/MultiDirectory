@@ -210,8 +210,6 @@ class SetupUseCase:
         :return: None.
         """
         try:
-            if await self._setup_gateway.is_base_domain_created():
-                return
             domain = await self._setup_gateway.create_base_domain(dto.domain)
             await self._rid_manager_setup_use_case.create_domain_identifier()
             await self._setup_gateway.setup_enviroment(
@@ -255,7 +253,7 @@ class SetupUseCase:
             await self._rid_manager_setup_use_case.setup()
             dc = await self._rid_manager_use_case.get_domain_controller()
             await self._object_sid_use_case.add(
-                directory=dc,
+                directory_id=dc.id,
             )
 
             await self._session.commit()

@@ -16,7 +16,7 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
 from ldap_protocol.objects import UserAccountControlFlag
-from ldap_protocol.rid_manager import ObjectSIDUseCase
+from ldap_protocol.rid_manager import ObjectSIDUseCase, RIDSetUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from repo.pg.tables import queryable_attr as qa
 
@@ -28,6 +28,7 @@ async def _add_domain_controller(
     settings: Settings,
     dc_ou_dir: Directory,
     object_sid_use_case: ObjectSIDUseCase,
+    rid_set_use_case: RIDSetUseCase,
 ) -> None:
     dc_directory = Directory(
         object_class="",
@@ -40,9 +41,13 @@ async def _add_domain_controller(
 
     dc_directory.parent_id = dc_ou_dir.id
     await object_sid_use_case.add(
-        directory=dc_directory,
+        directory_id=dc_directory.id,
     )
     await session.flush()
+    await rid_set_use_case.add(
+        domain_controller=dc_directory,
+        allocation_params=await rid_set_use_case.generate_rid_set_attrs(),
+    )
 
     attributes = [
         Attribute(
@@ -105,6 +110,7 @@ async def add_domain_controller(
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
     object_sid_use_case: ObjectSIDUseCase,
+    rid_set_use_case: RIDSetUseCase,
 ) -> None:
     logger.info("Adding domain controller.")
 
@@ -139,6 +145,7 @@ async def add_domain_controller(
         settings=settings,
         dc_ou_dir=domain_controllers_ou,
         object_sid_use_case=object_sid_use_case,
+        rid_set_use_case=rid_set_use_case,
     )
 
     logger.debug("Domain controller added.")

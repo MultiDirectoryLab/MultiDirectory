@@ -7,11 +7,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import Attribute, Directory
+from entities import Attribute
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerDomainIdentifierNotFoundError,
     RIDManagerObjectSIDNotFoundError,
 )
+from ldap_protocol.utils.async_cache import domain_identifier_cache
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -22,11 +23,11 @@ class ObjectSIDGateway:
         """Initialize Object SID gateway."""
         self._session = session
 
-    async def get(self, directory: Directory) -> str:
+    async def get(self, directory_id: int) -> str:
         """Get object SID."""
         query = await self._session.scalar(
             select(Attribute).where(
-                qa(Attribute.directory_id) == directory.id,
+                qa(Attribute.directory_id) == directory_id,
                 qa(Attribute.name) == "objectSid",
             ),
         )
@@ -35,25 +36,26 @@ class ObjectSIDGateway:
 
         return query.value
 
-    async def add(self, directory: Directory, object_sid: str) -> None:
+    async def add(self, directory_id: int, object_sid: str) -> None:
         """Add object SID."""
         self._session.add(
             Attribute(
                 name="objectSid",
                 value=object_sid,
-                directory_id=directory.id,
+                directory_id=directory_id,
             ),
         )
 
-    async def get_domain_identifier(self, domain: Directory) -> str:
-        """Get domain identifier.
+    async def get_domain_identifier(self) -> str:
+        """Get domain identifier (cached ``Attribute.value`` string)."""
+        return await domain_identifier_cache.get_or_load(
+            self._load_domain_identifier_value,
+        )
 
-        :return: Domain identifier
-        """
+    async def _load_domain_identifier_value(self) -> str:
         query = await self._session.scalar(
             select(Attribute).where(
                 qa(Attribute.name) == "DomainIdentifier",
-                qa(Attribute.directory_id) == domain.id,
             ),
         )
 

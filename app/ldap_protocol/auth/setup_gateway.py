@@ -73,7 +73,6 @@ class SetupGateway:
     ) -> None:
         """Create directories and users for enviroment."""
         async with self._session.begin_nested():
-            self._session.add(domain)
             self._session.add(
                 NetworkPolicy(
                     name="Default open policy",
@@ -122,14 +121,6 @@ class SetupGateway:
             logger.error(traceback.format_exc())
             raise
 
-    async def is_base_domain_created(self) -> bool:
-        """Check if base domain is created."""
-        cat_result = await self._session.execute(select(Directory))
-        if cat_result.scalar_one_or_none():
-            logger.warning("dev data already set up")
-            return True
-        return False
-
     async def create_base_domain(
         self,
         dn: str = "multifactor.dev",
@@ -175,7 +166,7 @@ class SetupGateway:
 
         if "objectSid" in data:
             await self._object_sid_use_case.add(
-                directory=dir_,
+                directory_id=dir_.id,
                 rid=int(data["objectSid"]),
                 sid_prefix=SidPrefix.BUILT_IN_DOMAIN,
             )

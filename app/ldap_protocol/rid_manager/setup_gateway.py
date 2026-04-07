@@ -9,11 +9,11 @@ import secrets
 from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from constants import SYSTEM_CONTAINER_NAME
 from entities import Attribute, Directory
 from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerBaseDomainNotFoundError,
-    RIDManagerDomainControllerNotFoundError,
     RIDManagerSystemContainerNotFoundError,
 )
 from ldap_protocol.utils.queries import get_base_directories
@@ -32,24 +32,6 @@ class RIDManagerSetupGateway:
         self._session = session
         self._entity_type_dao = entity_type_dao
 
-    async def get_domain_controller(self, host_machine_name: str) -> Directory:
-        """Get domain controller directory.
-
-        :return: Domain controller directory
-        """
-        dc = await self._session.scalar(
-            select(Directory).where(
-                qa(Directory.name) == host_machine_name,
-            ),
-        )
-
-        if not dc:
-            raise RIDManagerDomainControllerNotFoundError(
-                "Domain controller not found",
-            )
-
-        return dc
-
     async def get_system_container(self) -> Directory:
         """Get System container directory.
 
@@ -60,7 +42,7 @@ class RIDManagerSetupGateway:
         domain = base_dn_list[0]
 
         query = select(Directory).where(
-            qa(Directory.name) == "System",
+            qa(Directory.name) == SYSTEM_CONTAINER_NAME,
             qa(Directory.parent_id) == domain.id,
         )
 
@@ -132,20 +114,20 @@ class RIDManagerSetupGateway:
 
     async def set_rid_available_pool(
         self,
-        domain: Directory,
+        rid_manager_dir: Directory,
         qword_value: int,
     ) -> None:
         """Set rIDAvailablePool attribute in domain.
 
         Updates the global RID pool counter.
 
-        :param domain: Domain directory object
+        :param rid_manager_dir: RID Manager directory object
         :param qword_value: New QWORD value (64-bit)
         """
         query = (
             update(Attribute)
             .where(
-                qa(Attribute.directory_id) == domain.id,
+                qa(Attribute.directory_id) == rid_manager_dir.id,
                 qa(Attribute.name) == "rIDAvailablePool",
             )
             .values(value=str(qword_value))
@@ -156,7 +138,7 @@ class RIDManagerSetupGateway:
         if result.rowcount == 0:
             self._session.add(
                 Attribute(
-                    directory_id=domain.id,
+                    directory_id=rid_manager_dir.id,
                     name="rIDAvailablePool",
                     value=str(qword_value),
                 ),

@@ -1151,6 +1151,7 @@ async def setup_session(
         entity_type_dao,
         session,
         rid_manager_use_case,
+        role_use_case,
     )
     object_sid_gateway = ObjectSIDGateway(session)
     object_sid_use_case = ObjectSIDUseCase(
@@ -1843,6 +1844,7 @@ async def rid_set_use_case(
     rid_manager_use_case: RIDManagerUseCase,
     entity_type_dao: EntityTypeDAO,
     rid_set_gateway: RIDSetGateway,
+    role_use_case: RoleUseCase,
 ) -> AsyncIterator[RIDSetUseCase]:
     """Provide RIDManagerUseCase for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
@@ -1852,6 +1854,7 @@ async def rid_set_use_case(
             entity_type_dao,
             session,
             rid_manager_use_case,
+            role_use_case,
         )
 
 

@@ -293,10 +293,7 @@ class SidPrefix(StrEnum):
 class SecurityPrincipalRid(IntEnum):
     ADMINISTRATOR = 500
     GUESTS = 501
-    KRBTGT = 502
     DOMAIN_ADMINS = 512
     DOMAIN_USERS = 513
-    DOMAIN_GUESTS = 514
     DOMAIN_COMPUTERS = 515
-    DOMAIN_CONTROLLERS = 516
     DOMAIN_READ_ONLY = 521

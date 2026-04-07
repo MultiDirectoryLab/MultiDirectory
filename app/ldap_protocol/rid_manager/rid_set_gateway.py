@@ -88,7 +88,7 @@ class RIDSetGateway:
 
     async def set_allocation_attrs(
         self,
-        rid_set: Directory,
+        rid_set_id: int,
         allocation_params: RIDSetAllocationParamsDTO,
     ) -> None:
         """Set next RID attribute in RID Set directory."""
@@ -96,30 +96,30 @@ class RIDSetGateway:
             Attribute(
                 name="rIDNextRID",
                 value=str(allocation_params.next_rid),
-                directory_id=rid_set.id,
+                directory_id=rid_set_id,
             ),
         )
         self._session.add(
             Attribute(
                 name="rIDPreviousAllocationPool",
                 value=str(allocation_params.previous_allocation_pool),
-                directory_id=rid_set.id,
+                directory_id=rid_set_id,
             ),
         )
         self._session.add(
             Attribute(
                 name="rIDAllocationPool",
                 value=str(allocation_params.allocation_pool),
-                directory_id=rid_set.id,
+                directory_id=rid_set_id,
             ),
         )
 
-    async def get_rid_allocation_pool(self, rid_set: Directory) -> int:
+    async def get_rid_allocation_pool(self, rid_set_id: int) -> int:
         """Get RID allocation pool from RID Set directory."""
         allocation_pool = await self._session.scalar(
             select(Attribute).where(
                 qa(Attribute.name) == "rIDAllocationPool",
-                qa(Attribute.directory_id) == rid_set.id,
+                qa(Attribute.directory_id) == rid_set_id,
             ),
         )
         if not (allocation_pool and allocation_pool.value):
@@ -130,14 +130,14 @@ class RIDSetGateway:
 
     async def get_rid_previous_allocation_pool(
         self,
-        rid_set: Directory,
+        rid_set_id: int,
     ) -> int:
         """Get previous RID allocation pool from RID Set directory."""
         previous_allocation_pool = await self._session.scalar(
             select(Attribute)
             .where(
                 qa(Attribute.name) == "rIDPreviousAllocationPool",
-                qa(Attribute.directory_id) == rid_set.id,
+                qa(Attribute.directory_id) == rid_set_id,
             )
             .with_for_update(),
         )
@@ -147,13 +147,13 @@ class RIDSetGateway:
             )
         return int(previous_allocation_pool.value)
 
-    async def get_rid_next_rid(self, rid_set: Directory) -> int:
+    async def get_rid_next_rid(self, rid_set_id: int) -> int:
         """Get next RID from RID Set directory."""
         next_rid = await self._session.scalar(
             select(Attribute)
             .where(
                 qa(Attribute.name) == "rIDNextRID",
-                qa(Attribute.directory_id) == rid_set.id,
+                qa(Attribute.directory_id) == rid_set_id,
             )
             .with_for_update(),
         )
@@ -161,33 +161,24 @@ class RIDSetGateway:
             raise RIDManagerRidNextRIDNotFoundError("next RID not found")
         return int(next_rid.value)
 
-    async def update_next_rid_and_pool(
+    async def update_next_rid(
         self,
-        rid_set: Directory,
+        rid_set_id: int,
         next_rid: int,
-        previous_allocation_pool: int,
     ) -> None:
-        """Update next RID and pool."""
+        """Update next RID."""
         await self._session.execute(
             update(Attribute)
             .where(
                 qa(Attribute.name) == "rIDNextRID",
-                qa(Attribute.directory_id) == rid_set.id,
+                qa(Attribute.directory_id) == rid_set_id,
             )
             .values(value=str(next_rid)),
-        )
-        await self._session.execute(
-            update(Attribute)
-            .where(
-                qa(Attribute.name) == "rIDPreviousAllocationPool",
-                qa(Attribute.directory_id) == rid_set.id,
-            )
-            .values(value=str(previous_allocation_pool)),
         )
 
     async def reset_attrs_when_pool_exceeded(
         self,
-        rid_set: Directory,
+        rid_set_id: int,
         allocation_pool: int,
         previous_allocation_pool: int,
         next_rid: int,
@@ -197,12 +188,19 @@ class RIDSetGateway:
             update(Attribute)
             .where(
                 qa(Attribute.name) == "rIDAllocationPool",
-                qa(Attribute.directory_id) == rid_set.id,
+                qa(Attribute.directory_id) == rid_set_id,
             )
             .values(value=str(allocation_pool)),
         )
-        await self.update_next_rid_and_pool(
-            rid_set,
+        await self._session.execute(
+            update(Attribute)
+            .where(
+                qa(Attribute.name) == "rIDPreviousAllocationPool",
+                qa(Attribute.directory_id) == rid_set_id,
+            )
+            .values(value=str(previous_allocation_pool)),
+        )
+        await self.update_next_rid(
+            rid_set_id,
             next_rid,
-            previous_allocation_pool,
         )

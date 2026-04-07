@@ -8,6 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
+from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerAvailablePoolNotFoundError,
@@ -59,9 +60,32 @@ class RIDManagerGateway:
         self,
     ) -> Directory:
         """Get domain controller."""
+        domain = await self._session.scalar(
+            select(Directory).where(
+                qa(Directory.object_class) == "domain",
+                qa(Directory.parent_id).is_(None),
+            ),
+        )
+        if not domain:
+            raise RIDManagerDomainControllerNotFoundError(
+                "Domain controller not found",
+            )
+
+        domain_controllers_ou = await self._session.scalar(
+            select(Directory).where(
+                qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
+                qa(Directory.parent_id) == domain.id,
+            ),
+        )
+        if not domain_controllers_ou:
+            raise RIDManagerDomainControllerNotFoundError(
+                "Domain controllers OU not found",
+            )
+
         domain_controller = await self._session.scalar(
             select(Directory).where(
                 qa(Directory.name) == self._settings.HOST_MACHINE_SHORT_NAME,
+                qa(Directory.parent_id) == domain_controllers_ou.id,
             ),
         )
         if not domain_controller:

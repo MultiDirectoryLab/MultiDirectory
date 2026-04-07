@@ -1,7 +1,7 @@
 """Add rIDManager and rIDSet objectClasses to LDAP schema.
 
 Revision ID: 552b4eafb1aa
-Revises: 19d86e660cf2
+Revises: df4287898910
 Create Date: 2026-02-17 09:24:57.906080
 
 """
@@ -230,10 +230,11 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             if rid > max_rid:
                 max_rid = rid
 
-        start_rid = max(max_rid, RIDManagerSetupUseCase.RID_USER_MIN)
+        start_rid = max(max_rid, RIDManagerSetupUseCase.RID_MIN)
 
         qword = to_qword(start_rid, RIDManagerSetupUseCase.RID_AVAILABLE_MAX)
-        await rid_setup_gateway.set_rid_available_pool(domain, qword)
+
+        await rid_setup_gateway.set_rid_available_pool(rid_manager_dir, qword)
 
         system_container = await rid_setup_gateway.get_system_container()
         await role_use_case.inherit_parent_aces(

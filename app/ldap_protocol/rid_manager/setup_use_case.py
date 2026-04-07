@@ -7,11 +7,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from config import Settings
 from entities import Directory
-from ldap_protocol.rid_manager.dtos import RIDSetAllocationParamsDTO
 from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
 from ldap_protocol.rid_manager.setup_gateway import RIDManagerSetupGateway
-from ldap_protocol.rid_manager.utils import from_qword, to_qword
+from ldap_protocol.rid_manager.utils import to_qword
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
@@ -19,9 +18,7 @@ from ldap_protocol.roles.role_use_case import RoleUseCase
 class RIDManagerSetupUseCase:
     """RID Manager setup use case."""
 
-    RID_BUILTIN_MIN = 500
-    RID_BUILTIN_MAX = 1000
-    RID_USER_MIN = 1100
+    RID_MIN = 1100
     RID_AVAILABLE_MAX = 1073741822  # 30-bit max (2^30 - 2)
 
     def __init__(
@@ -47,36 +44,22 @@ class RIDManagerSetupUseCase:
 
     async def setup(self) -> None:
         """Create RID Manager."""
-        await self.create_domain_identifier()
         rid_manager_dir = await self._gateway.set_rid_manager()
-        qword = to_qword(self.RID_USER_MIN, self.RID_AVAILABLE_MAX)
+        qword = to_qword(self.RID_MIN, self.RID_AVAILABLE_MAX)
         await self._gateway.set_rid_available_pool(
             rid_manager_dir,
             qword,
         )
         dc = await self._rid_manager_use_case.get_domain_controller()
-        rid_set = await self._create_rid_set(dc)
+        rid_set = await self._rid_set_use_case.add(
+            dc,
+            await self._rid_set_use_case.generate_rid_set_attrs(),
+        )
 
         await self.inherit_aces(
             rid_manager_dir,
             dc,
             rid_set,
-        )
-
-    async def _create_rid_set(self, domain_controller: Directory) -> Directory:
-        previous_allocation_pool = (
-            await self._rid_manager_use_case.allocate_pool()
-        )
-        allocation_pool = await self._rid_manager_use_case.allocate_pool()
-        lower, _ = from_qword(previous_allocation_pool)
-
-        return await self._rid_set_use_case.add(
-            domain_controller,
-            RIDSetAllocationParamsDTO(
-                next_rid=lower,
-                allocation_pool=allocation_pool,
-                previous_allocation_pool=previous_allocation_pool,
-            ),
         )
 
     async def inherit_aces(
