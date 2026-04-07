@@ -7,7 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncIterator, ClassVar
 
 import backoff
-from dishka import AsyncContainer
 from fastapi import Request
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +29,7 @@ from ldap_protocol.utils.queries import get_base_directories, get_dn_by_id
 from password_utils import PasswordUtils
 
 from .base import AbstractKadmin
+from .client import KerberosMDAPIClient
 from .dtos import (
     AddRequestsDTO,
     KDCContextDTO,
@@ -340,7 +340,7 @@ class KerberosService(AbstractService):
 
     async def _schedule_principal_task(
         self,
-        request: Request,
+        _request: Request,
         user: UserSchema,
         password: str,
     ) -> TaskStructDTO:
@@ -351,15 +351,15 @@ class KerberosService(AbstractService):
         :param str password: Password for admin.
         :return: tuple (func, args, kwargs) for background task.
         """
-        container: AsyncContainer = request.state.dishka_container
-        new_kadmin: AbstractKadmin = await container.get(AbstractKadmin)
+        # refresh kadmin instance
+        kadmin: AbstractKadmin = KerberosMDAPIClient(self._kadmin.client)
         func = backoff.on_exception(
             backoff.fibo,
             Exception,
             max_tries=10,
             logger=None,
             raise_on_giveup=False,
-        )(new_kadmin.add_principal)
+        )(kadmin.add_principal)
         args = (
             user.user_principal_name.split("@")[0],
             password,
