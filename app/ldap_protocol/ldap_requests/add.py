@@ -104,9 +104,9 @@ class AddRequest(BaseRequest):
                 type=attr.value[0].value,
                 vals=[val.value for val in attr.value[1].value],
             )
-            for attr in attributes.value
+            for attr in attributes.value  # type: ignore
         ]
-        return cls(entry=entry.value, attributes=attributes)
+        return cls(entry=entry.value, attributes=attributes)  # type: ignore
 
     async def handle(  # noqa: C901
         self,

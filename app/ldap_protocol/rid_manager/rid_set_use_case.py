@@ -7,7 +7,9 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Directory
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 from ldap_protocol.rid_manager.dtos import RIDSetAllocationParamsDTO
 from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_gateway import RIDSetGateway
@@ -21,14 +23,14 @@ class RIDSetUseCase:
     def __init__(
         self,
         gateway: RIDSetGateway,
-        entity_type_dao: EntityTypeDAO,
+        entity_type_use_case: EntityTypeUseCase,
         session: AsyncSession,
         rid_manager_use_case: RIDManagerUseCase,
         role_use_case: RoleUseCase,
     ) -> None:
         """Initialize RID Set use case."""
         self._gateway = gateway
-        self._entity_type_dao = entity_type_dao
+        self._entity_type_use_case = entity_type_use_case
         self._session = session
         self._rid_manager_use_case = rid_manager_use_case
         self._role_use_case = role_use_case
@@ -44,9 +46,10 @@ class RIDSetUseCase:
     ) -> Directory:
         """Create RID Set directory."""
         rid_set = await self._gateway.add(domain_controller)
-        await self._entity_type_dao.attach_entity_type_to_directory(
+        await self._entity_type_use_case.attach_entity_type_to_directory(
             directory=rid_set,
             is_system_entity_type=True,
+            object_class_names={"top", "rIDSet"},
         )
 
         await self._gateway.set_allocation_attrs(

@@ -1,7 +1,7 @@
 """Add rIDManager and rIDSet objectClasses to LDAP schema.
 
 Revision ID: 552b4eafb1aa
-Revises: df4287898910
+Revises: 1b71cafba681
 Create Date: 2026-02-17 09:24:57.906080
 
 """
@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 from ldap_protocol.rid_manager import (
     RIDManagerGateway,
     RIDManagerSetupGateway,
@@ -38,7 +40,7 @@ from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "552b4eafb1aa"
-down_revision: None | str = "df4287898910"
+down_revision: None | str = "1b71cafba681"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 

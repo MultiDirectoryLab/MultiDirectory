@@ -1086,12 +1086,35 @@ async def setup_session(
         object_class_dao=object_class_dao,
         directory_dao=directory_dao,
     )
+    rid_manager_gateway = RIDManagerGateway(session, settings)
+
+    rid_manager_use_case = RIDManagerUseCase(
+        rid_manager_gateway,
+        session,
+    )
+    rid_set_gateway = RIDSetGateway(session)
+
+    rid_set_use_case = RIDSetUseCase(
+        rid_set_gateway,
+        entity_type_use_case,
+        session,
+        rid_manager_use_case,
+        role_use_case,
+    )
+    object_sid_gateway = ObjectSIDGateway(session)
+    object_sid_use_case = ObjectSIDUseCase(
+        object_sid_gateway,
+        rid_set_use_case,
+        session,
+        rid_manager_use_case,
+    )
     directory_create_use_case = DirectoryCreateUseCase(
         session=session,
         entity_type_use_case=entity_type_use_case,
         role_use_case=role_use_case,
         directory_dao=directory_dao,
         attribute_dao=attribute_dao,
+        object_sid_use_case=object_sid_use_case,
     )
     object_class_use_case = ObjectClassUseCase(
         attribute_type_dao=attribute_type_dao,
@@ -1128,38 +1151,15 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
-    rid_manager_gateway = RIDManagerGateway(session, settings)
-    rid_manager_use_case = RIDManagerUseCase(
-        rid_manager_gateway,
-        session,
-    )
+
     rid_manager_setup_gateway = RIDManagerSetupGateway(
         session=session,
-        entity_type_dao=entity_type_dao,
+        entity_type_use_case=entity_type_use_case,
     )
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
-    rid_manager_use_case = RIDManagerUseCase(
-        rid_manager_gateway,
-        session,
-    )
-    rid_set_gateway = RIDSetGateway(session)
 
-    rid_set_use_case = RIDSetUseCase(
-        rid_set_gateway,
-        entity_type_dao,
-        session,
-        rid_manager_use_case,
-        role_use_case,
-    )
-    object_sid_gateway = ObjectSIDGateway(session)
-    object_sid_use_case = ObjectSIDUseCase(
-        object_sid_gateway,
-        rid_set_use_case,
-        session,
-        rid_manager_use_case,
-    )
     rid_manager_setup_use_case = RIDManagerSetupUseCase(
         rid_manager_setup_gateway=rid_manager_setup_gateway,
         role_use_case=role_use_case,
@@ -1842,7 +1842,7 @@ async def rid_set_gateway(
 async def rid_set_use_case(
     container: AsyncContainer,
     rid_manager_use_case: RIDManagerUseCase,
-    entity_type_dao: EntityTypeDAO,
+    entity_type_use_case: EntityTypeUseCase,
     rid_set_gateway: RIDSetGateway,
     role_use_case: RoleUseCase,
 ) -> AsyncIterator[RIDSetUseCase]:
@@ -1851,7 +1851,7 @@ async def rid_set_use_case(
         session = await container.get(AsyncSession)
         yield RIDSetUseCase(
             rid_set_gateway,
-            entity_type_dao,
+            entity_type_use_case,
             session,
             rid_manager_use_case,
             role_use_case,

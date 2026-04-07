@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from constants import SYSTEM_CONTAINER_NAME
 from entities import Attribute, Directory
-from ldap_protocol.ldap_schema.entity_type_dao import EntityTypeDAO
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
+    EntityTypeUseCase,
+)
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerBaseDomainNotFoundError,
     RIDManagerSystemContainerNotFoundError,
@@ -26,11 +28,11 @@ class RIDManagerSetupGateway:
     def __init__(
         self,
         session: AsyncSession,
-        entity_type_dao: EntityTypeDAO,
+        entity_type_use_case: EntityTypeUseCase,
     ) -> None:
         """Initialize RID Manager setup gateway."""
         self._session = session
-        self._entity_type_dao = entity_type_dao
+        self._entity_type_use_case = entity_type_use_case
 
     async def get_system_container(self) -> Directory:
         """Get System container directory.
@@ -103,9 +105,10 @@ class RIDManagerSetupGateway:
             with_for_update=None,
         )
 
-        await self._entity_type_dao.attach_entity_type_to_directory(
+        await self._entity_type_use_case.attach_entity_type_to_directory(
             directory=rid_manager_dir,
             is_system_entity_type=True,
+            object_class_names={"top", "rIDManager"},
         )
 
         await self._session.flush()
