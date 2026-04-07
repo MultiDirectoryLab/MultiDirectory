@@ -1187,6 +1187,27 @@ async def setup_session(
         data=TEST_DATA,
         is_system=False,
     )
+    dc_directory = Directory(
+        name=DOMAIN_CONTROLLERS_OU_NAME,
+        object_class="computer",
+        is_system=True,
+    )
+    dc_directory.create_path(domain, "cn")
+    session.add(dc_directory)
+    await session.flush()
+    dc_directory.parent_id = domain.id
+    await session.refresh(dc_directory, ["id"])
+    await session.flush()
+    dc = Directory(
+        name=settings.HOST_MACHINE_SHORT_NAME,
+        is_system=True,
+    )
+
+    dc.create_path(dc_directory, "cn")
+    session.add(dc)
+    await session.flush()
+    dc.parent_id = dc_directory.id
+    await session.refresh(dc, ["id"])
 
     for attr_type_name in (
         "description",
@@ -1211,6 +1232,7 @@ async def setup_session(
         "organizationalPerson",
         "user",
         "domain",
+        "computer",
         "container",
         "organization",
         "domainDNS",
@@ -1232,28 +1254,6 @@ async def setup_session(
         await object_class_use_case.create(_oc_dto)  # type: ignore
 
     await session.flush()
-
-    dc_directory = Directory(
-        name=DOMAIN_CONTROLLERS_OU_NAME,
-        object_class="computer",
-        is_system=True,
-    )
-    dc_directory.create_path(domain, "cn")
-    session.add(dc_directory)
-    await session.flush()
-    dc_directory.parent_id = domain.id
-    await session.refresh(dc_directory, ["id"])
-    await session.flush()
-    dc = Directory(
-        name=settings.HOST_MACHINE_SHORT_NAME,
-        object_class="computer",
-        is_system=True,
-    )
-    dc.create_path(dc_directory, "cn")
-    session.add(dc)
-    await session.flush()
-    dc.parent_id = dc_directory.id
-    await session.refresh(dc, ["id"])
 
     for _at_dto in (
         AttributeTypeDTO[None](
