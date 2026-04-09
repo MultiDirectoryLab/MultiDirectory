@@ -1092,7 +1092,7 @@ async def setup_session(
         rid_manager_gateway,
         session,
     )
-    rid_set_gateway = RIDSetGateway(session)
+    rid_set_gateway = RIDSetGateway(session, settings)
 
     rid_set_use_case = RIDSetUseCase(
         rid_set_gateway,
@@ -1834,11 +1834,12 @@ async def rid_manager_use_case(
 @pytest_asyncio.fixture(scope="function")
 async def rid_set_gateway(
     container: AsyncContainer,
+    settings: Settings,
 ) -> AsyncIterator[RIDSetGateway]:
     """Provide RIDSetGateway for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
-        yield RIDSetGateway(session)
+        yield RIDSetGateway(session, settings)
 
 
 @pytest_asyncio.fixture(scope="function")
