@@ -98,6 +98,7 @@ async def test_add_domain_controller(
 ) -> None:
     """Test add domain controller."""
     existing_dc = await rid_manager_use_case.get_domain_controller()
+    existing_rid_set_id = await rid_set_use_case.get_rid_set_id()
     monkeypatch.setattr(
         settings,
         "HOST_MACHINE_SHORT_NAME",
@@ -111,6 +112,15 @@ async def test_add_domain_controller(
         object_sid_use_case._rid_manager_use_case,  # noqa: SLF001
         "get_domain_controller",
         _get_existing_dc,
+    )
+
+    async def _get_existing_rid_set_id() -> int:
+        return existing_rid_set_id
+
+    monkeypatch.setattr(
+        rid_set_use_case,
+        "get_rid_set_id",
+        _get_existing_rid_set_id,
     )
     await add_domain_controller(
         settings=settings,
