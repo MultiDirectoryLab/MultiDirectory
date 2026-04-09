@@ -380,8 +380,6 @@ class SearchRequest(BaseRequest):
             func.lower(Attribute.name).in_(attrs),
             func.lower(Attribute.name) == "objectclass",
         ]
-        if self.is_sid_requested:
-            cond_parts.append(func.lower(Attribute.name) == "objectsid")
 
         cond = or_(*cond_parts)
 

@@ -43,30 +43,6 @@ class AsyncTTLCache(Generic[T]):
         return wrapper
 
 
-class SingleValueTTLCache(Generic[T]):
-    """Single cached value; refresh via ``loader`` on miss or TTL expiry."""
-
-    def __init__(self, ttl: int | None = DEFAULT_CACHE_TIME) -> None:
-        self._ttl = ttl
-        self._value: T | None = None
-        self._expires_at: float | None = None
-
-    def clear(self) -> None:
-        self._value = None
-        self._expires_at = None
-
-    async def get_or_load(self, loader: Callable[[], Awaitable[T]]) -> T:
-        """Return cached value or ``await loader()`` and store it."""
-        if self._value is not None:
-            if not self._expires_at or self._expires_at > time.monotonic():
-                return self._value
-            self.clear()
-
-        result = await loader()
-        self._value = result
-        self._expires_at = time.monotonic() + self._ttl if self._ttl else None
-        return result
-
-
 base_directories_cache = AsyncTTLCache[list[Directory]]()
-domain_identifier_cache = SingleValueTTLCache[str]()
+domain_identifier_cache = AsyncTTLCache[str]()
+rid_set_id_cache = AsyncTTLCache[int]()

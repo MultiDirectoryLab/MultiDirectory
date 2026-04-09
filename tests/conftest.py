@@ -1114,7 +1114,6 @@ async def setup_session(
         role_use_case=role_use_case,
         directory_dao=directory_dao,
         attribute_dao=attribute_dao,
-        object_sid_use_case=object_sid_use_case,
     )
     object_class_use_case = ObjectClassUseCase(
         attribute_type_dao=attribute_type_dao,

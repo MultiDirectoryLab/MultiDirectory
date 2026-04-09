@@ -14,7 +14,6 @@ from ldap_protocol.ldap_schema.dto import AttributeDTO, DirCreateDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
-from ldap_protocol.rid_manager import ObjectSIDUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
 if TYPE_CHECKING:
@@ -46,7 +45,6 @@ class DirectoryCreateUseCase:
         role_use_case: RoleUseCase,
         directory_dao: DirectoryDAO,
         attribute_dao: AttributeDAO,
-        object_sid_use_case: ObjectSIDUseCase,
     ) -> None:
         """Initialize."""
         self.__session = session
@@ -54,7 +52,6 @@ class DirectoryCreateUseCase:
         self.__role_use_case = role_use_case
         self.__directory_dao = directory_dao
         self.__attribute_dao = attribute_dao
-        self.__object_sid_use_case = object_sid_use_case
 
     async def get_configuration_dir(self) -> "Directory":
         """Get configuration directory."""

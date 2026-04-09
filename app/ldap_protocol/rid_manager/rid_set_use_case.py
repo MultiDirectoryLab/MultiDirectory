@@ -39,6 +39,10 @@ class RIDSetUseCase:
         """Get RID Set directory."""
         return await self._gateway.get(domain_controller)
 
+    async def get_rid_set_id(self) -> int:
+        """Get RID Set ID."""
+        return await self._gateway.get_rid_set_id()
+
     async def add(
         self,
         domain_controller: Directory,
@@ -83,20 +87,20 @@ class RIDSetUseCase:
                 )
             )
 
-            if self.is_pool_exceeded(
+            if not self.is_pool_exceeded(
                 current_next_rid,
                 previous_allocation_pool,
             ):
+                new_next_rid = current_next_rid + 1
+                await self._gateway.update_next_rid(
+                    rid_set_id,
+                    new_next_rid,
+                )
+            else:
                 new_next_rid = await self.rebind_next_rid_from_new_pool(
                     rid_set_id,
                 )
-            else:
-                new_next_rid = current_next_rid + 1
 
-            await self._gateway.update_next_rid(
-                rid_set_id,
-                new_next_rid,
-            )
         return new_next_rid
 
     async def rebind_next_rid_from_new_pool(

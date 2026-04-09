@@ -36,12 +36,9 @@ async def test_rid_manager_allocate_pool(
 @pytest.mark.usefixtures("setup_session")
 async def test_next_rid(
     rid_set_use_case: RIDSetUseCase,
-    rid_manager_use_case: RIDManagerUseCase,
 ) -> None:
     """Test RID Manager get domain controller."""
-    dc = await rid_manager_use_case.get_domain_controller()
-    rid_set = await rid_set_use_case.get(dc)
-    rid_set_id = rid_set.id
+    rid_set_id = await rid_set_use_case.get_rid_set_id()
     next_rid = await rid_set_use_case.allocate_next_rid(rid_set_id)
     new_next_rid = await rid_set_use_case.allocate_next_rid(rid_set_id)
     assert new_next_rid == next_rid + 1
@@ -52,14 +49,11 @@ async def test_next_rid(
 @pytest.mark.usefixtures("setup_session")
 async def test_rid_set_reset_pool(
     rid_set_use_case: RIDSetUseCase,
-    rid_manager_use_case: RIDManagerUseCase,
     rid_manager_gateway: RIDManagerGateway,
     rid_set_gateway: RIDSetGateway,
 ) -> None:
     """Test RID Set pool reset."""
-    dc = await rid_manager_use_case.get_domain_controller()
-    rid_set = await rid_set_use_case.get(dc)
-    rid_set_id = rid_set.id
+    rid_set_id = await rid_set_use_case.get_rid_set_id()
 
     available_pool_before = await rid_manager_gateway.get_rid_available_pool()
     lower_before, _ = from_qword(available_pool_before)
@@ -126,8 +120,7 @@ async def test_object_sid_add_updates_next_rid_and_prefix(
     rid_manager_use_case: RIDManagerUseCase,
 ) -> None:
     dc = await rid_manager_use_case.get_domain_controller()
-    rid_set = await rid_set_use_case.get(dc)
-    rid_set_id = rid_set.id
+    rid_set_id = await rid_set_use_case.get_rid_set_id()
     dc_id = dc.id
 
     next_before = await rid_set_gateway.get_rid_next_rid(rid_set_id)

@@ -6,7 +6,10 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
+from config import Settings
+from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
 from ldap_protocol.rid_manager.dtos import RIDSetAllocationParamsDTO
 from ldap_protocol.rid_manager.exceptions import (
@@ -15,15 +18,58 @@ from ldap_protocol.rid_manager.exceptions import (
     RIDManagerRidPreviousAllocationPoolNotFoundError,
     RIDManagerRidSetNotFoundError,
 )
+from ldap_protocol.utils.async_cache import rid_set_id_cache
 from repo.pg.tables import queryable_attr as qa
 
 
 class RIDSetGateway:
     """RID Set gateway."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, settings: Settings) -> None:
         """Initialize RID Set gateway."""
         self._session = session
+        self._settings = settings
+
+    @rid_set_id_cache
+    async def get_rid_set_id(self) -> int:
+        """Get RID Set ID."""
+        return await self.get_rid_set_id_value()
+
+    async def get_rid_set_id_value(self) -> int:
+        """Get RID Set ID."""
+        domain = aliased(Directory)
+        domain_controllers_ou = aliased(Directory)
+        domain_controller = aliased(Directory)
+        rid_set = aliased(Directory)
+
+        rid_set_id = await self._session.scalar(
+            select(qa(rid_set.id))
+            .select_from(domain)
+            .join(
+                domain_controllers_ou,
+                qa(domain_controllers_ou.parent_id) == qa(domain.id),
+            )
+            .join(
+                domain_controller,
+                qa(domain_controller.parent_id)
+                == qa(domain_controllers_ou.id),
+            )
+            .join(
+                rid_set,
+                qa(rid_set.parent_id) == qa(domain_controller.id),
+            )
+            .where(
+                qa(domain.object_class) == "domain",
+                qa(domain.parent_id).is_(None),
+                qa(domain_controllers_ou.name) == DOMAIN_CONTROLLERS_OU_NAME,
+                qa(domain_controller.name)
+                == self._settings.HOST_MACHINE_SHORT_NAME,
+                qa(rid_set.name) == "RID Set",
+            ),
+        )
+        if rid_set_id is None:
+            raise RIDManagerRidSetNotFoundError("RID Set directory not found")
+        return int(rid_set_id)
 
     async def get(self, domain_controller: Directory) -> Directory:
         """Get RID Set directory."""

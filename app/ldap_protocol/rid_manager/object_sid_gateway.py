@@ -7,7 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import Attribute
+from entities import Attribute, Directory
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerDomainIdentifierNotFoundError,
     RIDManagerObjectSIDNotFoundError,
@@ -46,16 +46,21 @@ class ObjectSIDGateway:
             ),
         )
 
+    @domain_identifier_cache
     async def get_domain_identifier(self) -> str:
         """Get domain identifier (cached ``Attribute.value`` string)."""
-        return await domain_identifier_cache.get_or_load(
-            self._load_domain_identifier_value,
-        )
+        return await self._load_domain_identifier_value()
 
     async def _load_domain_identifier_value(self) -> str:
         query = await self._session.scalar(
             select(Attribute).where(
                 qa(Attribute.name) == "DomainIdentifier",
+                select(Directory)
+                .where(
+                    qa(Directory.id) == qa(Attribute.directory_id),
+                    qa(Directory.parent_id).is_(None),
+                )
+                .exists(),
             ),
         )
 

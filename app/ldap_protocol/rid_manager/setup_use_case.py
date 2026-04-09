@@ -77,6 +77,6 @@ class RIDManagerSetupUseCase:
             directory=rid_manager_dir,
         )
 
-    async def create_domain_identifier(self) -> None:
+    async def create_domain_identifier(self, domain_id: int) -> None:
         """Create domain identifier."""
-        await self._gateway.create_domain_identifier()
+        await self._gateway.create_domain_identifier(domain_id)

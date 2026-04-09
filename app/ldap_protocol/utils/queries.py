@@ -224,6 +224,9 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
         .options(selectinload(qa(Group.members)))
         .options(
             joinedload(qa(Group.directory)).selectinload(qa(Directory.groups)),
+            joinedload(qa(Group.directory)).selectinload(
+                qa(Directory.attributes),
+            ),
         )
     )
 
@@ -246,7 +249,11 @@ async def get_group(
     query = (
         select(Group)
         .join(qa(Group.directory), isouter=True)
-        .options(joinedload(qa(Group.directory)))
+        .options(
+            joinedload(qa(Group.directory)).selectinload(
+                qa(Directory.attributes),
+            ),
+        )
     )
 
     if validate_entry(dn):

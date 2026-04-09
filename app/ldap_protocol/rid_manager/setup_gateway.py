@@ -6,7 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import secrets
 
-from sqlalchemy import exists, select, update
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from constants import SYSTEM_CONTAINER_NAME
@@ -15,7 +15,6 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
 from ldap_protocol.rid_manager.exceptions import (
-    RIDManagerBaseDomainNotFoundError,
     RIDManagerSystemContainerNotFoundError,
 )
 from ldap_protocol.utils.queries import get_base_directories
@@ -127,25 +126,13 @@ class RIDManagerSetupGateway:
         :param rid_manager_dir: RID Manager directory object
         :param qword_value: New QWORD value (64-bit)
         """
-        query = (
-            update(Attribute)
-            .where(
-                qa(Attribute.directory_id) == rid_manager_dir.id,
-                qa(Attribute.name) == "rIDAvailablePool",
-            )
-            .values(value=str(qword_value))
+        self._session.add(
+            Attribute(
+                directory_id=rid_manager_dir.id,
+                name="rIDAvailablePool",
+                value=str(qword_value),
+            ),
         )
-
-        result = await self._session.execute(query)
-
-        if result.rowcount == 0:
-            self._session.add(
-                Attribute(
-                    directory_id=rid_manager_dir.id,
-                    name="rIDAvailablePool",
-                    value=str(qword_value),
-                ),
-            )
 
         await self._session.flush()
 
@@ -156,7 +143,7 @@ class RIDManagerSetupGateway:
             f"-{secrets.randbits(32)}-{secrets.randbits(32)}"
         )
 
-    async def create_domain_identifier(self) -> None:
+    async def create_domain_identifier(self, domain_id: int) -> None:
         """Add domain identifier to domain."""
         domain_identifer = await self._session.scalar(
             select(
@@ -169,20 +156,11 @@ class RIDManagerSetupGateway:
         if domain_identifer:
             return
 
-        domain = await self._session.scalar(
-            select(Directory).where(
-                qa(Directory.object_class) == "domain",
-                qa(Directory.parent_id).is_(None),
-            ),
-        )
-        if not domain:
-            raise RIDManagerBaseDomainNotFoundError("Domain not found")
-
         self._session.add(
             Attribute(
                 name="DomainIdentifier",
                 value=f"{self._generate_domain_sid_identifier()}",
-                directory_id=domain.id,
+                directory_id=domain_id,
             ),
         )
         await self._session.flush()

@@ -185,13 +185,7 @@ class Directory:
     @property
     def object_sid(self) -> str:
         """Get objectSid attribute value."""
-        attrs = self.__dict__.get("attributes")
-        if not attrs:
-            return ""
-        for attr in attrs:
-            if attr.name and attr.name.lower() == "objectsid" and attr.value:
-                return attr.value
-        return ""
+        return self.attributes_dict.get("objectSid", [""])[0]
 
     @property
     def relative_id(self) -> str:

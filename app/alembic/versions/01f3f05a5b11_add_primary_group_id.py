@@ -148,9 +148,9 @@ def upgrade(container: AsyncContainer) -> None:
             query = (
                 select(Directory)
                 .options(
-                    selectinload(qa(Directory.groups)).selectinload(
-                        qa(Group.directory),
-                    ),
+                    selectinload(qa(Directory.groups))
+                    .selectinload(qa(Group.directory))
+                    .selectinload(qa(Directory.attributes)),
                 )
                 .where(
                     qa(Directory.entity_type_id).in_(entity_type_ids),

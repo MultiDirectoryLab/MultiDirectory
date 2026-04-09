@@ -211,7 +211,9 @@ class SetupUseCase:
         """
         try:
             domain = await self._setup_gateway.create_base_domain(dto.domain)
-            await self._rid_manager_setup_use_case.create_domain_identifier()
+            await self._rid_manager_setup_use_case.create_domain_identifier(
+                domain.id,
+            )
             await self._setup_gateway.setup_enviroment(
                 data=data,
                 is_system=True,

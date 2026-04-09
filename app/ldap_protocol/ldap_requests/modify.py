@@ -363,6 +363,9 @@ class ModifyRequest(BaseRequest):
                 selectinload(qa(Directory.groups)).joinedload(
                     qa(Group.directory),
                 ),
+                selectinload(qa(Directory.groups))
+                .joinedload(qa(Group.directory))
+                .selectinload(qa(Directory.attributes)),
                 joinedload(qa(Directory.group)).selectinload(
                     qa(Group.members),
                 ),
