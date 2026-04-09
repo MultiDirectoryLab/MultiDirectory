@@ -79,6 +79,18 @@ async def test_create_attribute_type_conflict_when_already_exists(
 
 
 @pytest.mark.asyncio
+async def test_get_attribute_type_returns_directory_name(
+    http_client: AsyncClient,
+) -> None:
+    """Test name vs ldap_display_name for attribute type responses."""
+    response = await http_client.get("/schema/attribute_type/attr_with_bvalue")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data.get("name") == "attr_with_bvalue"
+    assert data.get("ldap_display_name") == "attrWithBvalue"
+
+
+@pytest.mark.asyncio
 async def test_get_list_attribute_types_with_pagination(
     http_client: AsyncClient,
 ) -> None:
