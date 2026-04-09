@@ -116,7 +116,7 @@ class ObjectClassDAO:
         filters = [qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS]
 
         if params.query:
-            filters.append(qa(Directory.name).like(f"%{params.query}%"))
+            filters.append(qa(Directory.name).ilike(f"%{params.query}%"))
 
         query = (
             select(Directory)

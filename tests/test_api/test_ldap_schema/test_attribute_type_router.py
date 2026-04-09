@@ -106,6 +106,20 @@ async def test_get_list_attribute_types_with_pagination(
 
 
 @pytest.mark.asyncio
+async def test_attribute_type_pagination_search_is_case_insensitive(
+    http_client: AsyncClient,
+) -> None:
+    """Test case-insensitive search for attribute type pagination."""
+    response = await http_client.get(
+        "/schema/attribute_types",
+        params={"page_number": 1, "page_size": 50, "query": "PoSiXeMaIl"},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    items = response.json().get("items", [])
+    assert any(item.get("name") == "posixEmail" for item in items)
+
+
+@pytest.mark.asyncio
 async def test_modify_one_attribute_type_raise_404(
     http_client: AsyncClient,
 ) -> None:
