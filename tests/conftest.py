@@ -1179,7 +1179,7 @@ async def setup_session(
         await entity_type_use_case.create_not_safe(entity_type_dto)
 
     domain = await setup_gateway.create_base_domain("md.test")
-    await rid_manager_setup_use_case.create_domain_identifier()
+    await rid_manager_setup_use_case.create_domain_identifier(domain.id)
 
     await setup_gateway.setup_enviroment(
         domain=domain,
