@@ -968,7 +968,9 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     query = (
         select(Directory)
         .options(
-            selectinload(qa(Directory.groups)).joinedload(qa(Group.directory)),
+            selectinload(qa(Directory.groups))
+            .joinedload(qa(Group.directory))
+            .selectinload(qa(Directory.attributes)),
             selectinload(qa(Directory.attributes)),
             joinedload(qa(Directory.group)),
         )

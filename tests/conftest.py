@@ -204,6 +204,10 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
+from ldap_protocol.utils.async_cache import (
+    domain_identifier_cache,
+    rid_set_id_cache,
+)
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
 from repo.pg.master_gateway import PGMasterGateway
@@ -1057,6 +1061,8 @@ async def setup_session(
     settings: Settings,
 ) -> None:
     """Get session and acquire after completion."""
+    domain_identifier_cache.clear()
+    rid_set_id_cache.clear()
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
