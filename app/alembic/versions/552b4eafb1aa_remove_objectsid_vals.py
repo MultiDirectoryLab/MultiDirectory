@@ -15,7 +15,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Attribute, Directory, EntityType
-from enums import EntityTypeNames
+from enums import EntityTypeNames, SecurityPrincipalRid
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
@@ -140,6 +140,15 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                 ),
             )
 
+            if (
+                existing_identifier
+                and existing_identifier.value
+                and existing_identifier.value.startswith("S-1-5-21-")
+            ):
+                parts = existing_identifier.value.split("-")
+                if len(parts) >= 7:
+                    existing_identifier.value = "-".join(parts[4:7])
+
             if not (existing_identifier and existing_identifier.value):
                 domain_object_sid = await session.scalar(
                     select(Attribute).where(
@@ -171,6 +180,54 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                         directory_id=domain.id,
                     ),
                 )
+            else:
+                identifier = existing_identifier.value
+
+            built_in_sid_prefix = "S-1-5-32"
+            for dir_name, rid in (
+                ("domain admins", SecurityPrincipalRid.DOMAIN_ADMINS),
+                ("domain users", SecurityPrincipalRid.DOMAIN_USERS),
+                ("domain computers", SecurityPrincipalRid.DOMAIN_COMPUTERS),
+                (
+                    "read only domain controllers",
+                    SecurityPrincipalRid.DOMAIN_READ_ONLY,
+                ),
+            ):
+                await session.execute(
+                    update(Attribute)
+                    .where(
+                        qa(Attribute.name) == "objectSid",
+                        qa(Attribute.directory_id).in_(
+                            select(qa(Directory.id)).where(
+                                qa(Directory.name) == dir_name,
+                            ),
+                        ),
+                    )
+                    .values(
+                        value=f"{built_in_sid_prefix}-{int(rid)}",
+                    ),
+                )
+
+            await session.execute(
+                update(Attribute)
+                .where(
+                    qa(Attribute.name) == "objectSid",
+                    qa(Attribute.directory_id).in_(
+                        select(qa(Directory.id))
+                        .join(Attribute)
+                        .where(
+                            qa(Attribute.name) == "sAMAccountName",
+                            qa(Attribute.value).ilike("administrator"),
+                        ),
+                    ),
+                )
+                .values(
+                    value=(
+                        f"{built_in_sid_prefix}"
+                        f"-{int(SecurityPrincipalRid.ADMINISTRATOR)}"
+                    ),
+                ),
+            )
 
         await session.commit()
 
@@ -266,68 +323,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                     previous_allocation_pool=previous_allocation_pool,
                 ),
             )
-            await role_use_case.inherit_parent_aces(
-                parent_directory=domain_controller,
-                directory=rid_set_dir,
-            )
+
             await session.commit()
             return
-
-        existing_next_rid = await session.scalar(
-            select(Attribute).where(
-                qa(Attribute.directory_id) == rid_set_dir.id,
-                qa(Attribute.name) == "rIDNextRID",
-            ),
-        )
-        existing_prev_pool = await session.scalar(
-            select(Attribute).where(
-                qa(Attribute.directory_id) == rid_set_dir.id,
-                qa(Attribute.name) == "rIDPreviousAllocationPool",
-            ),
-        )
-        existing_pool = await session.scalar(
-            select(Attribute).where(
-                qa(Attribute.directory_id) == rid_set_dir.id,
-                qa(Attribute.name) == "rIDAllocationPool",
-            ),
-        )
-
-        if (
-            existing_next_rid
-            and existing_next_rid.value
-            and existing_prev_pool
-            and existing_prev_pool.value
-            and existing_pool
-            and existing_pool.value
-        ):
-            await session.commit()
-            return
-
-        previous_allocation_pool = await rid_manager_use_case.allocate_pool()
-        allocation_pool = await rid_manager_use_case.allocate_pool()
-        lower, _ = from_qword(previous_allocation_pool)
-
-        for name, value in (
-            ("rIDNextRID", str(lower)),
-            ("rIDPreviousAllocationPool", str(previous_allocation_pool)),
-            ("rIDAllocationPool", str(allocation_pool)),
-        ):
-            result = await session.execute(
-                update(Attribute)
-                .where(
-                    qa(Attribute.directory_id) == rid_set_dir.id,
-                    qa(Attribute.name) == name,
-                )
-                .values(value=value),
-            )
-            if result.rowcount == 0:
-                session.add(
-                    Attribute(
-                        directory_id=rid_set_dir.id,
-                        name=name,
-                        value=value,
-                    ),
-                )
 
         await session.commit()
 
