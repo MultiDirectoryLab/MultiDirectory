@@ -376,12 +376,10 @@ class SearchRequest(BaseRequest):
             if attr not in _ATTRS_TO_CLEAN
         }
 
-        cond_parts = [
+        cond = or_(
             func.lower(Attribute.name).in_(attrs),
             func.lower(Attribute.name) == "objectclass",
-        ]
-
-        cond = or_(*cond_parts)
+        )
 
         return query.options(
             selectinload(qa(Directory.attributes)),
