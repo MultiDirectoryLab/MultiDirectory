@@ -30,7 +30,7 @@ def _convert_model_to_dto(
     )
     return AttributeTypeDTO[int](
         oid=attr_type.oid,
-        name=ldap_display_name,
+        name=attr_type.name,
         ldap_display_name=ldap_display_name,
         syntax=attr_type.syntax,
         single_value=attr_type.single_value,

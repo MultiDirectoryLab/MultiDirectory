@@ -133,6 +133,20 @@ async def test_get_list_object_classes_with_pagination(
     assert len(response.json().get("items")) == page_size
 
 
+@pytest.mark.asyncio
+async def test_object_class_pagination_search_is_case_insensitive(
+    http_client: AsyncClient,
+) -> None:
+    """Test case-insensitive search for object class pagination."""
+    response = await http_client.get(
+        "/schema/object_classes",
+        params={"page_number": 1, "page_size": 50, "query": "InEtOrGpErSoN"},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    items = response.json().get("items", [])
+    assert any(item.get("name") == "inetOrgPerson" for item in items)
+
+
 @pytest.mark.parametrize(
     "dataset",
     test_modify_one_object_class_dataset,

@@ -18,6 +18,7 @@ from api.error_routing import (
     DomainErrorTranslator,
 )
 from enums import DomainCodes
+from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.ldap_schema.exceptions import (
     AttributeTypeAlreadyExistsError,
     AttributeTypeCantModifyError,
@@ -40,6 +41,10 @@ translator = DomainErrorTranslator(DomainCodes.LDAP_SCHEMA)
 
 
 error_map: ERROR_MAP_TYPE = {
+    UnauthorizedError: rule(
+        status=status.HTTP_401_UNAUTHORIZED,
+        translator=translator,
+    ),
     AttributeTypeAlreadyExistsError: rule(
         status=status.HTTP_400_BAD_REQUEST,
         translator=translator,

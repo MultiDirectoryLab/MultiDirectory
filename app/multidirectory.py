@@ -351,6 +351,11 @@ if __name__ == "__main__":
         help="Make migrations",
     )
     group.add_argument(
+        "--downgrade",
+        metavar="REV",
+        help="Downgrade database to revision",
+    )
+    group.add_argument(
         "--migrate_dns",
         action="store_true",
         help="Migrate DNS from BIND to PowerDNS",
@@ -397,5 +402,7 @@ if __name__ == "__main__":
         dump_acme_cert()
     elif args.migrate:
         command.upgrade(Config("alembic.ini"), "head")
+    elif args.downgrade:
+        command.downgrade(Config("alembic.ini"), args.downgrade)
     elif args.migrate_dns:
         dns_migration(settings=settings)
