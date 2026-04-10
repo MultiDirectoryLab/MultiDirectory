@@ -21,11 +21,11 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     """Upgrade."""
     op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
     op.create_index(
-        "idx_Directory_name_btree",
+        "idx_Directory_name_hash",
         "Directory",
         ["name"],
         unique=False,
-        postgresql_using="btree",
+        postgresql_using="hash",
     )
     op.create_index(
         "idx_Directory_name_gin_trgm",
@@ -41,10 +41,8 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.drop_index(
         "idx_Directory_name_gin_trgm",
         table_name="Directory",
-        postgresql_using="gin",
     )
     op.drop_index(
-        "idx_Directory_name_btree",
+        "idx_Directory_name_hash",
         table_name="Directory",
-        postgresql_using="btree",
     )

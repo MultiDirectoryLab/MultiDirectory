@@ -169,7 +169,7 @@ directory_table = Table(
         text("array_lowercase(path)"),
         postgresql_using="hash",
     ),
-    Index("idx_Directory_name_btree", "name", postgresql_using="btree"),
+    Index("idx_Directory_name_hash", "name", postgresql_using="hash"),
     Index("idx_Directory_name_gin_trgm", "name", postgresql_using="gin"),
 )
 
