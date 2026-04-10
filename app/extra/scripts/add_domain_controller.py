@@ -40,13 +40,15 @@ async def _add_domain_controller(
     await session.flush()
 
     dc_directory.parent_id = dc_ou_dir.id
-    await object_sid_use_case.add(
-        directory_id=dc_directory.id,
-    )
     await session.flush()
+
     await rid_set_use_case.add(
         domain_controller=dc_directory,
         allocation_params=await rid_set_use_case.generate_rid_set_attrs(),
+    )
+    await session.flush()
+    await object_sid_use_case.add(
+        directory_id=dc_directory.id,
     )
 
     attributes = [
