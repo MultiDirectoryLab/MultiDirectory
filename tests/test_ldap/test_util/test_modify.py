@@ -986,6 +986,12 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     [
         (
             "add",
+            "cn=developers,cn=Groups,dc=md,dc=test",
+            {"domain admins", "developers"},
+            True,
+        ),
+        (
+            "add",
             "cn=domain admins,cn=Groups,dc=md,dc=test",
             {"domain admins"},
             True,
@@ -995,6 +1001,12 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
             "cn=developers,cn=Groups,dc=md,dc=test",
             {"domain admins", "developers"},
             False,
+        ),
+        (
+            "replace",
+            "cn=developers,cn=Groups,dc=md,dc=test",
+            {"domain admins", "developers"},
+            True,
         ),
     ],
 )
@@ -1073,6 +1085,16 @@ async def test_ldap_modify_primary_group_id_scenarios(
             False,
             0,
             {"domain admins"},
+        ),
+        (
+            [
+                "cn=domain admins,cn=Groups,dc=md,dc=test",
+                "cn=developers,cn=Groups,dc=md,dc=test",
+                "cn=domain computers,cn=Groups,dc=md,dc=test",
+            ],
+            True,
+            0,
+            {"domain admins", "developers", "domain computers"},
         ),
     ],
 )

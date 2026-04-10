@@ -53,6 +53,7 @@ from ldap_protocol.utils.queries import (
     get_directory_by_rid,
     get_filter_from_path,
     get_groups,
+    groups_include_primary_rid,
     remove_disallowed_group_members,
     remove_from_group_membership,
 )
@@ -363,9 +364,6 @@ class ModifyRequest(BaseRequest):
                 selectinload(qa(Directory.groups)).joinedload(
                     qa(Group.directory),
                 ),
-                selectinload(qa(Directory.groups))
-                .joinedload(qa(Group.directory))
-                .selectinload(qa(Directory.attributes)),
                 joinedload(qa(Directory.group)).selectinload(
                     qa(Group.members),
                 ),
@@ -389,13 +387,17 @@ class ModifyRequest(BaseRequest):
             None,
         )
 
-    def _contain_primary_group(
+    async def _contain_primary_group(
         self,
         groups: list[Group],
         primary_group_id: str,
+        session: AsyncSession,
     ) -> bool:
-        return any(
-            group.directory.relative_id == primary_group_id for group in groups
+        """Check whether membership includes the group for this RID."""
+        return await groups_include_primary_rid(
+            session,
+            groups,
+            primary_group_id,
         )
 
     async def _get_directories_with_primary_group_id(
@@ -436,16 +438,25 @@ class ModifyRequest(BaseRequest):
         )
         return list(await session.scalars(query))
 
-    def _is_primary_group_deleted(
+    async def _is_primary_group_deleted(
         self,
         groups: list[Group],
         primary_group_id: str,
         operation: Operation,
+        session: AsyncSession,
     ) -> bool:
         if operation == Operation.REPLACE:
-            return not self._contain_primary_group(groups, primary_group_id)
+            return not await self._contain_primary_group(
+                groups,
+                primary_group_id,
+                session,
+            )
         elif operation == Operation.DELETE:
-            return self._contain_primary_group(groups, primary_group_id)
+            return await self._contain_primary_group(
+                groups,
+                primary_group_id,
+                session,
+            )
         return False
 
     async def _can_delete_group_from_directory(
@@ -454,6 +465,7 @@ class ModifyRequest(BaseRequest):
         user: UserSchema,
         groups: list[Group],
         operation: Operation,
+        session: AsyncSession,
     ) -> None:
         """Check if the request can delete group from directory."""
         if operation == Operation.REPLACE:
@@ -481,7 +493,12 @@ class ModifyRequest(BaseRequest):
         if not primary_group_id:
             return
 
-        if self._is_primary_group_deleted(groups, primary_group_id, operation):
+        if await self._is_primary_group_deleted(
+            groups,
+            primary_group_id,
+            operation,
+            session,
+        ):
             raise ModifyForbiddenError(
                 "Can't delete primary group from user.",
             )
@@ -556,6 +573,7 @@ class ModifyRequest(BaseRequest):
             user=user,
             groups=groups,
             operation=change.operation,
+            session=session,
         )
 
         if not change.modification.vals:
@@ -719,7 +737,7 @@ class ModifyRequest(BaseRequest):
 
         rid = str(change.modification.vals[0])
 
-        if self._contain_primary_group(directory.groups, rid):
+        if await self._contain_primary_group(directory.groups, rid, session):
             session.add(
                 Attribute(
                     name="primaryGroupID",

@@ -191,16 +191,39 @@ async def get_directory_by_rid(
 ) -> Directory | None:
     query = (
         select(Directory)
+        .join(
+            Attribute,
+            qa(Attribute.directory_id) == qa(Directory.id),
+        )
         .options(
             selectinload(qa(Directory.attributes)),
             joinedload(qa(Directory.group)),
         )
-        .filter(
+        .where(
             qa(Attribute.name) == "objectSid",
             qa(Attribute.value).endswith(f"-{rid}"),
         )
     )
     return await session.scalar(query)
+
+
+async def groups_include_primary_rid(
+    session: AsyncSession,
+    groups: list[Group],
+    primary_group_id: str,
+) -> bool:
+    directory_ids = {g.directory_id for g in groups}
+
+    stmt = (
+        select(qa(Attribute.id))
+        .where(
+            qa(Attribute.directory_id).in_(directory_ids),
+            qa(Attribute.name) == "objectSid",
+            qa(Attribute.value).endswith(f"-{primary_group_id}"),
+        )
+        .limit(1)
+    )
+    return await session.scalar(stmt) is not None
 
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
@@ -567,10 +590,13 @@ async def get_group_path_dn_by_primary_group_id(
     """
     query = (
         select(Directory)
-        .join(Attribute)
+        .join(
+            Attribute,
+            qa(Attribute.directory_id) == qa(Directory.id),
+        )
         .join(qa(Directory.group))
         .options(contains_eager(qa(Directory.group)))
-        .filter(
+        .where(
             qa(Attribute.name) == "objectSid",
             qa(Attribute.value).endswith(f"-{primary_group_id}"),
         )
