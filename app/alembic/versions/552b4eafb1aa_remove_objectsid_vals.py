@@ -15,10 +15,16 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from constants import (
+    COMPUTERS_CONTAINER_NAME,
+    CONFIGURATION_DIR_NAME,
     DOMAIN_ADMIN_GROUP_NAME,
     DOMAIN_COMPUTERS_GROUP_NAME,
+    DOMAIN_CONTROLLERS_OU_NAME,
     DOMAIN_USERS_GROUP_NAME,
+    GROUPS_CONTAINER_NAME,
     READ_ONLY_GROUP_NAME,
+    SYSTEM_CONTAINER_NAME,
+    USERS_CONTAINER_NAME,
 )
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames, SecurityPrincipalRid
@@ -49,6 +55,53 @@ revision: None | str = "552b4eafb1aa"
 down_revision: None | str = "1b71cafba681"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
+
+
+async def _directory_ids_skipped_for_object_sid_migration(
+    session: AsyncSession,
+    domain: Directory,
+) -> set[int]:
+    """Directory ids for which objectSid is not copied into Attributes.
+
+    Top-level peer containers (System, OU DC, Users, Computers, Groups) and
+    the full subtree under ``Configuration``.
+    """
+    peer_container_names = (
+        SYSTEM_CONTAINER_NAME,
+        DOMAIN_CONTROLLERS_OU_NAME,
+        USERS_CONTAINER_NAME,
+        COMPUTERS_CONTAINER_NAME,
+        GROUPS_CONTAINER_NAME,
+    )
+    peer_rows = await session.scalars(
+        select(qa(Directory.id)).where(
+            qa(Directory.parent_id) == domain.id,
+            qa(Directory.name).in_(peer_container_names),
+        ),
+    )
+    skip_ids: set[int] = set(peer_rows.all())
+    configuration_id = await session.scalar(
+        select(qa(Directory.id)).where(
+            qa(Directory.parent_id) == domain.id,
+            qa(Directory.name) == CONFIGURATION_DIR_NAME,
+        ),
+    )
+    if configuration_id is None:
+        return skip_ids
+
+    subtree = (
+        select(qa(Directory.id))
+        .where(qa(Directory.id) == configuration_id)
+        .cte(name="subtree", recursive=True)
+    )
+    subtree = subtree.union_all(
+        select(qa(Directory.id)).where(
+            qa(Directory.parent_id) == subtree.c.id,
+        ),
+    )
+    cfg_rows = await session.execute(select(subtree.c.id))
+    skip_ids |= {row[0] for row in cfg_rows.all()}
+    return skip_ids
 
 
 def upgrade(container: AsyncContainer) -> None:  # noqa: C901
@@ -96,8 +149,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
     ) -> None:
         """Move Directory.objectSid values into Attributes table.
 
-        Additionally, for domain directories create the ``DomainIdentifier``
-        attribute if it does not exist.
+        Add ``DomainIdentifier`` on the domain (from ``Directory.objectSid``
+        column when present). Do not store domain ``objectSid`` in Attributes.
+        Normalize built-in group / administrator SIDs once.
         """
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
@@ -106,6 +160,13 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             return
         domain = base_dn_list[0]
 
+        skip_object_sid_ids = (
+            await _directory_ids_skipped_for_object_sid_migration(
+                session,
+                domain,
+            )
+        )
+
         directory_table = sa.table(
             "Directory",
             sa.column("id", sa.Integer),
@@ -113,126 +174,100 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             sa.column("objectSid", sa.String),
         )
 
-        result = await session.execute(
-            select(
-                directory_table.c.id,
-                directory_table.c.parentId,
-                directory_table.c.objectSid,
+        domain_sid_from_column = await session.scalar(
+            select(directory_table.c.objectSid).where(
+                directory_table.c.id == domain.id,
             ),
         )
 
+        identifier: str | None = None
+        if domain_sid_from_column:
+            parts = domain_sid_from_column.split("-")
+            # "S-1-5-21-AAA-BBB-CCC" -> "AAA-BBB-CCC"
+            if len(parts) >= 7 and domain_sid_from_column.startswith(
+                "S-1-5-21-",
+            ):
+                identifier = "-".join(parts[4:7])
+
+        if identifier is None:
+            identifier = (
+                f"{secrets.randbits(32)}-"
+                f"{secrets.randbits(32)}-"
+                f"{secrets.randbits(32)}"
+            )
+
+        session.add(
+            Attribute(
+                name="DomainIdentifier",
+                value=identifier,
+                directory_id=domain.id,
+            ),
+        )
+        result = (
+            await session.execute(
+                select(
+                    directory_table.c.id,
+                    directory_table.c.parentId,
+                    directory_table.c.objectSid,
+                ),
+            )
+        ).all()
         for directory_id, parent_id, object_sid in result:
             if not object_sid:
                 continue
             if parent_id is None:
                 continue
+            if directory_id in skip_object_sid_ids:
+                continue
 
-            existing_attr = await session.scalar(
-                select(Attribute).where(
-                    qa(Attribute.directory_id) == directory_id,
-                    qa(Attribute.name) == "objectSid",
+            session.add(
+                Attribute(
+                    name="objectSid",
+                    value=object_sid,
+                    directory_id=directory_id,
                 ),
             )
 
-            if not existing_attr:
-                session.add(
-                    Attribute(
-                        name="objectSid",
-                        value=object_sid,
-                        directory_id=directory_id,
-                    ),
-                )
-
-            existing_identifier = await session.scalar(
-                select(Attribute).where(
-                    qa(Attribute.directory_id) == domain.id,
-                    qa(Attribute.name) == "DomainIdentifier",
-                ),
-            )
-
-            if (
-                existing_identifier
-                and existing_identifier.value
-                and existing_identifier.value.startswith("S-1-5-21-")
-            ):
-                parts = existing_identifier.value.split("-")
-                if len(parts) >= 7:
-                    existing_identifier.value = "-".join(parts[4:7])
-
-            if not (existing_identifier and existing_identifier.value):
-                domain_object_sid = await session.scalar(
-                    select(Attribute).where(
-                        qa(Attribute.directory_id) == domain.id,
-                        qa(Attribute.name) == "objectSid",
-                    ),
-                )
-
-                identifier: str | None = None
-                if domain_object_sid and domain_object_sid.value:
-                    parts = domain_object_sid.value.split("-")
-                    # "S-1-5-21-AAA-BBB-CCC" -> "AAA-BBB-CCC"
-                    if len(parts) >= 7 and domain_object_sid.value.startswith(
-                        "S-1-5-21-",
-                    ):
-                        identifier = "-".join(parts[4:7])
-
-                if identifier is None:
-                    identifier = (
-                        f"{secrets.randbits(32)}-"
-                        f"{secrets.randbits(32)}-"
-                        f"{secrets.randbits(32)}"
-                    )
-
-                session.add(
-                    Attribute(
-                        name="DomainIdentifier",
-                        value=identifier,
-                        directory_id=domain.id,
-                    ),
-                )
-            else:
-                identifier = existing_identifier.value
-
-            built_in_sid_prefix = "S-1-5-32"
-            for dir_name, rid in (
-                (DOMAIN_ADMIN_GROUP_NAME, SecurityPrincipalRid.DOMAIN_ADMINS),
-                (DOMAIN_USERS_GROUP_NAME, SecurityPrincipalRid.DOMAIN_USERS),
-                (
-                    DOMAIN_COMPUTERS_GROUP_NAME,
-                    SecurityPrincipalRid.DOMAIN_COMPUTERS,
-                ),
-                (READ_ONLY_GROUP_NAME, SecurityPrincipalRid.DOMAIN_READ_ONLY),
-            ):
-                await session.execute(
-                    update(Attribute)
-                    .where(
-                        qa(Attribute.name) == "objectSid",
-                        qa(Attribute.directory_id).in_(
-                            select(qa(Directory.id)).where(
-                                qa(Directory.name) == dir_name,
-                            ),
-                        ),
-                    )
-                    .values(
-                        value=f"{built_in_sid_prefix}-{int(rid)}",
-                    ),
-                )
-
+        built_in_sid_prefix = "S-1-5-32"
+        for dir_name, rid in (
+            (DOMAIN_ADMIN_GROUP_NAME, SecurityPrincipalRid.DOMAIN_ADMINS),
+            (DOMAIN_USERS_GROUP_NAME, SecurityPrincipalRid.DOMAIN_USERS),
+            (
+                DOMAIN_COMPUTERS_GROUP_NAME,
+                SecurityPrincipalRid.DOMAIN_COMPUTERS,
+            ),
+            (READ_ONLY_GROUP_NAME, SecurityPrincipalRid.DOMAIN_READ_ONLY),
+        ):
             await session.execute(
                 update(Attribute)
                 .where(
                     qa(Attribute.name) == "objectSid",
-                    qa(Attribute.value).like(
-                        f"S-1-5-21-%-{int(SecurityPrincipalRid.ADMINISTRATOR)}",
+                    qa(Attribute.directory_id).in_(
+                        select(qa(Directory.id)).where(
+                            qa(Directory.name) == dir_name,
+                        ),
                     ),
                 )
                 .values(
-                    value=(
-                        f"{built_in_sid_prefix}"
-                        f"-{int(SecurityPrincipalRid.ADMINISTRATOR)}"
-                    ),
+                    value=f"{built_in_sid_prefix}-{int(rid)}",
                 ),
             )
+
+        await session.execute(
+            update(Attribute)
+            .where(
+                qa(Attribute.name) == "objectSid",
+                qa(Attribute.value).like(
+                    f"S-1-5-21-%-{int(SecurityPrincipalRid.ADMINISTRATOR)}",
+                ),
+            )
+            .values(
+                value=(
+                    f"{built_in_sid_prefix}"
+                    f"-{int(SecurityPrincipalRid.ADMINISTRATOR)}"
+                ),
+            ),
+        )
 
         await session.commit()
 
