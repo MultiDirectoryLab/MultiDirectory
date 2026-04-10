@@ -14,6 +14,12 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from constants import (
+    DOMAIN_ADMIN_GROUP_NAME,
+    DOMAIN_COMPUTERS_GROUP_NAME,
+    DOMAIN_USERS_GROUP_NAME,
+    READ_ONLY_GROUP_NAME,
+)
 from entities import Attribute, Directory, EntityType
 from enums import EntityTypeNames, SecurityPrincipalRid
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
@@ -95,22 +101,30 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
         """
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
+        base_dn_list = await get_base_directories(session)
+        if not base_dn_list:
+            return
+        domain = base_dn_list[0]
 
         directory_table = sa.table(
             "Directory",
             sa.column("id", sa.Integer),
+            sa.column("parentId", sa.Integer),
             sa.column("objectSid", sa.String),
         )
 
         result = await session.execute(
             select(
                 directory_table.c.id,
+                directory_table.c.parentId,
                 directory_table.c.objectSid,
             ),
         )
 
-        for directory_id, object_sid in result:
+        for directory_id, parent_id, object_sid in result:
             if not object_sid:
+                continue
+            if parent_id is None:
                 continue
 
             existing_attr = await session.scalar(
@@ -128,10 +142,6 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                         directory_id=directory_id,
                     ),
                 )
-
-        base_dn_list = await get_base_directories(session)
-        if base_dn_list:
-            domain = base_dn_list[0]
 
             existing_identifier = await session.scalar(
                 select(Attribute).where(
@@ -185,13 +195,13 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
 
             built_in_sid_prefix = "S-1-5-32"
             for dir_name, rid in (
-                ("domain admins", SecurityPrincipalRid.DOMAIN_ADMINS),
-                ("domain users", SecurityPrincipalRid.DOMAIN_USERS),
-                ("domain computers", SecurityPrincipalRid.DOMAIN_COMPUTERS),
+                (DOMAIN_ADMIN_GROUP_NAME, SecurityPrincipalRid.DOMAIN_ADMINS),
+                (DOMAIN_USERS_GROUP_NAME, SecurityPrincipalRid.DOMAIN_USERS),
                 (
-                    "read only domain controllers",
-                    SecurityPrincipalRid.DOMAIN_READ_ONLY,
+                    DOMAIN_COMPUTERS_GROUP_NAME,
+                    SecurityPrincipalRid.DOMAIN_COMPUTERS,
                 ),
+                (READ_ONLY_GROUP_NAME, SecurityPrincipalRid.DOMAIN_READ_ONLY),
             ):
                 await session.execute(
                     update(Attribute)
@@ -212,13 +222,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                 update(Attribute)
                 .where(
                     qa(Attribute.name) == "objectSid",
-                    qa(Attribute.directory_id).in_(
-                        select(qa(Directory.id))
-                        .join(Attribute)
-                        .where(
-                            qa(Attribute.name) == "sAMAccountName",
-                            qa(Attribute.value).ilike("administrator"),
-                        ),
+                    qa(Attribute.value).like(
+                        f"S-1-5-21-%-{int(SecurityPrincipalRid.ADMINISTRATOR)}",
                     ),
                 )
                 .values(
