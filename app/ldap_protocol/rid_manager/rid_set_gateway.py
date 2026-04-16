@@ -66,8 +66,7 @@ class RIDSetGateway:
                 qa(domain.object_class) == "domain",
                 qa(domain.parent_id).is_(None),
                 qa(domain_controllers_ou.name) == DOMAIN_CONTROLLERS_OU_NAME,
-                qa(domain_controller.name)
-                == self._host_machine_short_name,
+                qa(domain_controller.name) == self._host_machine_short_name,
                 qa(rid_set.name) == "RID Set",
             ),
         )
