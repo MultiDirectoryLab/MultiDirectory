@@ -50,7 +50,7 @@ from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
 revision: None | str = "552b4eafb1aa"
-down_revision: None | str = "1b71cafba681"
+down_revision: None | str = "21a957c18dce"
 branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
