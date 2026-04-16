@@ -21,7 +21,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.expression import ColumnElement
 
 from entities import Attribute, Directory, Group, User
-from enums import SamAccountTypeCodes, SidPrefix
+from enums import SamAccountTypeCodes
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
     AttributeValueValidatorError,
@@ -382,7 +382,6 @@ def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
 
 async def create_group(
     name: str,
-    sid: int | None,
     attribute_value_validator: AttributeValueValidator,
     session: AsyncSession,
 ) -> tuple[Directory, Group]:
@@ -414,14 +413,6 @@ async def create_group(
     group = Group(directory_id=dir_.id)
     dir_.create_path(parent)
     session.add(group)
-
-    session.add(
-        Attribute(
-            name="objectSid",
-            value=f"{SidPrefix.BUILT_IN_DOMAIN}-{sid or dir_.id}",
-            directory_id=dir_.id,
-        ),
-    )
 
     await session.flush()
 

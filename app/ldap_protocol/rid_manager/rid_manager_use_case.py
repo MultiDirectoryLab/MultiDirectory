@@ -6,7 +6,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from entities import Directory
 from ldap_protocol.rid_manager.exceptions import RIDManagerPoolExceededError
 from ldap_protocol.rid_manager.rid_manager_gateway import RIDManagerGateway
 from ldap_protocol.rid_manager.utils import from_qword, to_qword
@@ -41,7 +40,3 @@ class RIDManagerUseCase:
             await self._gateway.update_rid_available_pool(new_available_pool)
 
         return to_qword(lower, lower + self.RID_BLOCK_SIZE)
-
-    async def get_domain_controller(self) -> Directory:
-        """Locate best Domain Controller via DNS SRV records."""
-        return await self._gateway.get_domain_controller()

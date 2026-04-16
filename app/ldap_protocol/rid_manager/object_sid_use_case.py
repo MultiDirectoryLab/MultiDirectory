@@ -28,9 +28,9 @@ class ObjectSIDUseCase:
         self._session = session
         self._rid_manager_use_case = rid_manager_use_case
 
-    async def get(self, directory_id: int) -> str:
-        """Get object SID."""
-        return await self._gateway.get(directory_id)
+    async def get_domain_identifier(self) -> str:
+        """Get domain identifier."""
+        return await self._gateway.get_domain_identifier()
 
     async def add(
         self,
@@ -40,8 +40,7 @@ class ObjectSIDUseCase:
     ) -> None:
         """Add object SID."""
         if rid is None:
-            rid_set_id = await self._rid_set_use_case.get_rid_set_id()
-            rid = await self._rid_set_use_case.allocate_next_rid(rid_set_id)
+            rid = await self._rid_set_use_case.allocate_next_rid()
 
         if sid_prefix == SidPrefix.BUILT_IN_DOMAIN:
             object_sid = f"{sid_prefix}-{rid}"

@@ -8,7 +8,6 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from config import Settings
 from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
 from ldap_protocol.rid_manager.dtos import RIDSetAllocationParamsDTO
@@ -18,6 +17,7 @@ from ldap_protocol.rid_manager.exceptions import (
     RIDManagerRidPreviousAllocationPoolNotFoundError,
     RIDManagerRidSetNotFoundError,
 )
+from ldap_protocol.rid_manager.types import HostMachineShortName
 from ldap_protocol.utils.async_cache import rid_set_id_cache
 from repo.pg.tables import queryable_attr as qa
 
@@ -25,10 +25,14 @@ from repo.pg.tables import queryable_attr as qa
 class RIDSetGateway:
     """RID Set gateway."""
 
-    def __init__(self, session: AsyncSession, settings: Settings) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        host_machine_short_name: HostMachineShortName,
+    ) -> None:
         """Initialize RID Set gateway."""
         self._session = session
-        self._settings = settings
+        self._host_machine_short_name = host_machine_short_name
 
     @rid_set_id_cache
     async def get_rid_set_id(self) -> int:
@@ -63,7 +67,7 @@ class RIDSetGateway:
                 qa(domain.parent_id).is_(None),
                 qa(domain_controllers_ou.name) == DOMAIN_CONTROLLERS_OU_NAME,
                 qa(domain_controller.name)
-                == self._settings.HOST_MACHINE_SHORT_NAME,
+                == self._host_machine_short_name,
                 qa(rid_set.name) == "RID Set",
             ),
         )
@@ -84,13 +88,15 @@ class RIDSetGateway:
 
         return rid_set
 
-    async def add(self, domain_controller: Directory) -> Directory:
-        """Add RID Set directory."""
+    async def create_rid_set_directory(
+        self,
+        domain_controller: Directory,
+    ) -> Directory:
+        """Create RID Set directory."""
         rid_set_dir = Directory(
             is_system=True,
             name="RID Set",
         )
-        rid_set_dir.create_path(domain_controller, "cn")
 
         self._session.add(rid_set_dir)
         await self._session.flush()
@@ -163,10 +169,12 @@ class RIDSetGateway:
     async def get_rid_allocation_pool(self, rid_set_id: int) -> int:
         """Get RID allocation pool from RID Set directory."""
         allocation_pool = await self._session.scalar(
-            select(Attribute).where(
+            select(Attribute)
+            .where(
                 qa(Attribute.name) == "rIDAllocationPool",
                 qa(Attribute.directory_id) == rid_set_id,
-            ),
+            )
+            .with_for_update(),
         )
         if not (allocation_pool and allocation_pool.value):
             raise RIDManagerRidAllocationPoolNotFoundError(
@@ -193,7 +201,7 @@ class RIDSetGateway:
             )
         return int(previous_allocation_pool.value)
 
-    async def get_rid_next_rid(self, rid_set_id: int) -> int:
+    async def get_next_rid_value(self, rid_set_id: int) -> int:
         """Get next RID from RID Set directory."""
         next_rid = await self._session.scalar(
             select(Attribute)

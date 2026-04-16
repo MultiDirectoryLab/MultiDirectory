@@ -189,6 +189,7 @@ from ldap_protocol.rid_manager import (
     RIDSetGateway,
     RIDSetUseCase,
 )
+from ldap_protocol.rid_manager.types import HostMachineShortName
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
@@ -1092,13 +1093,19 @@ async def setup_session(
         object_class_dao=object_class_dao,
         directory_dao=directory_dao,
     )
-    rid_manager_gateway = RIDManagerGateway(session, settings)
+    rid_manager_gateway = RIDManagerGateway(
+        session,
+        HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+    )
 
     rid_manager_use_case = RIDManagerUseCase(
         rid_manager_gateway,
         session,
     )
-    rid_set_gateway = RIDSetGateway(session, settings)
+    rid_set_gateway = RIDSetGateway(
+        session,
+        HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+    )
 
     rid_set_use_case = RIDSetUseCase(
         rid_set_gateway,
@@ -1159,7 +1166,9 @@ async def setup_session(
 
     rid_manager_setup_gateway = RIDManagerSetupGateway(
         session=session,
-        entity_type_use_case=entity_type_use_case,
+        host_machine_short_name=HostMachineShortName(
+            settings.HOST_MACHINE_SHORT_NAME,
+        ),
     )
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
@@ -1168,10 +1177,10 @@ async def setup_session(
     rid_manager_setup_use_case = RIDManagerSetupUseCase(
         rid_manager_setup_gateway=rid_manager_setup_gateway,
         role_use_case=role_use_case,
+        entity_type_use_case=entity_type_use_case,
         rid_set_use_case=rid_set_use_case,
-        access_control_entry_dao=AccessControlEntryDAO(session),
-        settings=settings,
         rid_manager_use_case=rid_manager_use_case,
+        session=session,
     )
     setup_gateway = SetupGateway(
         session,
@@ -1823,7 +1832,10 @@ async def rid_manager_gateway(
     """Get RID Manager gateway."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
-        yield RIDManagerGateway(session, settings)
+        yield RIDManagerGateway(
+            session,
+            HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+        )
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -1845,7 +1857,10 @@ async def rid_set_gateway(
     """Provide RIDSetGateway for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
-        yield RIDSetGateway(session, settings)
+        yield RIDSetGateway(
+            session,
+            HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+        )
 
 
 @pytest_asyncio.fixture(scope="function")

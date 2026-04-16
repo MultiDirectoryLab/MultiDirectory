@@ -10,6 +10,7 @@ from ldap_protocol.rid_manager.object_sid_use_case import ObjectSIDUseCase
 from ldap_protocol.rid_manager.rid_manager_gateway import RIDManagerGateway
 from ldap_protocol.rid_manager.rid_set_gateway import RIDSetGateway
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
+from ldap_protocol.rid_manager.setup_use_case import RIDManagerSetupUseCase
 from ldap_protocol.rid_manager.utils import from_qword, to_qword
 
 
@@ -38,9 +39,8 @@ async def test_next_rid(
     rid_set_use_case: RIDSetUseCase,
 ) -> None:
     """Test RID Manager get domain controller."""
-    rid_set_id = await rid_set_use_case.get_rid_set_id()
-    next_rid = await rid_set_use_case.allocate_next_rid(rid_set_id)
-    new_next_rid = await rid_set_use_case.allocate_next_rid(rid_set_id)
+    next_rid = await rid_set_use_case.allocate_next_rid()
+    new_next_rid = await rid_set_use_case.allocate_next_rid()
     assert new_next_rid == next_rid + 1
 
 
@@ -67,7 +67,7 @@ async def test_rid_set_reset_pool(
     _, upper = from_qword(previous_pool_before)
     await rid_set_gateway.update_next_rid(rid_set_id, upper)
 
-    current_next_rid = await rid_set_gateway.get_rid_next_rid(rid_set_id)
+    current_next_rid = await rid_set_gateway.get_next_rid_value(rid_set_id)
     assert (
         rid_set_use_case.is_pool_exceeded(
             current_next_rid,
@@ -76,8 +76,8 @@ async def test_rid_set_reset_pool(
         is True
     )
 
-    await rid_set_use_case.allocate_next_rid(rid_set_id)
-    current_next_rid = await rid_set_gateway.get_rid_next_rid(rid_set_id)
+    await rid_set_use_case.allocate_next_rid()
+    current_next_rid = await rid_set_gateway.get_next_rid_value(rid_set_id)
     previous_pool_mid = await rid_set_gateway.get_rid_previous_allocation_pool(
         rid_set_id,
     )
@@ -117,17 +117,17 @@ async def test_object_sid_add_updates_next_rid_and_prefix(
     object_sid_gateway: ObjectSIDGateway,
     rid_set_use_case: RIDSetUseCase,
     rid_set_gateway: RIDSetGateway,
-    rid_manager_use_case: RIDManagerUseCase,
+    rid_manager_setup_use_case: RIDManagerSetupUseCase,
 ) -> None:
-    dc = await rid_manager_use_case.get_domain_controller()
+    dc = await rid_manager_setup_use_case.get_domain_controller()
     rid_set_id = await rid_set_use_case.get_rid_set_id()
     dc_id = dc.id
 
-    next_before = await rid_set_gateway.get_rid_next_rid(rid_set_id)
+    next_before = await rid_set_gateway.get_next_rid_value(rid_set_id)
 
     await object_sid_use_case.add(directory_id=dc_id)
     await session.flush()
-    next_after = await rid_set_gateway.get_rid_next_rid(rid_set_id)
+    next_after = await rid_set_gateway.get_next_rid_value(rid_set_id)
     assert next_after == next_before + 1
 
     sid_domain_attr = await object_sid_gateway.get(dc_id)
@@ -139,7 +139,7 @@ async def test_object_sid_add_updates_next_rid_and_prefix(
         sid_prefix=SidPrefix.BUILT_IN_DOMAIN,
     )
     await session.flush()
-    next_after_builtin = await rid_set_gateway.get_rid_next_rid(rid_set_id)
+    next_after_builtin = await rid_set_gateway.get_next_rid_value(rid_set_id)
     assert next_after_builtin == next_after
 
     sid_builtin_attr = await object_sid_gateway.get(rid_set_id)

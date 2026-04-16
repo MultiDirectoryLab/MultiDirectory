@@ -9,15 +9,13 @@ import secrets
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from constants import SYSTEM_CONTAINER_NAME
+from constants import DOMAIN_CONTROLLERS_OU_NAME, SYSTEM_CONTAINER_NAME
 from entities import Attribute, Directory
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
 from ldap_protocol.rid_manager.exceptions import (
+    RIDManagerDomainControllerNotFoundError,
     RIDManagerSystemContainerNotFoundError,
 )
-from ldap_protocol.utils.queries import get_base_directories
+from ldap_protocol.rid_manager.types import HostMachineShortName
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -27,24 +25,20 @@ class RIDManagerSetupGateway:
     def __init__(
         self,
         session: AsyncSession,
-        entity_type_use_case: EntityTypeUseCase,
+        host_machine_short_name: HostMachineShortName,
     ) -> None:
         """Initialize RID Manager setup gateway."""
         self._session = session
-        self._entity_type_use_case = entity_type_use_case
+        self._host_machine_short_name = host_machine_short_name
 
     async def get_system_container(self) -> Directory:
         """Get System container directory.
 
         :return: System container directory
         """
-        base_dn_list = await get_base_directories(self._session)
-
-        domain = base_dn_list[0]
-
         query = select(Directory).where(
             qa(Directory.name) == SYSTEM_CONTAINER_NAME,
-            qa(Directory.parent_id) == domain.id,
+            qa(Directory.is_system).is_(True),
         )
 
         system_container = await self._session.scalar(query)
@@ -64,7 +58,6 @@ class RIDManagerSetupGateway:
             is_system=True,
             name="RID Manager$",
         )
-        rid_manager_dir.create_path(system_container, "cn")
 
         self._session.add(rid_manager_dir)
         await self._session.flush()
@@ -103,14 +96,6 @@ class RIDManagerSetupGateway:
             attribute_names=["attributes"],
             with_for_update=None,
         )
-
-        await self._entity_type_use_case.attach_entity_type_to_directory(
-            directory=rid_manager_dir,
-            is_system_entity_type=True,
-            object_class_names={"top", "rIDManager"},
-        )
-
-        await self._session.flush()
 
         return rid_manager_dir
 
@@ -164,3 +149,21 @@ class RIDManagerSetupGateway:
             ),
         )
         await self._session.flush()
+
+    async def get_domain_controller(self) -> Directory:
+        """Get domain controller."""
+        domain_controller = await self._session.scalar(
+            select(Directory).where(
+                qa(Directory.name) == self._host_machine_short_name,
+                qa(Directory.parent).has(
+                    qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
+                ),
+            ),
+        )
+
+        if not domain_controller:
+            raise RIDManagerDomainControllerNotFoundError(
+                "Domain controller not found",
+            )
+
+        return domain_controller

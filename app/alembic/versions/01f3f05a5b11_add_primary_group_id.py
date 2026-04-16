@@ -68,7 +68,6 @@ def upgrade(container: AsyncContainer) -> None:
 
             dir_, group_ = await create_group(
                 name=DOMAIN_COMPUTERS_GROUP_NAME,
-                sid=515,
                 attribute_value_validator=AttributeValueValidator(),
                 session=session,
             )

@@ -188,6 +188,7 @@ from ldap_protocol.rid_manager import (
     RIDSetGateway,
     RIDSetUseCase,
 )
+from ldap_protocol.rid_manager.types import HostMachineShortName
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.migrations_ace_dao import (
@@ -215,6 +216,13 @@ class MainProvider(Provider):
 
     scope = Scope.APP
     settings = from_context(provides=Settings, scope=Scope.APP)
+
+    @provide(scope=Scope.APP)
+    def host_machine_short_name(
+        self,
+        settings: Settings,
+    ) -> HostMachineShortName:
+        return HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME)
 
     @provide(scope=Scope.APP)
     def get_engine_registry(self, settings: Settings) -> EngineRegistry:

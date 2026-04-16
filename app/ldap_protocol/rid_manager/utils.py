@@ -1,4 +1,8 @@
-"""RID Manager utils."""
+"""RID Manager utils.
+
+Copyright (c) 2025 MultiFactor
+License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
+"""
 
 
 def to_qword(lower: int, upper: int) -> int:

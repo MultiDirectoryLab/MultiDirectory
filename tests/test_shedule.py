@@ -18,8 +18,8 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
 from ldap_protocol.rid_manager import ObjectSIDUseCase
-from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
+from ldap_protocol.rid_manager.setup_use_case import RIDManagerSetupUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
 
@@ -92,12 +92,12 @@ async def test_add_domain_controller(
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
     object_sid_use_case: ObjectSIDUseCase,
-    rid_manager_use_case: RIDManagerUseCase,
+    rid_manager_setup_use_case: RIDManagerSetupUseCase,
     rid_set_use_case: RIDSetUseCase,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test add domain controller."""
-    existing_dc = await rid_manager_use_case.get_domain_controller()
+    existing_dc = await rid_manager_setup_use_case.get_domain_controller()
     existing_rid_set_id = await rid_set_use_case.get_rid_set_id()
     monkeypatch.setattr(
         settings,

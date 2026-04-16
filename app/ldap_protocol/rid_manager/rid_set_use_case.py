@@ -49,7 +49,9 @@ class RIDSetUseCase:
         allocation_params: RIDSetAllocationParamsDTO,
     ) -> Directory:
         """Create RID Set directory."""
-        rid_set = await self._gateway.add(domain_controller)
+        rid_set = await self._gateway.create_rid_set_directory(
+            domain_controller,
+        )
         await self._entity_type_use_case.attach_entity_type_to_directory(
             directory=rid_set,
             is_system_entity_type=True,
@@ -60,9 +62,9 @@ class RIDSetUseCase:
             rid_set.id,
             allocation_params,
         )
-        await self.inherit_parent_aces(
-            domain_controller=domain_controller,
-            rid_set=rid_set,
+        await self._role_use_case.inherit_parent_aces(
+            parent_directory=domain_controller,
+            directory=rid_set,
         )
         await self._session.flush()
         return rid_set
@@ -77,10 +79,13 @@ class RIDSetUseCase:
 
         return current_next_rid + 1 > upper
 
-    async def allocate_next_rid(self, rid_set_id: int) -> int:
+    async def allocate_next_rid(self) -> int:
         """Allocate next RID."""
         async with self._session.begin_nested():
-            current_next_rid = await self._gateway.get_rid_next_rid(rid_set_id)
+            rid_set_id = await self.get_rid_set_id()
+            current_next_rid = await self._gateway.get_next_rid_value(
+                rid_set_id,
+            )
             previous_allocation_pool = (
                 await self._gateway.get_rid_previous_allocation_pool(
                     rid_set_id,
@@ -134,15 +139,4 @@ class RIDSetUseCase:
             next_rid=lower,
             allocation_pool=allocation_pool,
             previous_allocation_pool=previous_allocation_pool,
-        )
-
-    async def inherit_parent_aces(
-        self,
-        domain_controller: Directory,
-        rid_set: Directory,
-    ) -> None:
-        """Inherit parent ACEs to RID Set directory."""
-        await self._role_use_case.inherit_parent_aces(
-            parent_directory=domain_controller,
-            directory=rid_set,
         )

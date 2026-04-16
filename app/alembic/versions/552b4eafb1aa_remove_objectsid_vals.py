@@ -6,8 +6,6 @@ Create Date: 2026-02-17 09:24:57.906080
 
 """
 
-import secrets
-
 import sqlalchemy as sa
 from alembic import op
 from dishka import AsyncContainer, Scope
@@ -180,26 +178,19 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             ),
         )
 
-        identifier: str | None = None
+        domain_identifier: str | None = None
         if domain_sid_from_column:
             parts = domain_sid_from_column.split("-")
             # "S-1-5-21-AAA-BBB-CCC" -> "AAA-BBB-CCC"
             if len(parts) >= 7 and domain_sid_from_column.startswith(
                 "S-1-5-21-",
             ):
-                identifier = "-".join(parts[4:7])
-
-        if identifier is None:
-            identifier = (
-                f"{secrets.randbits(32)}-"
-                f"{secrets.randbits(32)}-"
-                f"{secrets.randbits(32)}"
-            )
+                domain_identifier = "-".join(parts[4:7])
 
         session.add(
             Attribute(
                 name="DomainIdentifier",
-                value=identifier,
+                value=domain_identifier,
                 directory_id=domain.id,
             ),
         )
@@ -228,7 +219,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                 ),
             )
 
-        built_in_sid_prefix = "S-1-5-32"
+        sid_prefix = "S-1-5-21"
         for dir_name, rid in (
             (DOMAIN_ADMIN_GROUP_NAME, SecurityPrincipalRid.DOMAIN_ADMINS),
             (DOMAIN_USERS_GROUP_NAME, SecurityPrincipalRid.DOMAIN_USERS),
@@ -249,7 +240,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
                     ),
                 )
                 .values(
-                    value=f"{built_in_sid_prefix}-{int(rid)}",
+                    value=f"{sid_prefix}-{domain_identifier}-{int(rid)}",
                 ),
             )
 
@@ -263,8 +254,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             )
             .values(
                 value=(
-                    f"{built_in_sid_prefix}"
-                    f"-{int(SecurityPrincipalRid.ADMINISTRATOR)}"
+                    f"{sid_prefix}"
+                    f"-{domain_identifier}-{int(SecurityPrincipalRid.ADMINISTRATOR)}"
                 ),
             ),
         )
@@ -286,18 +277,15 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             rid_set_use_case = await cnt.get(RIDSetUseCase)
             role_use_case = await cnt.get(RoleUseCase)
 
-        if not await get_base_directories(session):
+        base_dn_list = await get_base_directories(session)
+        if not base_dn_list:
             return
+        domain = base_dn_list[0]
 
         try:
             rid_manager_dir = await rid_gateway.get_rid_manager()
         except RIDManagerNotFoundError:
             rid_manager_dir = await rid_setup_gateway.set_rid_manager()
-
-        base_dn_list = await get_base_directories(session)
-        if not base_dn_list:
-            return
-        domain = base_dn_list[0]
 
         domain_identifier = await session.scalar(
             select(Attribute).where(
@@ -341,21 +329,17 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: C901
             directory=rid_manager_dir,
         )
 
-        domain_controller = await rid_gateway.get_domain_controller()
-        rid_set_dir: Directory | None = None
+        domain_controller = await rid_setup_gateway.get_domain_controller()
         try:
-            rid_set_dir = await rid_set_gateway.get(domain_controller)
+            await rid_set_gateway.get(domain_controller)
         except RIDManagerRidSetNotFoundError:
-            rid_set_dir = None
-
-        if rid_set_dir is None:
             previous_allocation_pool = (
                 await rid_manager_use_case.allocate_pool()
             )
             allocation_pool = await rid_manager_use_case.allocate_pool()
             lower, _ = from_qword(previous_allocation_pool)
 
-            rid_set_dir = await rid_set_use_case.add(
+            await rid_set_use_case.add(
                 domain_controller,
                 RIDSetAllocationParamsDTO(
                     next_rid=lower,

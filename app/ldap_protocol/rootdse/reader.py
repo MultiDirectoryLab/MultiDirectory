@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from config import Settings
 from constants import DEFAULT_DC_POSTFIX, UNC_PREFIX
+from enums import SidPrefix
 from ldap_protocol.rid_manager import ObjectSIDUseCase
 from ldap_protocol.utils.helpers import get_generalized_now
 
@@ -102,7 +103,9 @@ class DCInfoReader:
         domain = await self._gw.get_domain()
         dns = domain.name.lower()
         nb_domain = dns.split(".")[0].upper()
-        object_sid = await self._object_sid_use_case.get(domain.id)
+        domain_identifier = (
+            await self._object_sid_use_case.get_domain_identifier()
+        )
 
         return DomainControllerInfo(
             net_bios_domain=nb_domain,
@@ -110,6 +113,6 @@ class DCInfoReader:
             unc=UNC_PREFIX + dns,
             dns=dns,
             dns_forest=dns,
-            object_sid=object_sid,
+            object_sid=f"{SidPrefix.DOMAIN_IDENTIFIER}-{domain_identifier}",
             object_guid=str(domain.object_guid),
         )

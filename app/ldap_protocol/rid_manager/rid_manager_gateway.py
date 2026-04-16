@@ -7,24 +7,26 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import Settings
-from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
 from ldap_protocol.rid_manager.exceptions import (
     RIDManagerAvailablePoolNotFoundError,
-    RIDManagerDomainControllerNotFoundError,
     RIDManagerNotFoundError,
 )
+from ldap_protocol.rid_manager.types import HostMachineShortName
 from repo.pg.tables import queryable_attr as qa
 
 
 class RIDManagerGateway:
     """RID Manager gateway."""
 
-    def __init__(self, session: AsyncSession, settings: Settings) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        host_machine_short_name: HostMachineShortName,
+    ) -> None:
         """Initialize RID Manager gateway."""
         self._session = session
-        self._settings = settings
+        self._host_machine_short_name = host_machine_short_name
 
     async def get_rid_manager(self) -> Directory:
         """Get RID Manager directory."""
@@ -55,41 +57,3 @@ class RIDManagerGateway:
             .where(qa(Attribute.name) == "rIDAvailablePool")
             .values(value=str(available_pool)),
         )
-
-    async def get_domain_controller(
-        self,
-    ) -> Directory:
-        """Get domain controller."""
-        domain = await self._session.scalar(
-            select(Directory).where(
-                qa(Directory.object_class) == "domain",
-                qa(Directory.parent_id).is_(None),
-            ),
-        )
-        if not domain:
-            raise RIDManagerDomainControllerNotFoundError(
-                "Domain controller not found",
-            )
-
-        domain_controllers_ou = await self._session.scalar(
-            select(Directory).where(
-                qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
-                qa(Directory.parent_id) == domain.id,
-            ),
-        )
-        if not domain_controllers_ou:
-            raise RIDManagerDomainControllerNotFoundError(
-                "Domain controllers OU not found",
-            )
-
-        domain_controller = await self._session.scalar(
-            select(Directory).where(
-                qa(Directory.name) == self._settings.HOST_MACHINE_SHORT_NAME,
-                qa(Directory.parent_id) == domain_controllers_ou.id,
-            ),
-        )
-        if not domain_controller:
-            raise RIDManagerDomainControllerNotFoundError(
-                "Domain controller not found",
-            )
-        return domain_controller

@@ -253,10 +253,6 @@ class SetupUseCase:
             await self._role_use_case.create_read_only_role()
             await self._audit_use_case.create_policies()
             await self._rid_manager_setup_use_case.setup()
-            dc = await self._rid_manager_use_case.get_domain_controller()
-            await self._object_sid_use_case.add(
-                directory_id=dc.id,
-            )
 
             await self._session.commit()
         except IntegrityError:

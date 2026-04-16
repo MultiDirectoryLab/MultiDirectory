@@ -12,7 +12,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory, Group, NetworkPolicy, User
-from enums import EntityTypeNames, SidPrefix
+from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.attribute_value_validator import (
     AttributeValueValidator,
 )
@@ -168,7 +168,6 @@ class SetupGateway:
             await self._object_sid_use_case.add(
                 directory_id=dir_.id,
                 rid=int(data["objectSid"]),
-                sid_prefix=SidPrefix.BUILT_IN_DOMAIN,
             )
 
         if dir_.object_class == "group":
