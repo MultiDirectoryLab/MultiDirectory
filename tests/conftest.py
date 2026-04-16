@@ -234,6 +234,13 @@ class TestProvider(Provider):
     _cached_dhcp_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
 
+    @provide(scope=Scope.RUNTIME)
+    def host_machine_short_name(
+        self,
+        settings: Settings,
+    ) -> HostMachineShortName:
+        return HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME)
+
     @provide(scope=Scope.APP, provides=AbstractKadmin)
     async def get_kadmin(self) -> AsyncIterator[AsyncMock]:
         """Get mock kadmin."""
