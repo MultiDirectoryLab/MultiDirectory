@@ -18,7 +18,6 @@ from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.object_class.constants import (
     ObjectClassAttributeNames,
 )
-from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -50,6 +49,25 @@ _OBJECTSID_MAY_OBJECT_CLASSES: frozenset[str] = frozenset(
     },
 )
 
+_TARGET_OBJECT_CLASSES = sorted(
+    _OBJECTSID_MUST_OBJECT_CLASSES | _OBJECTSID_MAY_OBJECT_CLASSES,
+)
+
+
+async def _get_target_object_classes(
+    session: AsyncSession,
+) -> list[Directory]:
+    """Return target objectClass directories."""
+    dirs = await session.scalars(
+        select(Directory)
+        .join(qa(Directory.entity_type))
+        .where(
+            qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
+            func.lower(qa(Directory.name)).in_(_TARGET_OBJECT_CLASSES),
+        ),
+    )
+    return list(dirs.all())
+
 
 def upgrade(container: AsyncContainer) -> None:
     """Ensure objectSid in mustContain/mayContain for known classes."""
@@ -60,28 +78,15 @@ def upgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        if not await get_base_directories(session):
-            return
-
-        targets = sorted(
-            _OBJECTSID_MUST_OBJECT_CLASSES | _OBJECTSID_MAY_OBJECT_CLASSES,
-        )
-        dirs = await session.scalars(
-            select(Directory)
-            .join(qa(Directory.entity_type))
-            .where(
-                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                func.lower(qa(Directory.name)).in_(targets),
-            ),
-        )
-        oc_dirs = list(dirs.all())
+        oc_dirs = await _get_target_object_classes(session)
         if not oc_dirs:
-            await session.commit()
             return
 
         oc_ids = [d.id for d in oc_dirs]
         existing = await session.scalars(
-            select(Attribute).where(
+            select(qa(Attribute.directory_id))
+            .distinct()
+            .where(
                 qa(Attribute.directory_id).in_(oc_ids),
                 qa(Attribute.name).in_(
                     [
@@ -92,25 +97,24 @@ def upgrade(container: AsyncContainer) -> None:
                 func.lower(qa(Attribute.value)) == "objectsid",
             ),
         )
-        existing_by_dir: dict[int, set[str]] = {}
-        for a in existing.all():
-            existing_by_dir.setdefault(a.directory_id, set()).add(a.name)
+        existing_ids = set(existing.all())
 
         for oc_dir in oc_dirs:
+            directory_id = oc_dir.id
             name_lower = oc_dir.name.lower()
+            if directory_id in existing_ids:
+                continue
+
             wanted = (
                 ObjectClassAttributeNames.ATTRIBUTE_TYPES_MUST
                 if name_lower in _OBJECTSID_MUST_OBJECT_CLASSES
                 else ObjectClassAttributeNames.ATTRIBUTE_TYPES_MAY
             )
-            already = existing_by_dir.get(oc_dir.id, set())
-            if wanted in already:
-                continue
             session.add(
                 Attribute(
                     name=wanted,
                     value="objectSid",
-                    directory_id=oc_dir.id,
+                    directory_id=directory_id,
                 ),
             )
 
@@ -128,26 +132,12 @@ def downgrade(container: AsyncContainer) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        if not await get_base_directories(session):
-            return
-
-        targets = sorted(
-            _OBJECTSID_MUST_OBJECT_CLASSES | _OBJECTSID_MAY_OBJECT_CLASSES,
-        )
-        oc_dirs = await session.scalars(
-            select(qa(Directory.id))
-            .join(qa(Directory.entity_type))
-            .where(
-                qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                func.lower(qa(Directory.name)).in_(targets),
-            ),
-        )
-        oc_ids = list(oc_dirs.all())
+        oc_dirs = await _get_target_object_classes(session)
+        oc_ids = [d.id for d in oc_dirs]
         if not oc_ids:
-            await session.commit()
             return
 
-        await session.execute(
+        result = await session.execute(
             delete(Attribute).where(
                 qa(Attribute.directory_id).in_(oc_ids),
                 qa(Attribute.name).in_(
@@ -159,6 +149,7 @@ def downgrade(container: AsyncContainer) -> None:
                 func.lower(qa(Attribute.value)) == "objectsid",
             ),
         )
-        await session.commit()
+        if result.rowcount:
+            await session.commit()
 
     op.run_async(_unpatch_object_classes)
