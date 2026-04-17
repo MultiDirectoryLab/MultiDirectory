@@ -1129,6 +1129,7 @@ async def setup_session(
         rid_set_use_case,
         session,
         rid_manager_use_case,
+        object_class_dao,
     )
     directory_create_use_case = DirectoryCreateUseCase(
         session=session,
@@ -1926,6 +1927,7 @@ async def object_sid_use_case(
     rid_manager_use_case: RIDManagerUseCase,
     rid_set_use_case: RIDSetUseCase,
     object_sid_gateway: ObjectSIDGateway,
+    object_class_dao: ObjectClassDAO,
 ) -> AsyncIterator[ObjectSIDUseCase]:
     """Provide RIDManagerUseCase for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
@@ -1935,6 +1937,7 @@ async def object_sid_use_case(
             rid_set_use_case,
             session,
             rid_manager_use_case,
+            object_class_dao,
         )
 
 
