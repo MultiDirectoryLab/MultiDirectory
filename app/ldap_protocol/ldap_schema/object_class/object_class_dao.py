@@ -87,8 +87,14 @@ class ObjectClassDAO:
     async def get_object_class_names_include_attribute_type(
         self,
         attribute_type_name: str,
+        only_must: bool = False,
     ) -> set[str]:
         """Get all Object Class names include Attribute Type name."""
+        attribute_names = (
+            (Names.ATTRIBUTE_TYPES_MUST,)
+            if only_must
+            else (Names.ATTRIBUTE_TYPES_MUST, Names.ATTRIBUTE_TYPES_MAY)
+        )
         result = await self.__session.scalars(
             select(qa(Directory.name))
             .select_from(qa(Directory))
@@ -96,7 +102,7 @@ class ObjectClassDAO:
             .join(qa(Directory.attributes))
             .where(
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                qa(Attribute.name).in_((Names.ATTRIBUTE_TYPES_MUST, Names.ATTRIBUTE_TYPES_MAY)),  # noqa: E501
+                qa(Attribute.name).in_(attribute_names),
                 func.lower(qa(Attribute.value)) == attribute_type_name.lower(),
             ),
         )  # fmt: skip

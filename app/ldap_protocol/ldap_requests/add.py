@@ -214,11 +214,12 @@ class AddRequest(BaseRequest):
 
             await ctx.session.flush()
             if "objectsid" not in self.l_attrs_dict:
-                allowed = await ctx.object_sid_use_case.is_objectsid_allowed_for_object_classes(  # noqa: E501
+                required = await ctx.object_sid_use_case.is_objectsid_needed(
                     self.object_class_names,
+                    required=True,
                 )
-                if allowed:
-                    await ctx.object_sid_use_case.add(
+                if required:
+                    await ctx.object_sid_use_case.ensure_objectsid(
                         directory_id=new_dir.id,
                     )
             await ctx.session.flush()

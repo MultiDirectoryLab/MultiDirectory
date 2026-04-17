@@ -19,7 +19,6 @@ from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
 )
 from ldap_protocol.rid_manager import ObjectSIDUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
-from ldap_protocol.rid_manager.setup_use_case import RIDManagerSetupUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
 
@@ -92,35 +91,14 @@ async def test_add_domain_controller(
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
     object_sid_use_case: ObjectSIDUseCase,
-    rid_manager_setup_use_case: RIDManagerSetupUseCase,
     rid_set_use_case: RIDSetUseCase,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test add domain controller."""
-    existing_dc = await rid_manager_setup_use_case.get_domain_controller()
-    existing_rid_set_id = await rid_set_use_case.get_rid_set_id()
     monkeypatch.setattr(
         settings,
         "HOST_MACHINE_SHORT_NAME",
         f"{settings.HOST_MACHINE_SHORT_NAME}-test",
-    )
-
-    async def _get_existing_dc() -> object:
-        return existing_dc
-
-    monkeypatch.setattr(
-        object_sid_use_case._rid_manager_use_case,  # noqa: SLF001
-        "get_domain_controller",
-        _get_existing_dc,
-    )
-
-    async def _get_existing_rid_set_id() -> int:
-        return existing_rid_set_id
-
-    monkeypatch.setattr(
-        rid_set_use_case,
-        "get_rid_set_id",
-        _get_existing_rid_set_id,
     )
     await add_domain_controller(
         settings=settings,

@@ -49,3 +49,6 @@ rid_set_id_cache = AsyncTTLCache[int]()
 objectsid_allowed_object_classes_cache = AsyncTTLCache[set[str]](
     ttl=60 * 60 * 24,
 )
+objectsid_required_object_classes_cache = AsyncTTLCache[set[str]](
+    ttl=60 * 60 * 24,
+)
