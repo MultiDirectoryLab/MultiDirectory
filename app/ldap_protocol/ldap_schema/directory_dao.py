@@ -10,7 +10,6 @@ from sqlalchemy.orm import selectinload
 
 from constants import CONFIGURATION_DIR_NAME
 from entities import Directory, EntityType
-from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -63,13 +62,6 @@ class DirectoryDAO:
             ),
         )
         return list(result.all())
-
-    async def get_base_directory_paths_with_sid(self) -> list[tuple[str, str]]:
-        """Get all base directory paths."""
-        base_dirs = await get_base_directories(self.__session)
-        return [
-            (base_dir.path_dn, base_dir.object_sid) for base_dir in base_dirs
-        ]
 
     async def get_configuration_dir(self) -> Directory:
         """Get configuration directory."""

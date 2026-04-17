@@ -132,6 +132,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
     sub_dirs = {
         "cn=Groups,dc=md,dc=test",
         "cn=Configuration,dc=md,dc=test",
+        "ou=System,dc=md,dc=test",
         "cn=Users,dc=md,dc=test",
         "ou=testModifyDn1,dc=md,dc=test",
         "ou=testModifyDn3,dc=md,dc=test",
@@ -662,7 +663,7 @@ async def test_api_get_group_path_dn_by_primary_group_id_not_found(
     http_client: AsyncClient,
 ) -> None:
     """Test api get group path DN by primary group id not found."""
-    primary_group_id = 513
+    primary_group_id = 5135
     response = await http_client.get(
         f"entry/group/primary/{primary_group_id}",
     )

@@ -489,7 +489,7 @@ class SearchRequest(BaseRequest):
 
         return query, int(ceil(count / float(self.size_limit))), count
 
-    async def _fill_attrs(
+    async def _fill_attrs(  # noqa: C901
         self,
         directory: Directory,
         obj_classes: list[str],
@@ -541,17 +541,24 @@ class SearchRequest(BaseRequest):
 
             if group_directories is not None:
                 async for directory_ in group_directories:
-                    attrs["tokenGroups"].append(
-                        string_to_sid(directory_.object_sid),  # type: ignore
-                    )
+                    sid_bytes = self.get_directory_sid(directory_)
+                    if sid_bytes is not None:
+                        attrs["tokenGroups"].append(
+                            sid_bytes,  # type: ignore
+                        )
 
         if self.member and "group" in obj_classes and directory.group:
             for member in directory.group.members:
                 attrs["member"].append(member.path_dn)
 
     @staticmethod
-    def get_directory_sid(directory: Directory) -> bytes:
-        return string_to_sid(directory.object_sid)
+    def get_directory_sid(directory: Directory) -> bytes | None:
+        """Get objectSid as bytes from directory attributes."""
+        return (
+            string_to_sid(directory.object_sid)
+            if directory.object_sid
+            else None
+        )
 
     @staticmethod
     def get_directory_guid(directory: Directory) -> bytes:
@@ -598,6 +605,13 @@ class SearchRequest(BaseRequest):
                     obj_classes.append(value)
                     if self.is_objectclass_requested:
                         attrs[attr.name].append(value)
+                    continue
+
+                if (
+                    attr.name
+                    and attr.name.lower() == "objectsid"
+                    and self.is_sid_requested
+                ):
                     continue
 
                 attrs[attr.name].append(value)
@@ -670,8 +684,11 @@ class SearchRequest(BaseRequest):
                 attrs[directory.search_fields["objectguid"]].append(guid)  # type: ignore
 
             if self.is_sid_requested:
-                guid = self.get_directory_sid(directory)
-                attrs[directory.search_fields["objectsid"]].append(guid)  # type: ignore
+                sid_bytes = self.get_directory_sid(directory)
+                if sid_bytes is not None:
+                    attrs["objectSid"].append(
+                        sid_bytes,  # type: ignore
+                    )
 
             if self.entity_type_name:
                 attrs["entityTypeName"].append(directory.entity_type.name)

@@ -96,7 +96,9 @@ class ObjectClassDAO:
             .join(qa(Directory.attributes))
             .where(
                 qa(EntityType.name) == EntityTypeNames.OBJECT_CLASS,
-                qa(Attribute.name).in_((Names.ATTRIBUTE_TYPES_MUST, Names.ATTRIBUTE_TYPES_MAY)),  # noqa: E501
+                qa(Attribute.name).in_(
+                    (Names.ATTRIBUTE_TYPES_MUST, Names.ATTRIBUTE_TYPES_MAY),
+                ),
                 func.lower(qa(Attribute.value)) == attribute_type_name.lower(),
             ),
         )  # fmt: skip

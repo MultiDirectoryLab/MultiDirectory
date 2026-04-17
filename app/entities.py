@@ -101,7 +101,6 @@ class Directory:
     id: int = field(init=False)
     name: str
     is_system: bool = field(default=False)
-    object_sid: str = field(default="")
     object_guid: uuid.UUID = field(default_factory=uuid.uuid4)
     parent_id: int | None = None
     entity_type_id: int | None = None
@@ -140,7 +139,6 @@ class Directory:
     search_fields: ClassVar[dict[str, str]] = {
         "name": "name",
         "objectguid": "objectGUID",
-        "objectsid": "objectSid",
     }
     ro_fields: ClassVar[set[str]] = {
         "uid",
@@ -185,14 +183,17 @@ class Directory:
         self.rdname = dn
 
     @property
+    def object_sid(self) -> str:
+        """Get objectSid attribute value."""
+        return self.attributes_dict.get("objectSid", [""])[0]
+
+    @property
     def relative_id(self) -> str:
-        """Get RID from objectSid.
+        """Get RID from objectSid attribute.
 
         Relative Identifier (RID) is the last sub-authority value of a SID.
         """
-        if "-" in self.object_sid:
-            return self.object_sid.split("-")[-1]
-        return ""
+        return self.object_sid.split("-")[-1] if self.object_sid else ""
 
     @property
     def attributes_dict(self) -> defaultdict[str, list[str]]:

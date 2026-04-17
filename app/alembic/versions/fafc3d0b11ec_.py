@@ -61,7 +61,6 @@ def upgrade(container: AsyncContainer) -> None:
             if not group_dir:
                 dir_, _ = await create_group(
                     name="readonly domain controllers",
-                    sid=521,
                     attribute_value_validator=attribute_value_validator,
                     session=session,
                 )

@@ -38,7 +38,7 @@ class SearchRequest(LDAPSearchRequest):
         )
 
     @staticmethod
-    def get_directory_sid(directory: Directory) -> str:  # type: ignore
+    def get_directory_sid(directory: Directory) -> str | None:  # type: ignore
         return directory.object_sid
 
     @staticmethod

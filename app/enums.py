@@ -72,6 +72,8 @@ class EntityTypeNames(StrEnum):
     KRB_CONTAINER = "KRB Container"
     KRB_PRINCIPAL = "KRB Principal"
     KRB_REALM_CONTAINER = "KRB Realm Container"
+    RID_MANAGER = "RID Manager"
+    RID_SET = "RID Set"
 
 
 class KindType(StrEnum):
@@ -279,3 +281,19 @@ class SamAccountTypeCodes(IntEnum):
     def to_hex(value: int) -> str:
         """Convert decimal value to hex string."""
         return hex(value)
+
+
+class SidPrefix(StrEnum):
+    """SID prefix."""
+
+    DOMAIN_IDENTIFIER = "S-1-5-21"
+    BUILT_IN_DOMAIN = "S-1-5-32"
+
+
+class SecurityPrincipalRid(IntEnum):
+    ADMINISTRATOR = 500
+    GUESTS = 501
+    DOMAIN_ADMINS = 512
+    DOMAIN_USERS = 513
+    DOMAIN_COMPUTERS = 515
+    DOMAIN_READ_ONLY = 521

@@ -17,6 +17,8 @@ from ldap_protocol.kerberos import AbstractKadmin
 from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
     EntityTypeUseCase,
 )
+from ldap_protocol.rid_manager import ObjectSIDUseCase
+from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
 
@@ -88,11 +90,21 @@ async def test_add_domain_controller(
     settings: Settings,
     role_use_case: RoleUseCase,
     entity_type_use_case: EntityTypeUseCase,
+    object_sid_use_case: ObjectSIDUseCase,
+    rid_set_use_case: RIDSetUseCase,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test add domain controller."""
+    monkeypatch.setattr(
+        settings,
+        "HOST_MACHINE_SHORT_NAME",
+        f"{settings.HOST_MACHINE_SHORT_NAME}-test",
+    )
     await add_domain_controller(
         settings=settings,
         session=session,
         role_use_case=role_use_case,
         entity_type_use_case=entity_type_use_case,
+        object_sid_use_case=object_sid_use_case,
+        rid_set_use_case=rid_set_use_case,
     )

@@ -178,6 +178,17 @@ from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     UserPasswordHistoryUseCases,
 )
+from ldap_protocol.rid_manager import (
+    ObjectSIDGateway,
+    ObjectSIDUseCase,
+    RIDManagerGateway,
+    RIDManagerSetupGateway,
+    RIDManagerSetupUseCase,
+    RIDManagerUseCase,
+    RIDSetGateway,
+    RIDSetUseCase,
+)
+from ldap_protocol.rid_manager.types import HostMachineShortName
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.migrations_ace_dao import (
@@ -205,6 +216,13 @@ class MainProvider(Provider):
 
     scope = Scope.APP
     settings = from_context(provides=Settings, scope=Scope.APP)
+
+    @provide(scope=Scope.APP)
+    def host_machine_short_name(
+        self,
+        settings: Settings,
+    ) -> HostMachineShortName:
+        return HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME)
 
     @provide(scope=Scope.APP)
     def get_engine_registry(self, settings: Settings) -> EngineRegistry:
@@ -640,6 +658,21 @@ class MainProvider(Provider):
     )
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
+
+    rid_manager_gateway = provide(RIDManagerGateway, scope=Scope.REQUEST)
+    rid_manager_setup_gateway = provide(
+        RIDManagerSetupGateway,
+        scope=Scope.REQUEST,
+    )
+    rid_manager_use_case = provide(RIDManagerUseCase, scope=Scope.REQUEST)
+    rid_manager_setup_use_case = provide(
+        RIDManagerSetupUseCase,
+        scope=Scope.REQUEST,
+    )
+    object_sid_gateway = provide(ObjectSIDGateway, scope=Scope.REQUEST)
+    object_sid_use_case = provide(ObjectSIDUseCase, scope=Scope.REQUEST)
+    rid_set_gateway = provide(RIDSetGateway, scope=Scope.REQUEST)
+    rid_set_use_case = provide(RIDSetUseCase, scope=Scope.REQUEST)
 
 
 class LDAPContextProvider(Provider):

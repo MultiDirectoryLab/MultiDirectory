@@ -968,7 +968,9 @@ async def fetch_directory_by_dn(session: AsyncSession, dn: str) -> Directory:
     query = (
         select(Directory)
         .options(
-            selectinload(qa(Directory.groups)).joinedload(qa(Group.directory)),
+            selectinload(qa(Directory.groups))
+            .joinedload(qa(Group.directory))
+            .selectinload(qa(Directory.attributes)),
             selectinload(qa(Directory.attributes)),
             joinedload(qa(Directory.group)),
         )
@@ -1062,7 +1064,7 @@ async def test_ldap_modify_primary_group_id_scenarios(
         attributes[attr.name].append(attr.value)
 
     if expected_primary_group:
-        assert attributes["primaryGroupID"] == [group_dir.relative_id]
+        assert attributes["primaryGroupID"] == [rid]
     else:
         assert "primaryGroupID" not in attributes
 

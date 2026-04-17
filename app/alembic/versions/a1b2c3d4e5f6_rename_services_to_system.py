@@ -11,6 +11,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from constants import SYSTEM_CONTAINER_NAME
 from entities import Attribute, Directory
 from repo.pg.tables import queryable_attr as qa
 
@@ -111,7 +112,7 @@ def downgrade(container: AsyncContainer) -> None:
 
         system_dir = await session.scalar(
             select(Directory).where(
-                qa(Directory.name) == "System",
+                qa(Directory.name) == SYSTEM_CONTAINER_NAME,
                 qa(Directory.is_system).is_(True),
             ),
         )

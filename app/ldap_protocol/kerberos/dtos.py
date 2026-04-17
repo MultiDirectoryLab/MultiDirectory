@@ -24,7 +24,6 @@ class AddRequestsDTO:
     """AddRequestsDTO for Kerberos admin structure."""
 
     group: AddRequest
-    services: AddRequest
     krb_user: AddRequest
 
 

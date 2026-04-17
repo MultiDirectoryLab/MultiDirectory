@@ -36,7 +36,6 @@ from .async_cache import base_directories_cache
 from .const import EMAIL_RE, GRANT_DN_STRING
 from .helpers import (
     create_integer_hash,
-    create_object_sid,
     dn_is_base_directory,
     ft_now,
     validate_entry,
@@ -190,18 +189,41 @@ async def get_directory_by_rid(
     rid: str,
     session: AsyncSession,
 ) -> Directory | None:
-    """Get directory by relative ID (rid).
-
-    :param str rid: relative ID
-    :param AsyncSession session: SA session
-    :return Directory | None: directory or None
-    """
     query = (
         select(Directory)
-        .options(joinedload(qa(Directory.group)))
-        .filter(qa(Directory.object_sid).endswith(f"-{rid}"))
+        .join(
+            Attribute,
+            qa(Attribute.directory_id) == qa(Directory.id),
+        )
+        .options(
+            selectinload(qa(Directory.attributes)),
+            joinedload(qa(Directory.group)),
+        )
+        .where(
+            qa(Attribute.name) == "objectSid",
+            qa(Attribute.value).endswith(f"-{rid}"),
+        )
     )
     return await session.scalar(query)
+
+
+async def groups_include_primary_rid(
+    session: AsyncSession,
+    groups: list[Group],
+    primary_group_id: str,
+) -> bool:
+    directory_ids = {g.directory_id for g in groups}
+
+    stmt = (
+        select(qa(Attribute.id))
+        .where(
+            qa(Attribute.directory_id).in_(directory_ids),
+            qa(Attribute.name) == "objectSid",
+            qa(Attribute.value).endswith(f"-{primary_group_id}"),
+        )
+        .limit(1)
+    )
+    return await session.scalar(stmt) is not None
 
 
 async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
@@ -225,6 +247,9 @@ async def get_groups(dn_list: list[str], session: AsyncSession) -> list[Group]:
         .options(selectinload(qa(Group.members)))
         .options(
             joinedload(qa(Group.directory)).selectinload(qa(Directory.groups)),
+            joinedload(qa(Group.directory)).selectinload(
+                qa(Directory.attributes),
+            ),
         )
     )
 
@@ -247,7 +272,11 @@ async def get_group(
     query = (
         select(Group)
         .join(qa(Group.directory), isouter=True)
-        .options(joinedload(qa(Group.directory)))
+        .options(
+            joinedload(qa(Group.directory)).selectinload(
+                qa(Directory.attributes),
+            ),
+        )
     )
 
     if validate_entry(dn):
@@ -353,7 +382,6 @@ def get_domain_object_class(domain: Directory) -> Iterator[Attribute]:
 
 async def create_group(
     name: str,
-    sid: int | None,
     attribute_value_validator: AttributeValueValidator,
     session: AsyncSession,
 ) -> tuple[Directory, Group]:
@@ -385,12 +413,6 @@ async def create_group(
     group = Group(directory_id=dir_.id)
     dir_.create_path(parent)
     session.add(group)
-
-    dir_.object_sid = create_object_sid(
-        base_dn_list[0],
-        rid=sid or dir_.id,
-        reserved=bool(sid),
-    )
 
     await session.flush()
 
@@ -559,9 +581,16 @@ async def get_group_path_dn_by_primary_group_id(
     """
     query = (
         select(Directory)
+        .join(
+            Attribute,
+            qa(Attribute.directory_id) == qa(Directory.id),
+        )
         .join(qa(Directory.group))
         .options(contains_eager(qa(Directory.group)))
-        .filter(qa(Directory.object_sid).endswith(f"-{primary_group_id}"))
+        .where(
+            qa(Attribute.name) == "objectSid",
+            qa(Attribute.value).endswith(f"-{primary_group_id}"),
+        )
     )
 
     directory = await session.scalar(query)

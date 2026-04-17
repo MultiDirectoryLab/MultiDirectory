@@ -35,7 +35,6 @@ from ldap_protocol.utils.helpers import (
     is_dn_in_base_directory,
 )
 from ldap_protocol.utils.queries import (
-    create_object_sid,
     get_base_directories,
     get_group,
     get_groups,
@@ -215,7 +214,9 @@ class AddRequest(BaseRequest):
 
             await ctx.session.flush()
 
-            new_dir.object_sid = create_object_sid(base_dn, new_dir.id)
+            await ctx.object_sid_use_case.ensure_objectsid(
+                directory_id=new_dir.id,
+            )
             await ctx.session.flush()
         except IntegrityError:
             await ctx.session.rollback()

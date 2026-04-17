@@ -31,6 +31,12 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     bind = op.get_bind()
     session = Session(bind=bind)
 
+    directory_table = sa.table(
+        "Directory",
+        sa.column("id", sa.Integer),
+        sa.column("objectSid", sa.String),
+    )
+
     ro_dir = session.scalar(
         select(Directory)
         .filter_by(name="readonly domain controllers"),
@@ -82,8 +88,18 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
                 ),
             )
 
-        domain_sid = "-".join(ro_dir.object_sid.split("-")[:-1])
-        ro_dir.object_sid = domain_sid + "-521"
+        ro_object_sid = session.scalar(
+            select(directory_table.c.objectSid).where(
+                directory_table.c.id == ro_dir.id,
+            ),
+        )
+        if ro_object_sid:
+            domain_sid = "-".join(ro_object_sid.split("-")[:-1])
+            session.execute(
+                update(directory_table)
+                .where(directory_table.c.id == ro_dir.id)
+                .values(objectSid=domain_sid + "-521"),
+            )
 
         session.commit()
 

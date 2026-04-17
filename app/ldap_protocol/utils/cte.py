@@ -6,6 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from sqlalchemy import exists, or_
 from sqlalchemy.ext.asyncio import AsyncScalarResult, AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import select
 from sqlalchemy.sql.selectable import CTE
 
@@ -237,6 +238,10 @@ async def get_all_parent_group_directories(
     if not directories_ids:
         return None
 
-    query = select(Directory).where(directory_table.c.id.in_(directories_ids))
+    query = (
+        select(Directory)
+        .where(directory_table.c.id.in_(directories_ids))
+        .options(selectinload(qa(Directory.attributes)))
+    )
 
     return await session.stream_scalars(query)

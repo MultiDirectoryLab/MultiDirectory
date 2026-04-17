@@ -68,7 +68,6 @@ def upgrade(container: AsyncContainer) -> None:
 
             dir_, group_ = await create_group(
                 name=DOMAIN_COMPUTERS_GROUP_NAME,
-                sid=515,
                 attribute_value_validator=AttributeValueValidator(),
                 session=session,
             )
@@ -148,9 +147,9 @@ def upgrade(container: AsyncContainer) -> None:
             query = (
                 select(Directory)
                 .options(
-                    selectinload(qa(Directory.groups)).selectinload(
-                        qa(Group.directory),
-                    ),
+                    selectinload(qa(Directory.groups))
+                    .selectinload(qa(Group.directory))
+                    .selectinload(qa(Directory.attributes)),
                 )
                 .where(
                     qa(Directory.entity_type_id).in_(entity_type_ids),

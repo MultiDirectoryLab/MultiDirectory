@@ -33,7 +33,7 @@ from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
 from loguru import logger
 from multidirectory import _create_basic_app
-from sqlalchemy import schema, text
+from sqlalchemy import schema, text, update
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -63,7 +63,13 @@ from api.password_policy.adapter import (
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from constants import ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2
+from constants import (
+    DOMAIN_CONTROLLERS_OU_NAME,
+    ENTITY_TYPE_DTOS_V1,
+    ENTITY_TYPE_DTOS_V2,
+    SYSTEM_CONTAINER_NAME,
+)
+from entities import Directory
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
 from ldap_protocol.auth import AuthManager, MFAManager
@@ -174,6 +180,17 @@ from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     UserPasswordHistoryUseCases,
 )
+from ldap_protocol.rid_manager import (
+    ObjectSIDGateway,
+    ObjectSIDUseCase,
+    RIDManagerGateway,
+    RIDManagerSetupGateway,
+    RIDManagerSetupUseCase,
+    RIDManagerUseCase,
+    RIDSetGateway,
+    RIDSetUseCase,
+)
+from ldap_protocol.rid_manager.types import HostMachineShortName
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import RoleDTO
@@ -189,9 +206,14 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
+from ldap_protocol.utils.async_cache import (
+    domain_identifier_cache,
+    rid_set_id_cache,
+)
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
 from repo.pg.master_gateway import PGMasterGateway
+from repo.pg.tables import queryable_attr as qa
 from tests.constants import (
     TEST_DATA,
     admin_user_data_dict,
@@ -213,6 +235,13 @@ class TestProvider(Provider):
     _cached_dns_manager: Mock | None = None
     _cached_dhcp_manager: Mock | None = None
     _session_id: uuid.UUID | None = None
+
+    @provide(scope=Scope.RUNTIME)
+    def host_machine_short_name(
+        self,
+        settings: Settings,
+    ) -> HostMachineShortName:
+        return HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME)
 
     @provide(scope=Scope.APP, provides=AbstractKadmin)
     async def get_kadmin(self) -> AsyncIterator[AsyncMock]:
@@ -819,6 +848,20 @@ class TestProvider(Provider):
     )
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
+    rid_manager_gateway = provide(RIDManagerGateway, scope=Scope.REQUEST)
+    rid_manager_use_case = provide(RIDManagerUseCase, scope=Scope.REQUEST)
+    rid_manager_setup_gateway = provide(
+        RIDManagerSetupGateway,
+        scope=Scope.REQUEST,
+    )
+    rid_manager_setup_use_case = provide(
+        RIDManagerSetupUseCase,
+        scope=Scope.REQUEST,
+    )
+    object_sid_gateway = provide(ObjectSIDGateway, scope=Scope.REQUEST)
+    object_sid_use_case = provide(ObjectSIDUseCase, scope=Scope.REQUEST)
+    rid_set_gateway = provide(RIDSetGateway, scope=Scope.REQUEST)
+    rid_set_use_case = provide(RIDSetUseCase, scope=Scope.REQUEST)
 
 
 @dataclass
@@ -1025,8 +1068,11 @@ async def setup_session(
     session: AsyncSession,
     raw_audit_manager: RawAuditManager,
     password_utils: PasswordUtils,
+    settings: Settings,
 ) -> None:
     """Get session and acquire after completion."""
+    domain_identifier_cache.clear()
+    rid_set_id_cache.clear()
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
     role_use_case = RoleUseCase(role_dao, ace_dao)
@@ -1055,6 +1101,35 @@ async def setup_session(
         entity_type_dao=entity_type_dao,
         object_class_dao=object_class_dao,
         directory_dao=directory_dao,
+    )
+    rid_manager_gateway = RIDManagerGateway(
+        session,
+        HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+    )
+
+    rid_manager_use_case = RIDManagerUseCase(
+        rid_manager_gateway,
+        session,
+    )
+    rid_set_gateway = RIDSetGateway(
+        session,
+        HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+    )
+
+    rid_set_use_case = RIDSetUseCase(
+        rid_set_gateway,
+        entity_type_use_case,
+        session,
+        rid_manager_use_case,
+        role_use_case,
+    )
+    object_sid_gateway = ObjectSIDGateway(session)
+    object_sid_use_case = ObjectSIDUseCase(
+        object_sid_gateway,
+        rid_set_use_case,
+        session,
+        rid_manager_use_case,
+        object_class_dao,
     )
     directory_create_use_case = DirectoryCreateUseCase(
         session=session,
@@ -1098,24 +1173,120 @@ async def setup_session(
         password_policy_validator,
         password_ban_word_repository,
     )
+
+    rid_manager_setup_gateway = RIDManagerSetupGateway(
+        session=session,
+        host_machine_short_name=HostMachineShortName(
+            settings.HOST_MACHINE_SHORT_NAME,
+        ),
+    )
+    role_dao = RoleDAO(session)
+    ace_dao = AccessControlEntryDAO(session)
+    role_use_case = RoleUseCase(role_dao, ace_dao)
+
+    rid_manager_setup_use_case = RIDManagerSetupUseCase(
+        rid_manager_setup_gateway=rid_manager_setup_gateway,
+        role_use_case=role_use_case,
+        entity_type_use_case=entity_type_use_case,
+        rid_set_use_case=rid_set_use_case,
+        rid_manager_use_case=rid_manager_use_case,
+        session=session,
+    )
     setup_gateway = SetupGateway(
         session,
         password_utils,
         entity_type_use_case=entity_type_use_case,
         attribute_value_validator=attribute_value_validator,
         directory_dao=directory_dao,
+        object_sid_use_case=object_sid_use_case,
     )
-
     for entity_type_dto in chain(ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2):
         await entity_type_use_case.create_not_safe(entity_type_dto)
-    await session.flush()
 
-    await audit_use_case.create_policies()
+    domain = await setup_gateway.create_base_domain("md.test")
+    await rid_manager_setup_use_case.create_domain_identifier(domain.id)
+
     await setup_gateway.setup_enviroment(
-        dn="md.test",
+        domain=domain,
         data=TEST_DATA,
         is_system=False,
     )
+
+    await session.execute(
+        update(Directory)
+        .where(
+            qa(Directory.parent_id) == domain.id,
+            qa(Directory.name) == SYSTEM_CONTAINER_NAME,
+        )
+        .values(is_system=True),
+    )
+    dc_directory = Directory(
+        name=DOMAIN_CONTROLLERS_OU_NAME,
+        object_class="computer",
+        is_system=True,
+    )
+    dc_directory.create_path(domain, "cn")
+    session.add(dc_directory)
+    await session.flush()
+    dc_directory.parent_id = domain.id
+    await session.refresh(dc_directory, ["id"])
+    await session.flush()
+    dc = Directory(
+        name=settings.HOST_MACHINE_SHORT_NAME,
+        is_system=True,
+    )
+
+    dc.create_path(dc_directory, "cn")
+    session.add(dc)
+    await session.flush()
+    dc.parent_id = dc_directory.id
+    await session.refresh(dc, ["id"])
+
+    for attr_type_name in (
+        "description",
+        "posixEmail",
+        "userPrincipalName",
+        "userAccountControl",
+        "cn",
+        "objectClass",
+    ):
+        _at = await attribute_type_use_case_legacy.get(
+            attr_type_name,
+        )
+        if not _at:
+            raise ValueError(
+                f"setup_session:: AttributeType {attr_type_name} not found",
+            )
+        await attribute_type_use_case.create(_at)
+
+    for _obj_class_name in (
+        "top",
+        "person",
+        "organizationalPerson",
+        "user",
+        "domain",
+        "computer",
+        "container",
+        "organization",
+        "domainDNS",
+        "group",
+        "inetOrgPerson",
+        "posixAccount",
+        "rIDManager",
+        "rIDSet",
+    ):
+        _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
+        _oc_dto.attribute_types_may = [
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_may
+        ]
+        _oc_dto.attribute_types_must = [
+            _.name  # type: ignore
+            for _ in _oc_dto.attribute_types_must
+        ]
+        await object_class_use_case.create(_oc_dto)  # type: ignore
+
+    await session.flush()
 
     for _at_dto in (
         AttributeTypeDTO[None](
@@ -1143,51 +1314,14 @@ async def setup_session(
     ):
         await attribute_type_use_case.create(_at_dto)
 
-    for attr_type_name in (
-        "description",
-        "posixEmail",
-        "userPrincipalName",
-        "userAccountControl",
-        "cn",
-        "objectClass",
-    ):
-        _at = await attribute_type_use_case_legacy.get(
-            attr_type_name,
-        )
-        if not _at:
-            raise ValueError(
-                f"setup_session:: AttributeType {attr_type_name} not found",
-            )
-        await attribute_type_use_case.create(_at)
-
-    for _obj_class_name in (
-        "top",
-        "person",
-        "organizationalPerson",
-        "user",
-        "domain",
-        "container",
-        "organization",
-        "domainDNS",
-        "group",
-        "inetOrgPerson",
-        "posixAccount",
-    ):
-        _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
-        _oc_dto.attribute_types_may = [
-            _.name  # type: ignore
-            for _ in _oc_dto.attribute_types_may
-        ]
-        _oc_dto.attribute_types_must = [
-            _.name  # type: ignore
-            for _ in _oc_dto.attribute_types_must
-        ]
-        await object_class_use_case.create(_oc_dto)  # type: ignore
+    await audit_use_case.create_policies()
 
     # NOTE: after setup environment we need base DN to be created
     await password_use_cases.create_default_domain_policy()
 
     await role_use_case.create_domain_admins_role()
+
+    await rid_manager_setup_use_case.setup()
 
     await role_use_case._role_dao.create(  # noqa: SLF001
         dto=RoleDTO(
@@ -1707,6 +1841,104 @@ async def ctx_search(
     """Return session storage."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(LDAPSearchRequestContext)
+
+
+@pytest.fixture
+async def rid_manager_setup_use_case(
+    container: AsyncContainer,
+) -> AsyncIterator[RIDManagerSetupUseCase]:
+    """Provide RIDManagerSetupUseCase via DI container."""
+    async with container(scope=Scope.REQUEST) as c:
+        yield await c.get(RIDManagerSetupUseCase)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_manager_gateway(
+    container: AsyncContainer,
+    settings: Settings,
+) -> AsyncIterator[RIDManagerGateway]:
+    """Get RID Manager gateway."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDManagerGateway(
+            session,
+            HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+        )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_manager_use_case(
+    container: AsyncContainer,
+    rid_manager_gateway: RIDManagerGateway,
+) -> AsyncIterator[RIDManagerUseCase]:
+    """Provide RIDManagerUseCase for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDManagerUseCase(rid_manager_gateway, session)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_set_gateway(
+    container: AsyncContainer,
+    settings: Settings,
+) -> AsyncIterator[RIDSetGateway]:
+    """Provide RIDSetGateway for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDSetGateway(
+            session,
+            HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
+        )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def rid_set_use_case(
+    container: AsyncContainer,
+    rid_manager_use_case: RIDManagerUseCase,
+    entity_type_use_case: EntityTypeUseCase,
+    rid_set_gateway: RIDSetGateway,
+    role_use_case: RoleUseCase,
+) -> AsyncIterator[RIDSetUseCase]:
+    """Provide RIDManagerUseCase for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield RIDSetUseCase(
+            rid_set_gateway,
+            entity_type_use_case,
+            session,
+            rid_manager_use_case,
+            role_use_case,
+        )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def object_sid_gateway(
+    container: AsyncContainer,
+) -> AsyncIterator[ObjectSIDGateway]:
+    """Provide ObjectSIDGateway for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        yield ObjectSIDGateway(session)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def object_sid_use_case(
+    container: AsyncContainer,
+    rid_manager_use_case: RIDManagerUseCase,
+    rid_set_use_case: RIDSetUseCase,
+    object_sid_gateway: ObjectSIDGateway,
+) -> AsyncIterator[ObjectSIDUseCase]:
+    """Provide RIDManagerUseCase for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        session = await container.get(AsyncSession)
+        object_class_dao = ObjectClassDAO(session)
+        yield ObjectSIDUseCase(
+            object_sid_gateway,
+            rid_set_use_case,
+            session,
+            rid_manager_use_case,
+            object_class_dao,
+        )
 
 
 def pytest_configure(config: pytest.Config) -> None:
