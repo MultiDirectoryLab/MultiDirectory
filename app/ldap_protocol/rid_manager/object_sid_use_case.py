@@ -51,7 +51,7 @@ class ObjectSIDUseCase:
         self,
         object_class_names: set[str],
     ) -> bool:
-        """Check if objectSid is needed for objectClasses (case-insensitive)."""
+        """Check if objectSid is needed for objectClasses."""
         allowed = await self.get_available_object_classes()
         oc_lower = {n.lower() for n in object_class_names}
         return bool(oc_lower & allowed)
