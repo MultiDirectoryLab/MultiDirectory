@@ -1927,11 +1927,11 @@ async def object_sid_use_case(
     rid_manager_use_case: RIDManagerUseCase,
     rid_set_use_case: RIDSetUseCase,
     object_sid_gateway: ObjectSIDGateway,
-    object_class_dao: ObjectClassDAO,
 ) -> AsyncIterator[ObjectSIDUseCase]:
     """Provide RIDManagerUseCase for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
+        object_class_dao = await container.get(ObjectClassDAO)
         yield ObjectSIDUseCase(
             object_sid_gateway,
             rid_set_use_case,
