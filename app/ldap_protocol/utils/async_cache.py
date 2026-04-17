@@ -46,3 +46,6 @@ class AsyncTTLCache(Generic[T]):
 base_directories_cache = AsyncTTLCache[list[Directory]]()
 domain_identifier_cache = AsyncTTLCache[str]()
 rid_set_id_cache = AsyncTTLCache[int]()
+objectsid_allowed_object_classes_cache = AsyncTTLCache[set[str]](
+    ttl=60 * 60 * 24,
+)

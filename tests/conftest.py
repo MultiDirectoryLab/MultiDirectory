@@ -33,7 +33,7 @@ from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
 from loguru import logger
 from multidirectory import _create_basic_app
-from sqlalchemy import schema, text
+from sqlalchemy import schema, text, update
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -67,6 +67,7 @@ from constants import (
     DOMAIN_CONTROLLERS_OU_NAME,
     ENTITY_TYPE_DTOS_V1,
     ENTITY_TYPE_DTOS_V2,
+    SYSTEM_CONTAINER_NAME,
 )
 from entities import Directory
 from enums import AuthorizationRules
@@ -212,6 +213,7 @@ from ldap_protocol.utils.async_cache import (
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
 from repo.pg.master_gateway import PGMasterGateway
+from repo.pg.tables import queryable_attr as qa
 from tests.constants import (
     TEST_DATA,
     admin_user_data_dict,
@@ -1208,6 +1210,15 @@ async def setup_session(
         data=TEST_DATA,
         is_system=False,
     )
+
+    await session.execute(
+        update(Directory)
+        .where(
+            qa(Directory.parent_id) == domain.id,
+            qa(Directory.name) == SYSTEM_CONTAINER_NAME,
+        )
+        .values(is_system=True),
+    )
     dc_directory = Directory(
         name=DOMAIN_CONTROLLERS_OU_NAME,
         object_class="computer",
@@ -1829,6 +1840,15 @@ async def ctx_search(
     """Return session storage."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(LDAPSearchRequestContext)
+
+
+@pytest.fixture
+async def rid_manager_setup_use_case(
+    container: AsyncContainer,
+) -> AsyncIterator[RIDManagerSetupUseCase]:
+    """Provide RIDManagerSetupUseCase via DI container."""
+    async with container(scope=Scope.REQUEST) as c:
+        yield await c.get(RIDManagerSetupUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")

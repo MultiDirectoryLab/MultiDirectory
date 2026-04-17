@@ -213,9 +213,14 @@ class AddRequest(BaseRequest):
             ctx.session.add(new_dir)
 
             await ctx.session.flush()
-            await ctx.object_sid_use_case.add(
-                directory_id=new_dir.id,
-            )
+            if "objectsid" not in self.l_attrs_dict:
+                allowed = await ctx.object_sid_use_case.is_objectsid_allowed_for_object_classes(  # noqa: E501
+                    self.object_class_names,
+                )
+                if allowed:
+                    await ctx.object_sid_use_case.add(
+                        directory_id=new_dir.id,
+                    )
             await ctx.session.flush()
         except IntegrityError:
             await ctx.session.rollback()

@@ -7,9 +7,15 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from enums import SidPrefix
+from ldap_protocol.ldap_schema.object_class.object_class_dao import (
+    ObjectClassDAO,
+)
 from ldap_protocol.rid_manager.object_sid_gateway import ObjectSIDGateway
 from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
+from ldap_protocol.utils.async_cache import (
+    objectsid_allowed_object_classes_cache,
+)
 
 
 class ObjectSIDUseCase:
@@ -21,12 +27,31 @@ class ObjectSIDUseCase:
         rid_set_use_case: RIDSetUseCase,
         session: AsyncSession,
         rid_manager_use_case: RIDManagerUseCase,
+        object_class_dao: ObjectClassDAO,
     ) -> None:
         """Initialize Object SID use case."""
         self._gateway = gateway
         self._rid_set_use_case = rid_set_use_case
         self._session = session
         self._rid_manager_use_case = rid_manager_use_case
+        self._object_class_dao = object_class_dao
+
+    @objectsid_allowed_object_classes_cache
+    async def get_available_object_classes(self) -> set[str]:
+        """ObjectClasses that allow objectSid (mustContain/mayContain)."""
+        names = await self._object_class_dao.get_object_class_names_include_attribute_type(  # noqa: E501
+            "objectSid",
+        )
+        return {n.lower() for n in names}
+
+    async def is_objectsid_allowed_for_object_classes(
+        self,
+        object_class_names: set[str],
+    ) -> bool:
+        """Check if objectSid allowed by objectClasses (case-insensitive)."""
+        allowed = await self.get_available_object_classes()
+        oc_lower = {n.lower() for n in object_class_names}
+        return bool(oc_lower & allowed)
 
     async def get_domain_identifier(self) -> str:
         """Get domain identifier."""
