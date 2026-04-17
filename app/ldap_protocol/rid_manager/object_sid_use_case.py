@@ -18,7 +18,6 @@ from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
 from ldap_protocol.utils.async_cache import (
     objectsid_allowed_object_classes_cache,
-    objectsid_required_object_classes_cache,
 )
 
 
@@ -48,31 +47,12 @@ class ObjectSIDUseCase:
         )
         return {n.lower() for n in names}
 
-    @objectsid_required_object_classes_cache
-    async def get_required_object_classes(self) -> set[str]:
-        """ObjectClasses that require objectSid (mustContain)."""
-        names = await self._object_class_dao.get_object_class_names_include_attribute_type(  # noqa: E501
-            "objectSid",
-            only_must=True,
-        )
-        return {n.lower() for n in names}
-
     async def is_objectsid_needed(
         self,
         object_class_names: set[str],
-        *,
-        required: bool,
     ) -> bool:
-        """Check if objectSid is needed for objectClasses (case-insensitive).
-
-        If required=True: checks MUST (mustContain).
-        If required=False: checks allows (mustContain/mayContain).
-        """
-        allowed = (
-            await self.get_required_object_classes()
-            if required
-            else await self.get_available_object_classes()
-        )
+        """Check if objectSid is needed for objectClasses (case-insensitive)."""
+        allowed = await self.get_available_object_classes()
         oc_lower = {n.lower() for n in object_class_names}
         return bool(oc_lower & allowed)
 
