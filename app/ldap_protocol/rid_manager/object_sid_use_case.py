@@ -58,7 +58,6 @@ class ObjectSIDUseCase:
 
     async def ensure_objectsid(
         self,
-        *,
         directory_id: int,
         rid: int | None = None,
         sid_prefix: SidPrefix = SidPrefix.DOMAIN_IDENTIFIER,
