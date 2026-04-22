@@ -27,7 +27,7 @@ test_create_one_entity_type_dataset = [
             "object_class_names": ["testObjectClass1", "testObjectClass2"],
             "is_system": False,
         },
-    },
+    }
 ]
 
 test_get_list_entity_types_with_pagination_dataset = [
@@ -38,23 +38,11 @@ test_get_list_entity_types_with_pagination_dataset = [
             ("1.2.3.4.5.6.7", "objClassName3"),
         ],
         "entity_types": [
-            {
-                "name": "testEntityType1",
-                "object_class_names": ["objClassName1"],
-                "is_system": False,
-            },
-            {
-                "name": "testEntityType2",
-                "object_class_names": ["objClassName2"],
-                "is_system": False,
-            },
-            {
-                "name": "testEntityType3",
-                "object_class_names": ["objClassName3"],
-                "is_system": False,
-            },
+            {"name": "testEntityType1", "object_class_names": ["objClassName1"], "is_system": False},
+            {"name": "testEntityType2", "object_class_names": ["objClassName2"], "is_system": False},
+            {"name": "testEntityType3", "object_class_names": ["objClassName3"], "is_system": False},
         ],
-    },
+    }
 ]
 
 test_modify_entity_type_with_duplicates_dataset = [
@@ -80,34 +68,20 @@ test_modify_entity_type_with_duplicates_dataset = [
             },
         ],
         "entity_types": [
-            {
-                "name": "testEntityType1",
-                "object_class_names": ["testObjectClass1"],
-                "is_system": False,
-            },
-            {
-                "name": "testEntityType2",
-                "object_class_names": ["testObjectClass2"],
-                "is_system": False,
-            },
+            {"name": "testEntityType1", "object_class_names": ["testObjectClass1"], "is_system": False},
+            {"name": "testEntityType2", "object_class_names": ["testObjectClass2"], "is_system": False},
         ],
         "new_statements": {
             "duplicate_object_class_names": (
                 "testEntityType1",
-                {
-                    "name": "testEntityType1",
-                    "object_class_names": ["testObjectClass2"],
-                },
+                {"name": "testEntityType1", "object_class_names": ["testObjectClass2"]},
             ),
             "duplicate_name": (
                 "testEntityType1",
-                {
-                    "name": "testEntityType2",
-                    "object_class_names": ["testObjectClass1"],
-                },
+                {"name": "testEntityType2", "object_class_names": ["testObjectClass1"]},
             ),
         },
-    },
+    }
 ]
 
 test_modify_one_entity_type_dataset = [
@@ -132,15 +106,8 @@ test_modify_one_entity_type_dataset = [
                 "attribute_type_names_may": [],
             },
         ],
-        "entity_type": {
-            "name": "testEntityType1",
-            "object_class_names": ["testObjectClass1"],
-            "is_system": False,
-        },
-        "new_statement": {
-            "name": "testEntityType1",
-            "object_class_names": ["testObjectClass2"],
-        },
+        "entity_type": {"name": "testEntityType1", "object_class_names": ["testObjectClass1"], "is_system": False},
+        "new_statement": {"name": "testEntityType1", "object_class_names": ["testObjectClass2"]},
     },
     {
         "object_classes": [
@@ -152,17 +119,10 @@ test_modify_one_entity_type_dataset = [
                 "is_system": False,
                 "attribute_type_names_must": [],
                 "attribute_type_names_may": [],
-            },
+            }
         ],
-        "entity_type": {
-            "name": "testEntityType1",
-            "object_class_names": ["testObjectClass3"],
-            "is_system": False,
-        },
-        "new_statement": {
-            "name": "testEntityType2",
-            "object_class_names": ["testObjectClass3"],
-        },
+        "entity_type": {"name": "testEntityType1", "object_class_names": ["testObjectClass3"], "is_system": False},
+        "new_statement": {"name": "testEntityType2", "object_class_names": ["testObjectClass3"]},
     },
 ]
 
@@ -189,16 +149,8 @@ test_delete_bulk_entity_types_dataset = [
             },
         ],
         "entity_types": [
-            {
-                "name": "testEntityType1",
-                "object_class_names": ["testObjectClass1"],
-                "is_system": False,
-            },
-            {
-                "name": "testEntityType2",
-                "object_class_names": ["testObjectClass2"],
-                "is_system": False,
-            },
+            {"name": "testEntityType1", "object_class_names": ["testObjectClass1"], "is_system": False},
+            {"name": "testEntityType2", "object_class_names": ["testObjectClass2"], "is_system": False},
         ],
         "entity_type_names_deleted": ["testEntityType1", "testEntityType2"],
     },
@@ -224,16 +176,8 @@ test_delete_bulk_entity_types_dataset = [
             },
         ],
         "entity_types": [
-            {
-                "name": "testEntityType1",
-                "object_class_names": ["objClassName1"],
-                "is_system": False,
-            },
-            {
-                "name": "testEntityType2",
-                "object_class_names": ["testObjectClass2"],
-                "is_system": False,
-            },
+            {"name": "testEntityType1", "object_class_names": ["objClassName1"], "is_system": False},
+            {"name": "testEntityType2", "object_class_names": ["testObjectClass2"], "is_system": False},
         ],
         "entity_type_names_deleted": ["testEntityType1"],
     },
@@ -247,19 +191,9 @@ test_delete_bulk_entity_types_dataset = [
                 "is_system": False,
                 "attribute_type_names_must": [],
                 "attribute_type_names_may": [],
-            },
+            }
         ],
-        "entity_types": [
-            {
-                "name": "testEntityType1",
-                "object_class_names": ["objClassName1"],
-                "is_system": False,
-            },
-        ],
-        "entity_type_names_deleted": [
-            "testEntityType1",
-            "testEntityType2",
-            "testEntityType3",
-        ],
+        "entity_types": [{"name": "testEntityType1", "object_class_names": ["objClassName1"], "is_system": False}],
+        "entity_type_names_deleted": ["testEntityType1", "testEntityType2", "testEntityType3"],
     },
 ]

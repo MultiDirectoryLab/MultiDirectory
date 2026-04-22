@@ -10,9 +10,7 @@ from entities_legacy import AttributeTypeLegacy
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
-    AttributeTypeDAOLegacy,
-)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import AttributeTypeDAOLegacy
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 
 
@@ -21,10 +19,7 @@ class AttributeTypeUseCaseLegacy(AbstractService):
 
     __attribute_type_dao_legacy: AttributeTypeDAOLegacy
 
-    def __init__(
-        self,
-        attribute_type_dao_legacy: AttributeTypeDAOLegacy,
-    ) -> None:
+    def __init__(self, attribute_type_dao_legacy: AttributeTypeDAOLegacy) -> None:
         """Init AttributeTypeUseCase."""
         self.__attribute_type_dao_legacy = attribute_type_dao_legacy
 
@@ -52,30 +47,18 @@ class AttributeTypeUseCaseLegacy(AbstractService):
 
     async def set_false_replication_flag(self, names: tuple[str, ...]) -> None:
         """Set replication flag in systemFlags."""
-        await self.__attribute_type_dao_legacy.set_false_replication_flag(
-            names,
-        )
+        await self.__attribute_type_dao_legacy.set_false_replication_flag(names)
 
-    async def mark_anr_included_by_attr_names(
-        self,
-        names: tuple[str, ...],
-    ) -> list[str]:
+    async def mark_anr_included_by_attr_names(self, names: tuple[str, ...]) -> list[str]:
         """Update Attribute Types and return updated DTOs."""
-        return await self.__attribute_type_dao_legacy.mark_anr_included_by_attr_names(  # noqa: E501
-            names,
-        )
+        return await self.__attribute_type_dao_legacy.mark_anr_included_by_attr_names(names)
 
     async def false_all_is_included_anr(self) -> None:
         """Set is_included_anr to False for all Attribute Types."""
         await self.__attribute_type_dao_legacy.false_all_is_included_anr()
 
-    async def get_all_raw_by_names(
-        self,
-        names: list[str],
-    ) -> Sequence[AttributeTypeLegacy]:
+    async def get_all_raw_by_names(self, names: list[str]) -> Sequence[AttributeTypeLegacy]:
         """Get list of Attribute Types by names."""
-        return await self.__attribute_type_dao_legacy.get_all_raw_by_names(
-            names,
-        )
+        return await self.__attribute_type_dao_legacy.get_all_raw_by_names(names)
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {}

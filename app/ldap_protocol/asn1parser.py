@@ -56,11 +56,7 @@ class SubstringTag(IntEnum):
     FINAL = 2
 
 
-T = TypeVar(
-    "T",
-    contravariant=True,
-    bound="ASN1Row | list[ASN1Row] | str | bytes | int | float",
-)
+T = TypeVar("T", contravariant=True, bound="ASN1Row | list[ASN1Row] | str | bytes | int | float")
 
 
 @dataclass
@@ -91,17 +87,9 @@ class ASN1Row(Generic[T]):
             if tag_value == 1:
                 oid = child_value
             elif tag_value == 2:
-                attribute = (
-                    child_value.decode(errors="replace")
-                    if isinstance(child_value, bytes)
-                    else child_value
-                )
+                attribute = child_value.decode(errors="replace") if isinstance(child_value, bytes) else child_value
             elif tag_value == 3:
-                value = (
-                    child_value.decode(errors="replace")
-                    if isinstance(child_value, bytes)
-                    else child_value
-                )
+                value = child_value.decode(errors="replace") if isinstance(child_value, bytes) else child_value
             elif tag_value == 4:
                 dn_attributes = bool(child_value)
 
@@ -121,11 +109,7 @@ class ASN1Row(Generic[T]):
 
     def handle_substring(self) -> str:
         """Process and format substring operations for LDAP."""
-        value = (
-            self.value.decode(errors="replace")
-            if isinstance(self.value, bytes)
-            else str(self.value)
-        )
+        value = self.value.decode(errors="replace") if isinstance(self.value, bytes) else str(self.value)
         substring_tag_map = {
             SubstringTag.INITIAL: f"{value}*",
             SubstringTag.ANY: f"*{value}*",
@@ -155,11 +139,7 @@ class ASN1Row(Generic[T]):
             if obj.class_id != Classes.Context:
                 return self.serialize(value)
 
-            if obj.tag_id in (
-                TagNumbers.AND,
-                TagNumbers.OR,
-                TagNumbers.NOT,
-            ):
+            if obj.tag_id in (TagNumbers.AND, TagNumbers.OR, TagNumbers.NOT):
                 subfilters = "".join(self.serialize(v) for v in value)
 
                 if obj.tag_id == TagNumbers.AND:
@@ -187,9 +167,7 @@ class ASN1Row(Generic[T]):
                 operator = operator_map.get(obj.tag_id)
 
                 if operator is None:
-                    raise ValueError(
-                        f"Invalid tag_id ({obj.tag_id}) in context",
-                    )
+                    raise ValueError(f"Invalid tag_id ({obj.tag_id}) in context")
 
             if isinstance(obj.value, list):
                 if len(obj.value) == 2:
@@ -232,10 +210,7 @@ class ASN1Row(Generic[T]):
         return self.serialize()
 
 
-def value_to_string(
-    tag: Tag,
-    value: str | bytes | int | bool,
-) -> bytes | str | int:
+def value_to_string(tag: Tag, value: str | bytes | int | bool) -> bytes | str | int:
     """Convert value to string."""
     if tag.nr == Numbers.Integer:
         with suppress(ValueError):

@@ -7,12 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from dataclasses import dataclass, field
 from ipaddress import IPv4Address, IPv6Address
 
-from ldap_protocol.dns.enums import (
-    DNSForwarderServerStatus,
-    DNSRecordType,
-    PowerDNSRecordChangeType,
-    PowerDNSZoneType,
-)
+from ldap_protocol.dns.enums import DNSForwarderServerStatus, DNSRecordType, PowerDNSRecordChangeType, PowerDNSZoneType
 
 
 @dataclass

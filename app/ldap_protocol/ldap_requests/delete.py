@@ -18,18 +18,10 @@ from ldap_protocol.kerberos.exceptions import (
     KRBAPIPrincipalNotFoundError,
 )
 from ldap_protocol.ldap_codes import LDAPCodes
-from ldap_protocol.ldap_responses import (
-    INVALID_ACCESS_RESPONSE,
-    DeleteResponse,
-)
+from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, DeleteResponse
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.utils.helpers import is_dn_in_base_directory
-from ldap_protocol.utils.queries import (
-    get_base_directories,
-    get_filter_from_path,
-    is_computer,
-    validate_entry,
-)
+from ldap_protocol.utils.queries import get_base_directories, get_filter_from_path, is_computer, validate_entry
 from repo.pg.tables import Attribute, queryable_attr as qa
 
 from .base import BaseRequest
@@ -52,10 +44,7 @@ class DeleteRequest(BaseRequest):
     def from_data(cls, data: ASN1Row) -> "DeleteRequest":
         return cls(entry=data)
 
-    async def handle(  # noqa: C901
-        self,
-        ctx: LDAPDeleteRequestContext,
-    ) -> AsyncGenerator[DeleteResponse, None]:
+    async def handle(self, ctx: LDAPDeleteRequestContext) -> AsyncGenerator[DeleteResponse, None]:  # noqa: C901
         """Delete request handler."""
         if not ctx.ldap_session.user:
             yield DeleteResponse(**INVALID_ACCESS_RESPONSE)
@@ -66,9 +55,7 @@ class DeleteRequest(BaseRequest):
             return
 
         if not ctx.ldap_session.user.role_ids:
-            yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
+            yield DeleteResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         query = (
@@ -76,12 +63,8 @@ class DeleteRequest(BaseRequest):
             .options(
                 joinedload(qa(Directory.user)),
                 joinedload(qa(Directory.entity_type)),
-                selectinload(qa(Directory.groups)).selectinload(
-                    qa(Group.directory),
-                ),
-                joinedload(qa(Directory.group)).selectinload(
-                    qa(Group.members),
-                ),
+                selectinload(qa(Directory.groups)).selectinload(qa(Group.directory)),
+                joinedload(qa(Directory.group)).selectinload(qa(Group.members)),
                 selectinload(qa(Directory.attributes)),
             )
             .filter(get_filter_from_path(self.entry))
@@ -101,14 +84,10 @@ class DeleteRequest(BaseRequest):
             return
 
         if directory.is_system:
-            yield DeleteResponse(
-                result_code=LDAPCodes.UNWILLING_TO_PERFORM,
-            )
+            yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
             return
 
-        self.set_event_data(
-            {"before_attrs": self.get_directory_attrs(directory)},
-        )
+        self.set_event_data({"before_attrs": self.get_directory_attrs(directory)})
 
         if directory.is_domain:
             yield DeleteResponse(result_code=LDAPCodes.UNWILLING_TO_PERFORM)
@@ -116,28 +95,21 @@ class DeleteRequest(BaseRequest):
 
         if directory.group:
             primary_group_members_query = exists(Attribute).where(
-                qa(Attribute.name) == "primaryGroupID",
-                qa(Attribute.value) == directory.relative_id,
+                qa(Attribute.name) == "primaryGroupID", qa(Attribute.value) == directory.relative_id
             )
             if await ctx.session.scalar(select(primary_group_members_query)):
                 yield DeleteResponse(
                     result_code=LDAPCodes.ENTRY_ALREADY_EXISTS,
-                    error_message=(
-                        "Can't delete group with members having"
-                        " it as primary group."
-                    ),
+                    error_message=("Can't delete group with members having it as primary group."),
                 )
                 return
 
         has_access_to_delete = ctx.access_manager.check_entity_level_access(
-            aces=directory.access_control_entries,
-            entity_type_id=directory.entity_type_id,
+            aces=directory.access_control_entries, entity_type_id=directory.entity_type_id
         )
 
         if not has_access_to_delete:
-            yield DeleteResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
+            yield DeleteResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         for base_directory in await get_base_directories(ctx.session):
@@ -149,30 +121,24 @@ class DeleteRequest(BaseRequest):
             if directory.user:
                 if directory.path_dn == ctx.ldap_session.user.dn:
                     yield DeleteResponse(
-                        result_code=LDAPCodes.OPERATIONS_ERROR,
-                        error_message="Cannot delete yourself.",
+                        result_code=LDAPCodes.OPERATIONS_ERROR, error_message="Cannot delete yourself."
                     )
                     return
-                await ctx.session_storage.clear_user_sessions(
-                    directory.user.id,
-                )
+                await ctx.session_storage.clear_user_sessions(directory.user.id)
                 await ctx.kadmin.del_principal(directory.user.sam_account_name)
 
             if await is_computer(directory.id, ctx.session):
-                computer_sam_account_names = directory.attributes_dict.get("sAMAccountName")  # noqa: E501  # fmt: skip
+                computer_sam_account_names = directory.attributes_dict.get("sAMAccountName")
                 if computer_sam_account_names:
                     computer_sam_account_name = computer_sam_account_names[0]
-                    await ctx.kadmin.del_principal(f"host/{computer_sam_account_name}")  # noqa: E501  # fmt: skip
-                    await ctx.kadmin.del_principal(f"host/{computer_sam_account_name}.{base_dn.name}")  # noqa: E501  # fmt: skip
+                    await ctx.kadmin.del_principal(f"host/{computer_sam_account_name}")
+                    await ctx.kadmin.del_principal(f"host/{computer_sam_account_name}.{base_dn.name}")
                 else:
                     raise KRBAPIDeletePrincipalError
         except KRBAPIPrincipalNotFoundError:
             pass
         except (KRBAPIDeletePrincipalError, KRBAPIConnectionError):
-            yield DeleteResponse(
-                result_code=LDAPCodes.UNAVAILABLE,
-                errorMessage="KerberosError",
-            )
+            yield DeleteResponse(result_code=LDAPCodes.UNAVAILABLE, errorMessage="KerberosError")
             return
 
         await ctx.session.execute(delete(Directory).filter_by(id=directory.id))

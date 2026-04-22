@@ -20,12 +20,7 @@ from repo.pg.tables import queryable_attr as qa
 class KRBLDAPStructureManager:
     """Manager for Kerberos-related LDAP structure operations."""
 
-    def __init__(
-        self,
-        session: AsyncSession,
-        role_use_case: RoleUseCase,
-        access_manager: AccessManager,
-    ) -> None:
+    def __init__(self, session: AsyncSession, role_use_case: RoleUseCase, access_manager: AccessManager) -> None:
         """Initialize KRBLDAPStructureManager with a database session.
 
         :param AsyncSession session: SQLAlchemy async session.
@@ -37,10 +32,7 @@ class KRBLDAPStructureManager:
         self._access_manager = access_manager
 
     async def create_kerberos_structure(
-        self,
-        group: AddRequest,
-        krb_user: AddRequest,
-        ctx: LDAPAddRequestContext,
+        self, group: AddRequest, krb_user: AddRequest, ctx: LDAPAddRequestContext
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -62,23 +54,14 @@ class KRBLDAPStructureManager:
             if user_result.result_code != 0:
                 raise KerberosConflictError("User error")
 
-    async def rollback_kerberos_structure(
-        self,
-        krbadmin: str,
-        krbgroup: str,
-    ) -> None:
+    async def rollback_kerberos_structure(self, krbadmin: str, krbgroup: str) -> None:
         """Rollback Kerberos structure in the LDAP directory.
 
         :param str krbadmin: DN for Kerberos admin user.
         :param str krbgroup: DN for Kerberos group.
         :return None.
         """
-        directories_query = select(Directory).where(
-            or_(
-                get_filter_from_path(krbadmin),
-                get_filter_from_path(krbgroup),
-            ),
-        )
+        directories_query = select(Directory).where(or_(get_filter_from_path(krbadmin), get_filter_from_path(krbgroup)))
         directories = await self._session.scalars(directories_query)
         if directories:
             q = qa(Directory.id).in_([dir_.id for dir_ in directories])

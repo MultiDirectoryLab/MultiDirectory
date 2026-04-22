@@ -6,14 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    AsyncGenerator,
-    AsyncIterator,
-    Callable,
-    ClassVar,
-    Protocol,
-)
+from typing import TYPE_CHECKING, AsyncGenerator, AsyncIterator, Callable, ClassVar, Protocol
 
 from dishka import AsyncContainer
 from loguru import logger
@@ -28,9 +21,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import BaseResponse, LDAPResult
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.events.factory import (
-    RawAuditEventBuilderRedis,
-)
+from ldap_protocol.policies.audit.events.factory import RawAuditEventBuilderRedis
 from ldap_protocol.utils.helpers import get_class_name
 
 log_api = logger.bind(name="admin")
@@ -52,10 +43,7 @@ if TYPE_CHECKING:
     class _APIProtocol(Protocol):
         """Protocol for API handling."""
 
-        async def _handle_api(
-            self,
-            container: AsyncContainer,
-        ) -> list[BaseResponse] | BaseResponse: ...
+        async def _handle_api(self, container: AsyncContainer) -> list[BaseResponse] | BaseResponse: ...
 
 else:
 
@@ -84,10 +72,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
         """Get event data."""
         return self.__event_data
 
-    def get_directory_attrs(
-        self,
-        directory: Directory,
-    ) -> dict[str, list[str | None]]:
+    def get_directory_attrs(self, directory: Directory) -> dict[str, list[str | None]]:
         """Get directory attrs."""
         attributes: dict[str, list[str | None]] = {}
         obj_classes: set[str] = set()
@@ -101,22 +86,15 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
 
         if "group" in obj_classes or "user" in obj_classes:
             for group in directory.groups:
-                attributes.setdefault("memberof", []).append(
-                    group.directory.path_dn,
-                )
+                attributes.setdefault("memberof", []).append(group.directory.path_dn)
 
         if "group" in obj_classes and directory.group:
             for member in directory.group.members:
-                attributes.setdefault("member", []).append(
-                    member.path_dn,
-                )
+                attributes.setdefault("member", []).append(member.path_dn)
 
         return attributes
 
-    async def handle_tcp(
-        self,
-        container: AsyncContainer,
-    ) -> AsyncIterator[BaseResponse]:
+    async def handle_tcp(self, container: AsyncContainer) -> AsyncIterator[BaseResponse]:
         """Hanlde response with tcp."""
         ctx = await container.get(self.CONTEXT_TYPE)  # type: ignore
 
@@ -127,10 +105,7 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
                 yield response
         except OperationalError:
             if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
-                yield self.RESPONSE_TYPE(
-                    result_code=LDAPCodes.UNAVAILABLE,
-                    errorMessage="Master DB is not available",
-                )
+                yield self.RESPONSE_TYPE(result_code=LDAPCodes.UNAVAILABLE, errorMessage="Master DB is not available")
             return
 
         if self.PROTOCOL_OP != ProtocolRequests.SEARCH:
@@ -138,14 +113,8 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
             settings = await container.get(Settings)
             audit_use_case = await container.get(AuditUseCase)
 
-            if await audit_use_case.check_event_processing_enabled(
-                self.PROTOCOL_OP,
-            ):
-                username = getattr(
-                    ldap_session.user,
-                    "user_principal_name",
-                    "ANONYMOUS",
-                )
+            if await audit_use_case.check_event_processing_enabled(self.PROTOCOL_OP):
+                username = getattr(ldap_session.user, "user_principal_name", "ANONYMOUS")
                 event = RawAuditEventBuilderRedis.from_ldap_request(
                     self,
                     responses=responses,
@@ -156,14 +125,9 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
                     context=self.get_event_data(),
                 )
 
-                ldap_session.event_task_group.create_task(
-                    audit_use_case.manager.send_event(event),
-                )
+                ldap_session.event_task_group.create_task(audit_use_case.manager.send_event(event))
 
-    async def _handle_api(
-        self,
-        container: AsyncContainer,
-    ) -> list[BaseResponse]:
+    async def _handle_api(self, container: AsyncContainer) -> list[BaseResponse]:
         """Hanlde response with api user.
 
         :param DBUser user: user from db
@@ -189,26 +153,17 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
             responses = []
             if self.PROTOCOL_OP != ProtocolRequests.ABANDON:
                 responses.append(
-                    self.RESPONSE_TYPE(
-                        result_code=LDAPCodes.UNAVAILABLE,
-                        errorMessage="Master DB is not available",
-                    ),
+                    self.RESPONSE_TYPE(result_code=LDAPCodes.UNAVAILABLE, errorMessage="Master DB is not available")
                 )
 
         if settings.DEBUG:
             for response in responses:
-                log_api.info(
-                    "{}: {}",
-                    get_class_name(response),
-                    response.model_dump_json(),
-                )
+                log_api.info("{}: {}", get_class_name(response), response.model_dump_json())
         else:
             for response in responses:
                 log_api.info(f"{get_class_name(response)}[{un}]")
 
-        if await audit_use_case.check_event_processing_enabled(
-            self.PROTOCOL_OP,
-        ):
+        if await audit_use_case.check_event_processing_enabled(self.PROTOCOL_OP):
             event = RawAuditEventBuilderRedis.from_ldap_request(
                 request=self,
                 responses=responses,
@@ -218,22 +173,14 @@ class BaseRequest(ABC, _APIProtocol, BaseModel):
                 settings=settings,
                 context=self.get_event_data(),
             )
-            asyncio.create_task(
-                audit_use_case.manager.send_event(event),
-            )
+            asyncio.create_task(audit_use_case.manager.send_event(event))
         return responses
 
-    async def handle_api(
-        self,
-        container: AsyncContainer,
-    ) -> LDAPResult:
+    async def handle_api(self, container: AsyncContainer) -> LDAPResult:
         """Get single response."""
         return (await self._handle_api(container))[0]  # type: ignore
 
-    async def handle_udp(
-        self,
-        container: AsyncContainer,
-    ) -> AsyncIterator[BaseResponse]:
+    async def handle_udp(self, container: AsyncContainer) -> AsyncIterator[BaseResponse]:
         """Handle response with UDP."""
         kwargs = await resolve_deps(func=self.handle, container=container)
 

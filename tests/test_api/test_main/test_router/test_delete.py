@@ -16,11 +16,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 @pytest.mark.usefixtures("session")
 async def test_api_correct_delete(http_client: AsyncClient) -> None:
     """Test API for delete object."""
-    response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={"entry": "cn=test,dc=md,dc=test"},
-    )
+    response = await http_client.request("delete", "/entry/delete", json={"entry": "cn=test,dc=md,dc=test"})
 
     data = response.json()
 
@@ -32,14 +28,10 @@ async def test_api_correct_delete(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("add_system_administrator")
-async def test_api_cant_delete_system_directory(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_cant_delete_system_directory(http_client: AsyncClient) -> None:
     """Test API for delete system directory."""
     response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={"entry": "cn=System Administrator,dc=md,dc=test"},
+        "delete", "/entry/delete", json={"entry": "cn=System Administrator,dc=md,dc=test"}
     )
 
     data = response.json()
@@ -53,13 +45,7 @@ async def test_api_cant_delete_system_directory(
 @pytest.mark.usefixtures("session")
 async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API for delete object with incorrect DN."""
-    response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={
-            "entry": "cn!=test,dc=md,dc=test",
-        },
-    )
+    response = await http_client.request("delete", "/entry/delete", json={"entry": "cn!=test,dc=md,dc=test"})
 
     data = response.json()
 
@@ -72,13 +58,7 @@ async def test_api_delete_with_incorrect_dn(http_client: AsyncClient) -> None:
 @pytest.mark.usefixtures("session")
 async def test_api_delete_non_exist_object(http_client: AsyncClient) -> None:
     """Test API for delete non-existen object."""
-    response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={
-            "entry": "cn=non-exist-object,dc=md,dc=test",
-        },
-    )
+    response = await http_client.request("delete", "/entry/delete", json={"entry": "cn=non-exist-object,dc=md,dc=test"})
 
     data = response.json()
 
@@ -105,10 +85,7 @@ async def test_api_delete_many(http_client: AsyncClient) -> None:
                 {"type": "name", "vals": ["test2"]},
                 {"type": "cn", "vals": ["test2"]},
                 {"type": "testing_attr", "vals": ["test2"]},
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top", "user"],
-                },
+                {"type": "objectClass", "vals": ["organization", "top", "user"]},
             ],
         },
     )
@@ -124,10 +101,7 @@ async def test_api_delete_many(http_client: AsyncClient) -> None:
                 {"type": "name", "vals": ["test3"]},
                 {"type": "cn", "vals": ["test3"]},
                 {"type": "testing_attr", "vals": ["test3"]},
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top", "user"],
-                },
+                {"type": "objectClass", "vals": ["organization", "top", "user"]},
             ],
         },
     )
@@ -135,16 +109,9 @@ async def test_api_delete_many(http_client: AsyncClient) -> None:
     assert data["resultCode"] == LDAPCodes.SUCCESS
 
     response = await http_client.post(
-        "/entry/delete_many",
-        json=[
-            {"entry": entry_dn_1},
-            {"entry": entry_dn_2},
-            {"entry": entry_dn_3},
-        ],
+        "/entry/delete_many", json=[{"entry": entry_dn_1}, {"entry": entry_dn_2}, {"entry": entry_dn_3}]
     )
 
     data = response.json()
 
-    assert all(
-        [result.get("resultCode") == LDAPCodes.SUCCESS for result in data],
-    )
+    assert all([result.get("resultCode") == LDAPCodes.SUCCESS for result in data])

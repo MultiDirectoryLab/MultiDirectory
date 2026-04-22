@@ -17,16 +17,7 @@ async def check_policy_count(session: AsyncSession) -> None:
     :param AsyncSession session: db
     :raises HTTPException: 422
     """
-    count = await session.scalars(
-        (
-            select(func.count())
-            .select_from(NetworkPolicy)
-            .filter_by(enabled=True)
-        ),
-    )
+    count = await session.scalars((select(func.count()).select_from(NetworkPolicy).filter_by(enabled=True)))
 
     if count.one() == 1:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-            "At least one policy should be active",
-        )
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "At least one policy should be active")

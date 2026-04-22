@@ -25,11 +25,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """Get method name."""
         return "Simple"
 
-    def is_valid(
-        self,
-        user: User | None,
-        password_utils: PasswordUtils,
-    ) -> bool:
+    def is_valid(self, user: User | None, password_utils: PasswordUtils) -> bool:
         """Check if pwd is valid for user.
 
         :param User | None user: indb user
@@ -37,10 +33,7 @@ class SimpleAuthentication(AbstractLDAPAuth):
         """
         password = getattr(user, "password", None)
         if password is not None:
-            return password_utils.verify_password(
-                self.password.get_secret_value(),
-                password,
-            )
+            return password_utils.verify_password(self.password.get_secret_value(), password)
         return False
 
     def is_anonymous(self) -> bool:

@@ -12,9 +12,7 @@ from config import Settings
 from constants import DOMAIN_CONTROLLERS_OU_NAME
 from entities import Attribute, Directory
 from enums import SamAccountTypeCodes
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.rid_manager import ObjectSIDUseCase, RIDSetUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
@@ -30,11 +28,7 @@ async def _add_domain_controller(
     object_sid_use_case: ObjectSIDUseCase,
     rid_set_use_case: RIDSetUseCase,
 ) -> None:
-    dc_directory = Directory(
-        object_class="",
-        name=settings.HOST_MACHINE_SHORT_NAME,
-        is_system=True,
-    )
+    dc_directory = Directory(object_class="", name=settings.HOST_MACHINE_SHORT_NAME, is_system=True)
     dc_directory.create_path(dc_ou_dir)
     session.add(dc_directory)
     await session.flush()
@@ -43,65 +37,33 @@ async def _add_domain_controller(
     await session.flush()
 
     await rid_set_use_case.add(
-        domain_controller=dc_directory,
-        allocation_params=await rid_set_use_case.generate_rid_set_attrs(),
+        domain_controller=dc_directory, allocation_params=await rid_set_use_case.generate_rid_set_attrs()
     )
     await session.flush()
-    await object_sid_use_case.add(
-        directory_id=dc_directory.id,
-    )
+    await object_sid_use_case.add(directory_id=dc_directory.id)
 
     attributes = [
-        Attribute(
-            name="objectClass",
-            value="top",
-            directory_id=dc_directory.id,
-        ),
-        Attribute(
-            name="objectClass",
-            value="computer",
-            directory_id=dc_directory.id,
-        ),
-        Attribute(
-            name="sAMAccountName",
-            value=settings.HOST_MACHINE_SHORT_NAME,
-            directory_id=dc_directory.id,
-        ),
+        Attribute(name="objectClass", value="top", directory_id=dc_directory.id),
+        Attribute(name="objectClass", value="computer", directory_id=dc_directory.id),
+        Attribute(name="sAMAccountName", value=settings.HOST_MACHINE_SHORT_NAME, directory_id=dc_directory.id),
         Attribute(
             name="userAccountControl",
-            value=str(
-                UserAccountControlFlag.SERVER_TRUST_ACCOUNT,
-            ),
+            value=str(UserAccountControlFlag.SERVER_TRUST_ACCOUNT),
             directory_id=dc_directory.id,
         ),
         Attribute(
-            name="sAMAccountType",
-            value=str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
-            directory_id=dc_directory.id,
+            name="sAMAccountType", value=str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT), directory_id=dc_directory.id
         ),
-        Attribute(
-            name="ipHostNumber",
-            value=settings.DEFAULT_NAMESERVER,
-            directory_id=dc_directory.id,
-        ),
-        Attribute(
-            name="cn",
-            value=settings.HOST_MACHINE_SHORT_NAME,
-            directory_id=dc_directory.id,
-        ),
+        Attribute(name="ipHostNumber", value=settings.DEFAULT_NAMESERVER, directory_id=dc_directory.id),
+        Attribute(name="cn", value=settings.HOST_MACHINE_SHORT_NAME, directory_id=dc_directory.id),
     ]
 
     session.add_all(attributes)
     await session.flush()
 
-    await role_use_case.inherit_parent_aces(
-        parent_directory=dc_ou_dir,
-        directory=dc_directory,
-    )
+    await role_use_case.inherit_parent_aces(parent_directory=dc_ou_dir, directory=dc_directory)
     await entity_type_use_case.attach_entity_type_to_directory(
-        directory=dc_directory,
-        is_system_entity_type=False,
-        object_class_names={"top", "computer"},
+        directory=dc_directory, is_system_entity_type=False, object_class_names={"top", "computer"}
     )
     await session.flush()
 
@@ -117,9 +79,7 @@ async def add_domain_controller(
     logger.info("Adding domain controller.")
 
     domain_controllers_ou = await session.scalar(
-        select(Directory).where(
-            qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
-        ),
+        select(Directory).where(qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME)
     )
 
     if not domain_controllers_ou:
@@ -133,7 +93,7 @@ async def add_domain_controller(
             qa(Directory.parent_id) == domain_controllers_ou.id,
             qa(Attribute.name) == "ipHostNumber",
             qa(Attribute.value) == settings.DEFAULT_NAMESERVER,
-        ),
+        )
     )
 
     if domain_controller:

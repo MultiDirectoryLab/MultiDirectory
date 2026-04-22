@@ -9,13 +9,7 @@ from sqlalchemy import Connection, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from config import Settings
-from ioc import (
-    HTTPProvider,
-    MainProvider,
-    MFACredsProvider,
-    MFAProvider,
-    MigrationProvider,
-)
+from ioc import HTTPProvider, MainProvider, MFACredsProvider, MFAProvider, MigrationProvider
 from repo.pg.tables import metadata
 
 # this is the Alembic Config object, which provides
@@ -30,11 +24,7 @@ if config.config_file_name is not None:
 target_metadata = metadata
 
 
-def run_sync_migrations(
-    connection: Connection,
-    schema_name: str,
-    dishka_container: AsyncContainer,
-) -> None:
+def run_sync_migrations(connection: Connection, schema_name: str, dishka_container: AsyncContainer) -> None:
     """Run sync migrations."""
     if schema_name != "public":
         connection.execute(text(f"SET search_path = {schema_name}, public;"))
@@ -50,16 +40,11 @@ def run_sync_migrations(
         context.run_migrations(container=dishka_container)
 
 
-async def run_async_migrations(
-    settings: Settings,
-    dishka_container: AsyncContainer,
-) -> None:
+async def run_async_migrations(settings: Settings, dishka_container: AsyncContainer) -> None:
     """Run async migrations."""
     connection = await dishka_container.get(AsyncConnection)
     await connection.run_sync(
-        run_sync_migrations,
-        schema_name=settings.TEST_POSTGRES_SCHEMA,
-        dishka_container=dishka_container,
+        run_sync_migrations, schema_name=settings.TEST_POSTGRES_SCHEMA, dishka_container=dishka_container
     )
 
 
@@ -70,10 +55,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
     """
     conn = context.config.attributes.get("connection", None)
-    settings: Settings = context.config.attributes.get(
-        "app_settings",
-        Settings.from_os(),
-    )
+    settings: Settings = context.config.attributes.get("app_settings", Settings.from_os())
     dishka_container = context.config.attributes.get("dishka_container", None)
     if not dishka_container:
         dishka_container = make_async_container(
@@ -88,11 +70,7 @@ def run_migrations_online() -> None:
     if conn is None:
         asyncio.run(run_async_migrations(settings, dishka_container))
     else:
-        run_sync_migrations(
-            conn,
-            schema_name=settings.TEST_POSTGRES_SCHEMA,
-            dishka_container=dishka_container,
-        )
+        run_sync_migrations(conn, schema_name=settings.TEST_POSTGRES_SCHEMA, dishka_container=dishka_container)
 
 
 run_migrations_online()

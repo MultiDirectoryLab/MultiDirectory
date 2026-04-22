@@ -11,9 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import PasswordBanWord
-from ldap_protocol.policies.password.exceptions import (
-    PasswordBanWordFileHasDuplicatesError,
-)
+from ldap_protocol.policies.password.exceptions import PasswordBanWordFileHasDuplicatesError
 from repo.pg.tables import queryable_attr as qa
 
 
@@ -75,6 +73,4 @@ class PasswordBanWordRepository:
             await self.__session.commit()
         except IntegrityError:
             await self.__session.rollback()
-            raise PasswordBanWordFileHasDuplicatesError(
-                "Ban words is duplicated",
-            )
+            raise PasswordBanWordFileHasDuplicatesError("Ban words is duplicated")

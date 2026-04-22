@@ -29,31 +29,18 @@ class AuditDestinationDAO(AbstractDAO[AuditDestinationDTO, int]):
     async def _get_raw(self, _id: int) -> AuditDestination:
         destination = await self._session.get(AuditDestination, _id)
         if not destination:
-            raise AuditNotFoundError(
-                f"Destination with id {_id} not found.",
-            )
+            raise AuditNotFoundError(f"Destination with id {_id} not found.")
         return destination
 
-    async def get(
-        self,
-        _id: int,
-    ) -> AuditDestinationDTO:
+    async def get(self, _id: int) -> AuditDestinationDTO:
         """Get audit destination by ID."""
         return _convert(await self._get_raw(_id))
 
     async def get_all(self) -> list[AuditDestinationDTO]:
         """Get all audit destinations."""
-        return [
-            _convert(destination)
-            for destination in (
-                await self._session.scalars(select(AuditDestination))
-            ).all()
-        ]
+        return [_convert(destination) for destination in (await self._session.scalars(select(AuditDestination))).all()]
 
-    async def create(
-        self,
-        dto: AuditDestinationDTO,
-    ) -> None:
+    async def create(self, dto: AuditDestinationDTO) -> None:
         """Create a new audit destination."""
         d = asdict(dto)
         del d["id"]
@@ -61,11 +48,7 @@ class AuditDestinationDAO(AbstractDAO[AuditDestinationDTO, int]):
         self._session.add(destination)
         await self._session.flush()
 
-    async def update(
-        self,
-        _id: int,
-        dto: AuditDestinationDTO,
-    ) -> None:
+    async def update(self, _id: int, dto: AuditDestinationDTO) -> None:
         """Update an existing audit destination."""
         existing_destination = await self._get_raw(_id)
 

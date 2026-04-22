@@ -25,15 +25,11 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-@temporary_stub_column(
-    "AccessControlEntries",
-    "attribute_type_name",
-    sa.String(),
-)
+@temporary_stub_column("AccessControlEntries", "attribute_type_name", sa.String())
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _fix_krbadmin_role(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _fix_krbadmin_role(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             role_dao = await cnt.get(RoleDAO)

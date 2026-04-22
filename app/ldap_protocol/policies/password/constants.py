@@ -8,17 +8,13 @@ MIN_LENGTH_FOR_TRGM: Literal[3] = 3
 MAX_BANWORD_LENGTH: Literal[254] = 254
 
 __CYRILLIC_ALPHABET: str = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-CYRILLIC_ALPHABET_SEQUENCE: str = (
-    __CYRILLIC_ALPHABET * 2 + __CYRILLIC_ALPHABET[::-1] * 2
-)
+CYRILLIC_ALPHABET_SEQUENCE: str = __CYRILLIC_ALPHABET * 2 + __CYRILLIC_ALPHABET[::-1] * 2
 
 __LATIN_ALPHABET: str = "abcdefghijklmnopqrstuvwxyz"
-LATIN_ALPHABET_SEQUENCE: str = (
-    __LATIN_ALPHABET * 2 + __LATIN_ALPHABET[::-1] * 2
-)
+LATIN_ALPHABET_SEQUENCE: str = __LATIN_ALPHABET * 2 + __LATIN_ALPHABET[::-1] * 2
 
 __BASE_CYRILLIC_KEYBOARD_SEQUENCES: list[str] = [
-    "ё!\"№;%:?*()_+",  # noqa: Q003
+    'ё!"№;%:?*()_+',
     "1234567890",
     "0123456789",
     "ё1234567890-=",
@@ -46,7 +42,7 @@ __BASE_LATIN_KEYBOARD_SEQUENCES: list[str] = [
     "qwertyuiop{}|",
     "asdfghjkl",
     "asdfghjkl;'",
-    "asdfghjkl:\"",  # noqa: Q003
+    'asdfghjkl:"',
     "zxcvbnm,./",
     "zxcvbnm<>?",
 ]  # fmt: skip

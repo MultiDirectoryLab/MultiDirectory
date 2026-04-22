@@ -12,16 +12,16 @@ test_search_filter_account_expires_dataset = [
     "(accountExpires<=134006890408650000)",
     "(accountExpires>=134006890408650000)",
     "(accountExpires>=0)",  # NOTE: mindate
-    "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999  # noqa: E501
+    "(accountExpires<=2650465908000000000)",  # NOTE: maxdate is December 30, 9999
 ]
 
 test_search_by_rule_anr_dataset = [
     # with split by space
-    {"filter": "(anr=Joh Lenno)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=Lennon John)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=John Lennon)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=john lennon)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr==Lennon John)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=Joh Lenno)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr=Lennon John)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr=John Lennon)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr=john lennon)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
+    {"filter": "(anr==Lennon John)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
     # without split by space
     {"filter": "(anr=user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
     {"filter": "(anr=user0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
@@ -29,11 +29,11 @@ test_search_by_rule_anr_dataset = [
     {"filter": "(anr<=user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
     {"filter": "(anr~=user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
     {"filter": "(anr==user0)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
-    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr==user0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
     {"filter": "(aNR=user0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
     {"filter": "(anr=uSEr0*)", "objects": ["cn=user0,cn=Users,dc=md,dc=test"]},
-    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},  # noqa: E501
-    {"filter": "(anr=user_admin_3@mail.com)", "objects": ["cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test"]},  # noqa: E501
+    {"filter": "(anr=domain admins)", "objects": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},
+    {"filter": "(anr=user_admin_3@mail.com)", "objects": ["cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test"]},
     {
         "filter": "(anr=user_admin_*)",
         "objects": [
@@ -44,11 +44,11 @@ test_search_by_rule_anr_dataset = [
             "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
         ],
     },
-]  # fmt: skip
+]
 
 test_search_by_rule_bit_and_dataset = [
     {
-        "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",  # noqa: E501
+        "filter": f"(useraccountcontrol:1.2.840.113556.1.4.803:={UserAccountControlFlag.NORMAL_ACCOUNT})",
         "objects": [
             "cn=user0,cn=Users,dc=md,dc=test",
             "cn=user_admin,cn=Users,dc=md,dc=test",
@@ -61,8 +61,7 @@ test_search_by_rule_bit_and_dataset = [
     },
     {
         "filter": f"(userAccountControl:1.2.840.113556.1.4.803:={
-            UserAccountControlFlag.NOT_DELEGATED
-            + UserAccountControlFlag.NORMAL_ACCOUNT
+            UserAccountControlFlag.NOT_DELEGATED + UserAccountControlFlag.NORMAL_ACCOUNT
         })",
         "objects": [
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
@@ -76,12 +75,10 @@ test_search_by_rule_bit_and_dataset = [
             + UserAccountControlFlag.LOCKOUT
             + UserAccountControlFlag.ACCOUNTDISABLE
         })",
-        "objects": [
-            "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
-        ],
+        "objects": ["cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test"],
     },
     {
-        "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
+        "filter": f"(!(userAccountControl:1.2.840.113556.1.4.803:={UserAccountControlFlag.ACCOUNTDISABLE}))",
         "objects": [
             "cn=user0,cn=Users,dc=md,dc=test",
             "cn=user_admin,cn=Users,dc=md,dc=test",
@@ -91,17 +88,13 @@ test_search_by_rule_bit_and_dataset = [
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
         ],
     },
-    {
-        "filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)",
-        "objects": [],
-    },
+    {"filter": "(groupType:1.2.840.113556.1.4.803:=2147483648)", "objects": []},
 ]
 
 test_search_by_rule_bit_or_dataset = [
     {
         "filter": f"(useraccountcontrol:1.2.840.113556.1.4.804:={
-            UserAccountControlFlag.ACCOUNTDISABLE
-            + UserAccountControlFlag.NORMAL_ACCOUNT
+            UserAccountControlFlag.ACCOUNTDISABLE + UserAccountControlFlag.NORMAL_ACCOUNT
         })",
         "objects": [
             "cn=user0,cn=Users,dc=md,dc=test",
@@ -115,14 +108,14 @@ test_search_by_rule_bit_or_dataset = [
         ],
     },
     {
-        "filter": f"(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE})",  # noqa: E501
+        "filter": f"(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE})",
         "objects": [
             "cn=user_admin_1,ou=test_bit_rules,dc=md,dc=test",
             "cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
         ],
     },
     {
-        "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",  # noqa: E501
+        "filter": f"(!(userAccountControl:1.2.840.113556.1.4.804:={UserAccountControlFlag.ACCOUNTDISABLE}))",
         "objects": [
             "cn=user0,cn=Users,dc=md,dc=test",
             "cn=user_admin,cn=Users,dc=md,dc=test",
@@ -132,8 +125,5 @@ test_search_by_rule_bit_or_dataset = [
             "cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
         ],
     },
-    {
-        "filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)",
-        "objects": [],
-    },
+    {"filter": "(groupType:1.2.840.113556.1.4.804:=2147483648)", "objects": []},
 ]

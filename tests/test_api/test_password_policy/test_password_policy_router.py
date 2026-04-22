@@ -16,10 +16,7 @@ from .datasets import test_update_data
 
 
 @pytest.mark.asyncio
-async def test_get_all_with_error(
-    http_client_with_login_perm: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
+async def test_get_all_with_error(http_client_with_login_perm: AsyncClient, password_use_cases: Mock) -> None:
     """Test get all Password Policy endpoint."""
     response = await http_client_with_login_perm.get("/password-policy/all")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -30,10 +27,7 @@ async def test_get_all_with_error(
 
 
 @pytest.mark.asyncio
-async def test_get_all(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
+async def test_get_all(http_client: AsyncClient, password_use_cases: Mock) -> None:
     """Test get all Password Policy endpoint."""
     response = await http_client.get("/password-policy/all")
     assert response.status_code == status.HTTP_200_OK
@@ -44,10 +38,7 @@ async def test_get_all(
 
 
 @pytest.mark.asyncio
-async def test_get_with_error(
-    http_client_with_login_perm: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
+async def test_get_with_error(http_client_with_login_perm: AsyncClient, password_use_cases: Mock) -> None:
     """Test get one Password Policy endpoint."""
     response = await http_client_with_login_perm.get("/password-policy/1")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -58,10 +49,7 @@ async def test_get_with_error(
 
 
 @pytest.mark.asyncio
-async def test_get(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
+async def test_get(http_client: AsyncClient, password_use_cases: Mock) -> None:
     """Test get one Password Policy endpoint."""
     response = await http_client.get("/password-policy/1")
     assert response.status_code == status.HTTP_200_OK
@@ -73,14 +61,11 @@ async def test_get(
 
 @pytest.mark.asyncio
 async def test_get_password_policy_by_dir_path_dn_with_error(
-    http_client_with_login_perm: AsyncClient,
-    password_use_cases: Mock,
+    http_client_with_login_perm: AsyncClient, password_use_cases: Mock
 ) -> None:
     """Test get one Password Policy endpoint."""
     path = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
-    response = await http_client_with_login_perm.get(
-        f"/password-policy/by_dir_path_dn/{path}",
-    )
+    response = await http_client_with_login_perm.get(f"/password-policy/by_dir_path_dn/{path}")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
@@ -89,15 +74,10 @@ async def test_get_password_policy_by_dir_path_dn_with_error(
 
 
 @pytest.mark.asyncio
-async def test_get_password_policy_by_dir_path_dn(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
+async def test_get_password_policy_by_dir_path_dn(http_client: AsyncClient, password_use_cases: Mock) -> None:
     """Test get Password Policy by directory path endpoint."""
     path = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
-    response = await http_client.get(
-        f"/password-policy/by_dir_path_dn/{path}",
-    )
+    response = await http_client.get(f"/password-policy/by_dir_path_dn/{path}")
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
@@ -107,16 +87,9 @@ async def test_get_password_policy_by_dir_path_dn(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("schema", test_update_data)
-async def test_update(
-    schema: PasswordPolicySchema[int],
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
+async def test_update(schema: PasswordPolicySchema[int], http_client: AsyncClient, password_use_cases: Mock) -> None:
     """Test update one Password Policy endpoint."""
-    response = await http_client.put(
-        f"/password-policy/{schema.id}",
-        json=schema.model_dump(),
-    )
+    response = await http_client.put(f"/password-policy/{schema.id}", json=schema.model_dump())
     assert response.status_code == status.HTTP_200_OK
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
@@ -127,15 +100,10 @@ async def test_update(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("schema", test_update_data)
 async def test_update_with_error(
-    schema: PasswordPolicySchema[int],
-    http_client_with_login_perm: AsyncClient,
-    password_use_cases: Mock,
+    schema: PasswordPolicySchema[int], http_client_with_login_perm: AsyncClient, password_use_cases: Mock
 ) -> None:
     """Test get one Password Policy endpoint."""
-    response = await http_client_with_login_perm.put(
-        "/password-policy/1",
-        json=schema.model_dump(),
-    )
+    response = await http_client_with_login_perm.put("/password-policy/1", json=schema.model_dump())
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
@@ -145,13 +113,10 @@ async def test_update_with_error(
 
 @pytest.mark.asyncio
 async def test_reset_domain_policy_to_default_config_with_error(
-    http_client_with_login_perm: AsyncClient,
-    password_use_cases: Mock,
+    http_client_with_login_perm: AsyncClient, password_use_cases: Mock
 ) -> None:
     """Test get one Password Policy endpoint."""
-    response = await http_client_with_login_perm.put(
-        "/password-policy/reset/domain_policy",
-    )
+    response = await http_client_with_login_perm.put("/password-policy/reset/domain_policy")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # NOTE to password_use_cases.get_all returned Mock, not wrapper
@@ -160,10 +125,7 @@ async def test_reset_domain_policy_to_default_config_with_error(
 
 
 @pytest.mark.asyncio
-async def test_reset_domain_policy_to_default_config(
-    http_client: AsyncClient,
-    password_use_cases: Mock,
-) -> None:
+async def test_reset_domain_policy_to_default_config(http_client: AsyncClient, password_use_cases: Mock) -> None:
     """Test reset domain Password Policy to default config endpoint."""
     response = await http_client.put("/password-policy/reset/domain_policy")
     assert response.status_code == status.HTTP_200_OK

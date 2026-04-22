@@ -12,9 +12,7 @@ from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
-    AttributeTypeUseCaseLegacy,
-)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import AttributeTypeUseCaseLegacy
 
 # revision identifiers, used by Alembic.
 revision: None | str = "2dadf40c026a"
@@ -130,17 +128,9 @@ def upgrade(container: AsyncContainer) -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    op.add_column(
-        "AttributeTypes",
-        sa.Column(
-            "system_flags",
-            sa.Integer(),
-            nullable=True,
-            server_default=sa.text("0"),
-        ),
-    )
+    op.add_column("AttributeTypes", sa.Column("system_flags", sa.Integer(), nullable=True, server_default=sa.text("0")))
 
-    async def _zero_all_replicated_flags(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _zero_all_replicated_flags(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
@@ -150,14 +140,12 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_zero_all_replicated_flags)
 
-    async def _set_false_replication_flag(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _set_false_replication_flag(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        await at_type_use_case.set_false_replication_flag(
-            _NON_REPLICATED_ATTRIBUTES_TYPE_NAMES,
-        )
+        await at_type_use_case.set_false_replication_flag(_NON_REPLICATED_ATTRIBUTES_TYPE_NAMES)
 
         await session.commit()
 
@@ -168,6 +156,6 @@ def upgrade(container: AsyncContainer) -> None:
     session.commit()
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.drop_column("AttributeTypes", "system_flags")

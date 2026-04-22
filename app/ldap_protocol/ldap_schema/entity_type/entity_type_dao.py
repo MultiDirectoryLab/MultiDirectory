@@ -13,10 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Attribute, Directory, EntityType
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-    AttributeValueValidatorError,
-)
+from ldap_protocol.ldap_schema.attribute_value_validator import AttributeValueValidator, AttributeValueValidatorError
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
 from ldap_protocol.ldap_schema.exceptions import (
@@ -24,20 +21,10 @@ from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeCantModifyError,
     EntityTypeNotFoundError,
 )
-from ldap_protocol.utils.pagination import (
-    PaginationParams,
-    PaginationResult,
-    build_paginated_search_query,
-)
+from ldap_protocol.utils.pagination import PaginationParams, PaginationResult, build_paginated_search_query
 from repo.pg.tables import queryable_attr as qa
 
-_convert = get_converter(
-    EntityType,
-    EntityTypeDTO[int],
-    recipe=[
-        link_function(lambda x: x.id, P[EntityTypeDTO].id),
-    ],
-)
+_convert = get_converter(EntityType, EntityTypeDTO[int], recipe=[link_function(lambda x: x.id, P[EntityTypeDTO].id)])
 
 
 class EntityTypeDAO:
@@ -48,10 +35,7 @@ class EntityTypeDAO:
     __directory_dao: DirectoryDAO
 
     def __init__(
-        self,
-        session: AsyncSession,
-        attribute_value_validator: AttributeValueValidator,
-        directory_dao: DirectoryDAO,
+        self, session: AsyncSession, attribute_value_validator: AttributeValueValidator, directory_dao: DirectoryDAO
     ) -> None:
         """Initialize Entity Type DAO with a database session."""
         self.__session = session
@@ -70,16 +54,12 @@ class EntityTypeDAO:
         """Create a new Entity Type."""
         try:
             entity_type = EntityType(
-                name=dto.name,
-                object_class_names=sorted(set(dto.object_class_names)),
-                is_system=dto.is_system,
+                name=dto.name, object_class_names=sorted(set(dto.object_class_names)), is_system=dto.is_system
             )
             self.__session.add(entity_type)
             await self.__session.flush()
         except IntegrityError:
-            raise EntityTypeAlreadyExistsError(
-                f"Entity Type with name '{dto.name}' already exists.",
-            )
+            raise EntityTypeAlreadyExistsError(f"Entity Type with name '{dto.name}' already exists.")
 
     async def update(self, name: str, dto: EntityTypeDTO[int]) -> None:
         """Update an Entity Type."""
@@ -94,44 +74,29 @@ class EntityTypeDAO:
                     qa(Attribute.directory_id).in_(
                         select(qa(Directory.id))
                         .join(qa(Directory.entity_type))
-                        .where(qa(EntityType.name) == entity_type.name),
+                        .where(qa(EntityType.name) == entity_type.name)
                     ),
-                    or_(
-                        qa(Attribute.name) == "objectclass",
-                        qa(Attribute.name) == "objectClass",
-                    ),
-                ),
+                    or_(qa(Attribute.name) == "objectclass", qa(Attribute.name) == "objectClass"),
+                )
             )  # fmt: skip
 
             # Sort object_class_names to ensure a
             # consistent order for database operations
             # and to facilitate duplicate detection.
 
-            entity_type.object_class_names = sorted(
-                dto.object_class_names,
-            )
-            directory_ids = (
-                await self.__directory_dao.get_all_dir_ids_by_entity_type_name(
-                    entity_type.name,
-                )
-            )
+            entity_type.object_class_names = sorted(dto.object_class_names)
+            directory_ids = await self.__directory_dao.get_all_dir_ids_by_entity_type_name(entity_type.name)
             for directory_id in directory_ids:
                 for object_class_name in entity_type.object_class_names:
                     if not self.__attribute_value_validator.is_value_valid(
-                        entity_type.name,
-                        "objectClass",
-                        object_class_name,
+                        entity_type.name, "objectClass", object_class_name
                     ):
                         raise AttributeValueValidatorError(
-                            f"Invalid objectClass value '{object_class_name}' for entity type '{entity_type.name}'.",  # noqa: E501
+                            f"Invalid objectClass value '{object_class_name}' for entity type '{entity_type.name}'."
                         )
 
                     self.__session.add(
-                        Attribute(
-                            directory_id=directory_id,
-                            name="objectClass",
-                            value=object_class_name,
-                        ),
+                        Attribute(directory_id=directory_id, name="objectClass", value=object_class_name)
                     )
 
             await self.__session.flush()
@@ -139,8 +104,7 @@ class EntityTypeDAO:
             # NOTE: Session has autoflush, so we can fall in select requests
             await self.__session.rollback()
             raise EntityTypeCantModifyError(
-                f"Entity Type with name '{dto.name}' and object class "
-                f"names {dto.object_class_names} already exists.",
+                f"Entity Type with name '{dto.name}' and object class names {dto.object_class_names} already exists."
             )
 
     async def delete(self, name: str) -> None:
@@ -149,89 +113,62 @@ class EntityTypeDAO:
         await self.__session.delete(entity_type)
         await self.__session.flush()
 
-    async def get_paginator(
-        self,
-        params: PaginationParams,
-    ) -> PaginationResult[EntityType, EntityTypeDTO]:
+    async def get_paginator(self, params: PaginationParams) -> PaginationResult[EntityType, EntityTypeDTO]:
         """Retrieve paginated Entity Types."""
         query = build_paginated_search_query(
-            model=EntityType,
-            order_by_field=qa(EntityType.name),
-            params=params,
-            search_field=qa(EntityType.name),
+            model=EntityType, order_by_field=qa(EntityType.name), params=params, search_field=qa(EntityType.name)
         )
 
         return await PaginationResult[EntityType, EntityTypeDTO].get(
-            params=params,
-            query=query,
-            converter=_convert,
-            session=self.__session,
+            params=params, query=query, converter=_convert, session=self.__session
         )
 
     async def _get_one_raw_by_name(self, name: str) -> EntityType:
         """Get single Entity Type by name."""
-        entity_type = await self.__session.scalar(
-            select(EntityType)
-            .filter_by(name=name),
-        )  # fmt: skip
+        entity_type = await self.__session.scalar(select(EntityType).filter_by(name=name))
 
         if not entity_type:
-            raise EntityTypeNotFoundError(
-                f"Entity Type with name '{name}' not found.",
-            )
+            raise EntityTypeNotFoundError(f"Entity Type with name '{name}' not found.")
         return entity_type
 
     async def get(self, name: str) -> EntityTypeDTO:
         """Get single Entity Type by name."""
         return _convert(await self._get_one_raw_by_name(name))
 
-    async def get_entity_type_by_object_class_names(
-        self,
-        object_class_names: Iterable[str],
-    ) -> EntityTypeDTO | None:
+    async def get_entity_type_by_object_class_names(self, object_class_names: Iterable[str]) -> EntityTypeDTO | None:
         """Get single Entity Type by object class names."""
         list_object_class_names = [name.lower() for name in object_class_names]
         result = await self.__session.execute(
-            select(EntityType)
-            .where(
+            select(EntityType).where(
                 func.array_lowercase(EntityType.object_class_names).op("@>")(list_object_class_names),
                 func.array_lowercase(EntityType.object_class_names).op("<@")(list_object_class_names),
-            ),
-        )  # fmt: skip
+            )
+        )
 
         entity_type = result.scalars().first()
         return _convert(entity_type) if entity_type else None
 
-    async def get_entity_type_names_include_oc_name(
-        self,
-        oc_name: str,
-    ) -> set[str]:
+    async def get_entity_type_names_include_oc_name(self, oc_name: str) -> set[str]:
         """Get all Entity Type names include Object Class name."""
         result = await self.__session.execute(
-            select(qa(EntityType.name))
-            .where(qa(EntityType.object_class_names).contains([oc_name])),
-        )  # fmt: skip
+            select(qa(EntityType.name)).where(qa(EntityType.object_class_names).contains([oc_name]))
+        )
         return set(row[0] for row in result.fetchall())
 
     async def delete_all_by_names_not_safe(self, names: list[str]) -> None:
         """Delete all Entity Types by names without any checks."""
-        await self.__session.execute(
-            delete(EntityType)
-            .where(qa(EntityType.name).in_(names)),
-        )  # fmt: skip
+        await self.__session.execute(delete(EntityType).where(qa(EntityType.name).in_(names)))
         await self.__session.flush()
 
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete not system and not used Entity Type by their names."""
         await self.__session.execute(
-            delete(EntityType)
-            .where(
+            delete(EntityType).where(
                 qa(EntityType.name).in_(names),
                 qa(EntityType.is_system).is_(False),
                 qa(EntityType.id).not_in(
-                    select(qa(Directory.entity_type_id))
-                    .where(qa(Directory.entity_type_id).isnot(None)),
+                    select(qa(Directory.entity_type_id)).where(qa(Directory.entity_type_id).isnot(None))
                 ),
-            ),
-        )  # fmt: skip
+            )
+        )
         await self.__session.flush()

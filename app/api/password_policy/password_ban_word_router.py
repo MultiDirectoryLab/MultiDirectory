@@ -24,14 +24,10 @@ password_ban_word_router = ErrorAwareRouter(
 
 
 @password_ban_word_router.post(
-    "/upload_txt",
-    status_code=status.HTTP_201_CREATED,
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
+    "/upload_txt", status_code=status.HTTP_201_CREATED, error_map=error_map, dependencies=[Depends(require_master_db)]
 )
 async def upload_ban_words_txt(
-    file: UploadFile,
-    password_ban_word_adapter: FromDishka[PasswordBanWordsFastAPIAdapter],
+    file: UploadFile, password_ban_word_adapter: FromDishka[PasswordBanWordsFastAPIAdapter]
 ) -> None:
     """Upload .txt file with ban words (one per line) and create them in batch.
 
@@ -45,10 +41,7 @@ async def upload_ban_words_txt(
 
 
 @password_ban_word_router.get(
-    "/download_txt",
-    response_class=StreamingResponse,
-    status_code=status.HTTP_200_OK,
-    error_map=error_map,
+    "/download_txt", response_class=StreamingResponse, status_code=status.HTTP_200_OK, error_map=error_map
 )
 async def download_ban_words_txt(
     password_ban_word_adapter: FromDishka[PasswordBanWordsFastAPIAdapter],

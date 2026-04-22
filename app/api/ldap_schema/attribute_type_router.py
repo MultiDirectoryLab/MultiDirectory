@@ -11,11 +11,7 @@ from fastapi import Depends, Query, status
 
 from api.ldap_schema import LimitedListType, error_map, ldap_schema_router
 from api.ldap_schema.adapters.attribute_type import AttributeTypeFastAPIAdapter
-from api.ldap_schema.schema import (
-    AttributeTypePaginationSchema,
-    AttributeTypeSchema,
-    AttributeTypeUpdateSchema,
-)
+from api.ldap_schema.schema import AttributeTypePaginationSchema, AttributeTypeSchema, AttributeTypeUpdateSchema
 from api.utils import require_master_db
 from ldap_protocol.utils.pagination import PaginationParams
 
@@ -27,59 +23,41 @@ from ldap_protocol.utils.pagination import PaginationParams
     dependencies=[Depends(require_master_db)],
 )
 async def create_one_attribute_type(
-    request_data: AttributeTypeSchema[None],
-    adapter: FromDishka[AttributeTypeFastAPIAdapter],
+    request_data: AttributeTypeSchema[None], adapter: FromDishka[AttributeTypeFastAPIAdapter]
 ) -> None:
     """Create a new Attribute Type."""
     await adapter.create(request_data)
 
 
-@ldap_schema_router.get(
-    "/attribute_type/{attribute_type_name}",
-    error_map=error_map,
-)
+@ldap_schema_router.get("/attribute_type/{attribute_type_name}", error_map=error_map)
 async def get_one_attribute_type(
-    attribute_type_name: str,
-    adapter: FromDishka[AttributeTypeFastAPIAdapter],
+    attribute_type_name: str, adapter: FromDishka[AttributeTypeFastAPIAdapter]
 ) -> AttributeTypeSchema[int]:
     """Retrieve a one Attribute Type."""
     return await adapter.get(attribute_type_name)
 
 
-@ldap_schema_router.get(
-    "/attribute_types",
-    error_map=error_map,
-)
+@ldap_schema_router.get("/attribute_types", error_map=error_map)
 async def get_list_attribute_types_with_pagination(
-    adapter: FromDishka[AttributeTypeFastAPIAdapter],
-    params: Annotated[PaginationParams, Query()],
+    adapter: FromDishka[AttributeTypeFastAPIAdapter], params: Annotated[PaginationParams, Query()]
 ) -> AttributeTypePaginationSchema:
     """Retrieve a chunk of Attribute Types with pagination."""
     return await adapter.get_list_paginated(params)
 
 
 @ldap_schema_router.patch(
-    "/attribute_type/{attribute_type_name}",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
+    "/attribute_type/{attribute_type_name}", error_map=error_map, dependencies=[Depends(require_master_db)]
 )
 async def modify_one_attribute_type(
-    attribute_type_name: str,
-    request_data: AttributeTypeUpdateSchema,
-    adapter: FromDishka[AttributeTypeFastAPIAdapter],
+    attribute_type_name: str, request_data: AttributeTypeUpdateSchema, adapter: FromDishka[AttributeTypeFastAPIAdapter]
 ) -> None:
     """Modify an Attribute Type."""
     await adapter.update(name=attribute_type_name, data=request_data)
 
 
-@ldap_schema_router.post(
-    "/attribute_types/delete",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@ldap_schema_router.post("/attribute_types/delete", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def delete_bulk_attribute_types(
-    attribute_types_names: LimitedListType,
-    adapter: FromDishka[AttributeTypeFastAPIAdapter],
+    attribute_types_names: LimitedListType, adapter: FromDishka[AttributeTypeFastAPIAdapter]
 ) -> None:
     """Delete Attribute Types by their names."""
     await adapter.delete_bulk(attribute_types_names)

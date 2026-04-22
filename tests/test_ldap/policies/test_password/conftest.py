@@ -7,13 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from typing import AsyncIterator
 
 import pytest_asyncio
-from dishka import (
-    AsyncContainer,
-    Provider,
-    Scope,
-    make_async_container,
-    provide,
-)
+from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
 
 from config import Settings
 from ldap_protocol.policies.password import PasswordPolicyUseCases
@@ -30,19 +24,14 @@ class TestLocalProvider(Provider):
 async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     """Fixture to provide the test container."""
     container = make_async_container(
-        TestProvider(),
-        TestLocalProvider(),
-        context={Settings: settings},
-        start_scope=Scope.RUNTIME,
+        TestProvider(), TestLocalProvider(), context={Settings: settings}, start_scope=Scope.RUNTIME
     )
     yield container
     await container.close()
 
 
 @pytest_asyncio.fixture
-async def password_use_cases(
-    container: AsyncContainer,
-) -> AsyncIterator[PasswordPolicyUseCases]:
+async def password_use_cases(container: AsyncContainer) -> AsyncIterator[PasswordPolicyUseCases]:
     """Get di password_use_cases."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(PasswordPolicyUseCases)

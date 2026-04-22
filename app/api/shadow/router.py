@@ -12,18 +12,10 @@ from fastapi import Body, Depends, status
 from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.auth.exceptions.mfa import (
-    AuthenticationError,
-    InvalidCredentialsError,
-    NetworkPolicyError,
-)
+from ldap_protocol.auth.exceptions.mfa import AuthenticationError, InvalidCredentialsError, NetworkPolicyError
 from ldap_protocol.policies.password.exceptions import PasswordPolicyError
 from ldap_protocol.rootdse.dto import DomainControllerInfo
 from ldap_protocol.rootdse.reader import DCInfoReader
@@ -34,26 +26,11 @@ translator = DomainErrorTranslator(DomainCodes.SHADOW)
 
 
 error_map: ERROR_MAP_TYPE = {
-    InvalidCredentialsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    NetworkPolicyError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuthenticationError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
-    PasswordPolicyError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        translator=translator,
-    ),
-    PermissionError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
+    InvalidCredentialsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    NetworkPolicyError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    AuthenticationError: rule(status=status.HTTP_401_UNAUTHORIZED, translator=translator),
+    PasswordPolicyError: rule(status=status.HTTP_422_UNPROCESSABLE_CONTENT, translator=translator),
+    PermissionError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
 }
 shadow_router = ErrorAwareRouter(route_class=DishkaErrorAwareRoute)
 
@@ -68,11 +45,7 @@ async def proxy_request(
     return await adapter.proxy_request(principal, ip)
 
 
-@shadow_router.post(
-    "/sync/password",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@shadow_router.post("/sync/password", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def change_password(
     principal: Annotated[str, Body(embed=True)],
     new_password: Annotated[str, Body(embed=True)],
@@ -95,7 +68,5 @@ async def change_password(
 
 
 @shadow_router.get("/metadata/dcinfo")
-async def get_dcinfo(
-    dcreader: FromDishka[DCInfoReader],
-) -> DomainControllerInfo:
+async def get_dcinfo(dcreader: FromDishka[DCInfoReader]) -> DomainControllerInfo:
     return await dcreader.get()

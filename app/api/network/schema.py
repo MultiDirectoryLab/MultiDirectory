@@ -8,15 +8,7 @@ import sys
 from ipaddress import IPv4Address, IPv4Network, summarize_address_range
 from typing import ClassVar, Self
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    computed_field,
-    field_serializer,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer, field_validator, model_validator
 
 from enums import MFAFlags
 from ldap_protocol.utils.helpers import validate_entry
@@ -44,9 +36,7 @@ class NetmasksMixin:
         values = []
         for item in self.netmasks:
             if isinstance(item, IPRange):
-                values.extend(
-                    list(summarize_address_range(item.start, item.end)),
-                )
+                values.extend(list(summarize_address_range(item.start, item.end)))
             else:
                 values.append(IPv4Network(item))
         return values  # type: ignore
@@ -73,10 +63,7 @@ class NetmasksMixin:
 
     @field_serializer("netmasks")
     @classmethod
-    def netmasks_serialize(
-        cls,
-        netmasks: IPv4IntefaceListType,
-    ) -> list[str | dict]:
+    def netmasks_serialize(cls, netmasks: IPv4IntefaceListType) -> list[str | dict]:
         """Serialize netmasks to list.
 
         :param IPv4IntefaceListType netmasks: ip masks
@@ -86,9 +73,7 @@ class NetmasksMixin:
 
         for netmask in netmasks:
             if isinstance(netmask, IPRange):
-                values.append(
-                    {"start": str(netmask.start), "end": str(netmask.end)},
-                )
+                values.append({"start": str(netmask.start), "end": str(netmask.end)})
             else:
                 values.append(str(netmask))
 

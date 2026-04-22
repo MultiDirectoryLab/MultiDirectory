@@ -83,5 +83,5 @@ test_get_password_policy_by_dir_path_dn_extended_dataset = [
             lockout_duration_sec=600,
             fail_delay_sec=5,
         ),
-    ],
+    ]
 ]

@@ -12,10 +12,7 @@ from password_utils import PasswordUtils
 
 
 async def authenticate_user(
-    session: AsyncSession,
-    username: str,
-    password: str,
-    password_utils: PasswordUtils,
+    session: AsyncSession, username: str, password: str, password_utils: PasswordUtils
 ) -> User | None:
     """Get user and verify password.
 

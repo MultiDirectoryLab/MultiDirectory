@@ -24,110 +24,52 @@ from api.dns.schema import (
     DNSServiceSetupRequest,
     DNSServiceZoneDeleteRequest,
 )
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.dns import (
-    DNSForwardServerStatus,
-    DNSForwardZoneDTO,
-    DNSMasterZoneDTO,
-    DNSRRSetDTO,
-)
+from ldap_protocol.dns import DNSForwardServerStatus, DNSForwardZoneDTO, DNSMasterZoneDTO, DNSRRSetDTO
 
 translator = DomainErrorTranslator(DomainCodes.DNS)
 
 
 error_map: ERROR_MAP_TYPE = {
-    dns_exc.DNSSetupError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        translator=translator,
-    ),
-    dns_exc.DNSRecordCreateError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSRecordGetError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSRecordUpdateError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSRecordDeleteError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSZoneCreateError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSZoneGetError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSZoneUpdateError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSZoneDeleteError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSUpdateServerOptionsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    DNSException: rule(
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        translator=translator,
-    ),
-    dns_exc.DNSConnectionError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    dns_exc.DNSNotImplementedError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
+    dns_exc.DNSSetupError: rule(status=status.HTTP_422_UNPROCESSABLE_CONTENT, translator=translator),
+    dns_exc.DNSRecordCreateError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSRecordGetError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSRecordUpdateError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSRecordDeleteError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSZoneCreateError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSZoneGetError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSZoneUpdateError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSZoneDeleteError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSUpdateServerOptionsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    DNSException: rule(status=status.HTTP_500_INTERNAL_SERVER_ERROR, translator=translator),
+    dns_exc.DNSConnectionError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    dns_exc.DNSNotImplementedError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
 }
 
 dns_router = ErrorAwareRouter(
-    prefix="/dns",
-    tags=["DNS Service"],
-    dependencies=[Depends(verify_auth)],
-    route_class=DishkaErrorAwareRoute,
+    prefix="/dns", tags=["DNS Service"], dependencies=[Depends(verify_auth)], route_class=DishkaErrorAwareRoute
 )
 
 
 @dns_router.post("/record/{zone_id}", error_map=error_map)
 async def create_record(
-    zone_id: str,
-    data: DNSServiceRecordCreateRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
+    zone_id: str, data: DNSServiceRecordCreateRequest, adapter: FromDishka[DNSFastAPIAdapter]
 ) -> None:
     """Create DNS record with given params."""
     await adapter.create_record(zone_id, data)
 
 
 @dns_router.get("/record/{zone_id}", error_map=error_map)
-async def get_all_records(
-    zone_id: str,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> list[DNSRRSetDTO]:
+async def get_all_records(zone_id: str, adapter: FromDishka[DNSFastAPIAdapter]) -> list[DNSRRSetDTO]:
     """Get all DNS records of current zone."""
     return await adapter.get_records(zone_id)
 
 
 @dns_router.patch("/record/{zone_id}", error_map=error_map)
 async def update_record(
-    zone_id: str,
-    data: DNSServiceRecordUpdateRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
+    zone_id: str, data: DNSServiceRecordUpdateRequest, adapter: FromDishka[DNSFastAPIAdapter]
 ) -> None:
     """Update DNS record with given params."""
     await adapter.update_record(zone_id, data)
@@ -135,127 +77,81 @@ async def update_record(
 
 @dns_router.delete("/record/{zone_id}", error_map=error_map)
 async def delete_single_record(
-    zone_id: str,
-    data: DNSServiceRecordDeleteRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
+    zone_id: str, data: DNSServiceRecordDeleteRequest, adapter: FromDishka[DNSFastAPIAdapter]
 ) -> None:
     """Delete DNS record with given params."""
     await adapter.delete_record(zone_id, data)
 
 
 @dns_router.get("/status", error_map=error_map)
-async def get_dns_status(
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> dict[str, str | None]:
+async def get_dns_status(adapter: FromDishka[DNSFastAPIAdapter]) -> dict[str, str | None]:
     """Get DNS service status."""
     return await adapter.get_status()
 
 
-@dns_router.post(
-    "/setup",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
-async def setup_dns(
-    adapter: FromDishka[DNSFastAPIAdapter],
-    data: DNSServiceSetupRequest | None = None,
-) -> None:
+@dns_router.post("/setup", error_map=error_map, dependencies=[Depends(require_master_db)])
+async def setup_dns(adapter: FromDishka[DNSFastAPIAdapter], data: DNSServiceSetupRequest | None = None) -> None:
     """Set up DNS service."""
     await adapter.setup(data)
 
 
-@dns_router.post(
-    "/state",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
-async def set_dns_state(
-    data: DNSServiceSetStateRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> None:
+@dns_router.post("/state", error_map=error_map, dependencies=[Depends(require_master_db)])
+async def set_dns_state(data: DNSServiceSetStateRequest, adapter: FromDishka[DNSFastAPIAdapter]) -> None:
     """Set DNS manager state."""
     await adapter.set_state(data)
 
 
 @dns_router.post("/zone/forward", error_map=error_map)
-async def create_forward_zone(
-    data: DNSServiceForwardZoneRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> None:
+async def create_forward_zone(data: DNSServiceForwardZoneRequest, adapter: FromDishka[DNSFastAPIAdapter]) -> None:
     """Create new forward DNS zone."""
     return await adapter.create_forward_zone(data)
 
 
 @dns_router.get("/zone/forward", error_map=error_map)
-async def get_forward_dns_zones(
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> list[DNSForwardZoneDTO]:
+async def get_forward_dns_zones(adapter: FromDishka[DNSFastAPIAdapter]) -> list[DNSForwardZoneDTO]:
     """Get list of DNS forward zones with forwarders."""
     return await adapter.get_forward_zones()
 
 
 @dns_router.patch("/zone/forward", error_map=error_map)
-async def update_forward_zone(
-    data: DNSServiceForwardZoneRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> None:
+async def update_forward_zone(data: DNSServiceForwardZoneRequest, adapter: FromDishka[DNSFastAPIAdapter]) -> None:
     """Update forward DNS zone with given params."""
     await adapter.update_forward_zone(data)
 
 
 @dns_router.delete("/zone/forward", error_map=error_map)
-async def delete_forward_zone(
-    data: DNSServiceZoneDeleteRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> None:
+async def delete_forward_zone(data: DNSServiceZoneDeleteRequest, adapter: FromDishka[DNSFastAPIAdapter]) -> None:
     """Delete DNS forward zone."""
     await adapter.delete_forward_zones(data)
 
 
-@dns_router.post(
-    "/zone",
-    error_map=error_map,
-    warn_on_unmapped=False,
-    default_client_error_translator=translator,
-)
-async def create_master_zone(
-    data: DNSServiceMasterZoneRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> None:
+@dns_router.post("/zone", error_map=error_map, warn_on_unmapped=False, default_client_error_translator=translator)
+async def create_master_zone(data: DNSServiceMasterZoneRequest, adapter: FromDishka[DNSFastAPIAdapter]) -> None:
     """Create new DNS zone."""
     await adapter.create_master_zone(data)
 
 
 @dns_router.get("/zone", error_map=error_map)
-async def get_dns_zones(
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> list[DNSMasterZoneDTO]:
+async def get_dns_zones(adapter: FromDishka[DNSFastAPIAdapter]) -> list[DNSMasterZoneDTO]:
     """Get all DNS records of all zones."""
     return await adapter.get_master_zones()
 
 
 @dns_router.patch("/zone", error_map=error_map)
-async def update_master_zone(
-    data: DNSServiceMasterZoneRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> None:
+async def update_master_zone(data: DNSServiceMasterZoneRequest, adapter: FromDishka[DNSFastAPIAdapter]) -> None:
     """Update DNS zone with given params."""
     await adapter.update_master_zone(data)
 
 
 @dns_router.delete("/zone", error_map=error_map)
-async def delete_master_zone(
-    data: DNSServiceZoneDeleteRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
-) -> None:
+async def delete_master_zone(data: DNSServiceZoneDeleteRequest, adapter: FromDishka[DNSFastAPIAdapter]) -> None:
     """Delete DNS zone."""
     await adapter.delete_master_zones(data)
 
 
 @dns_router.post("/forward_check", error_map=error_map)
 async def check_dns_forward_zone(
-    data: DNSServiceForwardZoneCheckRequest,
-    adapter: FromDishka[DNSFastAPIAdapter],
+    data: DNSServiceForwardZoneCheckRequest, adapter: FromDishka[DNSFastAPIAdapter]
 ) -> list[DNSForwardServerStatus]:
     """Check given DNS forward zone for availability."""
     return await adapter.check_forward_zone(data)

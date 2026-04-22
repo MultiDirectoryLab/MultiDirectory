@@ -11,18 +11,10 @@ from typing import Generic, NewType, TypeVar, get_args
 from loguru import logger
 from redis.asyncio import Redis
 
-from .dataclasses import (
-    NormalizedAuditEvent,
-    NormalizedAuditEventRedis,
-    RawAuditEvent,
-    RawAuditEventRedis,
-)
+from .dataclasses import NormalizedAuditEvent, NormalizedAuditEventRedis, RawAuditEvent, RawAuditEventRedis
 
 T = TypeVar("T", bound=NormalizedAuditEvent | RawAuditEvent)
-Event = TypeVar(
-    "Event",
-    bound=NormalizedAuditEventRedis | RawAuditEventRedis,
-)
+Event = TypeVar("Event", bound=NormalizedAuditEventRedis | RawAuditEventRedis)
 AuditRedisClient = NewType("AuditRedisClient", Redis)
 
 
@@ -62,12 +54,7 @@ class AuditRedisManager(AbstractAuditManager[Event]):
     """Adapter for managing audit events in Redis streams."""
 
     def __init__(
-        self,
-        client: AuditRedisClient,
-        stream_name: str,
-        group_name: str,
-        consumer_name: str,
-        process_enabled_key: str,
+        self, client: AuditRedisClient, stream_name: str, group_name: str, consumer_name: str, process_enabled_key: str
     ) -> None:
         """Initialize Redis client for audit event operations."""
         self._client = client
@@ -82,37 +69,23 @@ class AuditRedisManager(AbstractAuditManager[Event]):
 
     async def update_processing_status(self, status: bool) -> None:
         """Update the processing status of audit events."""
-        await self._client.set(
-            self._process_enabled_key,
-            int(status),
-        )
+        await self._client.set(self._process_enabled_key, int(status))
 
     async def send_event(self, event: Event) -> None:
         await self._client.xadd(self._stream_name, event.to_queue())
 
     async def read_events(self) -> list[Event]:
         data = await self._client.xreadgroup(
-            self._group_name,
-            self._consumer_name,
-            {self._stream_name: ">"},
-            count=10,
-            block=5000,
+            self._group_name, self._consumer_name, {self._stream_name: ">"}, count=10, block=5000
         )
 
-        events = itertools.chain.from_iterable(
-            event_list for _, event_list in data
-        )
+        events = itertools.chain.from_iterable(event_list for _, event_list in data)
 
         return [self._class.from_queue(event) for event in events]  # type: ignore
 
     async def setup_reading(self) -> None:
         try:
-            await self._client.xgroup_create(
-                self._stream_name,
-                self._group_name,
-                "0",
-                mkstream=True,
-            )
+            await self._client.xgroup_create(self._stream_name, self._group_name, "0", mkstream=True)
         except Exception as e:
             self._handle_group_creation_error(e, self._group_name)
 
@@ -120,11 +93,7 @@ class AuditRedisManager(AbstractAuditManager[Event]):
         await self._client.xack(self._stream_name, self._group_name, event_id)
         await self._client.xdel(self._stream_name, event_id)
 
-    def _handle_group_creation_error(
-        self,
-        error: Exception,
-        group_name: str,
-    ) -> None:
+    def _handle_group_creation_error(self, error: Exception, group_name: str) -> None:
         """Handle errors occurring during consumer group creation."""
         if "BUSYGROUP" in str(error):
             logger.info(f"Consumer group {group_name} already exists.")

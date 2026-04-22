@@ -16,11 +16,7 @@ from ldap_protocol.utils.queries import add_lock_and_expire_attributes
 from repo.pg.tables import queryable_attr as qa
 
 
-async def disable_accounts(
-    session: AsyncSession,
-    kadmin: AbstractKadmin,
-    settings: Settings,
-) -> None:
+async def disable_accounts(session: AsyncSession, kadmin: AbstractKadmin, settings: Settings) -> None:
     """Update userAccountControl attr.
 
     :param AsyncSession session: db
@@ -36,23 +32,12 @@ async def disable_accounts(
     """
     subquery = (
         select(qa(User.directory_id))
-        .where(
-            qa(User.account_exp) < func.now(),
-            qa(User.directory_id) == qa(Attribute.directory_id),
-        )
+        .where(qa(User.account_exp) < func.now(), qa(User.directory_id) == qa(Attribute.directory_id))
         .scalar_subquery()
     )
-    new_value = cast(
-        cast(Attribute.value, Integer).op("|")(
-            UserAccountControlFlag.ACCOUNTDISABLE,
-        ),
-        String,
-    )
+    new_value = cast(cast(Attribute.value, Integer).op("|")(UserAccountControlFlag.ACCOUNTDISABLE), String)
     conditions = [
-        cast(Attribute.value, Integer).op("&")(
-            UserAccountControlFlag.ACCOUNTDISABLE,
-        )
-        == 0,
+        cast(Attribute.value, Integer).op("&")(UserAccountControlFlag.ACCOUNTDISABLE) == 0,
         qa(Attribute.directory_id).in_(subquery),
         qa(Attribute.name) == "userAccountControl",
     ]
@@ -62,21 +47,14 @@ async def disable_accounts(
         .values(value=new_value)
         .where(*conditions)
         .returning(qa(Attribute.directory_id))
-        .execution_options(synchronize_session=False),
+        .execution_options(synchronize_session=False)
     )
 
-    users = await session.stream_scalars(
-        select(User)
-        .where(qa(User.directory_id).in_(ids)),
-    )  # fmt: skip
+    users = await session.stream_scalars(select(User).where(qa(User.directory_id).in_(ids)))
 
     async for user in users:
         await kadmin.lock_principal(user.sam_account_name)
 
-        await add_lock_and_expire_attributes(
-            session,
-            user.directory,
-            settings.TIMEZONE,
-        )
+        await add_lock_and_expire_attributes(session, user.directory, settings.TIMEZONE)
 
     await session.commit()

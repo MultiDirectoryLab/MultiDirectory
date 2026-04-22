@@ -105,19 +105,14 @@ class IdentityProvider:
         await self.rekey_session()
         return user
 
-    async def get_current_user_permissions(
-        self,
-        user: UserSchema,
-    ) -> AuthorizationRules:
+    async def get_current_user_permissions(self, user: UserSchema) -> AuthorizationRules:
         """Return the auth rules of the current authenticated user.
 
         Returns:
             AuthorizationRules: Authorization rules of the authenticated user.
 
         """
-        return await self._identity_provider_gateway.get_user_permissions(
-            user.role_ids,
-        )
+        return await self._identity_provider_gateway.get_user_permissions(user.role_ids)
 
     async def get_user_id(self) -> int:
         """Return the user identifier stored in session metadata.
@@ -131,10 +126,7 @@ class IdentityProvider:
         """
         try:
             user_id = await self._session_storage.get_user_id(
-                self._settings,
-                self._session_key,
-                self._user_agent,
-                self._ip_from_request,
+                self._settings, self._session_key, self._user_agent, self._ip_from_request
             )
         except (
             SessionStorageInvalidKeyError,
@@ -152,10 +144,7 @@ class IdentityProvider:
     async def rekey_session(self) -> None:
         """Rotate the session key when storage policies require it."""
         session_id, _ = self._session_key.split(".")
-        key = await self._session_storage.rekey_session_if_needed(
-            session_id,
-            self._settings,
-        )
+        key = await self._session_storage.rekey_session_if_needed(session_id, self._settings)
         if key:
             self.set_new_session_key(key)
 

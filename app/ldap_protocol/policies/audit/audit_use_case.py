@@ -8,12 +8,7 @@ from entities import AuditSeverity
 from ldap_protocol.asn1parser import LDAPOID
 from ldap_protocol.objects import OperationEvent, UserAccountControlFlag
 
-from .dataclasses import (
-    AuditDestinationDTO,
-    AuditPolicyDTO,
-    AuditPolicySetupDTO,
-    AuditPolicyTriggerDTO,
-)
+from .dataclasses import AuditDestinationDTO, AuditPolicyDTO, AuditPolicySetupDTO, AuditPolicyTriggerDTO
 from .destination_dao import AuditDestinationDAO
 from .events.managers import RawAuditManager
 from .policies_dao import AuditPoliciesDAO
@@ -23,10 +18,7 @@ class AuditUseCase:
     """Audit use case for handling audit policies."""
 
     def __init__(
-        self,
-        policy_dao: AuditPoliciesDAO,
-        destination_dao: AuditDestinationDAO,
-        manager: RawAuditManager,
+        self, policy_dao: AuditPoliciesDAO, destination_dao: AuditDestinationDAO, manager: RawAuditManager
     ) -> None:
         """Initialize AuditUseCase."""
         self._policy_dao = policy_dao
@@ -35,19 +27,11 @@ class AuditUseCase:
 
     async def get_active_destinations(self) -> list[AuditDestinationDTO]:
         """Get active audit destinations."""
-        return [
-            destination
-            for destination in await self._destination_dao.get_all()
-            if destination.is_enabled
-        ]
+        return [destination for destination in await self._destination_dao.get_all() if destination.is_enabled]
 
     async def get_active_policies(self) -> list[AuditPolicyDTO]:
         """Get active audit policies."""
-        return [
-            policy
-            for policy in await self._policy_dao.get_all()
-            if policy.is_enabled
-        ]
+        return [policy for policy in await self._policy_dao.get_all() if policy.is_enabled]
 
     async def is_existing_active_policy(self) -> bool:
         """Check if there are any existing active policies."""
@@ -66,10 +50,7 @@ class AuditUseCase:
 
     async def update_status_process_events(self) -> None:
         """Update the status of process events."""
-        if (
-            await self.is_existing_active_policy()
-            and await self.is_existing_active_destination()
-        ):
+        if await self.is_existing_active_policy() and await self.is_existing_active_destination():
             await self.enable_event_processing()
         else:
             await self.disable_event_processing()
@@ -82,24 +63,14 @@ class AuditUseCase:
         """Disable processing of audit events."""
         await self.manager.update_processing_status(False)
 
-    async def _create_standard_policies(
-        self,
-        object_class: str,
-        is_success: bool,
-    ) -> None:
+    async def _create_standard_policies(self, object_class: str, is_success: bool) -> None:
         """Create standard create/modify/delete policies."""
-        operations = {
-            "create": OperationEvent.ADD,
-            "modify": OperationEvent.MODIFY,
-            "delete": OperationEvent.DELETE,
-        }
+        operations = {"create": OperationEvent.ADD, "modify": OperationEvent.MODIFY, "delete": OperationEvent.DELETE}
         for action, operation_code in operations.items():
             await self._policy_dao.create(
                 AuditPolicySetupDTO(
                     name=AuditPolicySetupDTO.create_name(
-                        object_class=object_class,
-                        action=action,
-                        is_success=is_success,
+                        object_class=object_class, action=action, is_success=is_success
                     ),
                     severity=AuditSeverity.INFO,
                     triggers=[
@@ -109,27 +80,19 @@ class AuditUseCase:
                             operation_code=operation_code,
                             object_class=object_class,
                             is_operation_success=is_success,
-                        ),
+                        )
                     ],
-                ),
+                )
             )
 
-    async def _create_password_modify_policy(
-        self,
-        object_class: str,
-        is_success: bool,
-    ) -> None:
+    async def _create_password_modify_policy(self, object_class: str, is_success: bool) -> None:
         """Create password modify policy."""
         await self._policy_dao.create(
             AuditPolicySetupDTO(
                 name=AuditPolicySetupDTO.create_name(
-                    object_class=object_class,
-                    action="password_modify",
-                    is_success=is_success,
+                    object_class=object_class, action="password_modify", is_success=is_success
                 ),
-                severity=(
-                    AuditSeverity.INFO if is_success else AuditSeverity.WARNING
-                ),
+                severity=(AuditSeverity.INFO if is_success else AuditSeverity.WARNING),
                 triggers=[
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
@@ -137,12 +100,7 @@ class AuditUseCase:
                         operation_code=OperationEvent.MODIFY,
                         object_class=object_class,
                         is_operation_success=is_success,
-                        additional_info={
-                            "change_attributes": [
-                                "userpassword",
-                                "unicodepwd",
-                            ],
-                        },
+                        additional_info={"change_attributes": ["userpassword", "unicodepwd"]},
                     ),
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
@@ -150,9 +108,7 @@ class AuditUseCase:
                         operation_code=OperationEvent.EXTENDED,
                         object_class=object_class,
                         is_operation_success=is_success,
-                        additional_info={
-                            "oid": LDAPOID.PASSWORD_MODIFY,
-                        },
+                        additional_info={"oid": LDAPOID.PASSWORD_MODIFY},
                     ),
                     AuditPolicyTriggerDTO(
                         is_ldap=False,
@@ -169,25 +125,15 @@ class AuditUseCase:
                         is_operation_success=is_success,
                     ),
                 ],
-            ),
+            )
         )
 
-    async def _create_auth_policy(
-        self,
-        object_class: str,
-        is_success: bool,
-    ) -> None:
+    async def _create_auth_policy(self, object_class: str, is_success: bool) -> None:
         """Create authentication policy."""
         await self._policy_dao.create(
             AuditPolicySetupDTO(
-                name=AuditPolicySetupDTO.create_name(
-                    object_class=object_class,
-                    action="auth",
-                    is_success=is_success,
-                ),
-                severity=(
-                    AuditSeverity.INFO if is_success else AuditSeverity.WARNING
-                ),
+                name=AuditPolicySetupDTO.create_name(object_class=object_class, action="auth", is_success=is_success),
+                severity=(AuditSeverity.INFO if is_success else AuditSeverity.WARNING),
                 triggers=[
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
@@ -211,25 +157,17 @@ class AuditUseCase:
                         is_operation_success=is_success,
                     ),
                 ],
-            ),
+            )
         )
 
-    async def _create_reset_password_policy(
-        self,
-        object_class: str,
-        is_success: bool,
-    ) -> None:
+    async def _create_reset_password_policy(self, object_class: str, is_success: bool) -> None:
         """Create reset password policy."""
         await self._policy_dao.create(
             AuditPolicySetupDTO(
                 name=AuditPolicySetupDTO.create_name(
-                    object_class=object_class,
-                    action="reset_password",
-                    is_success=is_success,
+                    object_class=object_class, action="reset_password", is_success=is_success
                 ),
-                severity=(
-                    AuditSeverity.INFO if is_success else AuditSeverity.WARNING
-                ),
+                severity=(AuditSeverity.INFO if is_success else AuditSeverity.WARNING),
                 triggers=[
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
@@ -258,32 +196,20 @@ class AuditUseCase:
                         },
                     ),
                 ],
-            ),
+            )
         )
 
-    async def _create_user_specific_policies(
-        self,
-        is_success: bool,
-        object_class: str = "user",
-    ) -> None:
+    async def _create_user_specific_policies(self, is_success: bool, object_class: str = "user") -> None:
         """Create policies specific to user operations."""
         await self._create_password_modify_policy(object_class, is_success)
         await self._create_auth_policy(object_class, is_success)
         await self._create_reset_password_policy(object_class, is_success)
 
-    async def _create_account_status_policies(
-        self,
-        object_class: str,
-        is_success: bool,
-    ) -> None:
+    async def _create_account_status_policies(self, object_class: str, is_success: bool) -> None:
         """Create policies for account status changes."""
         await self._policy_dao.create(
             AuditPolicySetupDTO(
-                name=AuditPolicySetupDTO.create_name(
-                    object_class=object_class,
-                    action="enable",
-                    is_success=is_success,
-                ),
+                name=AuditPolicySetupDTO.create_name(object_class=object_class, action="enable", is_success=is_success),
                 severity=AuditSeverity.INFO,
                 triggers=[
                     AuditPolicyTriggerDTO(
@@ -298,16 +224,14 @@ class AuditUseCase:
                             "value": UserAccountControlFlag.ACCOUNTDISABLE,
                             "result": False,
                         },
-                    ),
+                    )
                 ],
-            ),
+            )
         )
         await self._policy_dao.create(
             AuditPolicySetupDTO(
                 name=AuditPolicySetupDTO.create_name(
-                    object_class=object_class,
-                    action="disable",
-                    is_success=is_success,
+                    object_class=object_class, action="disable", is_success=is_success
                 ),
                 severity=AuditSeverity.INFO,
                 triggers=[
@@ -323,22 +247,16 @@ class AuditUseCase:
                             "value": UserAccountControlFlag.ACCOUNTDISABLE,
                             "result": True,
                         },
-                    ),
+                    )
                 ],
-            ),
+            )
         )
 
-    async def _create_group_member_policies(
-        self,
-        is_success: bool,
-        object_class: str = "group",
-    ) -> None:
+    async def _create_group_member_policies(self, is_success: bool, object_class: str = "group") -> None:
         await self._policy_dao.create(
             AuditPolicySetupDTO(
                 name=AuditPolicySetupDTO.create_name(
-                    object_class=object_class,
-                    action="add_member",
-                    is_success=is_success,
+                    object_class=object_class, action="add_member", is_success=is_success
                 ),
                 severity=AuditSeverity.INFO,
                 triggers=[
@@ -348,11 +266,7 @@ class AuditUseCase:
                         operation_code=OperationEvent.MODIFY,
                         object_class=object_class,
                         is_operation_success=is_success,
-                        additional_info={
-                            "change_attributes": ["member"],
-                            "operation": ">",
-                            "result": True,
-                        },
+                        additional_info={"change_attributes": ["member"], "operation": ">", "result": True},
                     ),
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
@@ -360,21 +274,15 @@ class AuditUseCase:
                         operation_code=OperationEvent.MODIFY,
                         object_class="user",
                         is_operation_success=is_success,
-                        additional_info={
-                            "change_attributes": ["memberof"],
-                            "operation": ">",
-                            "result": True,
-                        },
+                        additional_info={"change_attributes": ["memberof"], "operation": ">", "result": True},
                     ),
                 ],
-            ),
+            )
         )
         await self._policy_dao.create(
             AuditPolicySetupDTO(
                 name=AuditPolicySetupDTO.create_name(
-                    object_class=object_class,
-                    action="remove_member",
-                    is_success=is_success,
+                    object_class=object_class, action="remove_member", is_success=is_success
                 ),
                 severity=AuditSeverity.INFO,
                 triggers=[
@@ -384,11 +292,7 @@ class AuditUseCase:
                         operation_code=OperationEvent.MODIFY,
                         object_class=object_class,
                         is_operation_success=is_success,
-                        additional_info={
-                            "change_attributes": ["member"],
-                            "operation": "<",
-                            "result": True,
-                        },
+                        additional_info={"change_attributes": ["member"], "operation": "<", "result": True},
                     ),
                     AuditPolicyTriggerDTO(
                         is_ldap=True,
@@ -396,14 +300,10 @@ class AuditUseCase:
                         operation_code=OperationEvent.MODIFY,
                         object_class="user",
                         is_operation_success=is_success,
-                        additional_info={
-                            "change_attributes": ["memberof"],
-                            "operation": "<",
-                            "result": True,
-                        },
+                        additional_info={"change_attributes": ["memberof"], "operation": "<", "result": True},
                     ),
                 ],
-            ),
+            )
         )
 
     async def _create_organizational_unit_policies(self) -> None:

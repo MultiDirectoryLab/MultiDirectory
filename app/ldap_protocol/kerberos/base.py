@@ -5,12 +5,7 @@ from abc import ABC, abstractmethod
 import backoff
 import httpx
 
-from .exceptions import (
-    KRBAPISetupConfigsError,
-    KRBAPISetupStashError,
-    KRBAPISetupTreeError,
-    KRBAPIStatusNotFoundError,
-)
+from .exceptions import KRBAPISetupConfigsError, KRBAPISetupStashError, KRBAPISetupTreeError, KRBAPIStatusNotFoundError
 from .utils import log, logger_wraps
 
 
@@ -27,19 +22,11 @@ class AbstractKadmin(ABC):
         self.client = client
 
     @logger_wraps()
-    async def setup_configs(
-        self,
-        krb5_config: str,
-        kdc_config: str,
-    ) -> None:
+    async def setup_configs(self, krb5_config: str, kdc_config: str) -> None:
         """Request Setup."""
         log.info("Setting up configs")
         response = await self.client.post(
-            "/setup/configs",
-            json={
-                "krb5_config": krb5_config.encode().hex(),
-                "kdc_config": kdc_config.encode().hex(),
-            },
+            "/setup/configs", json={"krb5_config": krb5_config.encode().hex(), "kdc_config": kdc_config.encode().hex()}
         )
 
         if response.status_code != 201:
@@ -125,30 +112,15 @@ class AbstractKadmin(ABC):
         """Request Setup."""
         await self.setup_configs(krb5_config, kdc_config)
         await self.setup_stash(
-            domain,
-            admin_dn,
-            services_dn,
-            krbadmin_dn,
-            krbadmin_password,
-            admin_password,
-            stash_password,
+            domain, admin_dn, services_dn, krbadmin_dn, krbadmin_password, admin_password, stash_password
         )
         await self.setup_subtree(
-            domain,
-            admin_dn,
-            services_dn,
-            krbadmin_dn,
-            krbadmin_password,
-            admin_password,
-            stash_password,
+            domain, admin_dn, services_dn, krbadmin_dn, krbadmin_password, admin_password, stash_password
         )
 
         status = await self.get_status(wait_for_positive=True)
         if status:
-            await self.ldap_principal_setup(
-                f"ldap/{domain}",
-                ldap_keytab_path,
-            )
+            await self.ldap_principal_setup(f"ldap/{domain}", ldap_keytab_path)
 
     @abstractmethod
     async def add_principal(
@@ -166,43 +138,22 @@ class AbstractKadmin(ABC):
     async def del_principal(self, name: str) -> None: ...
 
     @abstractmethod
-    async def change_principal_password(
-        self,
-        name: str,
-        password: str,
-    ) -> None: ...
+    async def change_principal_password(self, name: str, password: str) -> None: ...
 
     @abstractmethod
-    async def create_or_update_principal_pw(
-        self,
-        name: str,
-        password: str,
-    ) -> None: ...
+    async def create_or_update_principal_pw(self, name: str, password: str) -> None: ...
 
     @abstractmethod
     async def modify_princ(
-        self,
-        name: str,
-        new_name: str | None,
-        algorithms: list[str] | None = None,
-        password: str | None = None,
+        self, name: str, new_name: str | None, algorithms: list[str] | None = None, password: str | None = None
     ) -> None: ...
 
     @abstractmethod
-    async def rename_princ(
-        self,
-        name: str,
-        new_name: str,
-    ) -> None: ...
+    async def rename_princ(self, name: str, new_name: str) -> None: ...
 
     @backoff.on_exception(
         backoff.constant,
-        (
-            httpx.ConnectError,
-            httpx.ConnectTimeout,
-            httpx.RemoteProtocolError,
-            KRBAPIStatusNotFoundError,
-        ),
+        (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError, KRBAPIStatusNotFoundError),
         jitter=None,
         raise_on_giveup=False,
         max_tries=30,
@@ -216,11 +167,7 @@ class AbstractKadmin(ABC):
         return status
 
     @abstractmethod
-    async def ktadd(
-        self,
-        names: list[str],
-        is_rand_key: bool,
-    ) -> httpx.Response: ...
+    async def ktadd(self, names: list[str], is_rand_key: bool) -> httpx.Response: ...
 
     @abstractmethod
     async def lock_principal(self, name: str) -> None: ...
@@ -239,18 +186,12 @@ class AbstractKadmin(ABC):
         if response.status_code == 200:
             return
 
-        response = await self.client.post(
-            "/principal",
-            json={"principal_name": name},
-        )
+        response = await self.client.post("/principal", json={"principal_name": name})
         if response.status_code != 201:
             log.error(f"Error creating ldap principal: {response.text}")
             return
 
-        response = await self.client.post(
-            "/principal/ktadd",
-            json={"names": [name], "is_rand_key": False},
-        )
+        response = await self.client.post("/principal/ktadd", json={"names": [name], "is_rand_key": False})
         if response.status_code != 200:
             log.error(f"Error getting keytab: {response.text}")
             return

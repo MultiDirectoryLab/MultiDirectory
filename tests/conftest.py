@@ -21,33 +21,17 @@ import redis.asyncio as redis
 import uvloop
 from alembic import command
 from alembic.config import Config as AlembicConfig
-from dishka import (
-    AsyncContainer,
-    Provider,
-    Scope,
-    from_context,
-    make_async_container,
-    provide,
-)
+from dishka import AsyncContainer, Provider, Scope, from_context, make_async_container, provide
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request, Response
 from loguru import logger
 from multidirectory import _create_basic_app
 from sqlalchemy import schema, text, update
-from sqlalchemy.ext.asyncio import (
-    AsyncConnection,
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-)
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, async_sessionmaker
 
 from api import shadow_router
 from api.audit.adapter import AuditPoliciesAdapter
-from api.auth.adapters import (
-    AuthFastAPIAdapter,
-    MFAFastAPIAdapter,
-    SessionFastAPIGateway,
-)
+from api.auth.adapters import AuthFastAPIAdapter, MFAFastAPIAdapter, SessionFastAPIGateway
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
 from api.dhcp.adapter import DHCPAdapter
 from api.dns.adapter import DNSFastAPIAdapter
@@ -56,19 +40,11 @@ from api.ldap_schema.adapters.entity_type import LDAPEntityTypeFastAPIAdapter
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
 from api.network.adapters.network import NetworkPolicyFastAPIAdapter
-from api.password_policy.adapter import (
-    PasswordBanWordsFastAPIAdapter,
-    PasswordPolicyFastAPIAdapter,
-)
+from api.password_policy.adapter import PasswordBanWordsFastAPIAdapter, PasswordPolicyFastAPIAdapter
 from api.shadow.adapter import ShadowAdapter
 from authorization_provider_protocol import AuthorizationProviderProtocol
 from config import Settings
-from constants import (
-    DOMAIN_CONTROLLERS_OU_NAME,
-    ENTITY_TYPE_DTOS_V1,
-    ENTITY_TYPE_DTOS_V2,
-    SYSTEM_CONTAINER_NAME,
-)
+from constants import DOMAIN_CONTROLLERS_OU_NAME, ENTITY_TYPE_DTOS_V1, ENTITY_TYPE_DTOS_V2, SYSTEM_CONTAINER_NAME
 from entities import Directory
 from enums import AuthorizationRules
 from ioc import AuditRedisClient, MFACredsProvider, SessionStorageClient
@@ -77,11 +53,7 @@ from ldap_protocol.auth.setup_gateway import SetupGateway
 from ldap_protocol.auth.use_cases import SetupUseCase
 from ldap_protocol.dhcp import AbstractDHCPManager, StubDHCPManager
 from ldap_protocol.dialogue import LDAPSession
-from ldap_protocol.dns import (
-    AbstractDNSManager,
-    DNSSettingsDTO,
-    StubDNSManager,
-)
+from ldap_protocol.dns import AbstractDNSManager, DNSSettingsDTO, StubDNSManager
 from ldap_protocol.dns.dns_gateway import DNSStateGateway
 from ldap_protocol.dns.use_cases import DNSUseCase
 from ldap_protocol.identity import IdentityProvider
@@ -102,62 +74,31 @@ from ldap_protocol.ldap_requests.contexts import (
     LDAPSearchRequestContext,
     LDAPUnbindRequestContext,
 )
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
-    AttributeTypeDAOLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
-    AttributeTypeUseCaseLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
-    ObjectClassDAOLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
-    ObjectClassUseCaseLegacy,
-)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import AttributeTypeDAOLegacy
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import AttributeTypeUseCaseLegacy
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import ObjectClassDAOLegacy
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import ObjectClassUseCaseLegacy
 from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
-    AttributeTypeDAO,
-)
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (  # noqa: E501
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import AttributeTypeDAO
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_system_flags_use_case import (
     AttributeTypeSystemFlagsUseCase,
 )
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
-    AttributeTypeUseCase,
-)
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
-from ldap_protocol.ldap_schema.directory_create_use_case import (
-    DirectoryCreateUseCase,
-)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import AttributeTypeUseCase
+from ldap_protocol.ldap_schema.attribute_value_validator import AttributeValueValidator
+from ldap_protocol.ldap_schema.directory_create_use_case import DirectoryCreateUseCase
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
-from ldap_protocol.ldap_schema.object_class.object_class_dao import (
-    ObjectClassDAO,
-)
-from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
-    ObjectClassUseCase,
-)
-from ldap_protocol.master_check_use_case import (
-    MasterCheckUseCase,
-    MasterGatewayProtocol,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.object_class.object_class_dao import ObjectClassDAO
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import ObjectClassUseCase
+from ldap_protocol.master_check_use_case import MasterCheckUseCase, MasterGatewayProtocol
 from ldap_protocol.multifactor import LDAPMultiFactorAPI, MultifactorAPI
 from ldap_protocol.permissions_checker import AuthorizationProvider
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.audit.destination_dao import AuditDestinationDAO
-from ldap_protocol.policies.audit.events.managers import (
-    NormalizedAuditManager,
-    RawAuditManager,
-)
-from ldap_protocol.policies.audit.monitor import (
-    AuditMonitor,
-    AuditMonitorUseCase,
-)
+from ldap_protocol.policies.audit.events.managers import NormalizedAuditManager, RawAuditManager
+from ldap_protocol.policies.audit.monitor import AuditMonitor, AuditMonitorUseCase
 from ldap_protocol.policies.audit.policies_dao import AuditPoliciesDAO
 from ldap_protocol.policies.audit.service import AuditService
 from ldap_protocol.policies.network import (
@@ -167,19 +108,10 @@ from ldap_protocol.policies.network import (
     NetworkPolicyValidatorProtocol,
     NetworkPolicyValidatorUseCase,
 )
-from ldap_protocol.policies.password import (
-    PasswordPolicyDAO,
-    PasswordPolicyUseCases,
-    PasswordPolicyValidator,
-)
-from ldap_protocol.policies.password.ban_word_repository import (
-    PasswordBanWordRepository,
-)
+from ldap_protocol.policies.password import PasswordPolicyDAO, PasswordPolicyUseCases, PasswordPolicyValidator
+from ldap_protocol.policies.password.ban_word_repository import PasswordBanWordRepository
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
-from ldap_protocol.policies.password.use_cases import (
-    PasswordBanWordUseCases,
-    UserPasswordHistoryUseCases,
-)
+from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases, UserPasswordHistoryUseCases
 from ldap_protocol.rid_manager import (
     ObjectSIDGateway,
     ObjectSIDUseCase,
@@ -206,20 +138,12 @@ from ldap_protocol.rootdse.reader import DCInfoReader, RootDSEReader
 from ldap_protocol.server import PoolClientHandler
 from ldap_protocol.session_storage import RedisSessionStorage, SessionStorage
 from ldap_protocol.session_storage.repository import SessionRepository
-from ldap_protocol.utils.async_cache import (
-    domain_identifier_cache,
-    rid_set_id_cache,
-)
+from ldap_protocol.utils.async_cache import domain_identifier_cache, rid_set_id_cache
 from ldap_protocol.utils.queries import get_user
 from password_utils import PasswordUtils
 from repo.pg.master_gateway import PGMasterGateway
 from repo.pg.tables import queryable_attr as qa
-from tests.constants import (
-    TEST_DATA,
-    admin_user_data_dict,
-    user_data_dict,
-    user_with_login_perm_data_dict,
-)
+from tests.constants import TEST_DATA, admin_user_data_dict, user_data_dict, user_with_login_perm_data_dict
 
 
 class TestProvider(Provider):
@@ -237,10 +161,7 @@ class TestProvider(Provider):
     _session_id: uuid.UUID | None = None
 
     @provide(scope=Scope.RUNTIME)
-    def host_machine_short_name(
-        self,
-        settings: Settings,
-    ) -> HostMachineShortName:
+    def host_machine_short_name(self, settings: Settings) -> HostMachineShortName:
         return HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME)
 
     @provide(scope=Scope.APP, provides=AbstractKadmin)
@@ -292,15 +213,9 @@ class TestProvider(Provider):
             {
                 "name": "example.com",
                 "type": "A",
-                "records": [
-                    {
-                        "content": "127.0.0.1",
-                        "disabled": False,
-                        "modified_at": None,
-                    },
-                ],
+                "records": [{"content": "127.0.0.1", "disabled": False, "modified_at": None}],
                 "ttl": 3600,
-            },
+            }
         ]
         dns_manager.get_forward_zones.return_value = [
             {
@@ -311,7 +226,7 @@ class TestProvider(Provider):
                 "type": "zone",
                 "servers": ["127.0.0.1"],
                 "recursion_desired": False,
-            },
+            }
         ]
         dns_manager.get_master_zones.return_value = [
             {
@@ -321,21 +236,15 @@ class TestProvider(Provider):
                     {
                         "name": "example.com",
                         "type": "A",
-                        "records": [
-                            {
-                                "content": "127.0.0.1",
-                                "disabled": False,
-                                "modified_at": None,
-                            },
-                        ],
+                        "records": [{"content": "127.0.0.1", "disabled": False, "modified_at": None}],
                         "ttl": 3600,
-                    },
+                    }
                 ],
                 "dnssec": False,
                 "nameservers": ["ns1.example.com."],
                 "kind": "Master",
                 "type": "zone",
-            },
+            }
         ]
 
         if not self._cached_dns_manager:
@@ -347,102 +256,49 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.REQUEST, provides=DNSSettingsDTO, cache=False)
     async def get_dns_mngr_settings(
-        self,
-        dns_state_gateway: DNSStateGateway,
-        settings: Settings,
-        root_dse_gw: DomainReadProtocol,
+        self, dns_state_gateway: DNSStateGateway, settings: Settings, root_dse_gw: DomainReadProtocol
     ) -> AsyncIterator["DNSSettingsDTO"]:
         """Get DNS manager's settings."""
         domain = await root_dse_gw.get_domain()
-        yield await dns_state_gateway.get_dns_manager_settings(
-            settings,
-            domain.name,
-        )
+        yield await dns_state_gateway.get_dns_manager_settings(settings, domain.name)
 
-    directory_create_use_case = provide(
-        DirectoryCreateUseCase,
-        scope=Scope.REQUEST,
-    )
+    directory_create_use_case = provide(DirectoryCreateUseCase, scope=Scope.REQUEST)
     attribute_type_dao = provide(AttributeTypeDAO, scope=Scope.REQUEST)
-    attribute_type_dao_legacy = provide(
-        AttributeTypeDAOLegacy,
-        scope=Scope.REQUEST,
-    )
+    attribute_type_dao_legacy = provide(AttributeTypeDAOLegacy, scope=Scope.REQUEST)
 
     object_class_dao = provide(ObjectClassDAO, scope=Scope.REQUEST)
-    object_class_dao_legacy = provide(
-        ObjectClassDAOLegacy,
-        scope=Scope.REQUEST,
-    )
+    object_class_dao_legacy = provide(ObjectClassDAOLegacy, scope=Scope.REQUEST)
     attribute_dao = provide(AttributeDAO, scope=Scope.REQUEST)
     directory_dao = provide(DirectoryDAO, scope=Scope.REQUEST)
 
     entity_type_dao = provide(EntityTypeDAO, scope=Scope.REQUEST)
-    attribute_type_system_flags_use_case = provide(
-        AttributeTypeSystemFlagsUseCase,
-        scope=Scope.REQUEST,
-    )
-    attribute_type_use_case = provide(
-        AttributeTypeUseCase,
-        scope=Scope.REQUEST,
-    )
+    attribute_type_system_flags_use_case = provide(AttributeTypeSystemFlagsUseCase, scope=Scope.REQUEST)
+    attribute_type_use_case = provide(AttributeTypeUseCase, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
-    def get_attribute_type_use_case_legacy(
-        self,
-        session: AsyncSession,
-    ) -> AttributeTypeUseCaseLegacy:
+    def get_attribute_type_use_case_legacy(self, session: AsyncSession) -> AttributeTypeUseCaseLegacy:
         """Legacy attribute type use case bound to a single session."""
         at_dao_legacy = AttributeTypeDAOLegacy(session=session)
-        return AttributeTypeUseCaseLegacy(
-            attribute_type_dao_legacy=at_dao_legacy,
-        )
+        return AttributeTypeUseCaseLegacy(attribute_type_dao_legacy=at_dao_legacy)
 
     object_class_use_case = provide(ObjectClassUseCase, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
-    def get_object_class_use_case_legacy(
-        self,
-        session: AsyncSession,
-    ) -> ObjectClassUseCaseLegacy:
-        """Legacy object class use case bound to a single session for all DAOs."""  # noqa: E501
+    def get_object_class_use_case_legacy(self, session: AsyncSession) -> ObjectClassUseCaseLegacy:
+        """Legacy object class use case bound to a single session for all DAOs."""
         at_dao_legacy = AttributeTypeDAOLegacy(session=session)
         oc_dao_legacy = ObjectClassDAOLegacy(session=session)
-        return ObjectClassUseCaseLegacy(
-            attribute_type_dao_legacy=at_dao_legacy,
-            object_class_dao_legacy=oc_dao_legacy,
-        )
+        return ObjectClassUseCaseLegacy(attribute_type_dao_legacy=at_dao_legacy, object_class_dao_legacy=oc_dao_legacy)
 
-    user_password_history_use_cases = provide(
-        UserPasswordHistoryUseCases,
-        scope=Scope.REQUEST,
-    )
-    password_ban_word_repository = provide(
-        PasswordBanWordRepository,
-        scope=Scope.REQUEST,
-    )
+    user_password_history_use_cases = provide(UserPasswordHistoryUseCases, scope=Scope.REQUEST)
+    password_ban_word_repository = provide(PasswordBanWordRepository, scope=Scope.REQUEST)
     password_policy_dao = provide(PasswordPolicyDAO, scope=Scope.REQUEST)
     password_use_cases = provide(PasswordPolicyUseCases, scope=Scope.REQUEST)
-    password_policy_validator = provide(
-        PasswordPolicyValidator,
-        scope=Scope.REQUEST,
-    )
-    password_validator_settings = provide(
-        PasswordValidatorSettings,
-        scope=Scope.REQUEST,
-    )
-    password_policies_adapter = provide(
-        PasswordPolicyFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
-    password_ban_words_use_cases = provide(
-        PasswordBanWordUseCases,
-        scope=Scope.REQUEST,
-    )
-    password_ban_words_adapter = provide(
-        PasswordBanWordsFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
+    password_policy_validator = provide(PasswordPolicyValidator, scope=Scope.REQUEST)
+    password_validator_settings = provide(PasswordValidatorSettings, scope=Scope.REQUEST)
+    password_policies_adapter = provide(PasswordPolicyFastAPIAdapter, scope=Scope.REQUEST)
+    password_ban_words_use_cases = provide(PasswordBanWordUseCases, scope=Scope.REQUEST)
+    password_ban_words_adapter = provide(PasswordBanWordsFastAPIAdapter, scope=Scope.REQUEST)
     password_utils = provide(PasswordUtils, scope=scope)
 
     dns_fastapi_adapter = provide(DNSFastAPIAdapter, scope=Scope.REQUEST)
@@ -450,14 +306,9 @@ class TestProvider(Provider):
     dns_state_gateway = provide(DNSStateGateway, scope=Scope.REQUEST)
     network_policy_gateway = provide(NetworkPolicyGateway, scope=Scope.SESSION)
     network_policy_validator_gateway = provide(
-        NetworkPolicyValidatorGateway,
-        provides=NetworkPolicyValidatorProtocol,
-        scope=Scope.SESSION,
+        NetworkPolicyValidatorGateway, provides=NetworkPolicyValidatorProtocol, scope=Scope.SESSION
     )
-    network_policy_validator = provide(
-        NetworkPolicyValidatorUseCase,
-        scope=Scope.SESSION,
-    )
+    network_policy_validator = provide(NetworkPolicyValidatorUseCase, scope=Scope.SESSION)
 
     @provide(scope=scope, provides=AsyncEngine)
     def get_engine(self, settings: Settings) -> AsyncEngine:
@@ -465,24 +316,13 @@ class TestProvider(Provider):
         return settings.engine
 
     @provide(scope=Scope.APP, provides=async_sessionmaker[AsyncSession])
-    def get_session_factory(
-        self,
-        engine: AsyncEngine,
-    ) -> async_sessionmaker[AsyncSession]:
+    def get_session_factory(self, engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
         """Create session factory."""
-        return async_sessionmaker(
-            engine,
-            expire_on_commit=False,
-            autoflush=False,
-            autocommit=False,
-        )
+        return async_sessionmaker(engine, expire_on_commit=False, autoflush=False, autocommit=False)
 
     @provide(scope=Scope.APP)
     async def get_session(
-        self,
-        engine: AsyncEngine,
-        session_factory: async_sessionmaker[AsyncSession],
-        settings: Settings,
+        self, engine: AsyncEngine, session_factory: async_sessionmaker[AsyncSession], settings: Settings
     ) -> AsyncIterator[AsyncSession]:
         """Get test session with a savepoint."""
         if self._cached_session:
@@ -493,14 +333,10 @@ class TestProvider(Provider):
         trans = await connection.begin()
 
         schema_name = settings.TEST_POSTGRES_SCHEMA
-        await connection.execute(
-            text(f"SET search_path = {schema_name}, public;"),
-        )
+        await connection.execute(text(f"SET search_path = {schema_name}, public;"))
 
         async_session = session_factory(
-            bind=connection,
-            info={"mode": "test_transaction"},
-            join_transaction_mode="create_savepoint",
+            bind=connection, info={"mode": "test_transaction"}, join_transaction_mode="create_savepoint"
         )
 
         self._cached_session = async_session
@@ -517,10 +353,7 @@ class TestProvider(Provider):
         await connection.close()
 
     @provide(scope=Scope.SESSION)
-    async def get_ldap_session(
-        self,
-        storage: SessionStorage,
-    ) -> AsyncIterator[LDAPSession]:
+    async def get_ldap_session(self, storage: SessionStorage) -> AsyncIterator[LDAPSession]:
         """Create ldap session."""
         session = LDAPSession(storage=storage)
         await session.start()
@@ -546,10 +379,7 @@ class TestProvider(Provider):
         return mfa
 
     @provide(scope=Scope.APP)
-    async def get_redis_for_sessions(
-        self,
-        settings: Settings,
-    ) -> AsyncIterator[SessionStorageClient]:
+    async def get_redis_for_sessions(self, settings: Settings) -> AsyncIterator[SessionStorageClient]:
         """Get redis connection."""
         dsn = settings.SESSION_STORAGE_URL
         db_num = settings.TEST_WORKER_ID * 2
@@ -566,53 +396,26 @@ class TestProvider(Provider):
             await client.aclose()
 
     @provide(scope=Scope.REQUEST, provides=MasterGatewayProtocol)
-    async def get_master_gateway(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-    ) -> PGMasterGateway:
+    async def get_master_gateway(self, session: AsyncSession, settings: Settings) -> PGMasterGateway:
         return PGMasterGateway(session, settings)
 
-    master_check_use_case = provide(
-        MasterCheckUseCase,
-        scope=Scope.REQUEST,
-    )
+    master_check_use_case = provide(MasterCheckUseCase, scope=Scope.REQUEST)
 
     @provide(scope=Scope.APP)
-    async def get_session_storage(
-        self,
-        client: SessionStorageClient,
-        settings: Settings,
-    ) -> SessionStorage:
+    async def get_session_storage(self, client: SessionStorageClient, settings: Settings) -> SessionStorage:
         """Get session storage."""
-        return RedisSessionStorage(
-            client,
-            settings.SESSION_KEY_LENGTH,
-            settings.SESSION_KEY_EXPIRE_SECONDS,
-        )
+        return RedisSessionStorage(client, settings.SESSION_KEY_LENGTH, settings.SESSION_KEY_EXPIRE_SECONDS)
 
     role_dao = provide(RoleDAO, scope=Scope.REQUEST, cache=False)
     ace_dao = provide(AccessControlEntryDAO, scope=Scope.REQUEST)
-    ace_migrations_dao = provide(
-        AccessControlEntryAttributeTypeRemapDAO,
-        scope=Scope.REQUEST,
-    )
-    ace_migrations_dao1 = provide(
-        AccessControlEntryDirectoryMappingDAO,
-        scope=Scope.REQUEST,
-    )
+    ace_migrations_dao = provide(AccessControlEntryAttributeTypeRemapDAO, scope=Scope.REQUEST)
+    ace_migrations_dao1 = provide(AccessControlEntryDirectoryMappingDAO, scope=Scope.REQUEST)
     access_manager = provide(AccessManager, scope=Scope.REQUEST)
     role_use_case = provide(RoleUseCase, scope=Scope.REQUEST)
 
-    identity_fastapi_adapter = provide(
-        AuthFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
+    identity_fastapi_adapter = provide(AuthFastAPIAdapter, scope=Scope.REQUEST)
 
-    auth_manager = provide(
-        AuthManager,
-        scope=Scope.REQUEST,
-    )
+    auth_manager = provide(AuthManager, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
     async def get_identity_provider(
@@ -635,28 +438,16 @@ class TestProvider(Provider):
             session_key=request.cookies.get("id", ""),
         )
 
-    identity_provider_gateway = provide(
-        IdentityProviderGateway,
-        scope=Scope.REQUEST,
-    )
+    identity_provider_gateway = provide(IdentityProviderGateway, scope=Scope.REQUEST)
     mfa_fastapi_adapter = provide(MFAFastAPIAdapter, scope=Scope.REQUEST)
     mfa_manager = provide(MFAManager, scope=Scope.REQUEST)
-    ldap_entity_type_adapter = provide(
-        LDAPEntityTypeFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
+    ldap_entity_type_adapter = provide(LDAPEntityTypeFastAPIAdapter, scope=Scope.REQUEST)
 
     kerberos_service = provide(KerberosService, scope=Scope.REQUEST)
-    kerberos_fastapi_adapter = provide(
-        KerberosFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
+    kerberos_fastapi_adapter = provide(KerberosFastAPIAdapter, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
-    def get_krb_template_render(
-        self,
-        settings: Settings,
-    ) -> KRBTemplateRenderer:
+    def get_krb_template_render(self, settings: Settings) -> KRBTemplateRenderer:
         """Provide KRBTemplateRenderer with settings.TEMPLATES."""
         return KRBTemplateRenderer(settings.TEMPLATES)
 
@@ -691,10 +482,7 @@ class TestProvider(Provider):
     audit_adapter = provide(AuditPoliciesAdapter, scope=Scope.REQUEST)
 
     @provide(scope=scope)
-    async def get_audit_redis_client(
-        self,
-        settings: Settings,
-    ) -> AsyncIterator[AuditRedisClient]:
+    async def get_audit_redis_client(self, settings: Settings) -> AsyncIterator[AuditRedisClient]:
         """Get audit redis client."""
         dsn = settings.EVENT_HANDLER_URL
         db_num = settings.TEST_WORKER_ID * 2 + 1
@@ -711,9 +499,7 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_raw_audit_manager(
-        self,
-        client: AuditRedisClient,
-        settings: Settings,
+        self, client: AuditRedisClient, settings: Settings
     ) -> AsyncIterator[RawAuditManager]:
         """Get raw audit manager."""
         yield RawAuditManager(
@@ -726,9 +512,7 @@ class TestProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_normalized_audit_manager(
-        self,
-        client: AuditRedisClient,
-        settings: Settings,
+        self, client: AuditRedisClient, settings: Settings
     ) -> AsyncIterator[NormalizedAuditManager]:
         """Get raw audit manager."""
         yield NormalizedAuditManager(
@@ -739,10 +523,7 @@ class TestProvider(Provider):
             settings.IS_PROC_EVENT_KEY,
         )
 
-    shadow_adapter = provide(
-        ShadowAdapter,
-        scope=Scope.REQUEST,
-    )
+    shadow_adapter = provide(ShadowAdapter, scope=Scope.REQUEST)
     request = from_context(provides=Request, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
@@ -769,95 +550,40 @@ class TestProvider(Provider):
             session_key=session_key,
         )
 
-    add_request_context = provide(
-        LDAPAddRequestContext,
-        scope=Scope.REQUEST,
-    )
-    bind_request_context = provide(
-        LDAPBindRequestContext,
-        scope=Scope.REQUEST,
-    )
-    delete_request_context = provide(
-        LDAPDeleteRequestContext,
-        scope=Scope.REQUEST,
-    )
-    extended_request_context = provide(
-        LDAPExtendedRequestContext,
-        scope=Scope.REQUEST,
-    )
-    modify_request_context = provide(
-        LDAPModifyRequestContext,
-        scope=Scope.REQUEST,
-    )
-    modify_dn_request_context = provide(
-        LDAPModifyDNRequestContext,
-        scope=Scope.REQUEST,
-    )
-    search_request_context = provide(
-        LDAPSearchRequestContext,
-        scope=Scope.REQUEST,
-    )
-    abandon_request_context = provide(
-        LDAPAbandonRequestContext,
-        scope=Scope.REQUEST,
-    )
+    add_request_context = provide(LDAPAddRequestContext, scope=Scope.REQUEST)
+    bind_request_context = provide(LDAPBindRequestContext, scope=Scope.REQUEST)
+    delete_request_context = provide(LDAPDeleteRequestContext, scope=Scope.REQUEST)
+    extended_request_context = provide(LDAPExtendedRequestContext, scope=Scope.REQUEST)
+    modify_request_context = provide(LDAPModifyRequestContext, scope=Scope.REQUEST)
+    modify_dn_request_context = provide(LDAPModifyDNRequestContext, scope=Scope.REQUEST)
+    search_request_context = provide(LDAPSearchRequestContext, scope=Scope.REQUEST)
+    abandon_request_context = provide(LDAPAbandonRequestContext, scope=Scope.REQUEST)
 
-    unbind_request_context = provide(
-        LDAPUnbindRequestContext,
-        scope=Scope.REQUEST,
-    )
+    unbind_request_context = provide(LDAPUnbindRequestContext, scope=Scope.REQUEST)
     session_repository = provide(SessionRepository, scope=Scope.REQUEST)
     session_gateway = provide(SessionFastAPIGateway, scope=Scope.REQUEST)
-    attribute_type_fastapi_adapter = provide(
-        AttributeTypeFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
-    object_class_fastapi_adapter = provide(
-        ObjectClassFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
+    attribute_type_fastapi_adapter = provide(AttributeTypeFastAPIAdapter, scope=Scope.REQUEST)
+    object_class_fastapi_adapter = provide(ObjectClassFastAPIAdapter, scope=Scope.REQUEST)
 
     entity_type_use_case = provide(EntityTypeUseCase, scope=Scope.REQUEST)
 
     dhcp_adapter = provide(DHCPAdapter, scope=Scope.REQUEST)
     setup_gateway = provide(SetupGateway, scope=Scope.REQUEST)
     setup_use_case = provide(SetupUseCase, scope=Scope.REQUEST)
-    network_policy_adapter = provide(
-        NetworkPolicyFastAPIAdapter,
-        scope=Scope.REQUEST,
-    )
-    network_policy_use_case = provide(
-        NetworkPolicyUseCase,
-        scope=Scope.REQUEST,
-    )
+    network_policy_adapter = provide(NetworkPolicyFastAPIAdapter, scope=Scope.REQUEST)
+    network_policy_use_case = provide(NetworkPolicyUseCase, scope=Scope.REQUEST)
 
-    @provide(
-        provides=AuthorizationProviderProtocol,
-        scope=Scope.REQUEST,
-    )
-    def authorization_provider_protocol(
-        self,
-        identity_provider: IdentityProvider,
-    ) -> AuthorizationProvider:
+    @provide(provides=AuthorizationProviderProtocol, scope=Scope.REQUEST)
+    def authorization_provider_protocol(self, identity_provider: IdentityProvider) -> AuthorizationProvider:
         return AuthorizationProvider(identity_provider)
 
-    rootdse_gw = provide(
-        SADomainGateway,
-        provides=DomainReadProtocol,
-        scope=Scope.REQUEST,
-    )
+    rootdse_gw = provide(SADomainGateway, provides=DomainReadProtocol, scope=Scope.REQUEST)
     rootdse_reader = provide(RootDSEReader, scope=Scope.REQUEST)
     dcinfo_reader = provide(DCInfoReader, scope=Scope.REQUEST)
     rid_manager_gateway = provide(RIDManagerGateway, scope=Scope.REQUEST)
     rid_manager_use_case = provide(RIDManagerUseCase, scope=Scope.REQUEST)
-    rid_manager_setup_gateway = provide(
-        RIDManagerSetupGateway,
-        scope=Scope.REQUEST,
-    )
-    rid_manager_setup_use_case = provide(
-        RIDManagerSetupUseCase,
-        scope=Scope.REQUEST,
-    )
+    rid_manager_setup_gateway = provide(RIDManagerSetupGateway, scope=Scope.REQUEST)
+    rid_manager_setup_use_case = provide(RIDManagerSetupUseCase, scope=Scope.REQUEST)
     object_sid_gateway = provide(ObjectSIDGateway, scope=Scope.REQUEST)
     object_sid_use_case = provide(ObjectSIDUseCase, scope=Scope.REQUEST)
     rid_set_gateway = provide(RIDSetGateway, scope=Scope.REQUEST)
@@ -885,10 +611,7 @@ class TestAdminCreds(TestCreds):
 async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     """Create test container."""
     ctnr = make_async_container(
-        TestProvider(),
-        MFACredsProvider(),
-        context={Settings: settings},
-        start_scope=Scope.RUNTIME,
+        TestProvider(), MFACredsProvider(), context={Settings: settings}, start_scope=Scope.RUNTIME
     )
     yield ctnr
     await ctnr.close()
@@ -913,9 +636,7 @@ async def kadmin(container: AsyncContainer) -> AsyncIterator[AbstractKadmin]:
 
 
 @pytest_asyncio.fixture
-async def audit_service(
-    container: AsyncContainer,
-) -> AsyncIterator[AuditService]:
+async def audit_service(container: AsyncContainer) -> AsyncIterator[AuditService]:
     """Get di audit_service."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AuditService)
@@ -943,10 +664,7 @@ def is_master(config: pytest.Config) -> bool:
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def add_schema(
-    container: AsyncContainer,
-    settings: Settings,
-) -> AsyncGenerator:
+async def add_schema(container: AsyncContainer, settings: Settings) -> AsyncGenerator:
     """Create schema for each worker and drops it afterwards."""
     if settings.TEST_POSTGRES_SCHEMA == "public":
         yield
@@ -955,34 +673,18 @@ async def add_schema(
     engine = await container.get(AsyncEngine)
 
     async with engine.begin() as conn:
-        await conn.execute(
-            schema.CreateSchema(
-                settings.TEST_POSTGRES_SCHEMA,
-                if_not_exists=True,
-            ),
-        )
+        await conn.execute(schema.CreateSchema(settings.TEST_POSTGRES_SCHEMA, if_not_exists=True))
 
         # NOTE: Create extensions for public schema only one time to
         # avoid conflicts
         if settings.TEST_POSTGRES_SCHEMA.endswith("gw0"):
-            await conn.execute(
-                text(
-                    "CREATE EXTENSION IF NOT EXISTS "
-                    '"uuid-ossp" SCHEMA public;',
-                ),
-            )
-            await conn.execute(
-                text(
-                    'CREATE EXTENSION IF NOT EXISTS "pg_trgm" SCHEMA public;',
-                ),
-            )
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA public;'))
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "pg_trgm" SCHEMA public;'))
 
     yield
 
     async with engine.begin() as conn:
-        await conn.execute(
-            text(f"DROP SCHEMA {settings.TEST_POSTGRES_SCHEMA} CASCADE;"),
-        )
+        await conn.execute(text(f"DROP SCHEMA {settings.TEST_POSTGRES_SCHEMA} CASCADE;"))
 
 
 class TestMigrationProvider(Provider):
@@ -991,20 +693,13 @@ class TestMigrationProvider(Provider):
     async_conn = from_context(provides=AsyncConnection, scope=Scope.RUNTIME)
 
     @provide(scope=Scope.APP, cache=False)
-    def get_session_factory(
-        self,
-        async_conn: AsyncConnection,
-    ) -> AsyncSession:
+    def get_session_factory(self, async_conn: AsyncConnection) -> AsyncSession:
         """Create session factory."""
         return AsyncSession(async_conn)
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def _migrations(
-    add_schema: None,  # noqa: ARG001
-    container: AsyncContainer,
-    settings: Settings,
-) -> AsyncGenerator:
+async def _migrations(add_schema: None, container: AsyncContainer, settings: Settings) -> AsyncGenerator:  # noqa: ARG001
     """Run simple migrations."""
     engine = await container.get(AsyncEngine)
 
@@ -1043,10 +738,7 @@ async def _migrations(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def session(
-    container: AsyncContainer,
-    handler: PoolClientHandler,
-) -> AsyncIterator[AsyncSession]:
+async def session(container: AsyncContainer, handler: PoolClientHandler) -> AsyncIterator[AsyncSession]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
@@ -1055,9 +747,7 @@ async def session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def raw_audit_manager(
-    container: AsyncContainer,
-) -> AsyncIterator[RawAuditManager]:
+async def raw_audit_manager(container: AsyncContainer) -> AsyncIterator[RawAuditManager]:
     """Get raw audit adapter."""
     async with container(scope=Scope.APP) as container:
         yield await container.get(RawAuditManager)
@@ -1065,10 +755,7 @@ async def raw_audit_manager(
 
 @pytest_asyncio.fixture(scope="function")
 async def setup_session(
-    session: AsyncSession,
-    raw_audit_manager: RawAuditManager,
-    password_utils: PasswordUtils,
-    settings: Settings,
+    session: AsyncSession, raw_audit_manager: RawAuditManager, password_utils: PasswordUtils, settings: Settings
 ) -> None:
     """Get session and acquire after completion."""
     domain_identifier_cache.clear()
@@ -1082,54 +769,30 @@ async def setup_session(
     object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
     attribute_type_dao_legacy = AttributeTypeDAOLegacy(session=session)
     object_class_use_case_legacy = ObjectClassUseCaseLegacy(
-        attribute_type_dao_legacy=attribute_type_dao_legacy,
-        object_class_dao_legacy=object_class_dao_legacy,
+        attribute_type_dao_legacy=attribute_type_dao_legacy, object_class_dao_legacy=object_class_dao_legacy
     )
-    attribute_type_use_case_legacy = AttributeTypeUseCaseLegacy(
-        attribute_type_dao_legacy=attribute_type_dao_legacy,
-    )
+    attribute_type_use_case_legacy = AttributeTypeUseCaseLegacy(attribute_type_dao_legacy=attribute_type_dao_legacy)
 
     object_class_dao = ObjectClassDAO(session)
     directory_dao = DirectoryDAO(session)
     attribute_dao = AttributeDAO(session)
     entity_type_dao = EntityTypeDAO(
-        session,
-        attribute_value_validator=attribute_value_validator,
-        directory_dao=directory_dao,
+        session, attribute_value_validator=attribute_value_validator, directory_dao=directory_dao
     )
     entity_type_use_case = EntityTypeUseCase(
-        entity_type_dao=entity_type_dao,
-        object_class_dao=object_class_dao,
-        directory_dao=directory_dao,
+        entity_type_dao=entity_type_dao, object_class_dao=object_class_dao, directory_dao=directory_dao
     )
-    rid_manager_gateway = RIDManagerGateway(
-        session,
-        HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
-    )
+    rid_manager_gateway = RIDManagerGateway(session, HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME))
 
-    rid_manager_use_case = RIDManagerUseCase(
-        rid_manager_gateway,
-        session,
-    )
-    rid_set_gateway = RIDSetGateway(
-        session,
-        HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
-    )
+    rid_manager_use_case = RIDManagerUseCase(rid_manager_gateway, session)
+    rid_set_gateway = RIDSetGateway(session, HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME))
 
     rid_set_use_case = RIDSetUseCase(
-        rid_set_gateway,
-        entity_type_use_case,
-        session,
-        rid_manager_use_case,
-        role_use_case,
+        rid_set_gateway, entity_type_use_case, session, rid_manager_use_case, role_use_case
     )
     object_sid_gateway = ObjectSIDGateway(session)
     object_sid_use_case = ObjectSIDUseCase(
-        object_sid_gateway,
-        rid_set_use_case,
-        session,
-        rid_manager_use_case,
-        object_class_dao,
+        object_sid_gateway, rid_set_use_case, session, rid_manager_use_case, object_class_dao
     )
     directory_create_use_case = DirectoryCreateUseCase(
         session=session,
@@ -1154,31 +817,16 @@ async def setup_session(
 
     audit_policy_dao = AuditPoliciesDAO(session)
     audit_destination_dao = AuditDestinationDAO(session)
-    audit_use_case = AuditUseCase(
-        audit_policy_dao,
-        audit_destination_dao,
-        raw_audit_manager,
-    )
-    password_policy_dao = PasswordPolicyDAO(
-        session,
-        attribute_value_validator=attribute_value_validator,
-    )
-    password_policy_validator = PasswordPolicyValidator(
-        PasswordValidatorSettings(),
-        password_utils,
-    )
+    audit_use_case = AuditUseCase(audit_policy_dao, audit_destination_dao, raw_audit_manager)
+    password_policy_dao = PasswordPolicyDAO(session, attribute_value_validator=attribute_value_validator)
+    password_policy_validator = PasswordPolicyValidator(PasswordValidatorSettings(), password_utils)
     password_ban_word_repository = PasswordBanWordRepository(session)
     password_use_cases = PasswordPolicyUseCases(
-        password_policy_dao,
-        password_policy_validator,
-        password_ban_word_repository,
+        password_policy_dao, password_policy_validator, password_ban_word_repository
     )
 
     rid_manager_setup_gateway = RIDManagerSetupGateway(
-        session=session,
-        host_machine_short_name=HostMachineShortName(
-            settings.HOST_MACHINE_SHORT_NAME,
-        ),
+        session=session, host_machine_short_name=HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME)
     )
     role_dao = RoleDAO(session)
     ace_dao = AccessControlEntryDAO(session)
@@ -1206,35 +854,21 @@ async def setup_session(
     domain = await setup_gateway.create_base_domain("md.test")
     await rid_manager_setup_use_case.create_domain_identifier(domain.id)
 
-    await setup_gateway.setup_enviroment(
-        domain=domain,
-        data=TEST_DATA,
-        is_system=False,
-    )
+    await setup_gateway.setup_enviroment(domain=domain, data=TEST_DATA, is_system=False)
 
     await session.execute(
         update(Directory)
-        .where(
-            qa(Directory.parent_id) == domain.id,
-            qa(Directory.name) == SYSTEM_CONTAINER_NAME,
-        )
-        .values(is_system=True),
+        .where(qa(Directory.parent_id) == domain.id, qa(Directory.name) == SYSTEM_CONTAINER_NAME)
+        .values(is_system=True)
     )
-    dc_directory = Directory(
-        name=DOMAIN_CONTROLLERS_OU_NAME,
-        object_class="computer",
-        is_system=True,
-    )
+    dc_directory = Directory(name=DOMAIN_CONTROLLERS_OU_NAME, object_class="computer", is_system=True)
     dc_directory.create_path(domain, "cn")
     session.add(dc_directory)
     await session.flush()
     dc_directory.parent_id = domain.id
     await session.refresh(dc_directory, ["id"])
     await session.flush()
-    dc = Directory(
-        name=settings.HOST_MACHINE_SHORT_NAME,
-        is_system=True,
-    )
+    dc = Directory(name=settings.HOST_MACHINE_SHORT_NAME, is_system=True)
 
     dc.create_path(dc_directory, "cn")
     session.add(dc)
@@ -1242,21 +876,10 @@ async def setup_session(
     dc.parent_id = dc_directory.id
     await session.refresh(dc, ["id"])
 
-    for attr_type_name in (
-        "description",
-        "posixEmail",
-        "userPrincipalName",
-        "userAccountControl",
-        "cn",
-        "objectClass",
-    ):
-        _at = await attribute_type_use_case_legacy.get(
-            attr_type_name,
-        )
+    for attr_type_name in ("description", "posixEmail", "userPrincipalName", "userAccountControl", "cn", "objectClass"):
+        _at = await attribute_type_use_case_legacy.get(attr_type_name)
         if not _at:
-            raise ValueError(
-                f"setup_session:: AttributeType {attr_type_name} not found",
-            )
+            raise ValueError(f"setup_session:: AttributeType {attr_type_name} not found")
         await attribute_type_use_case.create(_at)
 
     for _obj_class_name in (
@@ -1276,14 +899,8 @@ async def setup_session(
         "rIDSet",
     ):
         _oc_dto = await object_class_use_case_legacy.get(_obj_class_name)
-        _oc_dto.attribute_types_may = [
-            _.name  # type: ignore
-            for _ in _oc_dto.attribute_types_may
-        ]
-        _oc_dto.attribute_types_must = [
-            _.name  # type: ignore
-            for _ in _oc_dto.attribute_types_must
-        ]
+        _oc_dto.attribute_types_may = [_.name for _ in _oc_dto.attribute_types_may]  # type: ignore
+        _oc_dto.attribute_types_must = [_.name for _ in _oc_dto.attribute_types_must]  # type: ignore
         await object_class_use_case.create(_oc_dto)  # type: ignore
 
     await session.flush()
@@ -1330,16 +947,14 @@ async def setup_session(
             is_system=True,
             groups=["cn=admin login only,cn=Groups,dc=md,dc=test"],
             permissions=AuthorizationRules.AUTH_LOGIN,
-        ),
+        )
     )
 
     await session.commit()
 
 
 @pytest_asyncio.fixture(scope="function")
-async def ldap_session(
-    container: AsyncContainer,
-) -> AsyncIterator[LDAPSession]:
+async def ldap_session(container: AsyncContainer) -> AsyncIterator[LDAPSession]:
     """Yield empty session."""
     async with container(scope=Scope.SESSION) as container:
         yield await container.get(LDAPSession)
@@ -1361,37 +976,28 @@ async def ldap_bound_session(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def network_policy_gateway(
-    container: AsyncContainer,
-) -> AsyncIterator[NetworkPolicyGateway]:
+async def network_policy_gateway(container: AsyncContainer) -> AsyncIterator[NetworkPolicyGateway]:
     """Get network policy gateway."""
     async with container(scope=Scope.SESSION) as container:
         yield await container.get(NetworkPolicyGateway)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def network_policy_use_case(
-    container: AsyncContainer,
-) -> AsyncIterator[NetworkPolicyUseCase]:
+async def network_policy_use_case(container: AsyncContainer) -> AsyncIterator[NetworkPolicyUseCase]:
     """Get network policy gateway."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(NetworkPolicyUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def network_policy_validator(
-    container: AsyncContainer,
-) -> AsyncIterator[NetworkPolicyValidatorUseCase]:
+async def network_policy_validator(container: AsyncContainer) -> AsyncIterator[NetworkPolicyValidatorUseCase]:
     """Get network policy validator."""
     async with container(scope=Scope.SESSION) as container:
         yield await container.get(NetworkPolicyValidatorUseCase)
 
 
 @pytest_asyncio.fixture(scope="session")
-async def handler(
-    settings: Settings,
-    container: AsyncContainer,
-) -> AsyncIterator[PoolClientHandler]:
+async def handler(settings: Settings, container: AsyncContainer) -> AsyncIterator[PoolClientHandler]:
     """Create test handler."""
     settings.set_test_port()
     test_log = logger.bind(name="ldap_test")
@@ -1400,52 +1006,33 @@ async def handler(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def entity_type_dao(
-    container: AsyncContainer,
-) -> AsyncIterator[EntityTypeDAO]:
+async def entity_type_dao(container: AsyncContainer) -> AsyncIterator[EntityTypeDAO]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.REQUEST) as container:
         session = await container.get(AsyncSession)
-        attribute_value_validator = await container.get(
-            AttributeValueValidator,
-        )
+        attribute_value_validator = await container.get(AttributeValueValidator)
         directory_dao = await container.get(DirectoryDAO)
-        yield EntityTypeDAO(
-            session,
-            attribute_value_validator=attribute_value_validator,
-            directory_dao=directory_dao,
-        )
+        yield EntityTypeDAO(session, attribute_value_validator=attribute_value_validator, directory_dao=directory_dao)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def entity_type_use_case(
-    container: AsyncContainer,
-) -> AsyncIterator[EntityTypeUseCase]:
+async def entity_type_use_case(container: AsyncContainer) -> AsyncIterator[EntityTypeUseCase]:
     """Get entity type use case."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(EntityTypeUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_policy_dao(
-    container: AsyncContainer,
-) -> AsyncIterator[PasswordPolicyDAO]:
+async def password_policy_dao(container: AsyncContainer) -> AsyncIterator[PasswordPolicyDAO]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
-        attribute_value_validator = await container.get(
-            AttributeValueValidator,
-        )
-        yield PasswordPolicyDAO(
-            session,
-            attribute_value_validator=attribute_value_validator,
-        )
+        attribute_value_validator = await container.get(AttributeValueValidator)
+        yield PasswordPolicyDAO(session, attribute_value_validator=attribute_value_validator)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_ban_word_repository(
-    container: AsyncContainer,
-) -> AsyncIterator[PasswordBanWordRepository]:
+async def password_ban_word_repository(container: AsyncContainer) -> AsyncIterator[PasswordBanWordRepository]:
     """Get password ban word repository."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
@@ -1453,9 +1040,7 @@ async def password_ban_word_repository(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_utils(
-    container: AsyncContainer,
-) -> AsyncIterator[PasswordUtils]:
+async def password_utils(container: AsyncContainer) -> AsyncIterator[PasswordUtils]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         yield PasswordUtils()
@@ -1470,17 +1055,11 @@ async def password_policy_use_cases(
 ) -> AsyncIterator[PasswordPolicyUseCases]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
-        yield PasswordPolicyUseCases(
-            password_policy_dao,
-            password_policy_validator,
-            password_ban_word_repository,
-        )
+        yield PasswordPolicyUseCases(password_policy_dao, password_policy_validator, password_ban_word_repository)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def password_validator_settings(
-    container: AsyncContainer,
-) -> AsyncIterator[PasswordValidatorSettings]:
+async def password_validator_settings(container: AsyncContainer) -> AsyncIterator[PasswordValidatorSettings]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
         yield PasswordValidatorSettings()
@@ -1488,22 +1067,15 @@ async def password_validator_settings(
 
 @pytest_asyncio.fixture(scope="function")
 async def password_policy_validator(
-    container: AsyncContainer,
-    password_validator_settings: PasswordValidatorSettings,
-    password_utils: PasswordUtils,
+    container: AsyncContainer, password_validator_settings: PasswordValidatorSettings, password_utils: PasswordUtils
 ) -> AsyncIterator[PasswordPolicyValidator]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.APP) as container:
-        yield PasswordPolicyValidator(
-            password_validator_settings,
-            password_utils,
-        )
+        yield PasswordPolicyValidator(password_validator_settings, password_utils)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def attribute_type_dao(
-    container: AsyncContainer,
-) -> AsyncIterator[AttributeTypeDAO]:
+async def attribute_type_dao(container: AsyncContainer) -> AsyncIterator[AttributeTypeDAO]:
     """Get session and acquire after completion."""
     async with container(scope=Scope.REQUEST) as container:
         session = await container.get(AsyncSession)
@@ -1519,9 +1091,7 @@ async def role_dao(container: AsyncContainer) -> AsyncIterator[RoleDAO]:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def access_control_entry_dao(
-    container: AsyncContainer,
-) -> AsyncIterator[AccessControlEntryDAO]:
+async def access_control_entry_dao(container: AsyncContainer) -> AsyncIterator[AccessControlEntryDAO]:
     """Get session and aquire after completion."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
@@ -1535,9 +1105,7 @@ def access_manager() -> AccessManager:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def role_use_case(
-    container: AsyncContainer,
-) -> AsyncIterator[RoleUseCase]:
+async def role_use_case(container: AsyncContainer) -> AsyncIterator[RoleUseCase]:
     """Get role use case."""
     async with container(scope=Scope.APP) as container:
         session = await container.get(AsyncSession)
@@ -1547,10 +1115,7 @@ async def role_use_case(
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _server(
-    event_loop: asyncio.BaseEventLoop,
-    handler: PoolClientHandler,
-) -> Generator:
+def _server(event_loop: asyncio.BaseEventLoop, handler: PoolClientHandler) -> Generator:
     """Run server in background."""
     task = asyncio.ensure_future(handler.start(), loop=event_loop)
     event_loop.run_until_complete(asyncio.sleep(0.1))
@@ -1560,37 +1125,25 @@ def _server(
 
 
 @pytest.fixture
-async def ldap_client(
-    settings: Settings,
-    creds: TestCreds,
-) -> AsyncIterator[aioldap3.LDAPConnection]:
+async def ldap_client(settings: Settings, creds: TestCreds) -> AsyncIterator[aioldap3.LDAPConnection]:
     """Get LDAP client without credentials."""
-    conn = aioldap3.LDAPConnection(
-        aioldap3.Server(host=str(settings.HOST), port=settings.PORT),
-    )
+    conn = aioldap3.LDAPConnection(aioldap3.Server(host=str(settings.HOST), port=settings.PORT))
     await conn.bind(creds.un, creds.pw)
     yield conn
     await conn.unbind()
 
 
 @pytest.fixture
-async def anonymous_ldap_client(
-    settings: Settings,
-) -> AsyncIterator[aioldap3.LDAPConnection]:
+async def anonymous_ldap_client(settings: Settings) -> AsyncIterator[aioldap3.LDAPConnection]:
     """Get LDAP client without credentials."""
-    conn = aioldap3.LDAPConnection(
-        aioldap3.Server(host=str(settings.HOST), port=settings.PORT),
-    )
+    conn = aioldap3.LDAPConnection(aioldap3.Server(host=str(settings.HOST), port=settings.PORT))
     await conn.bind()
     yield conn
     await conn.unbind()
 
 
 @pytest_asyncio.fixture(scope="function")
-async def app(
-    settings: Settings,
-    container: AsyncContainer,
-) -> AsyncIterator[FastAPI]:
+async def app(settings: Settings, container: AsyncContainer) -> AsyncIterator[FastAPI]:
     """App creator fixture."""
     async with container(scope=Scope.APP) as container:
         app = _create_basic_app(settings)
@@ -1600,18 +1153,14 @@ async def app(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def unbound_http_client(
-    app: FastAPI,
-) -> AsyncIterator[httpx.AsyncClient]:
+async def unbound_http_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     """Get async client for fastapi tests.
 
     :param FastAPI app: asgi app
     :yield Iterator[AsyncIterator[httpx.AsyncClient]]: yield client
     """
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app, root_path="/api"),
-        timeout=3,
-        base_url="http://test",
+        transport=httpx.ASGITransport(app=app, root_path="/api"), timeout=3, base_url="http://test"
     ) as client:
         yield client
 
@@ -1629,10 +1178,7 @@ async def http_client(
     :param None setup_session: just a fixture call
     :return httpx.AsyncClient: bound client with cookies
     """
-    response = await unbound_http_client.post(
-        "auth/",
-        data={"username": creds.un, "password": creds.pw},
-    )
+    response = await unbound_http_client.post("auth/", data={"username": creds.un, "password": creds.pw})
 
     assert response.status_code == 200
     assert unbound_http_client.cookies.get("id")
@@ -1654,11 +1200,7 @@ async def http_client_with_login_perm(
     :return httpx.AsyncClient: bound client with cookies
     """
     response = await unbound_http_client.post(
-        "auth/",
-        data={
-            "username": creds_with_login_perm.un,
-            "password": creds_with_login_perm.pw,
-        },
+        "auth/", data={"username": creds_with_login_perm.un, "password": creds_with_login_perm.pw}
     )
 
     assert response.status_code == 200
@@ -1680,13 +1222,10 @@ async def admin_http_client(
     :return httpx.AsyncClient: bound client with cookies
     """
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app, root_path="/api"),
-        timeout=3,
-        base_url="http://test",
+        transport=httpx.ASGITransport(app=app, root_path="/api"), timeout=3, base_url="http://test"
     ) as unbound_http_client:
         response = await unbound_http_client.post(
-            "auth/",
-            data={"username": admin_creds.un, "password": admin_creds.pw},
+            "auth/", data={"username": admin_creds.un, "password": admin_creds.pw}
         )
 
         assert response.status_code == 200
@@ -1704,19 +1243,13 @@ def creds(user: dict) -> TestCreds:
 @pytest.fixture
 def creds_with_login_perm(user_with_login_perm: dict) -> TestCreds:
     """Get creds from test data."""
-    return TestCreds(
-        user_with_login_perm["sam_account_name"],
-        user_with_login_perm["password"],
-    )
+    return TestCreds(user_with_login_perm["sam_account_name"], user_with_login_perm["password"])
 
 
 @pytest.fixture
 def admin_creds(admin_user: dict) -> TestAdminCreds:
     """Get admin creds from test data."""
-    return TestAdminCreds(
-        admin_user["sam_account_name"],
-        admin_user["password"],
-    )
+    return TestAdminCreds(admin_user["sam_account_name"], admin_user["password"])
 
 
 @pytest.fixture
@@ -1738,9 +1271,7 @@ def user_with_login_perm() -> dict:
 
 
 @pytest.fixture
-async def api_permissions_checker(
-    request_container: AsyncContainer,
-) -> AsyncIterator[AuthorizationProvider]:
+async def api_permissions_checker(request_container: AsyncContainer) -> AsyncIterator[AuthorizationProvider]:
     """Get all api permissions."""
     return await request_container.get(AuthorizationProviderProtocol)
 
@@ -1765,10 +1296,7 @@ async def request_params() -> dict:
 
 
 @pytest_asyncio.fixture
-async def request_container(
-    container: AsyncContainer,
-    request_params: dict,
-) -> AsyncIterator[AsyncContainer]:
+async def request_container(container: AsyncContainer, request_params: dict) -> AsyncIterator[AsyncContainer]:
     """Create request scope with Request context."""
     async with container(scope=Scope.REQUEST, context=request_params) as cont:
         yield cont
@@ -1784,18 +1312,14 @@ def _force_override_tls(settings: Settings) -> Iterator:
 
 
 @pytest_asyncio.fixture
-async def dns_manager(
-    container: AsyncContainer,
-) -> AsyncIterator[AbstractDNSManager]:
+async def dns_manager(container: AsyncContainer) -> AsyncIterator[AbstractDNSManager]:
     """Get DI DNS manager."""
     async with container(scope=Scope.REQUEST) as container:
         yield await container.get(AbstractDNSManager)
 
 
 @pytest_asyncio.fixture
-async def dhcp_manager(
-    request_container: AsyncContainer,
-) -> AsyncIterator[AbstractDHCPManager]:
+async def dhcp_manager(request_container: AsyncContainer) -> AsyncIterator[AbstractDHCPManager]:
     """Get DI DHCP manager."""
     yield await request_container.get(AbstractDHCPManager)
 
@@ -1808,68 +1332,51 @@ async def storage(container: AsyncContainer) -> AsyncIterator[SessionStorage]:
 
 
 @pytest.fixture
-async def ctx_bind(
-    container: AsyncContainer,
-) -> AsyncIterator[LDAPBindRequestContext]:
+async def ctx_bind(container: AsyncContainer) -> AsyncIterator[LDAPBindRequestContext]:
     """Return session storage."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(LDAPBindRequestContext)
 
 
 @pytest.fixture
-async def ctx_unbind(
-    container: AsyncContainer,
-) -> AsyncIterator[LDAPUnbindRequestContext]:
+async def ctx_unbind(container: AsyncContainer) -> AsyncIterator[LDAPUnbindRequestContext]:
     """Return session storage."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(LDAPUnbindRequestContext)
 
 
 @pytest.fixture
-async def ctx_add(
-    container: AsyncContainer,
-) -> AsyncIterator[LDAPAddRequestContext]:
+async def ctx_add(container: AsyncContainer) -> AsyncIterator[LDAPAddRequestContext]:
     """Return session storage."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(LDAPAddRequestContext)
 
 
 @pytest.fixture
-async def ctx_search(
-    container: AsyncContainer,
-) -> AsyncIterator[LDAPSearchRequestContext]:
+async def ctx_search(container: AsyncContainer) -> AsyncIterator[LDAPSearchRequestContext]:
     """Return session storage."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(LDAPSearchRequestContext)
 
 
 @pytest.fixture
-async def rid_manager_setup_use_case(
-    container: AsyncContainer,
-) -> AsyncIterator[RIDManagerSetupUseCase]:
+async def rid_manager_setup_use_case(container: AsyncContainer) -> AsyncIterator[RIDManagerSetupUseCase]:
     """Provide RIDManagerSetupUseCase via DI container."""
     async with container(scope=Scope.REQUEST) as c:
         yield await c.get(RIDManagerSetupUseCase)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def rid_manager_gateway(
-    container: AsyncContainer,
-    settings: Settings,
-) -> AsyncIterator[RIDManagerGateway]:
+async def rid_manager_gateway(container: AsyncContainer, settings: Settings) -> AsyncIterator[RIDManagerGateway]:
     """Get RID Manager gateway."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
-        yield RIDManagerGateway(
-            session,
-            HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
-        )
+        yield RIDManagerGateway(session, HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME))
 
 
 @pytest_asyncio.fixture(scope="function")
 async def rid_manager_use_case(
-    container: AsyncContainer,
-    rid_manager_gateway: RIDManagerGateway,
+    container: AsyncContainer, rid_manager_gateway: RIDManagerGateway
 ) -> AsyncIterator[RIDManagerUseCase]:
     """Provide RIDManagerUseCase for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
@@ -1878,17 +1385,11 @@ async def rid_manager_use_case(
 
 
 @pytest_asyncio.fixture(scope="function")
-async def rid_set_gateway(
-    container: AsyncContainer,
-    settings: Settings,
-) -> AsyncIterator[RIDSetGateway]:
+async def rid_set_gateway(container: AsyncContainer, settings: Settings) -> AsyncIterator[RIDSetGateway]:
     """Provide RIDSetGateway for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
-        yield RIDSetGateway(
-            session,
-            HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME),
-        )
+        yield RIDSetGateway(session, HostMachineShortName(settings.HOST_MACHINE_SHORT_NAME))
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -1902,19 +1403,11 @@ async def rid_set_use_case(
     """Provide RIDManagerUseCase for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
-        yield RIDSetUseCase(
-            rid_set_gateway,
-            entity_type_use_case,
-            session,
-            rid_manager_use_case,
-            role_use_case,
-        )
+        yield RIDSetUseCase(rid_set_gateway, entity_type_use_case, session, rid_manager_use_case, role_use_case)
 
 
 @pytest_asyncio.fixture(scope="function")
-async def object_sid_gateway(
-    container: AsyncContainer,
-) -> AsyncIterator[ObjectSIDGateway]:
+async def object_sid_gateway(container: AsyncContainer) -> AsyncIterator[ObjectSIDGateway]:
     """Provide ObjectSIDGateway for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
@@ -1932,13 +1425,7 @@ async def object_sid_use_case(
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
         object_class_dao = ObjectClassDAO(session)
-        yield ObjectSIDUseCase(
-            object_sid_gateway,
-            rid_set_use_case,
-            session,
-            rid_manager_use_case,
-            object_class_dao,
-        )
+        yield ObjectSIDUseCase(object_sid_gateway, rid_set_use_case, session, rid_manager_use_case, object_class_dao)
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -1955,7 +1442,7 @@ def pytest_configure(config: pytest.Config) -> None:
                 f"The use of more than {dragonfly_dbs} processes "
                 f"is prohibited (requested {xdist_worker_count}).\n"
                 "Reduce the value of -n/--numprocesses or "
-                "increase the number of Dragonfly databases.\n",
+                "increase the number of Dragonfly databases.\n"
             )
 
 

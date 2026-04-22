@@ -12,10 +12,7 @@ from fastapi import Request, Response
 from ldap_protocol.identity import IdentityProvider
 
 
-async def proc_time_header_middleware(
-    request: Request,
-    call_next: Callable,
-) -> Response:
+async def proc_time_header_middleware(request: Request, call_next: Callable) -> Response:
     """Set X-Process-Time header.
 
     :param Request request: incoming HTTP request
@@ -29,10 +26,7 @@ async def proc_time_header_middleware(
     return response
 
 
-async def set_key_middleware(
-    request: Request,
-    call_next: Callable,
-) -> Response:
+async def set_key_middleware(request: Request, call_next: Callable) -> Response:
     """Set session key to response cookies.
 
     :param Request request: incoming HTTP request
@@ -40,18 +34,9 @@ async def set_key_middleware(
     :return Response: HTTP response with session cookie
     """
     response: Response = await call_next(request)
-    identity_provider: IdentityProvider = (
-        await request.state.dishka_container.get(
-            IdentityProvider,
-        )
-    )
+    identity_provider: IdentityProvider = await request.state.dishka_container.get(IdentityProvider)
 
     if identity_provider.new_key:
-        response.set_cookie(
-            key="id",
-            value=identity_provider.new_key,
-            httponly=True,
-            expires=identity_provider.key_ttl,
-        )
+        response.set_cookie(key="id", value=identity_provider.new_key, httponly=True, expires=identity_provider.key_ttl)
 
     return response

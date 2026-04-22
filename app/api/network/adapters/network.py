@@ -13,27 +13,13 @@ from fastapi import Request, status
 from fastapi.responses import RedirectResponse
 
 from api.base_adapter import BaseAdapter
-from api.network.schema import (
-    Policy,
-    PolicyResponse,
-    PolicyUpdate,
-    SwapResponse,
-)
-from ldap_protocol.policies.network import (
-    NetworkPolicyDTO,
-    NetworkPolicyUpdateDTO,
-    NetworkPolicyUseCase,
-)
+from api.network.schema import Policy, PolicyResponse, PolicyUpdate, SwapResponse
+from ldap_protocol.policies.network import NetworkPolicyDTO, NetworkPolicyUpdateDTO, NetworkPolicyUseCase
 
 
-def _convert_netmasks(
-    dto: NetworkPolicyDTO[int],
-) -> list[IPv4Network]:
+def _convert_netmasks(dto: NetworkPolicyDTO[int]) -> list[IPv4Network]:
     """Convert list of IPv4Network | IPv4Address to list of IPv4Network."""
-    return [
-        IPv4Network(item) if isinstance(item, IPv4Address) else item
-        for item in dto.netmasks
-    ]
+    return [IPv4Network(item) if isinstance(item, IPv4Address) else item for item in dto.netmasks]
 
 
 def _convert_raw(dto: NetworkPolicyDTO[int]) -> list[str | dict]:
@@ -48,14 +34,8 @@ _convert_dto_to_schema = get_converter(
     NetworkPolicyDTO[int],
     PolicyResponse,
     recipe=[
-        link_function(
-            _convert_netmasks,
-            P[PolicyResponse].netmasks,
-        ),
-        link_function(
-            _convert_raw,
-            P[PolicyResponse].raw,
-        ),
+        link_function(_convert_netmasks, P[PolicyResponse].netmasks),
+        link_function(_convert_raw, P[PolicyResponse].raw),
     ],
 )
 
@@ -80,7 +60,7 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
                 bypass_service_failure=policy.bypass_service_failure,
                 groups=policy.groups,
                 mfa_groups=policy.mfa_groups,
-            ),
+            )
         )
         return _convert_dto_to_schema(policy_dto)
 
@@ -93,9 +73,7 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
         """Delete network policy."""
         await self._service.delete(_id)
         return RedirectResponse(
-            request.url_for("policy"),
-            status_code=status.HTTP_303_SEE_OTHER,
-            headers=request.headers,
+            request.url_for("policy"), status_code=status.HTTP_303_SEE_OTHER, headers=request.headers
         )
 
     async def switch_network_policy(self, _id: int) -> Literal[True]:
@@ -118,10 +96,8 @@ class NetworkPolicyFastAPIAdapter(BaseAdapter[NetworkPolicyUseCase]):
                 mfa_groups=model.mfa_groups,
                 bypass_no_connection=model.bypass_no_connection,
                 bypass_service_failure=model.bypass_service_failure,
-                raw=model.model_dump(mode="json")["netmasks"]
-                if model.netmasks
-                else None,
-            ),
+                raw=model.model_dump(mode="json")["netmasks"] if model.netmasks else None,
+            )
         )
 
         return _convert_dto_to_schema(policy_dto)

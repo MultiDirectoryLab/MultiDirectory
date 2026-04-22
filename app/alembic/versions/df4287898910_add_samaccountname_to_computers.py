@@ -27,9 +27,7 @@ _ATTR_NAME_SAMACCOUNTNAME = "sAMAccountName"
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_samaccountname_attr_to_computers(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _add_samaccountname_attr_to_computers(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -49,13 +47,7 @@ def upgrade(container: AsyncContainer) -> None:
         )  # fmt: skip
 
         for directory in computer_dirs:
-            session.add(
-                Attribute(
-                    name=_ATTR_NAME_SAMACCOUNTNAME,
-                    value=directory.name,
-                    directory_id=directory.id,
-                ),
-            )
+            session.add(Attribute(name=_ATTR_NAME_SAMACCOUNTNAME, value=directory.name, directory_id=directory.id))
 
         await session.commit()
 
@@ -65,9 +57,7 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _remove_samaccountname_attr_from_computers(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _remove_samaccountname_attr_from_computers(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -78,9 +68,8 @@ def downgrade(container: AsyncContainer) -> None:
         )
         await session.execute(
             delete(Attribute).where(
-                qa(Attribute.name) == _ATTR_NAME_SAMACCOUNTNAME,
-                qa(Attribute.directory_id).in_(computer_dir_ids),
-            ),
+                qa(Attribute.name) == _ATTR_NAME_SAMACCOUNTNAME, qa(Attribute.directory_id).in_(computer_dir_ids)
+            )
         )
 
         await session.commit()

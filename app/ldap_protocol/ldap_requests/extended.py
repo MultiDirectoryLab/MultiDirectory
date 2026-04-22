@@ -28,10 +28,7 @@ from ldap_protocol.ldap_requests.exceptions import (
     PasswordModifyUserNotAllowedError,
     PasswordModifyUserNotFoundError,
 )
-from ldap_protocol.ldap_responses import (
-    BaseExtendedResponseValue,
-    ExtendedResponse,
-)
+from ldap_protocol.ldap_responses import BaseExtendedResponseValue, ExtendedResponse
 from ldap_protocol.objects import ProtocolRequests
 from ldap_protocol.utils.queries import get_user
 
@@ -57,10 +54,7 @@ class BaseExtendedValue(ABC, BaseModel):
         """Create model from data, decoded from responseValue bytes."""
 
     @abstractmethod
-    async def handle(
-        self,
-        ctx: LDAPExtendedRequestContext,
-    ) -> BaseExtendedResponseValue:
+    async def handle(self, ctx: LDAPExtendedRequestContext) -> BaseExtendedResponseValue:
         """Generate specific extended resoponse."""
 
     @staticmethod
@@ -107,16 +101,9 @@ class WhoAmIRequestValue(BaseExtendedValue):
         """Create model from data, WhoAmIRequestValue data is empty."""
         return cls()
 
-    async def handle(
-        self,
-        ctx: LDAPExtendedRequestContext,
-    ) -> "WhoAmIResponse":
+    async def handle(self, ctx: LDAPExtendedRequestContext) -> "WhoAmIResponse":
         """Return user from session."""
-        un = (
-            f"u:{ctx.ldap_session.user.user_principal_name}"
-            if ctx.ldap_session.user
-            else ""
-        )
+        un = f"u:{ctx.ldap_session.user.user_principal_name}" if ctx.ldap_session.user else ""
 
         return WhoAmIResponse(authz_id=un)
 
@@ -134,10 +121,7 @@ class StartTLSRequestValue(BaseExtendedValue):
 
     REQUEST_ID: ClassVar[LDAPOID] = LDAPOID.START_TLS
 
-    async def handle(
-        self,
-        ctx: LDAPExtendedRequestContext,
-    ) -> StartTLSResponse:
+    async def handle(self, ctx: LDAPExtendedRequestContext) -> StartTLSResponse:
         """Update password of current or selected user."""
         if ctx.settings.USE_CORE_TLS:
             return StartTLSResponse()
@@ -185,10 +169,7 @@ class PasswdModifyRequestValue(BaseExtendedValue):
     old_password: SecretStr
     new_password: SecretStr
 
-    async def handle(
-        self,
-        ctx: LDAPExtendedRequestContext,
-    ) -> PasswdModifyResponse:
+    async def handle(self, ctx: LDAPExtendedRequestContext) -> PasswdModifyResponse:
         """Update password of current or selected user."""
         if not ctx.settings.USE_CORE_TLS:
             raise PermissionError("TLS required")
@@ -200,72 +181,39 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         if self.user_identity is not None:
             user = await get_user(ctx.session, self.user_identity)  # type: ignore
             if user is None:
-                raise PasswordModifyUserNotFoundError(
-                    "Cannot acquire user by DN",
-                )
+                raise PasswordModifyUserNotFoundError("Cannot acquire user by DN")
         else:
             if not ctx.ldap_session.user:
                 raise PasswordModifyUserNotAllowedError("Anonymous user")
 
             user = await ctx.session.get(User, ctx.ldap_session.user.id)  # type: ignore
 
-        if await ctx.password_use_cases.is_password_change_restricted(
-            user.directory_id,
-        ):
-            raise PasswordModifyPasswordChangeRestrictedError(
-                "Password cannot be changed",
-            )
+        if await ctx.password_use_cases.is_password_change_restricted(user.directory_id):
+            raise PasswordModifyPasswordChangeRestrictedError("Password cannot be changed")
 
-        errors = await ctx.password_use_cases.check_password_violations(
-            password=new_password,
-            user=user,
-        )
+        errors = await ctx.password_use_cases.check_password_violations(password=new_password, user=user)
 
         if ctx.ldap_session.user and self.user_identity:
             pwd_ace = await ctx.role_use_case.get_password_ace(
-                dir_id=user.directory_id,
-                user_role_ids=ctx.ldap_session.user.role_ids,
+                dir_id=user.directory_id, user_role_ids=ctx.ldap_session.user.role_ids
             )
 
             if not pwd_ace:
-                if not await ctx.role_use_case.contains_domain_admins_role(
-                    ctx.ldap_session.user.role_ids,
-                ):
-                    raise PasswordModifyNoPasswordModifyAccessError(
-                        "No password modify access",
-                    )
+                if not await ctx.role_use_case.contains_domain_admins_role(ctx.ldap_session.user.role_ids):
+                    raise PasswordModifyNoPasswordModifyAccessError("No password modify access")
             elif not pwd_ace.is_allow:
-                raise PasswordModifyNoPasswordModifyAccessError(
-                    "No password modify access",
-                )
+                raise PasswordModifyNoPasswordModifyAccessError("No password modify access")
 
-        if not errors and (
-            user.password is None
-            or ctx.password_utils.verify_password(
-                old_password,
-                user.password,
-            )
-        ):
+        if not errors and (user.password is None or ctx.password_utils.verify_password(old_password, user.password)):
             try:
-                await ctx.kadmin.create_or_update_principal_pw(
-                    user.sam_account_name,
-                    new_password,
-                )
-            except (
-                KRBAPIChangePasswordError,
-                KRBAPIConnectionError,
-                KRBAPIPrincipalNotFoundError,
-            ):
+                await ctx.kadmin.create_or_update_principal_pw(user.sam_account_name, new_password)
+            except (KRBAPIChangePasswordError, KRBAPIConnectionError, KRBAPIPrincipalNotFoundError):
                 await ctx.session.rollback()
                 raise PasswordModifyKadminError("Kadmin Error")
 
-            user.password = ctx.password_utils.get_password_hash(
-                new_password,
-            )
+            user.password = ctx.password_utils.get_password_hash(new_password)
             await ctx.password_use_cases.post_save_password_actions(user)
-            await ctx.session.execute(
-                update(Directory).filter_by(id=user.directory_id),
-            )
+            await ctx.session.execute(update(Directory).filter_by(id=user.directory_id))
             await ctx.session.commit()
 
             await ctx.session_storage.clear_user_sessions(user.id)
@@ -278,25 +226,15 @@ class PasswdModifyRequestValue(BaseExtendedValue):
         """Create model from data, decoded from responseValue bytes."""
         d: list = cls._decode_value(data)  # type: ignore
         if len(d) == 3:
-            return cls(
-                user_identity=d[0].value,
-                old_password=d[1].value,
-                new_password=d[2].value,
-            )
+            return cls(user_identity=d[0].value, old_password=d[1].value, new_password=d[2].value)
 
         return cls(old_password=d[0].value, new_password=d[1].value)
 
 
-_REQUEST_LIST: list[type[BaseExtendedValue]] = [
-    PasswdModifyRequestValue,
-    WhoAmIRequestValue,
-    StartTLSRequestValue,
-]
+_REQUEST_LIST: list[type[BaseExtendedValue]] = [PasswdModifyRequestValue, WhoAmIRequestValue, StartTLSRequestValue]
 
 
-EXTENDED_REQUEST_OID_MAP: dict[LDAPOID, type[BaseExtendedValue]] = {
-    req.REQUEST_ID: req for req in _REQUEST_LIST
-}
+EXTENDED_REQUEST_OID_MAP: dict[LDAPOID, type[BaseExtendedValue]] = {req.REQUEST_ID: req for req in _REQUEST_LIST}
 
 
 class ExtendedRequest(BaseRequest):
@@ -313,25 +251,18 @@ class ExtendedRequest(BaseRequest):
     request_name: LDAPOID
     request_value: SerializeAsAny[BaseExtendedValue]
 
-    async def handle(
-        self,
-        ctx: LDAPExtendedRequestContext,
-    ) -> AsyncGenerator[ExtendedResponse, None]:
+    async def handle(self, ctx: LDAPExtendedRequestContext) -> AsyncGenerator[ExtendedResponse, None]:
         """Call proxy handler."""
         try:
             response = await self.request_value.handle(ctx)
         except PermissionError as err:
             logger.critical(err)
             yield ExtendedResponse(
-                result_code=LDAPCodes.OPERATIONS_ERROR,
-                response_name=self.request_name,
-                response_value=None,
+                result_code=LDAPCodes.OPERATIONS_ERROR, response_name=self.request_name, response_value=None
             )
         else:
             yield ExtendedResponse(
-                result_code=LDAPCodes.SUCCESS,
-                response_name=self.request_name,
-                response_value=response,
+                result_code=LDAPCodes.SUCCESS, response_name=self.request_name, response_value=response
             )
 
     @classmethod
@@ -343,7 +274,4 @@ class ExtendedRequest(BaseRequest):
         """
         oid = data[0].value
         ext_request = EXTENDED_REQUEST_OID_MAP[oid]
-        return cls(
-            request_name=oid,
-            request_value=ext_request.from_data(data),  # type: ignore
-        )
+        return cls(request_name=oid, request_value=ext_request.from_data(data))  # type: ignore

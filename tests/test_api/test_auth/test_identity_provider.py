@@ -6,13 +6,7 @@ from unittest.mock import AsyncMock, Mock, NonCallableMagicMock
 
 import pytest
 import pytest_asyncio
-from dishka import (
-    AsyncContainer,
-    Provider,
-    Scope,
-    make_async_container,
-    provide,
-)
+from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
 from fastapi import status
 from httpx import AsyncClient
 from starlette.requests import Request
@@ -24,9 +18,7 @@ from ldap_protocol.identity import IdentityProvider
 from ldap_protocol.identity.exceptions import ErrorCodes, UnauthorizedError
 from ldap_protocol.identity.provider_gateway import IdentityProviderGateway
 from ldap_protocol.session_storage.base import SessionStorage
-from ldap_protocol.session_storage.exceptions import (
-    SessionStorageInvalidDataError,
-)
+from ldap_protocol.session_storage.exceptions import SessionStorageInvalidDataError
 from tests.conftest import TestProvider
 
 
@@ -38,10 +30,7 @@ class TestAuthProvider(Provider):
     _cached_identity_provider: Mock | None = None
 
     @provide(scope=Scope.REQUEST, provides=IdentityProvider)
-    async def get_identity_provider(
-        self,
-        request: Request,
-    ) -> AsyncIterator[Mock]:
+    async def get_identity_provider(self, request: Request) -> AsyncIterator[Mock]:
         """Get mock current user gateway."""
         idp = NonCallableMagicMock(spec=IdentityProvider)
 
@@ -63,25 +52,16 @@ class TestAuthProvider(Provider):
 async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     """Fixture to provide the test container."""
     container = make_async_container(
-        TestProvider(),
-        TestAuthProvider(),
-        context={Settings: settings},
-        start_scope=Scope.RUNTIME,
+        TestProvider(), TestAuthProvider(), context={Settings: settings}, start_scope=Scope.RUNTIME
     )
     yield container
     await container.close()
 
 
 @pytest_asyncio.fixture
-async def current_user_provider(
-    container: AsyncContainer,
-    request_params: dict,
-) -> AsyncIterator[IdentityProvider]:
+async def current_user_provider(container: AsyncContainer, request_params: dict) -> AsyncIterator[IdentityProvider]:
     """Yield a provider mock that mimics successful authentication flow."""
-    async with container(
-        scope=Scope.REQUEST,
-        context=request_params,
-    ) as cont:
+    async with container(scope=Scope.REQUEST, context=request_params) as cont:
         provider = await cont.get(IdentityProvider)
         user = UserSchema(
             id=1,
@@ -102,28 +82,17 @@ async def current_user_provider(
 
 
 @pytest_asyncio.fixture
-async def invalid_user_provider(
-    container: AsyncContainer,
-    request_params: dict,
-) -> AsyncIterator[IdentityProvider]:
+async def invalid_user_provider(container: AsyncContainer, request_params: dict) -> AsyncIterator[IdentityProvider]:
     """Yield a provider mock that raises 401 to simulate invalid sessions."""
-    async with container(
-        scope=Scope.REQUEST,
-        context=request_params,
-    ) as cont:
+    async with container(scope=Scope.REQUEST, context=request_params) as cont:
         provider = await cont.get(IdentityProvider)
-        provider.get_user_id = AsyncMock(  # type: ignore
-            side_effect=UnauthorizedError(ErrorCodes.UNAUTHORIZED_ERROR),
-        )
+        provider.get_user_id = AsyncMock(side_effect=UnauthorizedError(ErrorCodes.UNAUTHORIZED_ERROR))  # type: ignore
         yield provider
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_auth_user(
-    http_client: AsyncClient,
-    current_user_provider: Mock,
-) -> None:
+async def test_auth_user(http_client: AsyncClient, current_user_provider: Mock) -> None:
     """Verify successful authentication and session rekeying is performed."""
     response = await http_client.get("/auth/me")
     assert response.status_code == status.HTTP_200_OK
@@ -135,10 +104,7 @@ async def test_auth_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_auth_invalid_user(
-    unbound_http_client: AsyncClient,
-    invalid_user_provider: Mock,
-) -> None:
+async def test_auth_invalid_user(unbound_http_client: AsyncClient, invalid_user_provider: Mock) -> None:
     """Validate unauthorized sessions return 401 and do not rekey session."""
     response = await unbound_http_client.get("/auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -150,9 +116,7 @@ async def test_auth_invalid_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_identity_provider(
-    settings: Settings,
-) -> None:
+async def test_identity_provider(settings: Settings) -> None:
     """Test identity provider."""
     gw = NonCallableMagicMock(spec=IdentityProviderGateway)
     gw.get_user = AsyncMock()
@@ -183,16 +147,11 @@ async def test_identity_provider(
     )
 
     await idp.get(user_id)
-    idp._identity_provider_gateway.get_user.assert_awaited_with(  # type: ignore  # noqa: SLF001
-        user_id,
-    )
+    idp._identity_provider_gateway.get_user.assert_awaited_with(user_id)  # type: ignore  # noqa: SLF001
 
     session_id = idp._session_key.split(".")[0]  # noqa: SLF001
     await idp.rekey_session()
-    idp._session_storage.rekey_session_if_needed.assert_awaited_with(  # type: ignore  # noqa: SLF001
-        session_id,
-        idp._settings,  # noqa: SLF001
-    )
+    idp._session_storage.rekey_session_if_needed.assert_awaited_with(session_id, idp._settings)  # type: ignore  # noqa: SLF001
 
     assert idp.new_key == "test"
 
@@ -207,9 +166,7 @@ async def test_identity_provider_errors(settings: Settings) -> None:
     session_storage = NonCallableMagicMock(spec=SessionStorage)
     session_storage.key_length = 16
     session_storage.key_ttl = 300
-    session_storage.get_user_id = AsyncMock(
-        side_effect=SessionStorageInvalidDataError("Invalid data"),
-    )
+    session_storage.get_user_id = AsyncMock(side_effect=SessionStorageInvalidDataError("Invalid data"))
     session_storage.rekey_session_if_needed = AsyncMock(return_value="test")
 
     idp = IdentityProvider(
@@ -221,14 +178,8 @@ async def test_identity_provider_errors(settings: Settings) -> None:
         session_key="test.session",
     )
 
-    with pytest.raises(
-        UnauthorizedError,
-        match="Could not validate credentials",
-    ):
+    with pytest.raises(UnauthorizedError, match="Could not validate credentials"):
         await idp.get_user_id()
 
-    with pytest.raises(
-        UnauthorizedError,
-        match="Could not validate credentials",
-    ):
+    with pytest.raises(UnauthorizedError, match="Could not validate credentials"):
         await idp.get(123)

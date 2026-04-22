@@ -18,80 +18,33 @@ from .conftest import create_mock_ace
 @pytest.mark.parametrize(
     ("aces", "changes", "entity_type_id", "expected_result"),
     [
-        (
-            [],
-            [
-                Changes(
-                    operation=Operation.DELETE,
-                    modification=PartialAttribute(type="cn", vals="value"),
-                ),
-            ],
-            1,
-            False,
-        ),
+        ([], [Changes(operation=Operation.DELETE, modification=PartialAttribute(type="cn", vals="value"))], 1, False),
         (
             [create_mock_ace(is_allow=False, entity_type_id=None)],
-            [
-                Changes(
-                    operation=Operation.DELETE,
-                    modification=PartialAttribute(type="cn", vals="value"),
-                ),
-            ],
+            [Changes(operation=Operation.DELETE, modification=PartialAttribute(type="cn", vals="value"))],
             1,
             False,
         ),
         (
             [
-                create_mock_ace(
-                    ace_type=AceType.DELETE,
-                    is_allow=True,
-                    entity_type_id=None,
-                ),
-                create_mock_ace(
-                    ace_type=AceType.WRITE,
-                    is_allow=True,
-                    entity_type_id=None,
-                ),
+                create_mock_ace(ace_type=AceType.DELETE, is_allow=True, entity_type_id=None),
+                create_mock_ace(ace_type=AceType.WRITE, is_allow=True, entity_type_id=None),
             ],
             [
-                Changes(
-                    operation=Operation.DELETE,
-                    modification=PartialAttribute(type="cn", vals="value"),
-                ),
-                Changes(
-                    operation=Operation.ADD,
-                    modification=PartialAttribute(
-                        type="description",
-                        vals="v",
-                    ),
-                ),
+                Changes(operation=Operation.DELETE, modification=PartialAttribute(type="cn", vals="value")),
+                Changes(operation=Operation.ADD, modification=PartialAttribute(type="description", vals="v")),
             ],
             1,
             True,
         ),
         (
             [
-                create_mock_ace(
-                    ace_type=AceType.DELETE,
-                    is_allow=False,
-                ),
-                create_mock_ace(
-                    ace_type=AceType.WRITE,
-                    is_allow=True,
-                ),
+                create_mock_ace(ace_type=AceType.DELETE, is_allow=False),
+                create_mock_ace(ace_type=AceType.WRITE, is_allow=True),
             ],
             [
-                Changes(
-                    operation=Operation.DELETE,
-                    modification=PartialAttribute(type="cn", vals="value"),
-                ),
-                Changes(
-                    operation=Operation.ADD,
-                    modification=PartialAttribute(
-                        type="description",
-                        vals="v",
-                    ),
-                ),
+                Changes(operation=Operation.DELETE, modification=PartialAttribute(type="cn", vals="value")),
+                Changes(operation=Operation.ADD, modification=PartialAttribute(type="description", vals="v")),
             ],
             1,
             False,
@@ -114,17 +67,8 @@ from .conftest import create_mock_ace
                 ),
             ],
             [
-                Changes(
-                    operation=Operation.DELETE,
-                    modification=PartialAttribute(type="cn", vals="value"),
-                ),
-                Changes(
-                    operation=Operation.ADD,
-                    modification=PartialAttribute(
-                        type="description",
-                        vals="v",
-                    ),
-                ),
+                Changes(operation=Operation.DELETE, modification=PartialAttribute(type="cn", vals="value")),
+                Changes(operation=Operation.ADD, modification=PartialAttribute(type="description", vals="v")),
             ],
             1,
             True,
@@ -147,17 +91,8 @@ from .conftest import create_mock_ace
                 ),
             ],
             [
-                Changes(
-                    operation=Operation.DELETE,
-                    modification=PartialAttribute(type="cn", vals="value"),
-                ),
-                Changes(
-                    operation=Operation.ADD,
-                    modification=PartialAttribute(
-                        type="description",
-                        vals="v",
-                    ),
-                ),
+                Changes(operation=Operation.DELETE, modification=PartialAttribute(type="cn", vals="value")),
+                Changes(operation=Operation.ADD, modification=PartialAttribute(type="description", vals="v")),
             ],
             1,
             False,
@@ -180,17 +115,8 @@ from .conftest import create_mock_ace
                 ),
             ],
             [
-                Changes(
-                    operation=Operation.DELETE,
-                    modification=PartialAttribute(type="cn", vals="value"),
-                ),
-                Changes(
-                    operation=Operation.ADD,
-                    modification=PartialAttribute(
-                        type="description",
-                        vals="v",
-                    ),
-                ),
+                Changes(operation=Operation.DELETE, modification=PartialAttribute(type="cn", vals="value")),
+                Changes(operation=Operation.ADD, modification=PartialAttribute(type="description", vals="v")),
             ],
             1,
             False,
@@ -198,10 +124,7 @@ from .conftest import create_mock_ace
     ],
 )
 def test_check_modify_access(
-    aces: list[AccessControlEntry],
-    changes: list[Changes],
-    entity_type_id: int,
-    expected_result: bool,
+    aces: list[AccessControlEntry], changes: list[Changes], entity_type_id: int, expected_result: bool
 ) -> None:
     """Test modify access checks."""
     result = AccessManager.check_modify_access(changes, aces, entity_type_id)

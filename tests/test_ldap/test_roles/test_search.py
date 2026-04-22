@@ -8,9 +8,7 @@ import pytest
 
 from config import Settings
 from enums import AceType, EntityTypeNames, RoleScope
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
-    AttributeTypeDAO,
-)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
@@ -41,10 +39,7 @@ async def test_role_search_1(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_2(
-    settings: Settings,
-    creds: TestCreds,
-    access_control_entry_dao: AccessControlEntryDAO,
-    custom_role: RoleDTO,
+    settings: Settings, creds: TestCreds, access_control_entry_dao: AccessControlEntryDAO, custom_role: RoleDTO
 ) -> None:
     """Test 2.
 
@@ -66,10 +61,7 @@ async def test_role_search_2(
         settings=settings,
         creds=creds,
         search_base=BASE_DN,
-        expected_dn=[
-            "dn: cn=Groups,dc=md,dc=test",
-            "dn: cn=user_non_admin,cn=Users,dc=md,dc=test",
-        ],
+        expected_dn=["dn: cn=Groups,dc=md,dc=test", "dn: cn=user_non_admin,cn=Users,dc=md,dc=test"],
         expected_attrs_present=[],
         expected_attrs_absent=[],
     )
@@ -78,10 +70,7 @@ async def test_role_search_2(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_3(
-    settings: Settings,
-    creds: TestCreds,
-    access_control_entry_dao: AccessControlEntryDAO,
-    custom_role: RoleDTO,
+    settings: Settings, creds: TestCreds, access_control_entry_dao: AccessControlEntryDAO, custom_role: RoleDTO
 ) -> None:
     """Test 3.
 
@@ -121,10 +110,7 @@ async def test_role_search_3(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_role_search_4(
-    settings: Settings,
-    creds: TestCreds,
-    access_control_entry_dao: AccessControlEntryDAO,
-    custom_role: RoleDTO,
+    settings: Settings, creds: TestCreds, access_control_entry_dao: AccessControlEntryDAO, custom_role: RoleDTO
 ) -> None:
     """Test 4.
 
@@ -202,11 +188,7 @@ async def test_role_search_5(
             "dn: cn=user_admin_2,ou=test_bit_rules,dc=md,dc=test",
             "dn: cn=user_admin_3,ou=test_bit_rules,dc=md,dc=test",
         ],
-        expected_attrs_present=[
-            "posixEmail: abctest@mail.com",
-            "description: 123 desc",
-            "cn: user0",
-        ],
+        expected_attrs_present=["posixEmail: abctest@mail.com", "description: 123 desc", "cn: user0"],
         expected_attrs_absent=[],
     )
 
@@ -247,16 +229,9 @@ async def test_role_search_6(
         settings=settings,
         creds=creds,
         search_base="cn=user0,cn=Users,dc=md,dc=test",
-        expected_dn=[
-            "dn: cn=user0,cn=Users,dc=md,dc=test",
-        ],
-        expected_attrs_present=[
-            "posixEmail: abctest@mail.com",
-        ],
-        expected_attrs_absent=[
-            "description: 123 desc",
-            "cn: user0",
-        ],
+        expected_dn=["dn: cn=user0,cn=Users,dc=md,dc=test"],
+        expected_attrs_present=["posixEmail: abctest@mail.com"],
+        expected_attrs_absent=["description: 123 desc", "cn: user0"],
     )
 
 
@@ -307,16 +282,9 @@ async def test_role_search_7(
         settings=settings,
         creds=creds,
         search_base="cn=user0,cn=Users,dc=md,dc=test",
-        expected_dn=[
-            "dn: cn=user0,cn=Users,dc=md,dc=test",
-        ],
-        expected_attrs_present=[
-            "posixEmail: abctest@mail.com",
-            "cn: user0",
-        ],
-        expected_attrs_absent=[
-            "description: 123 desc",
-        ],
+        expected_dn=["dn: cn=user0,cn=Users,dc=md,dc=test"],
+        expected_attrs_present=["posixEmail: abctest@mail.com", "cn: user0"],
+        expected_attrs_absent=["description: 123 desc"],
     )
 
 
@@ -367,16 +335,9 @@ async def test_role_search_8(
         settings=settings,
         creds=creds,
         search_base="cn=user0,cn=Users,dc=md,dc=test",
-        expected_dn=[
-            "dn: cn=user0,cn=Users,dc=md,dc=test",
-        ],
-        expected_attrs_present=[
-            "description: 123 desc",
-        ],
-        expected_attrs_absent=[
-            "posixEmail: abctest@mail.com",
-            "cn: user0",
-        ],
+        expected_dn=["dn: cn=user0,cn=Users,dc=md,dc=test"],
+        expected_attrs_present=["description: 123 desc"],
+        expected_attrs_absent=["posixEmail: abctest@mail.com", "cn: user0"],
     )
 
 
@@ -430,14 +391,7 @@ async def test_role_search_9(
         settings=settings,
         creds=creds,
         search_base="cn=user0,cn=Users,dc=md,dc=test",
-        expected_dn=[
-            "dn: cn=user0,cn=Users,dc=md,dc=test",
-        ],
-        expected_attrs_present=[
-            "posixEmail: abctest@mail.com",
-        ],
-        expected_attrs_absent=[
-            "description: 123 desc",
-            "cn: user0",
-        ],
+        expected_dn=["dn: cn=user0,cn=Users,dc=md,dc=test"],
+        expected_attrs_present=["posixEmail: abctest@mail.com"],
+        expected_attrs_absent=["description: 123 desc", "cn: user0"],
     )

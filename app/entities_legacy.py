@@ -35,11 +35,5 @@ class ObjectClassLegacy:
     kind: KindType | None = None
     is_system: bool = False
     superior: ObjectClassLegacy | None = field(default=None, repr=False)
-    attribute_types_must: list[AttributeTypeLegacy] = field(
-        default_factory=list,
-        repr=False,
-    )
-    attribute_types_may: list[AttributeTypeLegacy] = field(
-        default_factory=list,
-        repr=False,
-    )
+    attribute_types_must: list[AttributeTypeLegacy] = field(default_factory=list, repr=False)
+    attribute_types_may: list[AttributeTypeLegacy] = field(default_factory=list, repr=False)

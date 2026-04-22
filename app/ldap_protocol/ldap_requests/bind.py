@@ -13,10 +13,7 @@ from sqlalchemy.exc import OperationalError
 from entities import NetworkPolicy
 from enums import MFAFlags
 from ldap_protocol.asn1parser import ASN1Row
-from ldap_protocol.kerberos.exceptions import (
-    KRBAPIAddPrincipalError,
-    KRBAPIConnectionError,
-)
+from ldap_protocol.kerberos.exceptions import KRBAPIAddPrincipalError, KRBAPIConnectionError
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_requests.bind_methods import (
     AbstractLDAPAuth,
@@ -27,9 +24,7 @@ from ldap_protocol.ldap_requests.bind_methods import (
     get_bad_response,
     sasl_mechanism_map,
 )
-from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import (
-    SaslSPNEGOAuthentication,
-)
+from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import SaslSPNEGOAuthentication
 from ldap_protocol.ldap_responses import BaseResponse, BindResponse
 from ldap_protocol.multifactor import MultifactorAPI
 from ldap_protocol.objects import ProtocolRequests, UserAccountControlFlag
@@ -49,10 +44,7 @@ class BindRequest(BaseRequest):
 
     version: int
     name: str
-    authentication_choice: AbstractLDAPAuth = Field(
-        ...,
-        alias="AuthenticationChoice",
-    )
+    authentication_choice: AbstractLDAPAuth = Field(..., alias="AuthenticationChoice")
 
     @classmethod
     def from_data(cls, data: list[ASN1Row]) -> "BindRequest":
@@ -72,31 +64,17 @@ class BindRequest(BaseRequest):
                 otpassword = None
                 password = payload
 
-            auth_choice = SimpleAuthentication(
-                password=password,
-                otpassword=otpassword,
-            )
+            auth_choice = SimpleAuthentication(password=password, otpassword=otpassword)
         elif auth == SaslAuthentication.METHOD_ID:
             sasl_method = data[2].value[0].value
-            auth_choice = sasl_mechanism_map[sasl_method].from_data(
-                data[2].value,
-            )
+            auth_choice = sasl_mechanism_map[sasl_method].from_data(data[2].value)
         else:
             raise ValueError("Auth version not supported")
 
-        return cls(
-            version=data[0].value,
-            name=data[1].value,
-            AuthenticationChoice=auth_choice,
-        )
+        return cls(version=data[0].value, name=data[1].value, AuthenticationChoice=auth_choice)
 
     @staticmethod
-    async def check_mfa(
-        api: MultifactorAPI | None,
-        identity: str,
-        otp: str | None,
-        policy: NetworkPolicy,
-    ) -> bool:
+    async def check_mfa(api: MultifactorAPI | None, identity: str, otp: str | None, policy: NetworkPolicy) -> bool:
         """Check mfa api.
 
         :param User user: db user
@@ -116,43 +94,21 @@ class BindRequest(BaseRequest):
         except MultifactorAPI.MultifactorError:
             return bool(policy.bypass_service_failure)
 
-    async def handle(
-        self,
-        ctx: LDAPBindRequestContext,
-    ) -> AsyncGenerator[BindResponse, None]:
+    async def handle(self, ctx: LDAPBindRequestContext) -> AsyncGenerator[BindResponse, None]:
         """Handle bind request, check user and password."""
         if not self.name and self.authentication_choice.is_anonymous():
             yield BindResponse(result_code=LDAPCodes.SUCCESS)
             return
 
-        if (
-            isinstance(self.authentication_choice, SaslGSSAPIAuthentication)
-            and (
-                response := await self.authentication_choice.step(
-                    ctx.session,
-                    ctx.ldap_session,
-                    ctx.settings,
-                )
-            )
-        ):  # fmt: skip
+        if isinstance(self.authentication_choice, SaslGSSAPIAuthentication) and (
+            response := await self.authentication_choice.step(ctx.session, ctx.ldap_session, ctx.settings)
+        ):
             yield response
             return
 
-        user = await self.authentication_choice.get_user(
-            ctx.session,
-            self.name,
-        )
-        self.set_event_data(
-            {
-                "details": {
-                    "auth_choice": self.authentication_choice.method_name,
-                },
-            },
-        )
-        if not user or not self.authentication_choice.is_valid(
-            user,
-            ctx.password_utils,
-        ):
+        user = await self.authentication_choice.get_user(ctx.session, self.name)
+        self.set_event_data({"details": {"auth_choice": self.authentication_choice.method_name}})
+        if not user or not self.authentication_choice.is_valid(user, ctx.password_utils):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
@@ -162,12 +118,7 @@ class BindRequest(BaseRequest):
             yield get_bad_response(LDAPBindErrors.ACCOUNT_DISABLED)
             return
         policy = getattr(ctx.ldap_session, "policy", None)
-        if (
-            policy is not None
-        ) and not await ctx.network_policy_validator.is_user_group_valid(
-            user,
-            policy,
-        ):
+        if (policy is not None) and not await ctx.network_policy_validator.is_user_group_valid(user, policy):
             yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
             return
 
@@ -182,56 +133,35 @@ class BindRequest(BaseRequest):
             return
 
         if (policy is not None) and (
-            policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST)
-            and ctx.mfa is not None
+            policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST) and ctx.mfa is not None
         ):
             request_2fa = True
             if policy.mfa_status == MFAFlags.WHITELIST:
-                request_2fa = (
-                    await ctx.network_policy_validator.check_mfa_group(
-                        policy,
-                        user,
-                    )
-                )
+                request_2fa = await ctx.network_policy_validator.check_mfa_group(policy, user)
 
             if request_2fa:
                 mfa_status = await self.check_mfa(
-                    ctx.mfa,
-                    user.user_principal_name,
-                    self.authentication_choice.otpassword,
-                    policy,
+                    ctx.mfa, user.user_principal_name, self.authentication_choice.otpassword, policy
                 )
 
                 if mfa_status is False:
                     yield get_bad_response(LDAPBindErrors.LOGON_FAILURE)
                     return
 
-        with contextlib.suppress(
-            KRBAPIAddPrincipalError,
-            KRBAPIConnectionError,
-        ):
+        with contextlib.suppress(KRBAPIAddPrincipalError, KRBAPIConnectionError):
             await ctx.kadmin.add_principal(
-                user.sam_account_name,
-                self.authentication_choice.password.get_secret_value(),
-                timeout=0.1,
+                user.sam_account_name, self.authentication_choice.password.get_secret_value(), timeout=0.1
             )
 
         await ctx.ldap_session.set_user(user)
         with contextlib.suppress(OperationalError):
-            await set_user_logon_attrs(
-                user,
-                ctx.session,
-                ctx.settings.TIMEZONE,
-            )
+            await set_user_logon_attrs(user, ctx.session, ctx.settings.TIMEZONE)
 
         server_sasl_creds = None
         if isinstance(self.authentication_choice, SaslSPNEGOAuthentication):
             server_sasl_creds = self.authentication_choice.server_sasl_creds
 
-        yield BindResponse(
-            result_code=LDAPCodes.SUCCESS,
-            server_sasl_creds=server_sasl_creds,
-        )
+        yield BindResponse(result_code=LDAPCodes.SUCCESS, server_sasl_creds=server_sasl_creds)
 
 
 class UnbindRequest(BaseRequest):
@@ -241,17 +171,11 @@ class UnbindRequest(BaseRequest):
     CONTEXT_TYPE: ClassVar[type] = LDAPUnbindRequestContext
 
     @classmethod
-    def from_data(
-        cls,
-        data: dict[str, list[ASN1Row]],  # noqa: ARG003
-    ) -> "UnbindRequest":
+    def from_data(cls, data: dict[str, list[ASN1Row]]) -> "UnbindRequest":  # noqa: ARG003
         """Unbind request has no body."""
         return cls()
 
-    async def handle(
-        self,
-        ctx: LDAPUnbindRequestContext,
-    ) -> AsyncGenerator[BaseResponse, None]:
+    async def handle(self, ctx: LDAPUnbindRequestContext) -> AsyncGenerator[BaseResponse, None]:
         """Handle unbind request, no need to send response."""
         await ctx.ldap_session.delete_user()
         return  # declare empty async generator and exit

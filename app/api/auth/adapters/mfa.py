@@ -33,7 +33,7 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
                 is_ldap_scope=mfa.is_ldap_scope,
                 key_name=mfa.key_name,
                 secret_name=mfa.secret_name,
-            ),
+            )
         )
 
     async def remove_mfa(self, scope: str) -> None:
@@ -44,21 +44,14 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
         """
         await self._service.remove_mfa(scope)
 
-    async def get_mfa(
-        self,
-        mfa_creds: MFA_HTTP_Creds,
-        mfa_creds_ldap: MFA_LDAP_Creds,
-    ) -> MFAGetResponse:
+    async def get_mfa(self, mfa_creds: MFA_HTTP_Creds, mfa_creds_ldap: MFA_LDAP_Creds) -> MFAGetResponse:
         """Get MFA keys for http and ldap.
 
         :param mfa_creds: MFA_HTTP_Creds
         :param mfa_creds_ldap: MFA_LDAP_Creds
         :return: MFAGetResponse
         """
-        mfa_get_response = await self._service.get_mfa(
-            mfa_creds,
-            mfa_creds_ldap,
-        )
+        mfa_get_response = await self._service.get_mfa(mfa_creds, mfa_creds_ldap)
         return MFAGetResponse(
             mfa_key=mfa_get_response.mfa_key,
             mfa_secret=mfa_get_response.mfa_secret,
@@ -67,11 +60,7 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
         )
 
     async def callback_mfa(
-        self,
-        access_token: str,
-        mfa_creds: MFA_HTTP_Creds,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
+        self, access_token: str, mfa_creds: MFA_HTTP_Creds, ip: IPv4Address | IPv6Address, user_agent: str
     ) -> RedirectResponse:
         """Process MFA callback and return redirect.
 
@@ -84,12 +73,7 @@ class MFAFastAPIAdapter(BaseAdapter[MFAManager]):
         :raises HTTPException: 302 redirect if MFA token error
         """
         try:
-            key = await self._service.callback_mfa(
-                access_token,
-                mfa_creds,
-                ip,
-                user_agent,
-            )
+            key = await self._service.callback_mfa(access_token, mfa_creds, ip, user_agent)
             response = RedirectResponse("/", 302)
             self._service.set_new_session_key(key)
             return response

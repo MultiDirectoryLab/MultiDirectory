@@ -41,7 +41,7 @@ def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     from ldap_protocol.auth.setup_gateway import SetupGateway
 
-    async def _create_ou_computers(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _create_ou_computers(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             setup_gateway = await cnt.get(SetupGateway)
@@ -52,33 +52,17 @@ def upgrade(container: AsyncContainer) -> None:
             return
         domain_dir = base_directories[0]
 
-        exists_ou_computers = await session.scalar(
-            select(
-                exists(Directory)
-                .where(qa(Directory.name) == COMPUTERS),
-            ),
-        )  # fmt: skip
+        exists_ou_computers = await session.scalar(select(exists(Directory).where(qa(Directory.name) == COMPUTERS)))
         if exists_ou_computers:
             return
 
-        await setup_gateway.create_dir(
-            _OU_COMPUTERS_DATA,
-            is_system=True,
-            domain=domain_dir,
-            parent=domain_dir,
-        )
+        await setup_gateway.create_dir(_OU_COMPUTERS_DATA, is_system=True, domain=domain_dir, parent=domain_dir)
 
-        ou_computers_dir = await session.scalar(
-            select(Directory)
-            .where(qa(Directory.name) == COMPUTERS),
-        )  # fmt: skip
+        ou_computers_dir = await session.scalar(select(Directory).where(qa(Directory.name) == COMPUTERS))
         if not ou_computers_dir:
             raise Exception("Directory 'ou=computers' not found.")
 
-        await role_use_case.inherit_parent_aces(
-            parent_directory=domain_dir,
-            directory=ou_computers_dir,
-        )
+        await role_use_case.inherit_parent_aces(parent_directory=domain_dir, directory=ou_computers_dir)
 
         await session.commit()
 
@@ -89,7 +73,7 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _delete_ou_computers(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _delete_ou_computers(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -97,10 +81,7 @@ def downgrade(container: AsyncContainer) -> None:
         if not base_dn_list:
             return
 
-        await session.execute(
-            delete(Directory)
-            .where(qa(Directory.name) == COMPUTERS),
-        )  # fmt: skip
+        await session.execute(delete(Directory).where(qa(Directory.name) == COMPUTERS))
 
         await session.commit()
 

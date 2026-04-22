@@ -140,9 +140,7 @@ def test_set_acc() -> None:
 def test_convert_little_endian_string_to_int() -> None:
     """Test _convert_little_endian_string_to_int method."""
     test_value = "\x01\x00\x00\x00"
-    result = NetLogonAttributeHandler._convert_little_endian_string_to_int(  # noqa:SLF001
-        test_value,
-    )
+    result = NetLogonAttributeHandler._convert_little_endian_string_to_int(test_value)  # noqa:SLF001
 
     assert result == 1
 
@@ -171,10 +169,7 @@ def test_get_netlogon_response_5() -> None:
     assert len(response) > 0
     # Check op_code is present (first 2 bytes)
     op_code = struct.unpack("<H", response[:2])[0]
-    assert op_code in [
-        NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE,
-        NetLogonOPCode.LOGON_SAM_USER_UNKNOWN,
-    ]
+    assert op_code in [NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE, NetLogonOPCode.LOGON_SAM_USER_UNKNOWN]
 
 
 def test_get_netlogon_response_5_ex() -> None:
@@ -194,10 +189,7 @@ def test_get_netlogon_response_5_ex() -> None:
     assert len(response) > 0
     # Check op_code
     op_code = struct.unpack("<H", response[:2])[0]
-    assert op_code in [
-        NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE_EX,
-        NetLogonOPCode.LOGON_SAM_USER_UNKNOWN_EX,
-    ]
+    assert op_code in [NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE_EX, NetLogonOPCode.LOGON_SAM_USER_UNKNOWN_EX]
 
 
 def test_get_netlogon_response_nt40() -> None:
@@ -215,10 +207,7 @@ def test_get_netlogon_response_nt40() -> None:
     assert len(response) > 0
     # Check op_code
     op_code = struct.unpack("<H", response[:2])[0]
-    assert op_code in [
-        NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE,
-        NetLogonOPCode.LOGON_SAM_USER_UNKNOWN,
-    ]
+    assert op_code in [NetLogonOPCode.LOGON_SAM_LOGON_RESPONSE, NetLogonOPCode.LOGON_SAM_USER_UNKNOWN]
 
 
 def test_get_attr_version_5() -> None:

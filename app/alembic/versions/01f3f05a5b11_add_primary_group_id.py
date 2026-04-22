@@ -18,20 +18,11 @@ from constants import DOMAIN_COMPUTERS_GROUP_NAME
 from entities import Attribute, Directory, EntityType, Group
 from enums import EntityTypeNames
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
+from ldap_protocol.ldap_schema.attribute_value_validator import AttributeValueValidator
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
-from ldap_protocol.utils.queries import (
-    create_group,
-    get_base_directories,
-    get_filter_from_path,
-    get_search_path,
-)
+from ldap_protocol.utils.queries import create_group, get_base_directories, get_filter_from_path, get_search_path
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -45,7 +36,7 @@ depends_on: None = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_domain_computers_group(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _add_domain_computers_group(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             entity_type_dao = await cnt.get(EntityTypeDAO)
@@ -57,64 +48,37 @@ def upgrade(container: AsyncContainer) -> None:
             return
 
         try:
-            group_dir_query = select(
-                exists(Directory)
-                .where(qa(Directory.name) == DOMAIN_COMPUTERS_GROUP_NAME),
-            )  # fmt: skip
+            group_dir_query = select(exists(Directory).where(qa(Directory.name) == DOMAIN_COMPUTERS_GROUP_NAME))
             group_dir = (await session.scalars(group_dir_query)).one()
 
             if group_dir:
                 return
 
             dir_, group_ = await create_group(
-                name=DOMAIN_COMPUTERS_GROUP_NAME,
-                attribute_value_validator=AttributeValueValidator(),
-                session=session,
+                name=DOMAIN_COMPUTERS_GROUP_NAME, attribute_value_validator=AttributeValueValidator(), session=session
             )
 
             await session.flush()
 
-            computer_entity_type = await entity_type_dao.get(
-                EntityTypeNames.COMPUTER,
-            )
+            computer_entity_type = await entity_type_dao.get(EntityTypeNames.COMPUTER)
             computer_dirs = await session.scalars(
                 select(Directory)
-                .where(
-                    qa(Directory.entity_type_id) == computer_entity_type.id,
-                ),
+                .where(qa(Directory.entity_type_id) == computer_entity_type.id),
             )  # fmt: skip
-            await session.refresh(
-                group_,
-                attribute_names=["members"],
-                with_for_update=None,
-            )
+            await session.refresh(group_, attribute_names=["members"], with_for_update=None)
             group_.members.extend(computer_dirs.all())
 
             query = (
                 select(Directory)
                 .options(selectinload(qa(Directory.attributes)))
-                .filter(
-                    get_filter_from_path(
-                        "cn=groups," + base_dn_list[0].path_dn,
-                    ),
-                )
+                .filter(get_filter_from_path("cn=groups," + base_dn_list[0].path_dn))
             )
 
             parent = (await session.scalars(query)).one()
 
-            await session.refresh(
-                instance=dir_,
-                attribute_names=["attributes"],
-                with_for_update=None,
-            )
-            await entity_type_use_case.attach_entity_type_to_directory(
-                dir_,
-                False,
-            )
-            await role_use_case.inherit_parent_aces(
-                parent_directory=parent,
-                directory=dir_,
-            )
+            await session.refresh(instance=dir_, attribute_names=["attributes"], with_for_update=None)
+            await entity_type_use_case.attach_entity_type_to_directory(dir_, False)
+            await role_use_case.inherit_parent_aces(parent_directory=parent, directory=dir_)
             await session.flush()
         except (IntegrityError, DBAPIError):
             pass
@@ -124,7 +88,7 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_add_domain_computers_group)
 
-    async def _add_primary_group_id(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _add_primary_group_id(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -134,11 +98,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         entity_type = await session.scalars(
             select(qa(EntityType.id))
-            .where(
-                qa(EntityType.name).in_(
-                    [EntityTypeNames.USER, EntityTypeNames.COMPUTER],
-                ),
-            ),
+            .where(qa(EntityType.name).in_([EntityTypeNames.USER, EntityTypeNames.COMPUTER])),
         )  # fmt: skip
 
         entity_type_ids = list(entity_type.all())
@@ -149,22 +109,16 @@ def upgrade(container: AsyncContainer) -> None:
                 .options(
                     selectinload(qa(Directory.groups))
                     .selectinload(qa(Group.directory))
-                    .selectinload(qa(Directory.attributes)),
+                    .selectinload(qa(Directory.attributes))
                 )
-                .where(
-                    qa(Directory.entity_type_id).in_(entity_type_ids),
-                )
+                .where(qa(Directory.entity_type_id).in_(entity_type_ids))
             )
 
             directories = await session.scalars(query)
             for directory in directories:
                 for group in directory.groups:
                     session.add(
-                        Attribute(
-                            name="primaryGroupID",
-                            value=group.directory.relative_id,
-                            directory_id=directory.id,
-                        ),
+                        Attribute(name="primaryGroupID", value=group.directory.relative_id, directory_id=directory.id)
                     )
                     break
 
@@ -181,9 +135,7 @@ def downgrade(container: AsyncContainer) -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    async def _delete_domain_computers_group(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _delete_domain_computers_group(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -202,7 +154,5 @@ def downgrade(container: AsyncContainer) -> None:
 
     op.run_async(_delete_domain_computers_group)
 
-    session.execute(
-        delete(Attribute).where(qa(Attribute.name) == "primaryGroupID"),
-    )
+    session.execute(delete(Attribute).where(qa(Attribute.name) == "primaryGroupID"))
     session.commit()

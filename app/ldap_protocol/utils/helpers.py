@@ -160,9 +160,7 @@ def validate_entry(entry: str) -> bool:
     :return bool: result
     """
     return all(
-        validate_prefix(part.split("=")[0])
-        and len(part.split("=")) == 2
-        and validate_attribute(part.split("=")[1])
+        validate_prefix(part.split("=")[0]) and len(part.split("=")) == 2 and validate_attribute(part.split("=")[1])
         for part in entry.split(",")
     )
 
@@ -182,13 +180,7 @@ def validate_attribute(attribute: str) -> bool:
     :param str attribute: any str
     :return bool: result
     """
-    return (
-        re.match(
-            r"^(?!^[\x20\s].*)(?!.*[\x20\s]$)[^#=<>;:\*\+\"\\]+$",
-            attribute,
-        )
-        is not None
-    )
+    return re.match(r"^(?!^[\x20\s].*)(?!.*[\x20\s]$)[^#=<>;:\*\+\"\\]+$", attribute) is not None
 
 
 def is_dn_in_base_directory(base_directory: Directory, entry: str) -> bool:
@@ -208,13 +200,7 @@ def get_generalized_now(tz: ZoneInfo) -> str:
 
 def _get_domain(name: str) -> str:
     """Get domain from name."""
-    return ".".join(
-        [
-            item[3:].lower()
-            for item in name.split(",")
-            if item[:2] in ("DC", "dc")
-        ],
-    )
+    return ".".join([item[3:].lower() for item in name.split(",") if item[:2] in ("DC", "dc")])
 
 
 def create_integer_hash(text: str, size: int = 9) -> int:
@@ -256,9 +242,7 @@ def ft_to_dt(filetime: int) -> datetime:
     2) Convert to datetime object, with remainder as microseconds.
     """
     s, ns100 = divmod(filetime - _EPOCH_AS_FILETIME, _HUNDREDS_OF_NS)
-    return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(
-        microsecond=(ns100 // 10),
-    )
+    return datetime.fromtimestamp(s, tz=ZoneInfo("UTC")).replace(microsecond=(ns100 // 10))
 
 
 def ft_now() -> str:
@@ -318,10 +302,7 @@ def profile_async(func: Callable) -> Callable:
     async def wrapper(*args, **kwargs) -> object:  # type: ignore
         start = time.perf_counter()
         result = await func(*args, **kwargs)
-        logger.critical(
-            f"Time {func.__name__} executed: "
-            f"{time.perf_counter() - start:.4f}",
-        )
+        logger.critical(f"Time {func.__name__} executed: {time.perf_counter() - start:.4f}")
         return result
 
     return wrapper
@@ -341,11 +322,7 @@ class explain(Executable, ClauseElement):  # noqa: N801
 
     inherit_cache = False
 
-    def __init__(
-        self,
-        stmt: Visitable,
-        analyze: bool = False,
-    ) -> None:
+    def __init__(self, stmt: Visitable, analyze: bool = False) -> None:
         """Initialize EXPLAIN statement."""
         self.statement = stmt
         self.analyze = analyze
@@ -362,14 +339,6 @@ def pg_explain(element: explain, compiler: DDLCompiler, **kw: dict) -> str:
     return text
 
 
-async def explain_query(
-    query: Visitable,
-    session: AsyncSession,
-) -> None:
+async def explain_query(query: Visitable, session: AsyncSession) -> None:
     """Get explain query."""
-    logger.debug(
-        "\n".join(
-            row[0]
-            for row in await session.execute(explain(query, analyze=True))
-        ),
-    )
+    logger.debug("\n".join(row[0] for row in await session.execute(explain(query, analyze=True))))

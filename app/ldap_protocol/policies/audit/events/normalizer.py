@@ -17,10 +17,7 @@ class AuditEventNormalizer:
     trigger: AuditPolicyTrigger
 
     def __init__(
-        self,
-        event_data: RawAuditEvent,
-        trigger: AuditPolicyTrigger,
-        _class: type[NormalizedAuditEvent],
+        self, event_data: RawAuditEvent, trigger: AuditPolicyTrigger, _class: type[NormalizedAuditEvent]
     ) -> None:
         """Initialize normalizer with event data and trigger."""
         self.event_data = event_data
@@ -51,16 +48,10 @@ class AuditEventNormalizer:
             if not self.trigger.additional_info["change_attributes"]:
                 return
 
-            change_attribute = self.trigger.additional_info[
-                "change_attributes"
-            ][0]
+            change_attribute = self.trigger.additional_info["change_attributes"][0]
             if change_attribute in {"member", "memberof"}:
-                first_value = set(
-                    self.event_data.context["before_attrs"][change_attribute],
-                )
-                second_value = set(
-                    self.event_data.context["after_attrs"][change_attribute],
-                )
+                first_value = set(self.event_data.context["before_attrs"][change_attribute])
+                second_value = set(self.event_data.context["after_attrs"][change_attribute])
                 if not first_value - second_value:
                     details["diff_groups"] = list(second_value - first_value)
                 else:
@@ -81,15 +72,10 @@ class AuditEventNormalizer:
         """Extract error information from failed event."""
         if "error_code" in self.event_data.context.get("details", {}):
             details = self.event_data.context["details"]
-            return {
-                "error_message": details["error_message"],
-            }
+            return {"error_message": details["error_message"]}
         elif self.event_data.protocol.endswith("LDAP"):
             last_response = self.event_data.responses[-1]
-            return {
-                "error_code": last_response["result_code"],
-                "error_message": last_response["error_message"],
-            }
+            return {"error_code": last_response["result_code"], "error_message": last_response["error_message"]}
         return {}
 
     def build(self) -> NormalizedAuditEvent:
@@ -99,10 +85,7 @@ class AuditEventNormalizer:
             details.update(self._extract_error_info())
 
         protocol = "API" if "API" in self.event_data.protocol else "LDAP"
-        if self.trigger.operation_code in {
-            OperationEvent.KERBEROS_AUTH,
-            OperationEvent.CHANGE_PASSWORD_KERBEROS,
-        }:
+        if self.trigger.operation_code in {OperationEvent.KERBEROS_AUTH, OperationEvent.CHANGE_PASSWORD_KERBEROS}:
             protocol = "KERBEROS"
 
         return self._class(

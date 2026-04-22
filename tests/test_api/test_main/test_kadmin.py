@@ -11,20 +11,14 @@ from httpx import AsyncClient
 
 from config import Settings
 from ldap_protocol.kerberos import AbstractKadmin, KerberosState
-from ldap_protocol.kerberos.exceptions import (
-    KRBAPIChangePasswordError,
-    KRBAPIPrincipalNotFoundError,
-)
+from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError, KRBAPIPrincipalNotFoundError
 from ldap_protocol.ldap_requests.bind import LDAPCodes, SimpleAuthentication
 from ldap_protocol.ldap_requests.contexts import LDAPBindRequestContext
 from password_utils import PasswordUtils
 from tests.conftest import MutePolicyBindRequest, TestCreds
 
 
-def _create_test_user_data(
-    name: str,
-    pw: str,
-) -> dict[str, str | list[dict[str, str | list[str]]]]:
+def _create_test_user_data(name: str, pw: str) -> dict[str, str | list[dict[str, str | list[str]]]]:
     return {
         "entry": "cn=ktest,dc=md,dc=test",
         "password": pw,
@@ -65,11 +59,7 @@ async def test_tree_creation(
     """Test tree creation."""
     krbadmin_pw = "Password123"
     response = await http_client.post(
-        "/kerberos/setup/tree",
-        json={
-            "mail": "777@example.com",
-            "krbadmin_password": krbadmin_pw,
-        },
+        "/kerberos/setup/tree", json={"mail": "777@example.com", "krbadmin_password": krbadmin_pw}
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -88,10 +78,7 @@ async def test_tree_creation(
             "page_number": 1,
         },
     )
-    assert (
-        response.json()["search_result"][0]["object_name"]
-        == "ou=System,dc=md,dc=test"
-    )
+    assert response.json()["search_result"][0]["object_name"] == "ou=System,dc=md,dc=test"
 
     bind = MutePolicyBindRequest(
         version=0,
@@ -108,21 +95,13 @@ async def test_tree_creation(
 async def test_tree_collision(http_client: AsyncClient) -> None:
     """Test tree collision double creation."""
     response = await http_client.post(
-        "/kerberos/setup/tree",
-        json={
-            "mail": "777@example.com",
-            "krbadmin_password": "Password123",
-        },
+        "/kerberos/setup/tree", json={"mail": "777@example.com", "krbadmin_password": "Password123"}
     )
 
     assert response.status_code == status.HTTP_200_OK
 
     response = await http_client.post(
-        "/kerberos/setup/tree",
-        json={
-            "mail": "777@example.com",
-            "krbadmin_password": "Password123",
-        },
+        "/kerberos/setup/tree", json={"mail": "777@example.com", "krbadmin_password": "Password123"}
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -130,11 +109,7 @@ async def test_tree_collision(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_setup_call(
-    http_client: AsyncClient,
-    kadmin: Mock,
-    creds: TestCreds,
-) -> None:
+async def test_setup_call(http_client: AsyncClient, kadmin: Mock, creds: TestCreds) -> None:
     """Test setup args.
 
     :param AsyncClient http_client: http cl
@@ -142,11 +117,7 @@ async def test_setup_call(
     """
     response = await http_client.post(
         "/kerberos/setup",
-        json={
-            "krbadmin_password": "Password123",
-            "admin_password": creds.pw,
-            "stash_password": "Password123",
-        },
+        json={"krbadmin_password": "Password123", "admin_password": creds.pw, "stash_password": "Password123"},
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -174,10 +145,7 @@ async def test_setup_call(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_status_change(
-    http_client: AsyncClient,
-    creds: TestCreds,
-) -> None:
+async def test_status_change(http_client: AsyncClient, creds: TestCreds) -> None:
     """Test setup args.
 
     :param AsyncClient http_client: http cl
@@ -189,11 +157,7 @@ async def test_status_change(
 
     await http_client.post(
         "/kerberos/setup",
-        json={
-            "krbadmin_password": "Password123",
-            "admin_password": creds.pw,
-            "stash_password": "Password123",
-        },
+        json={"krbadmin_password": "Password123", "admin_password": creds.pw, "stash_password": "Password123"},
     )
 
     response = await http_client.get("/kerberos/status")
@@ -202,39 +166,27 @@ async def test_status_change(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_ktadd(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_ktadd(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test ktadd.
 
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
     names = ["test1", "test2"]
-    response = await http_client.post(
-        "/kerberos/ktadd",
-        json=names,
-    )
+    response = await http_client.post("/kerberos/ktadd", json=names)
 
     kadmin.ktadd.assert_called()  # type: ignore
     assert kadmin.ktadd.call_args.args[0] == names  # type: ignore
 
     assert response.status_code == status.HTTP_200_OK
     assert response.content == b"test_string"
-    assert (
-        response.headers["Content-Disposition"]
-        == 'attachment; filename="krb5.keytab"'
-    )
+    assert response.headers["Content-Disposition"] == 'attachment; filename="krb5.keytab"'
     assert response.headers["content-type"] == "application/txt"
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_ktadd_400(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_ktadd_400(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test ktadd failure.
 
     :param AsyncClient http_client: http client
@@ -243,20 +195,14 @@ async def test_ktadd_400(
     kadmin.ktadd.side_effect = KRBAPIPrincipalNotFoundError()  # type: ignore
 
     names = ["test1", "test2"]
-    response = await http_client.post(
-        "/kerberos/ktadd",
-        json=names,
-    )
+    response = await http_client.post("/kerberos/ktadd", json=names)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_ldap_add(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_ldap_add(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test add calls add_principal on user creation.
 
     :param AsyncClient http_client: http
@@ -265,10 +211,7 @@ async def test_ldap_add(
     san = "ktest"
     pw = "Password123"
 
-    response = await http_client.post(
-        "/entry/add",
-        json=_create_test_user_data(san, pw),
-    )
+    response = await http_client.post("/entry/add", json=_create_test_user_data(san, pw))
 
     assert response.status_code == status.HTTP_200_OK, response.json()
     assert kadmin.add_principal.call_args.args == (san, pw)  # type: ignore
@@ -276,21 +219,11 @@ async def test_ldap_add(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_ldap_kadmin_delete_user(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_ldap_kadmin_delete_user(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test API for delete object."""
-    await http_client.post(
-        "/entry/add",
-        json=_create_test_user_data("ktest", "Password123"),
-    )
+    await http_client.post("/entry/add", json=_create_test_user_data("ktest", "Password123"))
 
-    response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={"entry": "cn=ktest,dc=md,dc=test"},
-    )
+    response = await http_client.request("delete", "/entry/delete", json={"entry": "cn=ktest,dc=md,dc=test"})
 
     data = response.json()
 
@@ -301,27 +234,18 @@ async def test_ldap_kadmin_delete_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_ldap_kadmin_delete_computer(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_ldap_kadmin_delete_computer(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test API for delete object."""
     await http_client.post(
         "/entry/add",
         json={
             "entry": "cn=ktest,dc=md,dc=test",
             "password": None,
-            "attributes": [
-                {"type": "objectClass", "vals": ["computer", "top"]},
-            ],
+            "attributes": [{"type": "objectClass", "vals": ["computer", "top"]}],
         },
     )
 
-    response = await http_client.request(
-        "delete",
-        "/entry/delete",
-        json={"entry": "cn=ktest,dc=md,dc=test"},
-    )
+    response = await http_client.request("delete", "/entry/delete", json={"entry": "cn=ktest,dc=md,dc=test"})
 
     data = response.json()
 
@@ -331,11 +255,7 @@ async def test_ldap_kadmin_delete_computer(
 
 
 @pytest.mark.asyncio
-async def test_bind_create_user(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-    settings: Settings,
-) -> None:
+async def test_bind_create_user(http_client: AsyncClient, kadmin: AbstractKadmin, settings: Settings) -> None:
     """Test bind create user."""
     san = "ktest"
     pw = "Password123"
@@ -343,14 +263,7 @@ async def test_bind_create_user(
     await http_client.post("/entry/add", json=_create_test_user_data(san, pw))
 
     proc = await asyncio.create_subprocess_exec(
-        "ldapwhoami",
-        "-x",
-        "-H",
-        f"ldap://{settings.HOST}:{settings.PORT}",
-        "-D",
-        san,
-        "-w",
-        pw,
+        "ldapwhoami", "-x", "-H", f"ldap://{settings.HOST}:{settings.PORT}", "-D", san, "-w", pw
     )
 
     assert await proc.wait() == 0
@@ -363,20 +276,14 @@ async def test_bind_create_user(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("_force_override_tls")
 async def test_extended_pw_change_call(
-    anonymous_ldap_client: LDAPConnection,
-    creds: TestCreds,
-    kadmin: AbstractKadmin,
+    anonymous_ldap_client: LDAPConnection, creds: TestCreds, kadmin: AbstractKadmin
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,cn=Users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
     await anonymous_ldap_client.bind(user_dn, password)
-    await anonymous_ldap_client.modify_password(
-        new_test_password,
-        user_dn,
-        password,
-    )
+    await anonymous_ldap_client.modify_password(new_test_password, user_dn, password)
 
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
 
@@ -385,22 +292,13 @@ async def test_extended_pw_change_call(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_add_princ(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_add_princ(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test setup args.
 
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    response = await http_client.post(
-        "/kerberos/principal/add",
-        json={
-            "primary": "host",
-            "instance": "12345",
-        },
-    )
+    response = await http_client.post("/kerberos/principal/add", json={"primary": "host", "instance": "12345"})
     kadmin_args = kadmin.add_principal.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
     assert kadmin_args == ("host/12345", None, None)
@@ -408,22 +306,13 @@ async def test_add_princ(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_modify_princ(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_modify_princ(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test setup args.
 
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    response = await http_client.put(
-        "/kerberos/principal",
-        json={
-            "principal_name": "name",
-            "new_name": "nname",
-        },
-    )
+    response = await http_client.put("/kerberos/principal", json={"principal_name": "name", "new_name": "nname"})
     kadmin_args = kadmin.modify_princ.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
     assert kadmin_args == ("name", "nname", None, None)
@@ -431,22 +320,13 @@ async def test_modify_princ(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_change_princ(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_change_princ(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test setup args.
 
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    response = await http_client.put(
-        "/kerberos/principal",
-        json={
-            "principal_name": "name",
-            "password": "pw123",
-        },
-    )
+    response = await http_client.put("/kerberos/principal", json={"principal_name": "name", "password": "pw123"})
     kadmin_args = kadmin.modify_princ.call_args.args  # type: ignore
     assert response.status_code == status.HTTP_200_OK
     assert kadmin_args == ("name", None, None, "pw123")
@@ -454,20 +334,13 @@ async def test_change_princ(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_delete_princ(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_delete_princ(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test setup args.
 
     :param AsyncClient http_client: http cl
     :param LDAPSession ldap_session: ldap
     """
-    response = await http_client.request(
-        "delete",
-        "/kerberos/principal/delete",
-        json={"principal_name": "name"},
-    )
+    response = await http_client.request("delete", "/kerberos/principal/delete", json={"principal_name": "name"})
     assert response.status_code == status.HTTP_200_OK
     assert kadmin.del_principal.call_args.args == ("name",)  # type: ignore
 
@@ -487,11 +360,7 @@ async def test_admin_incorrect_pw_setup(http_client: AsyncClient) -> None:
 
     response = await http_client.post(
         "/kerberos/setup",
-        json={
-            "krbadmin_password": "Password123",
-            "admin_password": "----",
-            "stash_password": "Password123",
-        },
+        json={"krbadmin_password": "Password123", "admin_password": "----", "stash_password": "Password123"},
     )
     data = response.json()
     assert data["detail"] == "Incorrect password"
@@ -499,18 +368,10 @@ async def test_admin_incorrect_pw_setup(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_update_password(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_api_update_password(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Update policy."""
     await http_client.patch(
-        "auth/user/password",
-        json={
-            "identity": "user0",
-            "new_password": "Password123",
-            "old_password": "password",
-        },
+        "auth/user/password", json={"identity": "user0", "new_password": "Password123", "old_password": "password"}
     )
     kadmin_args = kadmin.create_or_update_principal_pw.call_args.args  # type: ignore
     assert kadmin_args == ("user0", "Password123")
@@ -518,20 +379,12 @@ async def test_api_update_password(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_update_password(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_update_password(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Update policy."""
     (
         kadmin.create_or_update_principal_pw.side_effect  # type: ignore
     ) = KRBAPIChangePasswordError()
     response = await http_client.patch(
-        "auth/user/password",
-        json={
-            "identity": "user0",
-            "new_password": "Password123",
-            "old_password": "password",
-        },
+        "auth/user/password", json={"identity": "user0", "new_password": "Password123", "old_password": "password"}
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST

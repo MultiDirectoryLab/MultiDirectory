@@ -18,22 +18,12 @@ from sqlalchemy.orm import Session
 
 from entities import Attribute
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
-    AttributeTypeDAOLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
-    AttributeTypeUseCaseLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
-    ObjectClassDAOLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
-    ObjectClassUseCaseLegacy,
-)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import AttributeTypeDAOLegacy
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import AttributeTypeUseCaseLegacy
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import ObjectClassDAOLegacy
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import ObjectClassUseCaseLegacy
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.ldap_schema.raw_definition_parser import (
-    RawDefinitionParser as RDParser,
-)
+from ldap_protocol.ldap_schema.raw_definition_parser import RawDefinitionParser as RDParser
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -67,18 +57,8 @@ def upgrade(container: AsyncContainer) -> None:
         # NOTE: it added in f24ed0e49df2_add_filter_anr.py
         sa.Column("is_included_anr", sa.Boolean(), nullable=True),
     )
-    op.create_index(
-        op.f("ix_AttributeTypes_oid"),
-        "AttributeTypes",
-        ["oid"],
-        unique=True,
-    )
-    op.create_index(
-        op.f("ix_AttributeTypes_name"),
-        "AttributeTypes",
-        ["name"],
-        unique=True,
-    )
+    op.create_index(op.f("ix_AttributeTypes_oid"), "AttributeTypes", ["oid"], unique=True)
+    op.create_index(op.f("ix_AttributeTypes_name"), "AttributeTypes", ["name"], unique=True)
 
     op.create_table(
         "ObjectClasses",
@@ -86,60 +66,21 @@ def upgrade(container: AsyncContainer) -> None:
         sa.Column("oid", sa.String(length=255), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("superior_name", sa.String(length=255), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["superior_name"],
-            ["ObjectClasses.name"],
-            ondelete="SET NULL",
-        ),
-        sa.Column(
-            "kind",
-            sa.Enum(
-                "AUXILIARY",
-                "STRUCTURAL",
-                "ABSTRACT",
-                name="objectclasskinds",
-            ),
-            nullable=False,
-        ),
+        sa.ForeignKeyConstraint(["superior_name"], ["ObjectClasses.name"], ondelete="SET NULL"),
+        sa.Column("kind", sa.Enum("AUXILIARY", "STRUCTURAL", "ABSTRACT", name="objectclasskinds"), nullable=False),
         sa.Column("is_system", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
-    op.create_index(
-        op.f("ix_ObjectClasses_oid"),
-        "ObjectClasses",
-        ["oid"],
-        unique=True,
-    )
-    op.create_index(
-        op.f("ix_ObjectClasses_name"),
-        "ObjectClasses",
-        ["name"],
-        unique=True,
-    )
+    op.create_index(op.f("ix_ObjectClasses_oid"), "ObjectClasses", ["oid"], unique=True)
+    op.create_index(op.f("ix_ObjectClasses_name"), "ObjectClasses", ["name"], unique=True)
 
     op.create_table(
         "ObjectClassAttributeTypeMayMemberships",
-        sa.Column(
-            "attribute_type_name",
-            sa.String(length=255),
-            nullable=False,
-        ),
-        sa.Column(
-            "object_class_name",
-            sa.String(length=255),
-            nullable=False,
-        ),
-        sa.ForeignKeyConstraint(
-            ["attribute_type_name"],
-            ["AttributeTypes.name"],
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["object_class_name"],
-            ["ObjectClasses.name"],
-            ondelete="CASCADE",
-        ),
+        sa.Column("attribute_type_name", sa.String(length=255), nullable=False),
+        sa.Column("object_class_name", sa.String(length=255), nullable=False),
+        sa.ForeignKeyConstraint(["attribute_type_name"], ["AttributeTypes.name"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["object_class_name"], ["ObjectClasses.name"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("attribute_type_name", "object_class_name"),
     )
     op.create_unique_constraint(
@@ -150,26 +91,10 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.create_table(
         "ObjectClassAttributeTypeMustMemberships",
-        sa.Column(
-            "attribute_type_name",
-            sa.String(length=255),
-            nullable=False,
-        ),
-        sa.Column(
-            "object_class_name",
-            sa.String(length=255),
-            nullable=False,
-        ),
-        sa.ForeignKeyConstraint(
-            ["attribute_type_name"],
-            ["AttributeTypes.name"],
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["object_class_name"],
-            ["ObjectClasses.name"],
-            ondelete="CASCADE",
-        ),
+        sa.Column("attribute_type_name", sa.String(length=255), nullable=False),
+        sa.Column("object_class_name", sa.String(length=255), nullable=False),
+        sa.ForeignKeyConstraint(["attribute_type_name"], ["AttributeTypes.name"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["object_class_name"], ["ObjectClasses.name"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("attribute_type_name", "object_class_name"),
     )
     op.create_unique_constraint(
@@ -195,25 +120,18 @@ def upgrade(container: AsyncContainer) -> None:
 
     # NOTE: catalog is a non-existent object class
     session.execute(
-        delete(Attribute)
-        .where(
-            or_(
-                qa(Attribute.name) == "objectClass",
-                qa(Attribute.name) == "objectclass",
-            ),
+        delete(Attribute).where(
+            or_(qa(Attribute.name) == "objectClass", qa(Attribute.name) == "objectclass"),
             qa(Attribute.value) == "catalog",
-        ),
-    )  # fmt: skip
+        )
+    )
 
-    async def _create_attribute_types(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _create_attribute_types(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             at_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        for oid, name in (
-            ("2.16.840.1.113730.3.1.610", "nsAccountLock"),
-            ("1.3.6.1.4.1.99999.1.1", "posixEmail"),
-        ):
+        for oid, name in (("2.16.840.1.113730.3.1.610", "nsAccountLock"), ("1.3.6.1.4.1.99999.1.1", "posixEmail")):
             await at_type_use_case.create(
                 AttributeTypeDTO(
                     oid=oid,
@@ -225,15 +143,13 @@ def upgrade(container: AsyncContainer) -> None:
                     is_system=True,
                     system_flags=0,
                     is_included_anr=False,
-                ),
+                )
             )
 
         await session.flush()
 
         # NOTE: Load attributeTypes into the database
-        at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
-            "attributeTypes"
-        ]
+        at_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"]["attributeTypes"]
         at_raw_definitions.extend(
             [
                 "( 1.2.840.113556.1.4.9999 NAME 'entityTypeName' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE NO-USER-MODIFICATION )",  # noqa: E501
@@ -288,19 +204,15 @@ def upgrade(container: AsyncContainer) -> None:
                 "( 2.16.840.1.113719.1.301.4.53.1 NAME 'krbPrincContainerRef' EQUALITY distinguishedNameMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.12)",  # noqa: E501
                 "( 2.16.840.1.113730.3.8.15.2.1 NAME 'krbPrincipalAuthInd' EQUALITY caseExactMatch SYNTAX 1 3.6.1.4.1.1466.115.121.1.15)",  # noqa: E501
                 "( 1.3.6.1.4.1.5322.21.2.4 NAME 'krbAllowedToDelegateTo' EQUALITY caseExactIA5Match SUBSTR caseExactSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26)",  # noqa: E501
-            ],
+            ]
         )
 
         at_raw_definitions_filtered = [
-            definition
-            for definition in at_raw_definitions
-            if "name 'ms" not in definition.lower()
+            definition for definition in at_raw_definitions if "name 'ms" not in definition.lower()
         ]
 
         for at_raw_definition in at_raw_definitions_filtered:
-            attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(
-                raw_definition=at_raw_definition,
-            )
+            attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(raw_definition=at_raw_definition)
             await at_type_use_case.create(attribute_type_dto)
 
         await session.commit()
@@ -308,7 +220,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_attribute_types)
 
     # NOTE: Load objectClasses into the database
-    async def _create_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _create_object_classes(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             oc_use_case = await cnt.get(ObjectClassUseCaseLegacy)
@@ -320,82 +232,63 @@ def upgrade(container: AsyncContainer) -> None:
             "( 2.5.6.6 NAME 'person' SUP top STRUCTURAL MUST (cn ) MAY (sn $ serialNumber $ telephoneNumber $ seeAlso $ userPassword $ attributeCertificateAttribute ) )",  # noqa: E501
             "( 2.5.6.7 NAME 'organizationalPerson' SUP person STRUCTURAL MAY (c $ l $ st $ street $ o $ ou $ title $ postalAddress $ postalCode $ postOfficeBox $ physicalDeliveryOfficeName $ telexNumber $ teletexTerminalIdentifier $ facsimileTelephoneNumber $ x121Address $ internationalISDNNumber $ registeredAddress $ destinationIndicator $ preferredDeliveryMethod $ givenName $ initials $ generationQualifier $ houseIdentifier $ otherTelephone $ otherPager $ co $ department $ company $ streetAddress $ otherHomePhone $ msExchHouseIdentifier $ personalTitle $ homePostalAddress $ countryCode $ employeeID $ comment $ division $ otherFacsimileTelephoneNumber $ otherMobile $ primaryTelexNumber $ primaryInternationalISDNNumber $ mhsORAddress $ otherMailbox $ assistant $ ipPhone $ otherIpPhone $ msDS-AllowedToDelegateTo $ msDS-PhoneticFirstName $ msDS-PhoneticLastName $ msDS-PhoneticDepartment $ msDS-PhoneticCompanyName $ msDS-PhoneticDisplayName $ msDS-HABSeniorityIndex $ msDS-AllowedToActOnBehalfOfOtherIdentity $ mail $ manager $ homePhone $ mobile $ pager $ middleName $ thumbnailPhoto $ thumbnailLogo ) )",  # noqa: E501
             "( 1.2.840.113556.1.5.9 NAME 'user' SUP organizationalPerson STRUCTURAL MAY (o $ businessCategory $ userCertificate $ givenName $ initials $ x500uniqueIdentifier $ displayName $ networkAddress $ employeeNumber $ employeeType $ homePostalAddress $ userAccountControl $ badPwdCount $ codePage $ homeDirectory $ homeDrive $ badPasswordTime $ lastLogoff $ lastLogon $ dBCSPwd $ localeID $ scriptPath $ logonHours $ logonWorkstation $ maxStorage $ userWorkstations $ unicodePwd $ otherLoginWorkstations $ ntPwdHistory $ pwdLastSet $ preferredOU $ primaryGroupID $ userParameters $ profilePath $ operatorCount $ adminCount $ accountExpires $ lmPwdHistory $ groupMembershipSAM $ logonCount $ controlAccessRights $ defaultClassStore $ groupsToIgnore $ groupPriority $ desktopProfile $ dynamicLDAPServer $ userPrincipalName $ lockoutTime $ userSharedFolder $ userSharedFolderOther $ servicePrincipalName $ aCSPolicyName $ terminalServer $ mSMQSignCertificates $ mSMQDigests $ mSMQDigestsMig $ mSMQSignCertificatesMig $ msNPAllowDialin $ msNPCallingStationID $ msNPSavedCallingStationID $ msRADIUSCallbackNumber $ msRADIUSFramedIPAddress $ msRADIUSFramedRoute $ msRADIUSServiceType $ msRASSavedCallbackNumber $ msRASSavedFramedIPAddress $ msRASSavedFramedRoute $ mS-DS-CreatorSID $ msCOM-UserPartitionSetLink $ msDS-Cached-Membership $ msDS-Cached-Membership-Time-Stamp $ msDS-Site-Affinity $ msDS-User-Account-Control-Computed $ lastLogonTimestamp $ msIIS-FTPRoot $ msIIS-FTPDir $ msDRM-IdentityCertificate $ msDS-SourceObjectDN $ msPKIRoamingTimeStamp $ msPKIDPAPIMasterKeys $ msPKIAccountCredentials $ msRADIUS-FramedInterfaceId $ msRADIUS-SavedFramedInterfaceId $ msRADIUS-FramedIpv6Prefix $ msRADIUS-SavedFramedIpv6Prefix $ msRADIUS-FramedIpv6Route $ msRADIUS-SavedFramedIpv6Route $ msDS-SecondaryKrbTgtNumber $ msDS-AuthenticatedAtDC $ msDS-SupportedEncryptionTypes $ msDS-LastSuccessfulInteractiveLogonTime $ msDS-LastFailedInteractiveLogonTime $ msDS-FailedInteractiveLogonCount $ msDS-FailedInteractiveLogonCountAtLastSuccessfulLogon $ msTSProfilePath $ msTSHomeDirectory $ msTSHomeDrive $ msTSAllowLogon $ msTSRemoteControl $ msTSMaxDisconnectionTime $ msTSMaxConnectionTime $ msTSMaxIdleTime $ msTSReconnectionAction $ msTSBrokenConnectionAction $ msTSConnectClientDrives $ msTSConnectPrinterDrives $ msTSDefaultToMainPrinter $ msTSWorkDirectory $ msTSInitialProgram $ msTSProperty01 $ msTSProperty02 $ msTSExpireDate $ msTSLicenseVersion $ msTSManagingLS $ msDS-UserPasswordExpiryTimeComputed $ msTSExpireDate2 $ msTSLicenseVersion2 $ msTSManagingLS2 $ msTSExpireDate3 $ msTSLicenseVersion3 $ msTSManagingLS3 $ msTSExpireDate4 $ msTSLicenseVersion4 $ msTSManagingLS4 $ msTSLSProperty01 $ msTSLSProperty02 $ msDS-ResultantPSO $ msPKI-CredentialRoamingTokens $ msTSPrimaryDesktop $ msTSSecondaryDesktops $ msDS-PrimaryComputer $ msDS-SyncServerUrl $ msDS-AssignedAuthNPolicySilo $ msDS-AuthNPolicySiloMembersBL $ msDS-AssignedAuthNPolicy $ userSMIMECertificate $ uid $ mail $ roomNumber $ photo $ manager $ homePhone $ secretary $ mobile $ pager $ audio $ jpegPhoto $ carLicense $ departmentNumber $ preferredLanguage $ userPKCS12 $ labeledURI $ msSFU30Name $ msSFU30NisDomain ) )",  # noqa: E501
-            "( 1.2.840.113556.1.5.1 NAME 'securityObject' SUP top ABSTRACT MUST (cn ) )",  # noqa: E501
+            "( 1.2.840.113556.1.5.1 NAME 'securityObject' SUP top ABSTRACT MUST (cn ) )",
             "( 1.2.840.113556.1.5.14 NAME 'connectionPoint' SUP leaf ABSTRACT MUST (cn ) MAY (keywords $ managedBy $ msDS-Settings ) )",  # noqa: E501
             "( 1.2.840.113556.1.5.126 NAME 'serviceConnectionPoint' SUP connectionPoint STRUCTURAL MAY (versionNumber $ vendor $ versionNumberHi $ versionNumberLo $ serviceClassName $ serviceBindingInformation $ serviceDNSName $ serviceDNSNameType $ appSchemaVersion ) )",  # noqa: E501
-            "( 1.2.840.113556.1.5.94 NAME 'serviceAdministrationPoint' SUP serviceConnectionPoint STRUCTURAL )",  # noqa: E501
+            "( 1.2.840.113556.1.5.94 NAME 'serviceAdministrationPoint' SUP serviceConnectionPoint STRUCTURAL )",
             "( 1.2.840.113556.1.5.7000.56 NAME 'ipsecBase' SUP top ABSTRACT MAY (ipsecName $ ipsecID $ ipsecDataType $ ipsecData $ ipsecOwnersReference ) )",  # noqa: E501
-            "( 1.2.840.113556.1.5.66 NAME 'domain' SUP top ABSTRACT MUST (dc ) )",  # noqa: E501
+            "( 1.2.840.113556.1.5.66 NAME 'domain' SUP top ABSTRACT MUST (dc ) )",
             "( 1.2.840.113556.1.3.59 NAME 'displayTemplate' SUP top STRUCTURAL MUST (cn ) MAY (helpData32 $ originalDisplayTableMSDOS $ addressEntryDisplayTable $ helpFileName $ addressEntryDisplayTableMSDOS $ helpData16 $ originalDisplayTable ) )",  # noqa: E501
-            "( 2.5.6.2 NAME 'country' SUP top STRUCTURAL MUST (c ) MAY (searchGuide $ co ) )",  # noqa: E501
+            "( 2.5.6.2 NAME 'country' SUP top STRUCTURAL MUST (c ) MAY (searchGuide $ co ) )",
             "( 1.2.840.113556.1.5.7000.49 NAME 'applicationSettings' SUP top ABSTRACT MAY (applicationName $ notificationList $ msDS-Settings ) )",  # noqa: E501
             #
             # Kerberos schema: https://github.com/krb5/krb5/blob/master/src/plugins/kdb/ldap/libkdb_ldap/kerberos.schema
-            "( 2.16.840.1.113719.1.301.6.1.1 NAME 'krbContainer' SUP top STRUCTURAL MUST (cn ) )",  # noqa: E501
+            "( 2.16.840.1.113719.1.301.6.1.1 NAME 'krbContainer' SUP top STRUCTURAL MUST (cn ) )",
             "( 2.16.840.1.113719.1.301.6.2.1 NAME 'krbRealmContainer' SUP top STRUCTURAL MUST (cn ) MAY (krbMKey $ krbUPEnabled $ krbSubTrees $ krbSearchScope $ krbLdapServers $ krbSupportedEncSaltTypes $ krbDefaultEncSaltTypes $ krbTicketPolicyReference $ krbKdcServers $ krbPwdServers $ krbAdmServers $ krbPrincNamingAttr $ krbPwdPolicyReference $ krbPrincContainerRef ) )",  # noqa: E501
             "( 2.16.840.1.113719.1.301.6.3.1 NAME 'krbService' SUP top ABSTRACT MUST (cn ) MAY (krbHostServer $ krbRealmReferences ) )",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.6.4.1 NAME 'krbKdcService' SUP krbService STRUCTURAL )",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.6.5.1 NAME 'krbPwdService' SUP krbService STRUCTURAL )",  # noqa: E501
+            "( 2.16.840.1.113719.1.301.6.4.1 NAME 'krbKdcService' SUP krbService STRUCTURAL )",
+            "( 2.16.840.1.113719.1.301.6.5.1 NAME 'krbPwdService' SUP krbService STRUCTURAL )",
             "( 2.16.840.1.113719.1.301.6.8.1 NAME 'krbPrincipalAux' SUP top AUXILIARY MAY (krbPrincipalName $ krbCanonicalName $ krbUPEnabled $ krbPrincipalKey $ krbTicketPolicyReference $ krbPrincipalExpiration $ krbPasswordExpiration $ krbPwdPolicyReference $ krbPrincipalType $ krbPwdHistory $ krbLastPwdChange $ krbLastAdminUnlock $ krbPrincipalAliases $ krbLastSuccessfulAuth $ krbLastFailedAuth $ krbLoginFailedCount $ krbExtraData $ krbAllowedToDelegateTo $ krbPrincipalAuthInd ) )",  # noqa: E501
             "( 2.16.840.1.113719.1.301.6.9.1 NAME 'krbPrincipal' SUP top STRUCTURAL MUST (krbPrincipalName ) MAY (krbObjectReferences ) )",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.6.11.1 NAME 'krbPrincRefAux' SUP top AUXILIARY MAY (krbPrincipalReferences ) )",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.6.13.1 NAME 'krbAdmService' SUP krbService STRUCTURAL )",  # noqa: E501
+            "( 2.16.840.1.113719.1.301.6.11.1 NAME 'krbPrincRefAux' SUP top AUXILIARY MAY (krbPrincipalReferences ) )",
+            "( 2.16.840.1.113719.1.301.6.13.1 NAME 'krbAdmService' SUP krbService STRUCTURAL )",
             "( 2.16.840.1.113719.1.301.6.14.1 NAME 'krbPwdPolicy' SUP top STRUCTURAL MUST (cn ) MAY (krbMaxPwdLife $ krbMinPwdLife $ krbPwdMinDiffChars $ krbPwdMinLength $ krbPwdHistoryLength $ krbPwdMaxFailure $ krbPwdFailureCountInterval $ krbPwdLockoutDuration $ krbPwdAttributes $ krbPwdMaxLife $ krbPwdMaxRenewableLife $ krbPwdAllowedKeysalts ) )",  # noqa: E501
             "( 2.16.840.1.113719.1.301.6.16.1 NAME 'krbTicketPolicyAux' SUP top AUXILIARY MAY (krbTicketFlags $ krbMaxTicketLife $ krbMaxRenewableAge ) )",  # noqa: E501
-            "( 2.16.840.1.113719.1.301.6.17.1 NAME 'krbTicketPolicy' SUP top STRUCTURAL MUST (cn ) )",  # noqa: E501
+            "( 2.16.840.1.113719.1.301.6.17.1 NAME 'krbTicketPolicy' SUP top STRUCTURAL MUST (cn ) )",
         )
 
         for oc_1priority_raw_definition in oc_first_priority_raw_definitions:
-            object_class_info = RDParser.get_object_class_info(
-                raw_definition=oc_1priority_raw_definition,
-            )
+            object_class_info = RDParser.get_object_class_info(raw_definition=oc_1priority_raw_definition)
             oc_already_created_oids.add(object_class_info.oid)
 
-            object_class_dto = (
-                await RDParser.collect_object_class_dto_from_info(
-                    object_class_info=object_class_info,
-                )
-            )
+            object_class_dto = await RDParser.collect_object_class_dto_from_info(object_class_info=object_class_info)
             await oc_use_case.create(object_class_dto)
 
-        oc_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"][
-            "objectClasses"
-        ]
+        oc_raw_definitions: list[str] = ad_2012_r2_schema_json["raw"]["objectClasses"]
         oc_raw_definitions_filtered = [
-            definition
-            for definition in oc_raw_definitions
-            if "name 'ms" not in definition.lower()
+            definition for definition in oc_raw_definitions if "name 'ms" not in definition.lower()
         ]
 
         for oc_raw_definition in oc_raw_definitions_filtered:
-            object_class_info = RDParser.get_object_class_info(
-                raw_definition=oc_raw_definition,
-            )
+            object_class_info = RDParser.get_object_class_info(raw_definition=oc_raw_definition)
             if object_class_info.oid in oc_already_created_oids:
                 continue
 
-            object_class_dto = (
-                await RDParser.collect_object_class_dto_from_info(
-                    object_class_info=object_class_info,
-                )
-            )
+            object_class_dto = await RDParser.collect_object_class_dto_from_info(object_class_info=object_class_info)
             await oc_use_case.create(object_class_dto)
 
         await session.commit()
 
     op.run_async(_create_object_classes)
 
-    async def _modify_object_classes(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _modify_object_classes(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             attribute_type_dao_legacy = AttributeTypeDAOLegacy(session=session)
             object_class_dao_legacy = ObjectClassDAOLegacy(session=session)
-            attribute_type_use_case = AttributeTypeUseCaseLegacy(
-                attribute_type_dao_legacy=attribute_type_dao_legacy,
-            )
+            attribute_type_use_case = AttributeTypeUseCaseLegacy(attribute_type_dao_legacy=attribute_type_dao_legacy)
             object_class_use_case = ObjectClassUseCaseLegacy(
-                attribute_type_dao_legacy=attribute_type_dao_legacy,
-                object_class_dao_legacy=object_class_dao_legacy,
+                attribute_type_dao_legacy=attribute_type_dao_legacy, object_class_dao_legacy=object_class_dao_legacy
             )
 
         for oc_name, at_names in (
@@ -409,11 +302,7 @@ def upgrade(container: AsyncContainer) -> None:
             if not object_class:
                 continue
 
-            attribute_types = (
-                await attribute_type_use_case.get_all_raw_by_names(
-                    at_names,
-                )
-            )
+            attribute_types = await attribute_type_use_case.get_all_raw_by_names(at_names)
 
             object_class.attribute_types_may.extend(attribute_types)
 
@@ -429,7 +318,7 @@ def upgrade(container: AsyncContainer) -> None:
     session.commit()
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.drop_index(
         "idx_object_classes_name_gin_trgm",
@@ -443,18 +332,10 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         postgresql_using="gin",
         postgresql_ops={"name": "gin_trgm_ops"},
     )
-    op.drop_constraint(
-        "object_class_must_attribute_type_uc",
-        "ObjectClassAttributeTypeMustMemberships",
-        type_="unique",
-    )
+    op.drop_constraint("object_class_must_attribute_type_uc", "ObjectClassAttributeTypeMustMemberships", type_="unique")
     op.drop_table("ObjectClassAttributeTypeMustMemberships")
 
-    op.drop_constraint(
-        "object_class_may_attribute_type_uc",
-        "ObjectClassAttributeTypeMayMemberships",
-        type_="unique",
-    )
+    op.drop_constraint("object_class_may_attribute_type_uc", "ObjectClassAttributeTypeMayMemberships", type_="unique")
     op.drop_table("ObjectClassAttributeTypeMayMemberships")
 
     op.drop_index("ix_ObjectClasses_name", table_name="ObjectClasses")

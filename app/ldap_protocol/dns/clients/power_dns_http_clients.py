@@ -7,11 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from adaptix import Retort
 
 from ldap_protocol.dns.clients.abstract_client import AbstractDNSHTTPClient
-from ldap_protocol.dns.dto import (
-    DNSForwardZoneDTO,
-    DNSMasterZoneDTO,
-    DNSRRSetDTO,
-)
+from ldap_protocol.dns.dto import DNSForwardZoneDTO, DNSMasterZoneDTO, DNSRRSetDTO
 
 base_retort = Retort()
 
@@ -21,10 +17,7 @@ class PowerDNSAuthHTTPClient(AbstractDNSHTTPClient):
 
     async def record_action(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Send request to perform action on DNS record in given zone."""
-        response = await self._http_client.patch(
-            f"/zones/{zone_id}",
-            json={"rrsets": [base_retort.dump(record)]},
-        )
+        response = await self._http_client.patch(f"/zones/{zone_id}", json={"rrsets": [base_retort.dump(record)]})
 
         await self._validate_response(response)
 
@@ -38,10 +31,7 @@ class PowerDNSAuthHTTPClient(AbstractDNSHTTPClient):
 
     async def create_master_zone(self, zone: DNSMasterZoneDTO) -> None:
         """Send request to create new master zone."""
-        response = await self._http_client.post(
-            "/zones",
-            json=base_retort.dump(zone),
-        )
+        response = await self._http_client.post("/zones", json=base_retort.dump(zone))
         await self._validate_response(response)
 
     async def get_master_zones(self) -> list[DNSMasterZoneDTO]:
@@ -58,16 +48,9 @@ class PowerDNSAuthHTTPClient(AbstractDNSHTTPClient):
 
         return base_retort.load(response.json(), DNSMasterZoneDTO)
 
-    async def update_master_zone(
-        self,
-        zone_id: str,
-        zone: DNSMasterZoneDTO,
-    ) -> None:
+    async def update_master_zone(self, zone_id: str, zone: DNSMasterZoneDTO) -> None:
         """Send request to update master zone with given ID."""
-        response = await self._http_client.put(
-            f"/zones/{zone_id}",
-            json=base_retort.dump(zone),
-        )
+        response = await self._http_client.put(f"/zones/{zone_id}", json=base_retort.dump(zone))
         await self._validate_response(response)
 
     async def delete_master_zone(self, zone_id: str) -> None:
@@ -81,10 +64,7 @@ class PowerDNSRecursorHTTPClient(AbstractDNSHTTPClient):
 
     async def create_forward_zone(self, zone: DNSForwardZoneDTO) -> None:
         """Send request to create forward zone."""
-        response = await self._http_client.post(
-            "/zones",
-            json=base_retort.dump(zone),
-        )
+        response = await self._http_client.post("/zones", json=base_retort.dump(zone))
         await self._validate_response(response)
 
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
@@ -94,16 +74,9 @@ class PowerDNSRecursorHTTPClient(AbstractDNSHTTPClient):
 
         return base_retort.load(response.json(), list[DNSForwardZoneDTO])
 
-    async def update_forward_zone(
-        self,
-        zone_id: str,
-        zone: DNSForwardZoneDTO,
-    ) -> None:
+    async def update_forward_zone(self, zone_id: str, zone: DNSForwardZoneDTO) -> None:
         """Send request to update forward zone with given ID."""
-        response = await self._http_client.put(
-            f"/zones/{zone_id}",
-            json=base_retort.dump(zone),
-        )
+        response = await self._http_client.put(f"/zones/{zone_id}", json=base_retort.dump(zone))
         await self._validate_response(response)
 
     async def delete_forward_zone(self, zone_id: str) -> None:

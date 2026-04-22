@@ -33,17 +33,11 @@ from tests.conftest import TestCreds
 @pytest_asyncio.fixture(scope="function")
 async def enable_mfa(session: AsyncSession) -> None:
     """Enable MFA in network policy for tests."""
-    await session.execute(
-        update(NetworkPolicy).values(
-            {NetworkPolicy.mfa_status: MFAFlags.ENABLED},
-        ),
-    )
+    await session.execute(update(NetworkPolicy).values({NetworkPolicy.mfa_status: MFAFlags.ENABLED}))
 
 
 async def apply_user_account_control(
-    http_client: AsyncClient,
-    user_dn: str,
-    user_account_control_value: str,
+    http_client: AsyncClient, user_dn: str, user_account_control_value: str
 ) -> dict[str, Any]:
     """Apply userAccountControl value and return response data.
 
@@ -59,11 +53,8 @@ async def apply_user_account_control(
             "changes": [
                 {
                     "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "userAccountControl",
-                        "vals": [user_account_control_value],
-                    },
-                },
+                    "modification": {"type": "userAccountControl", "vals": [user_account_control_value]},
+                }
             ],
         },
     )
@@ -73,10 +64,7 @@ async def apply_user_account_control(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_first_setup_and_oauth(
-    unbound_http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_first_setup_and_oauth(unbound_http_client: AsyncClient, session: AsyncSession) -> None:
     """Test api first setup."""
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
@@ -98,10 +86,7 @@ async def test_first_setup_and_oauth(
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is True
 
-    auth = await unbound_http_client.post(
-        "auth/",
-        data={"username": "test", "password": "Password123"},
-    )
+    auth = await unbound_http_client.post("auth/", data={"username": "test", "password": "Password123"})
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["id"]
 
@@ -119,15 +104,9 @@ async def test_first_setup_and_oauth(
     result = await session.scalars(
         select(Directory)
         .options(
-            joinedload(qa(Directory.group))
-            .selectinload(qa(Group.roles))
-            .selectinload(qa(Role.access_control_entries)),
+            joinedload(qa(Directory.group)).selectinload(qa(Group.roles)).selectinload(qa(Role.access_control_entries))
         )
-        .filter(
-            get_filter_from_path(
-                "cn=read-only,cn=Groups,dc=md,dc=test-localhost",
-            ),
-        ),
+        .filter(get_filter_from_path("cn=read-only,cn=Groups,dc=md,dc=test-localhost"))
     )
     group_dir = result.one()
     assert group_dir.group
@@ -138,14 +117,8 @@ async def test_first_setup_and_oauth(
     assert group_dir.group.roles[0].access_control_entries
     assert len(group_dir.group.roles[0].access_control_entries) == 1
     assert group_dir.group.roles[0].access_control_entries[0].is_allow is True
-    assert (
-        group_dir.group.roles[0].access_control_entries[0].ace_type
-        == AceType.READ
-    )
-    assert (
-        group_dir.group.roles[0].access_control_entries[0].scope
-        == RoleScope.WHOLE_SUBTREE
-    )
+    assert group_dir.group.roles[0].access_control_entries[0].ace_type == AceType.READ
+    assert group_dir.group.roles[0].access_control_entries[0].scope == RoleScope.WHOLE_SUBTREE
 
 
 class AuthSetupRequestDataType(TypedDict):
@@ -199,18 +172,14 @@ invalid_domain_test_cases: list[AuthSetupRequestDataType] = [
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("test_case", invalid_domain_test_cases)
 async def test_first_setup_with_invalid_domain(
-    unbound_http_client: AsyncClient,
-    test_case: AuthSetupRequestDataType,
+    unbound_http_client: AsyncClient, test_case: AuthSetupRequestDataType
 ) -> None:
     """Test api first setup with invalid domain."""
     response = await unbound_http_client.get("/auth/setup")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is False
 
-    response = await unbound_http_client.post(
-        "/auth/setup",
-        json=test_case,
-    )
+    response = await unbound_http_client.post("/auth/setup", json=test_case)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     response = await unbound_http_client.get("/auth/setup")
@@ -235,7 +204,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
                         "type": "userAccountControl",
                         "vals": ["8389120"],  # normal and paswd expire
                     },
-                },
+                }
             ],
         },
     )
@@ -243,12 +212,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
     assert response.json().get("resultCode") == LDAPCodes.SUCCESS
 
     response = await http_client.patch(
-        "auth/user/password",
-        json={
-            "identity": user_dn,
-            "new_password": "Password123",
-            "old_password": "password",
-        },
+        "auth/user/password", json={"identity": user_dn, "new_password": "Password123", "old_password": "password"}
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -256,10 +220,7 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
 
     # NOTE: After updating the password, all sessions are closed.
     # Need to login again.
-    auth = await http_client.post(
-        "auth/",
-        data={"username": "user0", "password": "Password123"},
-    )
+    auth = await http_client.post("auth/", data={"username": "user0", "password": "Password123"})
     assert auth.status_code == 200
     assert list(auth.cookies.keys()) == ["id"]
 
@@ -293,38 +254,19 @@ async def test_update_password_and_check_uac(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_update_password_with_correct_old_password(
-    http_client: AsyncClient,
-) -> None:
+async def test_update_password_with_correct_old_password(http_client: AsyncClient) -> None:
     """Update policy."""
     response = await http_client.patch(
-        "auth/user/password",
-        json={
-            "identity": "user0",
-            "new_password": "Password123",
-            "old_password": "password",
-        },
+        "auth/user/password", json={"identity": "user0", "new_password": "Password123", "old_password": "password"}
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is None
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "password"})
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "Password123",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "Password123"})
     assert new_auth.status_code == status.HTTP_200_OK
     token = new_auth.cookies.get("id")
     assert token
@@ -332,37 +274,18 @@ async def test_update_password_with_correct_old_password(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_update_password_with_incorrect_old_password(
-    http_client: AsyncClient,
-) -> None:
+async def test_update_password_with_incorrect_old_password(http_client: AsyncClient) -> None:
     """Update password with incorrect old password."""
     response = await http_client.patch(
-        "auth/user/password",
-        json={
-            "identity": "user0",
-            "new_password": "Password123",
-            "old_password": "Password1234",
-        },
+        "auth/user/password", json={"identity": "user0", "new_password": "Password123", "old_password": "Password1234"}
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "Password123",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "Password123"})
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "password"})
 
     assert new_auth.status_code == status.HTTP_200_OK
     token = new_auth.cookies.get("id")
@@ -371,37 +294,18 @@ async def test_update_password_with_incorrect_old_password(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_update_password_with_empty_old_password(
-    http_client: AsyncClient,
-) -> None:
+async def test_update_password_with_empty_old_password(http_client: AsyncClient) -> None:
     """Update password with empty old password."""
     response = await http_client.patch(
-        "auth/user/password",
-        json={
-            "identity": "user0",
-            "new_password": "Password123",
-            "old_password": None,
-        },
+        "auth/user/password", json={"identity": "user0", "new_password": "Password123", "old_password": None}
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "Password123",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "Password123"})
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "password"})
 
     assert new_auth.status_code == status.HTTP_200_OK
     token = new_auth.cookies.get("id")
@@ -410,39 +314,19 @@ async def test_update_password_with_empty_old_password(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_admin_update_password_another_user(
-    admin_http_client: AsyncClient,
-    http_client: AsyncClient,
-) -> None:
+async def test_admin_update_password_another_user(admin_http_client: AsyncClient, http_client: AsyncClient) -> None:
     """Admin updates another user's password without requiring old password."""
     response = await admin_http_client.patch(
-        "auth/user/password",
-        json={
-            "identity": "user0",
-            "new_password": "Password123",
-            "old_password": None,
-        },
+        "auth/user/password", json={"identity": "user0", "new_password": "Password123", "old_password": None}
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is None
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "password"})
     assert new_auth.status_code == status.HTTP_401_UNAUTHORIZED
 
-    new_auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "Password123",
-        },
-    )
+    new_auth = await http_client.post("auth/", data={"username": "user0", "password": "Password123"})
     assert new_auth.status_code == status.HTTP_200_OK
     token = new_auth.cookies.get("id")
     assert token
@@ -450,18 +334,9 @@ async def test_admin_update_password_another_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_auth_disabled_user(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_auth_disabled_user(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Get token with ACCOUNTDISABLE flag in userAccountControl attribute."""
-    response = await http_client.post(
-        "auth/",
-        data={
-            "username": "user0",
-            "password": "password",
-        },
-    )
+    response = await http_client.post("auth/", data={"username": "user0", "password": "password"})
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -470,13 +345,7 @@ async def test_auth_disabled_user(
         json={
             "object": "cn=user_admin,cn=Users,dc=md,dc=test",
             "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "userAccountControl",
-                        "vals": ["514"],
-                    },
-                },
+                {"operation": Operation.REPLACE, "modification": {"type": "userAccountControl", "vals": ["514"]}}
             ],
         },
     )
@@ -487,13 +356,7 @@ async def test_auth_disabled_user(
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
 
-    response = await http_client.post(
-        "auth/",
-        data={
-            "username": "user_admin",
-            "password": "password",
-        },
-    )
+    response = await http_client.post("auth/", data={"username": "user_admin", "password": "password"})
 
     assert response.status_code == 400
 
@@ -501,10 +364,7 @@ async def test_auth_disabled_user(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_lock_and_unlock_user(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-    session: AsyncSession,
-    storage: SessionStorage,
+    http_client: AsyncClient, kadmin: AbstractKadmin, session: AsyncSession, storage: SessionStorage
 ) -> None:
     """Block user and verify nsAccountLock and shadowExpires attributes."""
     user_dn = "cn=user_non_admin,cn=Users,dc=md,dc=test"
@@ -542,10 +402,7 @@ async def test_lock_and_unlock_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user_dn
 
-    attrs = {
-        attr["type"]: attr["vals"][0]
-        for attr in data["search_result"][0]["partial_attributes"]
-    }
+    attrs = {attr["type"]: attr["vals"][0] for attr in data["search_result"][0]["partial_attributes"]}
     shadow_expire = attrs.get("shadowExpire")
     assert attrs.get("nsAccountLock") == "true"
     assert isinstance(shadow_expire, str)
@@ -583,10 +440,7 @@ async def test_lock_and_unlock_user(
     assert data["resultCode"] == LDAPCodes.SUCCESS
     assert data["search_result"][0]["object_name"] == user_dn
 
-    attrs = {
-        attr["type"]: attr["vals"][0]
-        for attr in data["search_result"][0]["partial_attributes"]
-    }
+    attrs = {attr["type"]: attr["vals"][0] for attr in data["search_result"][0]["partial_attributes"]}
 
     assert "nsAccountLock" not in attrs
     assert "shadowExpire" not in attrs
@@ -605,33 +459,20 @@ async def test_mfa_auth(
     enable_mfa: None,  # noqa: ARG001
 ) -> None:
     """Test auth with MFA."""
-    session.add(
-        CatalogueSetting(name="mfa_secret", value="123"),
-    )
+    session.add(CatalogueSetting(name="mfa_secret", value="123"))
     session.add(CatalogueSetting(name="mfa_key", value="123"))
     await session.commit()
 
     redirect_url = "example.com"
 
-    response = await unbound_http_client.post(
-        "auth/",
-        data={"username": creds.un, "password": creds.pw},
-    )
+    response = await unbound_http_client.post("auth/", data={"username": creds.un, "password": creds.pw})
     assert response.status_code == 200
-    assert response.json() == {
-        "status": MFAChallengeStatuses.PENDING,
-        "message": redirect_url,
-    }
+    assert response.json() == {"status": MFAChallengeStatuses.PENDING, "message": redirect_url}
 
     response = await unbound_http_client.get("auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    user = await authenticate_user(
-        session,
-        creds.un,
-        creds.pw,
-        password_utils,
-    )
+    user = await authenticate_user(session, creds.un, creds.pw, password_utils)
 
     assert user
 
@@ -640,9 +481,7 @@ async def test_mfa_auth(
     token = jwt.encode({"aud": "123", "uid": user.id, "exp": exp}, "123")
 
     response = await unbound_http_client.post(
-        "/multifactor/create",
-        data={"accessToken": token},
-        follow_redirects=False,
+        "/multifactor/create", data={"accessToken": token}, follow_redirects=False
     )
 
     assert response.status_code == 302

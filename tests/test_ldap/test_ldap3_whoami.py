@@ -10,9 +10,7 @@ from aioldap3 import LDAPConnection
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_anonymous_whoami(
-    anonymous_ldap_client: LDAPConnection,
-) -> None:
+async def test_anonymous_whoami(anonymous_ldap_client: LDAPConnection) -> None:
     """Test anonymous pwd change."""
     result = await anonymous_ldap_client.whoami()
 
@@ -21,9 +19,7 @@ async def test_anonymous_whoami(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_bind_whoami(
-    ldap_client: LDAPConnection,
-) -> None:
+async def test_bind_whoami(ldap_client: LDAPConnection) -> None:
     """Test anonymous pwd change."""
     result = await ldap_client.whoami()
 

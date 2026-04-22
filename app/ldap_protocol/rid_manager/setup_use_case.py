@@ -8,9 +8,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from entities import Directory
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
 from ldap_protocol.rid_manager.setup_gateway import RIDManagerSetupGateway
@@ -50,26 +48,17 @@ class RIDManagerSetupUseCase:
         rid_manager_dir = await self._gateway.set_rid_manager()
 
         await self._entity_type_use_case.attach_entity_type_to_directory(
-            directory=rid_manager_dir,
-            is_system_entity_type=True,
-            object_class_names={"top", "rIDManager"},
+            directory=rid_manager_dir, is_system_entity_type=True, object_class_names={"top", "rIDManager"}
         )
 
         await self._session.flush()
         qword = to_qword(self.RID_MIN, self.RID_AVAILABLE_MAX)
-        await self._gateway.set_rid_available_pool(
-            rid_manager_dir,
-            qword,
-        )
+        await self._gateway.set_rid_available_pool(rid_manager_dir, qword)
         dc = await self.get_domain_controller()
-        await self._rid_set_use_case.add(
-            dc,
-            await self._rid_set_use_case.generate_rid_set_attrs(),
-        )
+        await self._rid_set_use_case.add(dc, await self._rid_set_use_case.generate_rid_set_attrs())
 
         await self._role_use_case.inherit_parent_aces(
-            parent_directory=await self._gateway.get_system_container(),
-            directory=rid_manager_dir,
+            parent_directory=await self._gateway.get_system_container(), directory=rid_manager_dir
         )
 
     async def create_domain_identifier(self, domain_id: int) -> None:

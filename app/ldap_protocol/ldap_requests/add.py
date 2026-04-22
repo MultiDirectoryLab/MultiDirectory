@@ -23,17 +23,8 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import INVALID_ACCESS_RESPONSE, AddResponse
-from ldap_protocol.objects import (
-    PartialAttribute,
-    ProtocolRequests,
-    UserAccountControlFlag,
-)
-from ldap_protocol.utils.helpers import (
-    create_integer_hash,
-    create_user_name,
-    ft_now,
-    is_dn_in_base_directory,
-)
+from ldap_protocol.objects import PartialAttribute, ProtocolRequests, UserAccountControlFlag
+from ldap_protocol.utils.helpers import create_integer_hash, create_user_name, ft_now, is_dn_in_base_directory
 from ldap_protocol.utils.queries import (
     get_base_directories,
     get_group,
@@ -68,10 +59,7 @@ class AddRequest(BaseRequest):
     CONTEXT_TYPE: ClassVar[type] = LDAPAddRequestContext
 
     entry: str = Field(..., description="Any `DistinguishedName`")
-    is_system: bool = Field(
-        False,
-        description="Mark as system directory (cannot be modified)",
-    )
+    is_system: bool = Field(False, description="Mark as system directory (cannot be modified)")
 
     attributes: list[PartialAttribute]
 
@@ -89,10 +77,7 @@ class AddRequest(BaseRequest):
     def object_class_names(self) -> set[str]:
         return {
             (name.decode("latin-1") if isinstance(name, bytes) else name)
-            for name in (
-                self.attrs_dict.get("objectClass", [])
-                + self.attrs_dict.get("objectclass", [])
-            )
+            for name in (self.attrs_dict.get("objectClass", []) + self.attrs_dict.get("objectclass", []))
         }
 
     @classmethod
@@ -100,18 +85,12 @@ class AddRequest(BaseRequest):
         """Deserialize."""
         entry, attributes = data  # type: ignore
         attributes = [
-            PartialAttribute(
-                type=attr.value[0].value,
-                vals=[val.value for val in attr.value[1].value],
-            )
+            PartialAttribute(type=attr.value[0].value, vals=[val.value for val in attr.value[1].value])
             for attr in attributes.value  # type: ignore
         ]
         return cls(entry=entry.value, attributes=attributes)  # type: ignore
 
-    async def handle(  # noqa: C901
-        self,
-        ctx: LDAPAddRequestContext,
-    ) -> AsyncGenerator[AddResponse, None]:
+    async def handle(self, ctx: LDAPAddRequestContext) -> AsyncGenerator[AddResponse, None]:  # noqa: C901
         """Add request handler."""
         if not ctx.ldap_session.user:
             yield AddResponse(**INVALID_ACCESS_RESPONSE)
@@ -127,10 +106,7 @@ class AddRequest(BaseRequest):
 
         root_dn = get_search_path(self.entry)
 
-        exists_q = select(
-            select(Directory)
-            .filter(get_path_filter(root_dn)).exists(),
-        )  # fmt: skip
+        exists_q = select(select(Directory).filter(get_path_filter(root_dn)).exists())
 
         if await ctx.session.scalar(exists_q) is True:
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
@@ -149,9 +125,7 @@ class AddRequest(BaseRequest):
         parent_query = select(Directory).filter(parent_path)
 
         parent_query = ctx.access_manager.mutate_query_with_ace_load(
-            user_role_ids=ctx.ldap_session.user.role_ids,
-            query=parent_query,
-            ace_types=[AceType.CREATE_CHILD],
+            user_role_ids=ctx.ldap_session.user.role_ids, query=parent_query, ace_types=[AceType.CREATE_CHILD]
         )
 
         parent = await ctx.session.scalar(parent_query)
@@ -159,28 +133,18 @@ class AddRequest(BaseRequest):
             yield AddResponse(result_code=LDAPCodes.NO_SUCH_OBJECT)
             return
 
-        entity_type = await ctx.entity_type_use_case.get_entity_type_by_object_class_names(  # noqa: E501
-            object_class_names=self.object_class_names,
+        entity_type = await ctx.entity_type_use_case.get_entity_type_by_object_class_names(
+            object_class_names=self.object_class_names
         )
 
         if not ctx.attribute_value_validator.is_value_valid(
-            entity_type.name if entity_type else "",
-            "name",
-            name,
-        ) or not ctx.attribute_value_validator.is_value_valid(
-            entity_type.name if entity_type else "",
-            new_dn,
-            name,
-        ):
-            yield AddResponse(
-                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                errorMessage="Invalid attribute value(s)",
-            )
+            entity_type.name if entity_type else "", "name", name
+        ) or not ctx.attribute_value_validator.is_value_valid(entity_type.name if entity_type else "", new_dn, name):
+            yield AddResponse(result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE, errorMessage="Invalid attribute value(s)")
             return
 
         can_add = ctx.access_manager.check_entity_level_access(
-            aces=parent.access_control_entries,
-            entity_type_id=entity_type.id if entity_type else None,
+            aces=parent.access_control_entries, entity_type_id=entity_type.id if entity_type else None
         )
 
         if not can_add:
@@ -189,24 +153,15 @@ class AddRequest(BaseRequest):
 
         if self.password is not None:
             raw_password = self.password.get_secret_value()
-            errors = await ctx.password_use_cases.check_password_violations(
-                password=raw_password,
-                user=None,
-            )
+            errors = await ctx.password_use_cases.check_password_violations(password=raw_password, user=None)
 
             if errors:
-                yield AddResponse(
-                    result_code=LDAPCodes.OPERATIONS_ERROR,
-                    errorMessage="; ".join(errors),
-                )
+                yield AddResponse(result_code=LDAPCodes.OPERATIONS_ERROR, errorMessage="; ".join(errors))
                 return
 
         try:
             new_dir = Directory(
-                object_class="",
-                name=name,
-                is_system=self.is_system or bool(name == "kerberos"),
-                parent=parent,
+                object_class="", name=name, is_system=self.is_system or bool(name == "kerberos"), parent=parent
             )
 
             new_dir.create_path(parent, new_dn)
@@ -214,9 +169,7 @@ class AddRequest(BaseRequest):
 
             await ctx.session.flush()
 
-            await ctx.object_sid_use_case.ensure_objectsid(
-                directory_id=new_dir.id,
-            )
+            await ctx.object_sid_use_case.ensure_objectsid(directory_id=new_dir.id)
             await ctx.session.flush()
         except IntegrityError:
             await ctx.session.rollback()
@@ -231,19 +184,9 @@ class AddRequest(BaseRequest):
         user_attributes: dict[str, str] = {}
         group_attributes: list[str] = []
         is_user_like = "user" in self.object_class_names
-        user_fields = (
-            User.search_fields.keys() | User.fields.keys()
-            if is_user_like
-            else set()
-        )
+        user_fields = User.search_fields.keys() | User.fields.keys() if is_user_like else set()
 
-        attributes.append(
-            Attribute(
-                name=new_dn,
-                value=name,
-                directory_id=new_dir.id,
-            ),
-        )
+        attributes.append(Attribute(name=new_dn, value=name, directory_id=new_dir.id))
 
         for attr in self.attributes:
             attr_name = attr.type.lower()
@@ -260,10 +203,7 @@ class AddRequest(BaseRequest):
                 self.set_event_data({"before_attrs": {attr_name: attr.vals}})
 
             for value in attr.vals:
-                if (
-                    attr_name in user_fields
-                    or attr.type == "userAccountControl"
-                ):
+                if attr_name in user_fields or attr.type == "userAccountControl":
                     if not isinstance(value, str):
                         raise TypeError
                     user_attributes[attr.type] = value
@@ -282,35 +222,21 @@ class AddRequest(BaseRequest):
                             value=value if isinstance(value, str) else None,
                             bvalue=value if isinstance(value, bytes) else None,
                             directory_id=new_dir.id,
-                        ),
+                        )
                     )
 
         parent_groups = await get_groups(group_attributes, ctx.session)
         is_group = "group" in self.attrs_dict.get("objectClass", [])
-        is_user = (
-            "sAMAccountName" in user_attributes
-            or "userPrincipalName" in user_attributes
-        )
+        is_user = "sAMAccountName" in user_attributes or "userPrincipalName" in user_attributes
         is_computer = "computer" in self.attrs_dict.get("objectClass", [])
         computer_sam_account_name = None
 
         if is_user:
-            if not any(
-                group.directory.name.lower() == DOMAIN_USERS_GROUP_NAME
-                for group in parent_groups
-            ):
-                parent_groups.append(
-                    await get_group(DOMAIN_USERS_GROUP_NAME, ctx.session),
-                )
+            if not any(group.directory.name.lower() == DOMAIN_USERS_GROUP_NAME for group in parent_groups):
+                parent_groups.append(await get_group(DOMAIN_USERS_GROUP_NAME, ctx.session))
 
-            sam_account_name = user_attributes.get(
-                "sAMAccountName",
-                create_user_name(new_dir.id),
-            )
-            user_principal_name = user_attributes.get(
-                "userPrincipalName",
-                f"{sam_account_name!r}@{base_dn.name}",
-            )
+            sam_account_name = user_attributes.get("sAMAccountName", create_user_name(new_dir.id))
+            user_principal_name = user_attributes.get("userPrincipalName", f"{sam_account_name!r}@{base_dn.name}")
             user = User(
                 sam_account_name=sam_account_name,
                 user_principal_name=user_principal_name,
@@ -321,9 +247,7 @@ class AddRequest(BaseRequest):
             )
 
             if self.password is not None:
-                user.password = ctx.password_utils.get_password_hash(
-                    raw_password,
-                )
+                user.password = ctx.password_utils.get_password_hash(raw_password)
 
             items_to_add.append(user)
             user.groups.extend(parent_groups)
@@ -333,13 +257,7 @@ class AddRequest(BaseRequest):
             if not UserAccountControlFlag.is_value_valid(uac_value):
                 uac_value = str(UserAccountControlFlag.NORMAL_ACCOUNT)
 
-            attributes.append(
-                Attribute(
-                    name="userAccountControl",
-                    value=uac_value,
-                    directory_id=new_dir.id,
-                ),
-            )
+            attributes.append(Attribute(name="userAccountControl", value=uac_value, directory_id=new_dir.id))
 
             for uattr, value in (
                 ("loginShell", "/bin/bash"),
@@ -350,21 +268,9 @@ class AddRequest(BaseRequest):
                     value = user_attributes[uattr]
                     del user_attributes[uattr]
 
-                attributes.append(
-                    Attribute(
-                        name=uattr,
-                        value=value,
-                        directory_id=new_dir.id,
-                    ),
-                )
+                attributes.append(Attribute(name=uattr, value=value, directory_id=new_dir.id))
 
-            attributes.append(
-                Attribute(
-                    name="pwdLastSet",
-                    value=ft_now(),
-                    directory_id=new_dir.id,
-                ),
-            )
+            attributes.append(Attribute(name="pwdLastSet", value=ft_now(), directory_id=new_dir.id))
 
         elif is_group:
             group = Group(directory_id=new_dir.id)
@@ -375,78 +281,50 @@ class AddRequest(BaseRequest):
             computer_sam_account_name = new_dir.name
 
             attributes.append(
-                Attribute(
-                    name="sAMAccountName",
-                    value=computer_sam_account_name,
-                    directory_id=new_dir.id,
-                ),
+                Attribute(name="sAMAccountName", value=computer_sam_account_name, directory_id=new_dir.id)
             )
 
             if "useraccountcontrol" not in self.l_attrs_dict:
-                if not any(
-                    group.directory.name.lower() == DOMAIN_COMPUTERS_GROUP_NAME
-                    for group in parent_groups
-                ):
-                    parent_groups.append(
-                        await get_group(
-                            DOMAIN_COMPUTERS_GROUP_NAME,
-                            ctx.session,
-                        ),
-                    )
-                await ctx.session.refresh(
-                    instance=new_dir,
-                    attribute_names=["groups"],
-                    with_for_update=None,
-                )
+                if not any(group.directory.name.lower() == DOMAIN_COMPUTERS_GROUP_NAME for group in parent_groups):
+                    parent_groups.append(await get_group(DOMAIN_COMPUTERS_GROUP_NAME, ctx.session))
+                await ctx.session.refresh(instance=new_dir, attribute_names=["groups"], with_for_update=None)
                 new_dir.groups.extend(parent_groups)
                 attributes.append(
                     Attribute(
                         name="userAccountControl",
-                        value=str(
-                            UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT,
-                        ),
+                        value=str(UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT),
                         directory_id=new_dir.id,
-                    ),
+                    )
                 )
 
         if (is_user or is_group) and "gidnumber" not in self.l_attrs_dict:
             reverse_d_name = new_dir.name[::-1]
-            value = (
-                "513" if is_user else str(create_integer_hash(reverse_d_name))
-            )
+            value = "513" if is_user else str(create_integer_hash(reverse_d_name))
             attributes.append(
                 Attribute(
                     name="gidNumber",  # reverse dir name if it matches samAN
                     value=value,
                     directory_id=new_dir.id,
-                ),
+                )
             )
 
         if is_computer or is_user:
             attributes.append(
-                Attribute(
-                    name="primaryGroupID",
-                    value=parent_groups[-1].directory.relative_id,
-                    directory_id=new_dir.id,
-                ),
+                Attribute(name="primaryGroupID", value=parent_groups[-1].directory.relative_id, directory_id=new_dir.id)
             )
 
         if "samaccounttype" not in self.l_attrs_dict:
             if is_user:
                 attributes.append(
                     Attribute(
-                        name="sAMAccountType",
-                        value=str(SamAccountTypeCodes.SAM_USER_OBJECT),
-                        directory_id=new_dir.id,
-                    ),
+                        name="sAMAccountType", value=str(SamAccountTypeCodes.SAM_USER_OBJECT), directory_id=new_dir.id
+                    )
                 )
             elif is_group:
                 attributes.append(
                     Attribute(
-                        name="sAMAccountType",
-                        value=str(SamAccountTypeCodes.SAM_GROUP_OBJECT),
-                        directory_id=new_dir.id,
-                    ),
+                        name="sAMAccountType", value=str(SamAccountTypeCodes.SAM_GROUP_OBJECT), directory_id=new_dir.id
+                    )
                 )
             elif is_computer:
                 attributes.append(
@@ -454,18 +332,14 @@ class AddRequest(BaseRequest):
                         name="sAMAccountType",
                         value=str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
                         directory_id=new_dir.id,
-                    ),
+                    )
                 )
 
         if not ctx.attribute_value_validator.is_directory_attributes_valid(
-            entity_type.name if entity_type else "",
-            attributes,
+            entity_type.name if entity_type else "", attributes
         ) or (user and not ctx.attribute_value_validator.is_user_valid(user)):
             await ctx.session.rollback()
-            yield AddResponse(
-                result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                errorMessage="Invalid attribute value(s)",
-            )
+            yield AddResponse(result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE, errorMessage="Invalid attribute value(s)")
             return
 
         try:
@@ -480,10 +354,7 @@ class AddRequest(BaseRequest):
                 entity_type_id=entity_type_id,
                 object_class_names=self.object_class_names,
             )
-            await ctx.role_use_case.inherit_parent_aces(
-                parent_directory=parent,
-                directory=new_dir,
-            )
+            await ctx.role_use_case.inherit_parent_aces(parent_directory=parent, directory=new_dir)
             await ctx.session.commit()
         except IntegrityError:
             await ctx.session.rollback()
@@ -494,45 +365,25 @@ class AddRequest(BaseRequest):
                 # stub cannot raise error
                 if user:
                     # NOTE: Try to delete existing principal if any
-                    with contextlib.suppress(
-                        KRBAPIDeletePrincipalError,
-                        KRBAPIPrincipalNotFoundError,
-                    ):
+                    with contextlib.suppress(KRBAPIDeletePrincipalError, KRBAPIPrincipalNotFoundError):
                         await ctx.kadmin.del_principal(user.sam_account_name)
 
-                    pw = (
-                        self.password.get_secret_value()
-                        if self.password
-                        else None
-                    )
+                    pw = self.password.get_secret_value() if self.password else None
                     await ctx.kadmin.add_principal(user.sam_account_name, pw)
 
                 elif is_computer:
-                    await ctx.kadmin.add_principal(
-                        f"host/{computer_sam_account_name}.{base_dn.name}",
-                        None,
-                    )
-                    await ctx.kadmin.add_principal(
-                        f"host/{computer_sam_account_name}",
-                        None,
-                    )
+                    await ctx.kadmin.add_principal(f"host/{computer_sam_account_name}.{base_dn.name}", None)
+                    await ctx.kadmin.add_principal(f"host/{computer_sam_account_name}", None)
             except (KRBAPIAddPrincipalError, KRBAPIConnectionError):
                 await ctx.session.rollback()
-                yield AddResponse(
-                    result_code=LDAPCodes.UNAVAILABLE,
-                    errorMessage="KerberosError",
-                )
+                yield AddResponse(result_code=LDAPCodes.UNAVAILABLE, errorMessage="KerberosError")
                 return
 
             yield AddResponse(result_code=LDAPCodes.SUCCESS)
 
     @classmethod
     def from_dict(
-        cls,
-        entry: str,
-        attributes: dict[str, list[str]],
-        password: str | None = None,
-        is_system: bool = False,
+        cls, entry: str, attributes: dict[str, list[str]], password: str | None = None, is_system: bool = False
     ) -> "AddRequest":
         """Create AddRequest from dict.
 
@@ -544,8 +395,5 @@ class AddRequest(BaseRequest):
             entry=entry,
             is_system=is_system,
             password=password,
-            attributes=[
-                PartialAttribute(type=name, vals=vals)
-                for name, vals in attributes.items()
-            ],
+            attributes=[PartialAttribute(type=name, vals=vals) for name, vals in attributes.items()],
         )

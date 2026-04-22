@@ -73,9 +73,7 @@ class RawAuditEvent(AuditEvent):
     username: str
     source_ip: IPv4Address | IPv6Address
     dest_port: int
-    timestamp: float = field(
-        default_factory=lambda: datetime.now().timestamp(),
-    )
+    timestamp: float = field(default_factory=lambda: datetime.now().timestamp())
     hostname: str = field(default_factory=socket.gethostname)
     http_success_status: bool | None = None
     service_name: str | None = None
@@ -126,9 +124,7 @@ class RawAuditEventRedis(RawAuditEvent, AuditEventRedis):
     def from_redis(cls, redis_data: tuple[bytes, dict[bytes, bytes]]) -> Self:
         """Create RawAuditEvent instance from Redis dictionary data."""
         redis_id, data = redis_data
-        decoded_data = {
-            key.decode(): value.decode() for key, value in data.items()
-        }
+        decoded_data = {key.decode(): value.decode() for key, value in data.items()}
 
         parsed_data = {}
         for key, value in decoded_data.items():
@@ -138,9 +134,7 @@ class RawAuditEventRedis(RawAuditEvent, AuditEventRedis):
                 parsed_data[key] = value
 
         if "request_code" in parsed_data:
-            parsed_data["request_code"] = OperationEvent(
-                parsed_data["request_code"],
-            )
+            parsed_data["request_code"] = OperationEvent(parsed_data["request_code"])
 
         if "timestamp" in parsed_data:
             parsed_data["timestamp"] = float(parsed_data["timestamp"])
@@ -162,9 +156,7 @@ class RawAuditEventRedis(RawAuditEvent, AuditEventRedis):
         data = asdict(self)
         data["request_code"] = self.request_code.value
         return {
-            key: self.value_to_json_str(value)
-            if isinstance(value, dict) or isinstance(value, list)
-            else str(value)
+            key: self.value_to_json_str(value) if isinstance(value, dict) or isinstance(value, list) else str(value)
             for key, value in data.items()
         }
 
@@ -218,9 +210,7 @@ class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
     def to_redis_message(self) -> dict[str, str]:
         """Convert the normalized event to a dictionary for Redis storage."""
         return {
-            key: self.value_to_json_str(value)
-            if isinstance(value, dict) or isinstance(value, list)
-            else str(value)
+            key: self.value_to_json_str(value) if isinstance(value, dict) or isinstance(value, list) else str(value)
             for key, value in asdict(self).items()
         }
 
@@ -251,14 +241,10 @@ class NormalizedAuditEventRedis(NormalizedAuditEvent, AuditEventRedis):
             if decoded["first_failed_at"] == "None":
                 decoded["first_failed_at"] = None
             else:
-                decoded["first_failed_at"] = datetime.fromisoformat(
-                    decoded["first_failed_at"],
-                )
+                decoded["first_failed_at"] = datetime.fromisoformat(decoded["first_failed_at"])
         if "is_operation_success" in decoded:
             val = decoded["is_operation_success"]
-            decoded["is_operation_success"] = (
-                val if isinstance(val, bool) else val.lower() == "true"
-            )
+            decoded["is_operation_success"] = val if isinstance(val, bool) else val.lower() == "true"
         decoded["id"] = redis_id.decode("utf-8")
 
         return cls(**decoded)

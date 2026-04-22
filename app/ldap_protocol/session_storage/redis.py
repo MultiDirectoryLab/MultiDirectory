@@ -84,10 +84,7 @@ class RedisSessionStorage(SessionStorage):
         :param int blocking_timeout: blocking timeout, defaults to 5
         :return Lock: lock object
         """
-        return self._storage.lock(
-            name=self._get_lock_key(name),
-            blocking_timeout=blocking_timeout,
-        )
+        return self._storage.lock(name=self._get_lock_key(name), blocking_timeout=blocking_timeout)
 
     async def get(self, key: str) -> dict:
         """Retrieve data associated with the given key from storage.
@@ -116,11 +113,7 @@ class RedisSessionStorage(SessionStorage):
         encoded_keys = await self._storage.smembers(key)  # type: ignore
         return {k.decode() for k in encoded_keys}
 
-    async def _get_session_keys_by_ip(
-        self,
-        ip: str,
-        protocol: ProtocolType | None = None,
-    ) -> set[str]:
+    async def _get_session_keys_by_ip(self, ip: str, protocol: ProtocolType | None = None) -> set[str]:
         """Get session keys by ip.
 
         Retrieves session keys associated with the given IP address. If a
@@ -132,19 +125,13 @@ class RedisSessionStorage(SessionStorage):
         :return set[str]: session keys
         """
         if protocol:
-            return await self._fetch_keys(
-                self._get_ip_session_key(ip, protocol),
-            )
+            return await self._fetch_keys(self._get_ip_session_key(ip, protocol))
 
-        return (
-            await self._fetch_keys(self._get_ip_session_key(ip, "http"))
-        ).union(await self._fetch_keys(self._get_ip_session_key(ip, "ldap")))
+        return (await self._fetch_keys(self._get_ip_session_key(ip, "http"))).union(
+            await self._fetch_keys(self._get_ip_session_key(ip, "ldap"))
+        )
 
-    async def _get_session_keys_by_uid(
-        self,
-        uid: int,
-        protocol: ProtocolType | None = None,
-    ) -> set[str]:
+    async def _get_session_keys_by_uid(self, uid: int, protocol: ProtocolType | None = None) -> set[str]:
         """Get sesssion keys by user id.
 
         Retrieves session keys associated with the given User ID. If a
@@ -156,14 +143,10 @@ class RedisSessionStorage(SessionStorage):
         :return set[str]: session keys
         """
         if protocol:
-            return await self._fetch_keys(
-                self._get_user_session_key(uid, protocol),
-            )
+            return await self._fetch_keys(self._get_user_session_key(uid, protocol))
 
-        return (
-            await self._fetch_keys(self._get_user_session_key(uid, "http"))
-        ).union(
-            await self._fetch_keys(self._get_user_session_key(uid, "ldap")),
+        return (await self._fetch_keys(self._get_user_session_key(uid, "http"))).union(
+            await self._fetch_keys(self._get_user_session_key(uid, "ldap"))
         )
 
     async def _get_sessions(self, keys: set[str], id_value: str | int) -> dict:
@@ -220,11 +203,7 @@ class RedisSessionStorage(SessionStorage):
 
         return retval
 
-    async def get_user_sessions(
-        self,
-        uid: int,
-        protocol: ProtocolType | None = None,
-    ) -> dict:
+    async def get_user_sessions(self, uid: int, protocol: ProtocolType | None = None) -> dict:
         """Get sessions by user id.
 
         :param int uid: user id
@@ -234,11 +213,7 @@ class RedisSessionStorage(SessionStorage):
         keys = await self._get_session_keys_by_uid(uid, protocol)
         return await self._get_sessions(keys, uid)
 
-    async def get_ip_sessions(
-        self,
-        ip: str,
-        protocol: ProtocolType | None = None,
-    ) -> dict:
+    async def get_ip_sessions(self, ip: str, protocol: ProtocolType | None = None) -> dict:
         """Get sessions data by ip.
 
         :param str ip: ip
@@ -276,9 +251,7 @@ class RedisSessionStorage(SessionStorage):
                 protocol = self._get_protocol(k)
                 ip = json.loads(v).get("ip")
                 if ip:
-                    key_sessions_map[
-                        self._get_ip_session_key(ip, protocol)
-                    ].append(k)
+                    key_sessions_map[self._get_ip_session_key(ip, protocol)].append(k)
 
         http_sessions_key = self._get_user_session_key(uid, "http")
         ldap_sessions_key = self._get_user_session_key(uid, "ldap")
@@ -332,11 +305,7 @@ class RedisSessionStorage(SessionStorage):
 
         sessions_key = self._get_user_session_key(uid, protocol)
         ip_key = self._get_ip_session_key(ip, protocol)
-        zset_key = (
-            self.ZSET_HTTP_SESSIONS
-            if protocol == "http"
-            else self.ZSET_LDAP_SESSIONS
-        )
+        zset_key = self.ZSET_HTTP_SESSIONS if protocol == "http" else self.ZSET_LDAP_SESSIONS
         async with self._storage.pipeline() as pipe:
             await pipe.srem(sessions_key, session_id)  # type: ignore
             await pipe.srem(ip_key, session_id)  # type: ignore
@@ -367,31 +336,18 @@ class RedisSessionStorage(SessionStorage):
         :param str sessions_key: sessions key
         :param int | None ttl: time to live, defaults to None
         """
-        zset_key = (
-            self.ZSET_HTTP_SESSIONS
-            if session_id.startswith("http:")
-            else self.ZSET_LDAP_SESSIONS
-        )
+        zset_key = self.ZSET_HTTP_SESSIONS if session_id.startswith("http:") else self.ZSET_LDAP_SESSIONS
 
         async with self._storage.pipeline() as pipe:
             await pipe.set(session_id, json.dumps(data), ex=ttl)
             await pipe.sadd(sessions_key, session_id)  # type: ignore
             if ip_session_key:
                 await pipe.sadd(ip_session_key, session_id)  # type: ignore
-            await pipe.zadd(
-                zset_key,
-                {sessions_key: uid},
-                nx=True,
-            )
+            await pipe.zadd(zset_key, {sessions_key: uid}, nx=True)
             await pipe.execute()
 
     async def create_session(
-        self: Self,
-        uid: int,
-        settings: Settings,
-        ttl: int,
-        *,
-        extra_data: dict | None = None,
+        self: Self, uid: int, settings: Settings, ttl: int, *, extra_data: dict | None = None
     ) -> str:
         """Create jwt token.
 
@@ -413,25 +369,14 @@ class RedisSessionStorage(SessionStorage):
         :param Literal[refresh, access] grant_type: grant type flag
         :return str: jwt token
         """
-        session_id, signature, data = self._generate_session_data(
-            uid=uid,
-            settings=settings,
-            extra_data=extra_data,
-        )
+        session_id, signature, data = self._generate_session_data(uid=uid, settings=settings, extra_data=extra_data)
         http_sessions_key = self._get_user_session_key(uid, "http")
 
         ip_sessions_key = None
         if extra_data and (ip := extra_data.get("ip")):
             ip_sessions_key = self._get_ip_session_key(ip, "http")
 
-        await self._add_session(
-            session_id,
-            data,
-            uid,
-            ip_sessions_key,
-            http_sessions_key,
-            ttl,
-        )
+        await self._add_session(session_id, data, uid, ip_sessions_key, http_sessions_key, ttl)
 
         return f"{session_id}.{signature}"
 
@@ -439,12 +384,7 @@ class RedisSessionStorage(SessionStorage):
         """Check session."""
         return await self._storage.exists(session_id)
 
-    async def create_ldap_session(
-        self,
-        uid: int,
-        key: str,
-        data: dict,
-    ) -> None:
+    async def create_ldap_session(self, uid: int, key: str, data: dict) -> None:
         """Create ldap session.
 
         Generates a new session for the given user ID (`uid`),
@@ -470,13 +410,7 @@ class RedisSessionStorage(SessionStorage):
         if data and (ip := data.get("ip")):
             ip_sessions_key = self._get_ip_session_key(ip, "ldap")
 
-        await self._add_session(
-            key,
-            data,
-            uid,
-            ip_sessions_key,
-            ldap_sessions_key,
-        )
+        await self._add_session(key, data, uid, ip_sessions_key, ldap_sessions_key)
 
     async def check_rekey(self, session_id: str, rekey_interval: int) -> bool:
         """Check rekey.
@@ -527,31 +461,18 @@ class RedisSessionStorage(SessionStorage):
         extra_data.pop("sign", None)
 
         new_session_id, new_signature, new_data = self._generate_session_data(
-            uid=uid,
-            settings=settings,
-            extra_data=extra_data,
+            uid=uid, settings=settings, extra_data=extra_data
         )
         http_sessions_key = self._get_user_session_key(uid, "http")
         ip_sessions_key = self._get_ip_session_key(ip, "http")
 
-        await self._add_session(
-            new_session_id,
-            new_data,
-            uid,
-            ip_sessions_key,
-            http_sessions_key,
-            ttl,
-        )
+        await self._add_session(new_session_id, new_data, uid, ip_sessions_key, http_sessions_key, ttl)
 
         await self.delete_user_session(session_id)
 
         return f"{new_session_id}.{new_signature}"
 
-    async def rekey_session_if_needed(
-        self,
-        session_id: str,
-        settings: Settings,
-    ) -> str | None:
+    async def rekey_session_if_needed(self, session_id: str, settings: Settings) -> str | None:
         """Rekey session if needed.
 
         :param str session_id: session id
@@ -560,10 +481,7 @@ class RedisSessionStorage(SessionStorage):
         """
         lock = await self._get_lock(session_id)
         async with lock:
-            if await self.check_rekey(
-                session_id,
-                settings.SESSION_REKEY_INTERVAL,
-            ):
+            if await self.check_rekey(session_id, settings.SESSION_REKEY_INTERVAL):
                 return await self._rekey_session(session_id, settings)
 
         return None

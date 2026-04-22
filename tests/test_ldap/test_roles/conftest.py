@@ -21,19 +21,14 @@ async def custom_role(role_dao: RoleDAO) -> RoleDTO:
     """Fixture to create a custom role for testing."""
     await role_dao.create(
         dto=RoleDTO(
-            name="Custom Role",
-            creator_upn=None,
-            is_system=False,
-            groups=["cn=domain users,cn=Groups,dc=md,dc=test"],
-        ),
+            name="Custom Role", creator_upn=None, is_system=False, groups=["cn=domain users,cn=Groups,dc=md,dc=test"]
+        )
     )
     return await role_dao.get(role_dao.get_last_id())
 
 
 async def run_ldap_search(
-    settings: Settings,
-    creds: TestCreds,
-    search_base: str = "dc=md,dc=test",
+    settings: Settings, creds: TestCreds, search_base: str = "dc=md,dc=test"
 ) -> tuple[int, list[str]]:
     """Run ldapsearch command and return the result."""
     proc = await asyncio.create_subprocess_exec(
@@ -60,24 +55,10 @@ async def run_ldap_search(
     return result, data
 
 
-async def run_ldap_modify(
-    settings: Settings,
-    creds: TestCreds,
-    dn: str,
-    attribute: str,
-    value: str,
-) -> int:
+async def run_ldap_modify(settings: Settings, creds: TestCreds, dn: str, attribute: str, value: str) -> int:
     """Run ldapmodify command to modify an LDAP entry."""
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write(
-            (
-                f"dn: {dn}\n"
-                "changetype: modify\n"
-                f"replace: {attribute}\n"
-                f"{attribute}: {value}\n"
-                "-\n"
-            ),
-        )
+        file.write((f"dn: {dn}\nchangetype: modify\nreplace: {attribute}\n{attribute}: {value}\n-\n"))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapmodify",
@@ -107,11 +88,7 @@ async def perform_ldap_search_and_validate(
     expected_attrs_absent: list[str],
 ) -> None:
     """Perform LDAP search and validate results."""
-    result, data = await run_ldap_search(
-        settings,
-        creds,
-        search_base=search_base,
-    )
+    result, data = await run_ldap_search(settings, creds, search_base=search_base)
 
     dn_list = [d for d in data if d.startswith("dn:")]
 

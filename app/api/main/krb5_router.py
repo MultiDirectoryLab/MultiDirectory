@@ -17,18 +17,9 @@ from pydantic import SecretStr
 
 from api.auth.adapters.auth import AuthFastAPIAdapter
 from api.auth.utils import verify_auth
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from api.main.adapters.kerberos import KerberosFastAPIAdapter
-from api.main.schema import (
-    KerberosSetupRequest,
-    KtaddRequest,
-    ModifyPrincipalRequest,
-    PrincipalAddRequest,
-)
+from api.main.schema import KerberosSetupRequest, KtaddRequest, ModifyPrincipalRequest, PrincipalAddRequest
 from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.dialogue import LDAPSession
@@ -50,37 +41,15 @@ translator = DomainErrorTranslator(DomainCodes.KERBEROS)
 
 
 error_map: ERROR_MAP_TYPE = {
-    KerberosBaseDnNotFoundError: rule(
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        translator=translator,
-    ),
-    KerberosConflictError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    KerberosDependencyError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    KerberosNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    KerberosUnavailableError: rule(
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        translator=translator,
-    ),
-    KRBAPIConnectionError: rule(
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        translator=translator,
-    ),
+    KerberosBaseDnNotFoundError: rule(status=status.HTTP_500_INTERNAL_SERVER_ERROR, translator=translator),
+    KerberosConflictError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    KerberosDependencyError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    KerberosNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    KerberosUnavailableError: rule(status=status.HTTP_500_INTERNAL_SERVER_ERROR, translator=translator),
+    KRBAPIConnectionError: rule(status=status.HTTP_500_INTERNAL_SERVER_ERROR, translator=translator),
 }
 
-krb5_router = ErrorAwareRouter(
-    prefix="/kerberos",
-    tags=["KRB5 API"],
-    route_class=DishkaErrorAwareRoute,
-)
+krb5_router = ErrorAwareRouter(prefix="/kerberos", tags=["KRB5 API"], route_class=DishkaErrorAwareRoute)
 KERBEROS_POLICY_NAME = "Kerberos Access Policy"
 
 
@@ -104,20 +73,10 @@ async def setup_krb_catalogue(
     :param Annotated[SecretStr, Body krbadmin_password: pw
     :raises HTTPException: on conflict
     """
-    await kerberos_adapter.setup_krb_catalogue(
-        mail,
-        krbadmin_password,
-        ldap_session,
-        ctx,
-    )
+    await kerberos_adapter.setup_krb_catalogue(mail, krbadmin_password, ldap_session, ctx)
 
 
-@krb5_router.post(
-    "/setup",
-    response_class=Response,
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@krb5_router.post("/setup", response_class=Response, error_map=error_map, dependencies=[Depends(require_master_db)])
 async def setup_kdc(
     data: KerberosSetupRequest,
     identity_adapter: FromDishka[AuthFastAPIAdapter],
@@ -142,20 +101,12 @@ async def setup_kdc(
 
 
 LIMITED_STR = Annotated[str, Len(min_length=1, max_length=8100)]
-LIMITED_LIST = Annotated[
-    list[LIMITED_STR],
-    Len(min_length=1, max_length=10000),
-]
+LIMITED_LIST = Annotated[list[LIMITED_STR], Len(min_length=1, max_length=10000)]
 
 
-@krb5_router.post(
-    "/ktadd",
-    dependencies=[Depends(verify_auth)],
-    error_map=error_map,
-)
+@krb5_router.post("/ktadd", dependencies=[Depends(verify_auth)], error_map=error_map)
 async def ktadd(
-    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
-    names: Annotated[LIMITED_LIST, Body()],
+    kerberos_adapter: FromDishka[KerberosFastAPIAdapter], names: Annotated[LIMITED_LIST, Body()]
 ) -> StreamingResponse:
     """Create keytab from kadmin server.
 
@@ -166,14 +117,8 @@ async def ktadd(
     return await kerberos_adapter.ktadd(request)
 
 
-@krb5_router.get(
-    "/status",
-    dependencies=[Depends(verify_auth)],
-    error_map=error_map,
-)
-async def get_krb_status(
-    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
-) -> KerberosState:
+@krb5_router.get("/status", dependencies=[Depends(verify_auth)], error_map=error_map)
+async def get_krb_status(kerberos_adapter: FromDishka[KerberosFastAPIAdapter]) -> KerberosState:
     """Get server status.
 
     :param Annotated[AsyncSession, Depends session: db
@@ -184,9 +129,7 @@ async def get_krb_status(
 
 
 @krb5_router.post(
-    "/principal/add",
-    dependencies=[Depends(verify_auth), Depends(require_master_db)],
-    error_map=error_map,
+    "/principal/add", dependencies=[Depends(verify_auth), Depends(require_master_db)], error_map=error_map
 )
 async def add_principal(
     primary: Annotated[LIMITED_STR, Body()],
@@ -200,32 +143,22 @@ async def add_principal(
     :param Annotated[LDAPSession, Depends ldap_session: ldap
     :raises HTTPException: on failed kamin request.
     """
-    request = PrincipalAddRequest(
-        principal_name=f"{primary}/{instance}",
-    )
+    request = PrincipalAddRequest(principal_name=f"{primary}/{instance}")
     await kerberos_adapter.add_principal(request)
 
 
-@krb5_router.put(
-    "/principal",
-    dependencies=[Depends(verify_auth), Depends(require_master_db)],
-    error_map=error_map,
-)
+@krb5_router.put("/principal", dependencies=[Depends(verify_auth), Depends(require_master_db)], error_map=error_map)
 async def modify_principal(
-    request: ModifyPrincipalRequest,
-    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
+    request: ModifyPrincipalRequest, kerberos_adapter: FromDishka[KerberosFastAPIAdapter]
 ) -> None:
     await kerberos_adapter.modify_principal(request)
 
 
 @krb5_router.delete(
-    "/principal/delete",
-    dependencies=[Depends(verify_auth), Depends(require_master_db)],
-    error_map=error_map,
+    "/principal/delete", dependencies=[Depends(verify_auth), Depends(require_master_db)], error_map=error_map
 )
 async def delete_principal(
-    principal_name: Annotated[LIMITED_STR, Body(embed=True)],
-    kerberos_adapter: FromDishka[KerberosFastAPIAdapter],
+    principal_name: Annotated[LIMITED_STR, Body(embed=True)], kerberos_adapter: FromDishka[KerberosFastAPIAdapter]
 ) -> None:
     """Delete principal in kerberos with given name.
 

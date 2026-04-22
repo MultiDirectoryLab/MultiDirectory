@@ -126,11 +126,7 @@ class NetLogonAttributeHandler:
         return self._get_netbios_domain() + DEFAULT_DC_POSTFIX
 
     @classmethod
-    def from_filter(
-        cls,
-        root_dse: defaultdict[str, list[str]],
-        expr: ASN1Row | str,
-    ) -> Self:
+    def from_filter(cls, root_dse: defaultdict[str, list[str]], expr: ASN1Row | str) -> Self:
         """Parse NetLogon filter."""
         obj = cls(root_dse)
 
@@ -140,10 +136,7 @@ class NetLogonAttributeHandler:
                     attr, value = item.value
 
                     if hasattr(obj, attr.value.lower()):
-                        obj.__setattr__(
-                            attr.value.lower(),
-                            value.value,
-                        )
+                        obj.__setattr__(attr.value.lower(), value.value)
             except (TypeError, AttributeError):
                 pass  # malformed filter, ignore and use defaults
 
@@ -152,18 +145,14 @@ class NetLogonAttributeHandler:
 
     def set_info(self) -> None:
         """Get info from filter."""
-        domain_guid = (
-            self.domainguid if self.domainguid is not None else _ZERO_UUID
-        )
+        domain_guid = self.domainguid if self.domainguid is not None else _ZERO_UUID
 
         is_domain_zero = domain_guid == _ZERO_UUID
 
         if self.dnsdomain is not None:
             domain_dns = self.dnsdomain
         else:
-            domain_dns = (
-                self.__root_dse["dnsHostName"][0] if is_domain_zero else ""
-            )
+            domain_dns = self.__root_dse["dnsHostName"][0] if is_domain_zero else ""
 
         nc_used = domain_dns if is_domain_zero else str(domain_guid)
         domain_sid = self.domainsid if self.domainsid is not None else ""
@@ -197,10 +186,8 @@ class NetLogonAttributeHandler:
         """Get NetLogon response."""
         ntver = self._convert_little_endian_string_to_int(self.__info.ntver)
 
-        if bool(
-            ntver & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
-        ) or bool(
-            ntver & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP,
+        if bool(ntver & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX) or bool(
+            ntver & NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX_WITH_IP
         ):
             return self._get_netlogon_response_5_ex()
 
@@ -209,10 +196,7 @@ class NetLogonAttributeHandler:
 
         return self._get_netlogon_response_nt40()
 
-    def _pack_value(
-        self,
-        values: list[tuple[Any, str | None]],
-    ) -> bytes:
+    def _pack_value(self, values: list[tuple[Any, str | None]]) -> bytes:
         """Pack values."""
         packed_value = b""
         for value in values:
@@ -221,10 +205,7 @@ class NetLogonAttributeHandler:
                 if len(value[1]) > 0:
                     packed_string += struct.pack("<B", 0)
                     if packed_string in packed_value:
-                        packed_value += self._get_pointer(
-                            packed_string,
-                            packed_value,
-                        )
+                        packed_value += self._get_pointer(packed_string, packed_value)
                     else:
                         packed_value += packed_string
             elif value[1] == "uuid":
@@ -270,14 +251,10 @@ class NetLogonAttributeHandler:
                 (self.__root_dse["dnsHostName"][0], "utf-8"),
                 (ipaddress.IPv4Address("127.0.0.1").packed, None),
                 (DSFlag.PDC_FLAG | DSFlag.DS_FLAG, "<I"),
-                (
-                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1
-                    | NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5,
-                    "<I",
-                ),
+                (NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1 | NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5, "<I"),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
-            ],
+            ]
         )
 
     def _get_netlogon_response_5_ex(self) -> bytes:
@@ -317,14 +294,10 @@ class NetLogonAttributeHandler:
                 (self.__info.user, "utf-8"),
                 (self.__info.site, "utf-8"),
                 (self.__info.site, "utf-8"),
-                (
-                    NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1
-                    | NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX,
-                    "<I",
-                ),
+                (NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1 | NetLogonNtVersionFlag.NETLOGON_NT_VERSION_5EX, "<I"),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
-            ],
+            ]
         )
 
     def _get_netlogon_response_nt40(self) -> bytes:
@@ -342,5 +315,5 @@ class NetLogonAttributeHandler:
                 (NetLogonNtVersionFlag.NETLOGON_NT_VERSION_1, "<I"),
                 (0xFFFF, "<H"),
                 (0xFFFF, "<H"),
-            ],
+            ]
         )

@@ -4,13 +4,7 @@ Copyright (c) 2024 MultiFactor
 License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 """
 
-from .base import (
-    AbstractLDAPAuth,
-    LDAPBindErrors,
-    SaslAuthentication,
-    SASLMethod,
-    get_bad_response,
-)
+from .base import AbstractLDAPAuth, LDAPBindErrors, SaslAuthentication, SASLMethod, get_bad_response
 from .sasl_gssapi import GSSAPISL, GSSAPIAuthStatus, SaslGSSAPIAuthentication
 from .sasl_plain import SaslPLAINAuthentication
 from .sasl_spnego import SaslSPNEGOAuthentication

@@ -11,11 +11,7 @@ from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 from sqlalchemy.sql.elements import ColumnElement, UnaryExpression
 
 from entities import Directory
-from ldap_protocol.filter_interpreter import (
-    Filter,
-    FilterInterpreterProtocol,
-    StringFilterInterpreter,
-)
+from ldap_protocol.filter_interpreter import Filter, FilterInterpreterProtocol, StringFilterInterpreter
 from ldap_protocol.ldap_requests import SearchRequest as LDAPSearchRequest
 from ldap_protocol.ldap_responses import SearchResultDone, SearchResultEntry
 from ldap_protocol.utils.const import GRANT_DN_STRING
@@ -26,16 +22,12 @@ class SearchRequest(LDAPSearchRequest):
 
     filter: str = Field(..., examples=["(objectClass=*)"])  # type: ignore
 
-    _filter_interpreter: FilterInterpreterProtocol = PrivateAttr(
-        default_factory=StringFilterInterpreter,
-    )
+    _filter_interpreter: FilterInterpreterProtocol = PrivateAttr(default_factory=StringFilterInterpreter)
 
     def _cast_filter(self) -> UnaryExpression | ColumnElement:
         """Cast str filter to sa sql."""
         filter_ = self.filter.lower().replace("objectcategory", "objectclass")
-        return self._filter_interpreter.cast_to_sql(
-            Filter.parse(filter_).simplify(),
-        )
+        return self._filter_interpreter.cast_to_sql(Filter.parse(filter_).simplify())
 
     @staticmethod
     def get_directory_sid(directory: Directory) -> str | None:  # type: ignore
@@ -47,8 +39,7 @@ class SearchRequest(LDAPSearchRequest):
 
     @final
     async def handle_api(  # type: ignore
-        self,
-        container: AsyncContainer,
+        self, container: AsyncContainer
     ) -> list[SearchResultEntry | SearchResultDone]:
         """Get all responses."""
         return await self._handle_api(container)  # type: ignore

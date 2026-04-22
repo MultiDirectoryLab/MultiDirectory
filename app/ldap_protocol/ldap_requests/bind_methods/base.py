@@ -51,11 +51,7 @@ class LDAPBindErrors(StrEnum):
 
     def __str__(self) -> str:
         """Return the error message as a string."""
-        return (
-            "80090308: LdapErr: DSID-0C09030B, "
-            "comment: AcceptSecurityContext error, "
-            f"data {self.value}, v893"
-        )
+        return f"80090308: LdapErr: DSID-0C09030B, comment: AcceptSecurityContext error, data {self.value}, v893"
 
 
 def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
@@ -67,11 +63,7 @@ def get_bad_response(error_message: LDAPBindErrors) -> BindResponse:
                           INVALID_CREDENTIALS, an empty matchedDN, and the
                           provided error message
     """
-    return BindResponse(
-        result_code=LDAPCodes.INVALID_CREDENTIALS,
-        matchedDN="",
-        errorMessage=str(error_message),
-    )
+    return BindResponse(result_code=LDAPCodes.INVALID_CREDENTIALS, matchedDN="", errorMessage=str(error_message))
 
 
 class AbstractLDAPAuth(ABC, BaseModel):
@@ -91,11 +83,7 @@ class AbstractLDAPAuth(ABC, BaseModel):
         """Abstract method id."""
 
     @abstractmethod
-    def is_valid(
-        self,
-        user: User,
-        password_utils: PasswordUtils,
-    ) -> bool:
+    def is_valid(self, user: User, password_utils: PasswordUtils) -> bool:
         """Validate state."""
 
     @abstractmethod

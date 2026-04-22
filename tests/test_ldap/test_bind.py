@@ -24,13 +24,8 @@ from ldap_protocol.ldap_requests.bind import (
     SimpleAuthentication,
     UnbindRequest,
 )
-from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import (
-    SaslSPNEGOAuthentication,
-)
-from ldap_protocol.ldap_requests.contexts import (
-    LDAPBindRequestContext,
-    LDAPUnbindRequestContext,
-)
+from ldap_protocol.ldap_requests.bind_methods.sasl_spnego import SaslSPNEGOAuthentication
+from ldap_protocol.ldap_requests.contexts import LDAPBindRequestContext, LDAPUnbindRequestContext
 from ldap_protocol.objects import UserAccountControlFlag
 from password_utils import PasswordUtils
 from tests.conftest import MutePolicyBindRequest, TestCreds
@@ -40,9 +35,7 @@ from tests.conftest import MutePolicyBindRequest, TestCreds
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_bind_ok_and_unbind(
-    creds: TestCreds,
-    ctx_bind: LDAPBindRequestContext,
-    ctx_unbind: LDAPUnbindRequestContext,
+    creds: TestCreds, ctx_bind: LDAPBindRequestContext, ctx_unbind: LDAPUnbindRequestContext
 ) -> None:
     """Test ok bind."""
     bind = MutePolicyBindRequest(
@@ -66,53 +59,31 @@ async def test_bind_ok_and_unbind(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_gssapi_bind_in_progress(
-    creds: TestCreds,
-    request_container: AsyncContainer,
-) -> None:
+async def test_gssapi_bind_in_progress(creds: TestCreds, request_container: AsyncContainer) -> None:
     """Test first step gssapi bind."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
     mock_security_context.step.return_value = b"response_ticket"
     mock_security_context.complete = False
 
-    async def mock_init_security_context(
-        session: AsyncSession,  # noqa: ARG001
-        settings: Settings,  # noqa: ARG001
-    ) -> None:
-        auth_choice._ldap_session.gssapi_security_context = (  # noqa: SLF001
-            mock_security_context
-        )
+    async def mock_init_security_context(session: AsyncSession, settings: Settings) -> None:  # noqa: ARG001
+        auth_choice._ldap_session.gssapi_security_context = mock_security_context  # noqa: SLF001
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"ticket")
     auth_choice._init_security_context = mock_init_security_context  # type: ignore  # noqa: SLF001
 
-    bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=auth_choice,
-    )
+    bind = BindRequest(version=0, name=creds.un, AuthenticationChoice=auth_choice)
 
     kwargs = await resolve_deps(bind.handle, request_container)
     result = await anext(bind.handle(**kwargs))
-    assert result == BindResponse(
-        result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-        serverSaslCreds=b"response_ticket",
-    )
+    assert result == BindResponse(result_code=LDAPCodes.SASL_BIND_IN_PROGRESS, serverSaslCreds=b"response_ticket")
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_gssapi_bind_missing_credentials(
-    creds: TestCreds,
-    container: AsyncContainer,
-) -> None:
+async def test_gssapi_bind_missing_credentials(creds: TestCreds, container: AsyncContainer) -> None:
     """Test gssapi bind with missing credentials."""
-    bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=SaslGSSAPIAuthentication(),
-    )
+    bind = BindRequest(version=0, name=creds.un, AuthenticationChoice=SaslGSSAPIAuthentication())
 
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(bind.handle, container)
@@ -123,151 +94,89 @@ async def test_gssapi_bind_missing_credentials(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_gssapi_bind_ok(
-    creds: TestCreds,
-    container: AsyncContainer,
-) -> None:
+async def test_gssapi_bind_ok(creds: TestCreds, container: AsyncContainer) -> None:
     """Test gssapi bind ok."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
     mock_security_context.step.return_value = b"server_ticket"
     mock_security_context.complete = False
     mock_security_context.initiator_name = f"{creds.un}@domain"
-    mock_security_context.wrap.return_value = (
-        gssapi.raw.named_tuples.WrapResult(
-            message=b"\x01\x00\x04\x00",
-            encrypted=False,
-        )
+    mock_security_context.wrap.return_value = gssapi.raw.named_tuples.WrapResult(
+        message=b"\x01\x00\x04\x00", encrypted=False
     )
-    mock_security_context.unwrap.return_value = (
-        gssapi.raw.named_tuples.UnwrapResult(
-            message=b"\x01\x00\x04\x00",
-            encrypted=False,
-            qop=0,
-        )
+    mock_security_context.unwrap.return_value = gssapi.raw.named_tuples.UnwrapResult(
+        message=b"\x01\x00\x04\x00", encrypted=False, qop=0
     )
 
-    async def mock_init_security_context(
-        session: AsyncSession,  # noqa: ARG001
-        settings: Settings,  # noqa: ARG001
-    ) -> None:
-        auth_choice._ldap_session.gssapi_security_context = (  # noqa: SLF001
-            mock_security_context
-        )
+    async def mock_init_security_context(session: AsyncSession, settings: Settings) -> None:  # noqa: ARG001
+        auth_choice._ldap_session.gssapi_security_context = mock_security_context  # noqa: SLF001
 
     auth_choice = SaslGSSAPIAuthentication(ticket=b"client_ticket")
     auth_choice._init_security_context = mock_init_security_context  # type: ignore  # noqa: SLF001
 
-    first_bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=auth_choice,
-    )
+    first_bind = BindRequest(version=0, name=creds.un, AuthenticationChoice=auth_choice)
 
-    second_bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=SaslGSSAPIAuthentication(),
-    )
+    second_bind = BindRequest(version=0, name=creds.un, AuthenticationChoice=SaslGSSAPIAuthentication())
 
     third_bind = MutePolicyBindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=SaslGSSAPIAuthentication(
-            ticket=b"wrap_client_request",
-        ),
+        version=0, name=creds.un, AuthenticationChoice=SaslGSSAPIAuthentication(ticket=b"wrap_client_request")
     )
 
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(first_bind.handle, container)
         result = await anext(first_bind.handle(**kwargs))
-        assert result == BindResponse(
-            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-            serverSaslCreds=b"server_ticket",
-        )
+        assert result == BindResponse(result_code=LDAPCodes.SASL_BIND_IN_PROGRESS, serverSaslCreds=b"server_ticket")
 
         mock_security_context.complete = True
 
         kwargs = await resolve_deps(second_bind.handle, container)
         result = await anext(second_bind.handle(**kwargs))
-        assert result == BindResponse(
-            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-            serverSaslCreds=b"\x01\x00\x04\x00",
-        )
+        assert result == BindResponse(result_code=LDAPCodes.SASL_BIND_IN_PROGRESS, serverSaslCreds=b"\x01\x00\x04\x00")
 
         kwargs = await resolve_deps(third_bind.handle, container)
         result = await anext(third_bind.handle(**kwargs))
-        assert result == BindResponse(
-            result_code=LDAPCodes.SUCCESS,
-        )
+        assert result == BindResponse(result_code=LDAPCodes.SUCCESS)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_spnego_bind_ok(
-    creds: TestCreds,
-    container: AsyncContainer,
-) -> None:
+async def test_spnego_bind_ok(creds: TestCreds, container: AsyncContainer) -> None:
     """Test spnego bind ok."""
     mock_security_context = Mock(spec=gssapi.SecurityContext)
     mock_security_context.step.return_value = b"server_ticket"
     mock_security_context.complete = False
     mock_security_context.initiator_name = f"{creds.un}@domain"
 
-    async def mock_init_security_context(
-        session: AsyncSession,  # noqa: ARG001
-        settings: Settings,  # noqa: ARG001
-    ) -> None:
-        auth_choice._ldap_session.gssapi_security_context = (  # noqa: SLF001
-            mock_security_context
-        )
+    async def mock_init_security_context(session: AsyncSession, settings: Settings) -> None:  # noqa: ARG001
+        auth_choice._ldap_session.gssapi_security_context = mock_security_context  # noqa: SLF001
 
     auth_choice = SaslSPNEGOAuthentication(ticket=b"client_ticket")
     auth_choice._init_security_context = mock_init_security_context  # type: ignore  # noqa: SLF001
 
-    first_bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=auth_choice,
-    )
+    first_bind = BindRequest(version=0, name=creds.un, AuthenticationChoice=auth_choice)
 
     second_bind = MutePolicyBindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=SaslSPNEGOAuthentication(ticket=b"client_ticket"),
+        version=0, name=creds.un, AuthenticationChoice=SaslSPNEGOAuthentication(ticket=b"client_ticket")
     )
 
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(first_bind.handle, container)
         result = await anext(first_bind.handle(**kwargs))
-        assert result == BindResponse(
-            result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-            serverSaslCreds=b"server_ticket",
-        )
+        assert result == BindResponse(result_code=LDAPCodes.SASL_BIND_IN_PROGRESS, serverSaslCreds=b"server_ticket")
 
         mock_security_context.complete = True
 
         kwargs = await resolve_deps(second_bind.handle, container)
         result = await anext(second_bind.handle(**kwargs))
-        assert result == BindResponse(
-            result_code=LDAPCodes.SUCCESS,
-            serverSaslCreds=b"server_ticket",
-        )
+        assert result == BindResponse(result_code=LDAPCodes.SUCCESS, serverSaslCreds=b"server_ticket")
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_spnego_bind_missing_credentials(
-    creds: TestCreds,
-    container: AsyncContainer,
-) -> None:
+async def test_spnego_bind_missing_credentials(creds: TestCreds, container: AsyncContainer) -> None:
     """Test spnego bind with missing credentials."""
-    bind = BindRequest(
-        version=0,
-        name=creds.un,
-        AuthenticationChoice=SaslSPNEGOAuthentication(),
-    )
+    bind = BindRequest(version=0, name=creds.un, AuthenticationChoice=SaslSPNEGOAuthentication())
 
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(bind.handle, container)
@@ -278,18 +187,10 @@ async def test_spnego_bind_missing_credentials(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_bind_invalid_password_or_user(
-    session: AsyncSession,
-    ldap_session: LDAPSession,
-    container: AsyncContainer,
-    password_utils: PasswordUtils,
+    session: AsyncSession, ldap_session: LDAPSession, container: AsyncContainer, password_utils: PasswordUtils
 ) -> None:
     """Test invalid password bind."""
-    directory = Directory(
-        name="user0",
-        object_class="",
-        path=["cn=user0", "cn=Users", "dc=md", "dc=test"],
-        rdname="cn",
-    )
+    directory = Directory(name="user0", object_class="", path=["cn=user0", "cn=Users", "dc=md", "dc=test"], rdname="cn")
     session.add(directory)
     await session.flush()
     await session.refresh(directory)
@@ -320,11 +221,7 @@ async def test_bind_invalid_password_or_user(
     bad_response = BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
         matchedDN="",
-        errorMessage=(
-            "80090308: LdapErr: DSID-0C09030B, "
-            "comment: AcceptSecurityContext error, "
-            "data 52e, v893"
-        ),
+        errorMessage=("80090308: LdapErr: DSID-0C09030B, comment: AcceptSecurityContext error, data 52e, v893"),
     )
 
     async with container(scope=Scope.REQUEST) as container:
@@ -349,16 +246,9 @@ async def test_bind_invalid_password_or_user(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_anonymous_bind(
-    ldap_session: LDAPSession,
-    container: AsyncContainer,
-) -> None:
+async def test_anonymous_bind(ldap_session: LDAPSession, container: AsyncContainer) -> None:
     """Test anonymous."""
-    bind = BindRequest(
-        version=0,
-        name="",
-        AuthenticationChoice=SimpleAuthentication(password=""),
-    )
+    bind = BindRequest(version=0, name="", AuthenticationChoice=SimpleAuthentication(password=""))
     async with container(scope=Scope.REQUEST) as container:
         kwargs = await resolve_deps(bind.handle, container)
         result = await anext(bind.handle(**kwargs))
@@ -390,34 +280,20 @@ async def test_ldap3_bind(anonymous_ldap_client: LDAPConnection) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_ldap3_bind_sasl_plain(
-    anonymous_ldap_client: LDAPConnection,
-    creds: TestCreds,
-) -> None:
+async def test_ldap3_bind_sasl_plain(anonymous_ldap_client: LDAPConnection, creds: TestCreds) -> None:
     """Test ldap3 bind with SASL PLAIN authentication."""
     sasl_creds = PlainSaslCreds(creds.un, creds.pw)
-    await anonymous_ldap_client.bind(
-        method="SASL",
-        sasl_credentials=sasl_creds,
-    )
+    await anonymous_ldap_client.bind(method="SASL", sasl_credentials=sasl_creds)
     assert anonymous_ldap_client.is_bound
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_bind_disabled_user(
-    session: AsyncSession,
-    ldap_session: LDAPSession,
-    container: AsyncContainer,
-    password_utils: PasswordUtils,
+    session: AsyncSession, ldap_session: LDAPSession, container: AsyncContainer, password_utils: PasswordUtils
 ) -> None:
     """Test disabled user bind."""
-    directory = Directory(
-        name="user0",
-        object_class="",
-        path=["cn=user0", "cn=Users", "dc=md", "dc=test"],
-        rdname="cn",
-    )
+    directory = Directory(name="user0", object_class="", path=["cn=user0", "cn=Users", "dc=md", "dc=test"], rdname="cn")
     session.add(directory)
     await session.flush()
     await session.refresh(directory)
@@ -448,11 +324,7 @@ async def test_bind_disabled_user(
     bad_response = BindResponse(
         result_code=LDAPCodes.INVALID_CREDENTIALS,
         matchedDn="",
-        errorMessage=(
-            "80090308: LdapErr: DSID-0C09030B, "
-            "comment: AcceptSecurityContext error, "
-            "data 533, v893"
-        ),
+        errorMessage=("80090308: LdapErr: DSID-0C09030B, comment: AcceptSecurityContext error, data 533, v893"),
     )
 
     async with container(scope=Scope.REQUEST) as container:

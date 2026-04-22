@@ -50,12 +50,7 @@ class AllUserSessionsDTO:
 class SessionRepository(AbstractService):
     """Repository for managing user sessions."""
 
-    def __init__(
-        self,
-        storage: SessionStorage,
-        session: AsyncSession,
-        settings: Settings,
-    ) -> None:
+    def __init__(self, storage: SessionStorage, session: AsyncSession, settings: Settings) -> None:
         """Initialize the enterprise session storage.
 
         :param SessionStorage storage: session storage
@@ -64,13 +59,7 @@ class SessionRepository(AbstractService):
         self.session = session
         self.settings = settings
 
-    async def create_session_key(
-        self,
-        user: User,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
-        ttl: int,
-    ) -> str:
+    async def create_session_key(self, user: User, ip: IPv4Address | IPv6Address, user_agent: str, ttl: int) -> str:
         """Create a session key for the user.
 
         :param User user: db user
@@ -83,25 +72,15 @@ class SessionRepository(AbstractService):
         key = await self.storage.create_session(
             user.id,
             self.settings,
-            extra_data={
-                "ip": str(ip),
-                "user_agent": self.storage.get_user_agent_hash(user_agent),
-            },
+            extra_data={"ip": str(ip), "user_agent": self.storage.get_user_agent_hash(user_agent)},
             ttl=ttl,
         )
         with contextlib.suppress(OperationalError):
-            await set_user_logon_attrs(
-                user,
-                self.session,
-                self.settings.TIMEZONE,
-            )
+            await set_user_logon_attrs(user, self.session, self.settings.TIMEZONE)
 
         return key
 
-    async def get_user_sessions(
-        self,
-        upn: str,
-    ) -> dict[str, SessionContentDTO]:
+    async def get_user_sessions(self, upn: str) -> dict[str, SessionContentDTO]:
         """Get user sessions by user ID.
 
         :param int user_id: user id
@@ -122,11 +101,7 @@ class SessionRepository(AbstractService):
         :param str upn: user principal name
         :raises KeyError: if user not found
         """
-        user = (
-            await get_user(self.session, identity)
-            if isinstance(identity, str)
-            else identity
-        )
+        user = await get_user(self.session, identity) if isinstance(identity, str) else identity
 
         if not user:
             raise SessionUserNotFoundError("User not found.")
@@ -141,7 +116,7 @@ class SessionRepository(AbstractService):
         await self.storage.delete_user_session(session_id)
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
-        get_user_sessions.__name__: AuthorizationRules.SESSION_GET_USER_SESSIONS,  # noqa: E501
-        clear_user_sessions.__name__: AuthorizationRules.SESSION_CLEAR_USER_SESSIONS,  # noqa: E501
+        get_user_sessions.__name__: AuthorizationRules.SESSION_GET_USER_SESSIONS,
+        clear_user_sessions.__name__: AuthorizationRules.SESSION_CLEAR_USER_SESSIONS,
         delete_session.__name__: AuthorizationRules.SESSION_DELETE,
     }

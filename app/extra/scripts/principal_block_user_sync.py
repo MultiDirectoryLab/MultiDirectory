@@ -14,16 +14,10 @@ from config import Settings
 from entities import Attribute, Directory, User
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.user_account_control import get_check_uac
-from ldap_protocol.utils.queries import (
-    add_lock_and_expire_attributes,
-    get_principal_directory,
-)
+from ldap_protocol.utils.queries import add_lock_and_expire_attributes, get_principal_directory
 
 
-async def principal_block_sync(
-    session: AsyncSession,
-    settings: Settings,
-) -> None:
+async def principal_block_sync(session: AsyncSession, settings: Settings) -> None:
     """Synchronize principal and user account blocking."""
     for user in await session.scalars(select(User)):
         uac_check = await get_check_uac(session, user.directory_id)
@@ -36,10 +30,7 @@ async def principal_block_sync(
         else:
             continue
 
-        principal_directory = await get_principal_directory(
-            session=session,
-            principal_name=principal_name,
-        )
+        principal_directory = await get_principal_directory(session=session, principal_name=principal_name)
         if not principal_directory:
             continue
 
@@ -47,39 +38,22 @@ async def principal_block_sync(
         if (not krb_exp_attr) or (not krb_exp_attr.value):
             continue
 
-        expiration_time = datetime.strptime(
-            krb_exp_attr.value,
-            "%Y%m%d%H%M%SZ",
-        ).replace(
-            tzinfo=settings.TIMEZONE,
-        )
+        expiration_time = datetime.strptime(krb_exp_attr.value, "%Y%m%d%H%M%SZ").replace(tzinfo=settings.TIMEZONE)
 
         now = datetime.now(tz=settings.TIMEZONE)
         if expiration_time > now:
             continue
 
-        new_value = cast(
-            cast(Attribute.value, Integer).op("|")(
-                UserAccountControlFlag.ACCOUNTDISABLE,
-            ),
-            String,
-        )
+        new_value = cast(cast(Attribute.value, Integer).op("|")(UserAccountControlFlag.ACCOUNTDISABLE), String)
 
         await session.execute(
             update(Attribute)
             .values(value=new_value)
-            .filter_by(
-                directory_id=user.directory_id,
-                name="userAccountControl",
-            )
-            .execution_options(synchronize_session=False),
+            .filter_by(directory_id=user.directory_id, name="userAccountControl")
+            .execution_options(synchronize_session=False)
         )
 
-        await add_lock_and_expire_attributes(
-            session=session,
-            directory=user.directory,
-            tz=settings.TIMEZONE,
-        )
+        await add_lock_and_expire_attributes(session=session, directory=user.directory, tz=settings.TIMEZONE)
 
         await session.commit()
 

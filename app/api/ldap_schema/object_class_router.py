@@ -12,36 +12,24 @@ from fastapi import Depends, Query, status
 from api.ldap_schema import LimitedListType, error_map
 from api.ldap_schema.adapters.object_class import ObjectClassFastAPIAdapter
 from api.ldap_schema.attribute_type_router import ldap_schema_router
-from api.ldap_schema.schema import (
-    ObjectClassPaginationSchema,
-    ObjectClassSchema,
-    ObjectClassUpdateSchema,
-)
+from api.ldap_schema.schema import ObjectClassPaginationSchema, ObjectClassSchema, ObjectClassUpdateSchema
 from api.utils import require_master_db
 from ldap_protocol.utils.pagination import PaginationParams
 
 
 @ldap_schema_router.post(
-    "/object_class",
-    status_code=status.HTTP_201_CREATED,
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
+    "/object_class", status_code=status.HTTP_201_CREATED, error_map=error_map, dependencies=[Depends(require_master_db)]
 )
 async def create_one_object_class(
-    request_data: ObjectClassSchema[None],
-    adapter: FromDishka[ObjectClassFastAPIAdapter],
+    request_data: ObjectClassSchema[None], adapter: FromDishka[ObjectClassFastAPIAdapter]
 ) -> None:
     """Create a new Object Class."""
     await adapter.create(request_data)
 
 
-@ldap_schema_router.get(
-    "/object_class/{object_class_name}",
-    error_map=error_map,
-)
+@ldap_schema_router.get("/object_class/{object_class_name}", error_map=error_map)
 async def get_one_object_class(
-    object_class_name: str,
-    adapter: FromDishka[ObjectClassFastAPIAdapter],
+    object_class_name: str, adapter: FromDishka[ObjectClassFastAPIAdapter]
 ) -> ObjectClassSchema[int]:
     """Retrieve a one Object Class."""
     return await adapter.get(object_class_name)
@@ -49,35 +37,25 @@ async def get_one_object_class(
 
 @ldap_schema_router.get("/object_classes", error_map=error_map)
 async def get_list_object_classes_with_pagination(
-    adapter: FromDishka[ObjectClassFastAPIAdapter],
-    params: Annotated[PaginationParams, Query()],
+    adapter: FromDishka[ObjectClassFastAPIAdapter], params: Annotated[PaginationParams, Query()]
 ) -> ObjectClassPaginationSchema:
     """Retrieve a list of all object classes with paginate."""
     return await adapter.get_list_paginated(params=params)
 
 
 @ldap_schema_router.patch(
-    "/object_class/{object_class_name}",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
+    "/object_class/{object_class_name}", error_map=error_map, dependencies=[Depends(require_master_db)]
 )
 async def modify_one_object_class(
-    object_class_name: str,
-    request_data: ObjectClassUpdateSchema,
-    adapter: FromDishka[ObjectClassFastAPIAdapter],
+    object_class_name: str, request_data: ObjectClassUpdateSchema, adapter: FromDishka[ObjectClassFastAPIAdapter]
 ) -> None:
     """Modify an Object Class."""
     await adapter.update(object_class_name, request_data)
 
 
-@ldap_schema_router.post(
-    "/object_class/delete",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@ldap_schema_router.post("/object_class/delete", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def delete_bulk_object_classes(
-    object_classes_names: LimitedListType,
-    adapter: FromDishka[ObjectClassFastAPIAdapter],
+    object_classes_names: LimitedListType, adapter: FromDishka[ObjectClassFastAPIAdapter]
 ) -> None:
     """Delete Object Classes by their names."""
     await adapter.delete_bulk(object_classes_names)

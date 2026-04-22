@@ -10,9 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from entities import Directory, EntityType
 from enums import EntityTypeNames
-from ldap_protocol.ldap_schema.attribute_type.constants import (
-    AttributeTypeAttributeNames as Names,
-)
+from ldap_protocol.ldap_schema.attribute_type.constants import AttributeTypeAttributeNames as Names
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 from ldap_protocol.ldap_schema.exceptions import AttributeTypeNotFoundError
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
@@ -26,13 +24,13 @@ def _convert_model_to_dto(directory: Directory) -> AttributeTypeDTO[int]:
         ldap_display_name=directory.attributes_dict[Names.LDAP_DISPLAY_NAME][0],
         oid=directory.attributes_dict[Names.OID][0],
         syntax=directory.attributes_dict[Names.SYNTAX][0],
-        single_value=directory.attributes_dict[Names.SINGLE_VALUE][0] == "True",  # noqa: E501
-        no_user_modification=directory.attributes_dict[Names.NO_USER_MODIFICATION][0] == "True",  # noqa: E501
+        single_value=directory.attributes_dict[Names.SINGLE_VALUE][0] == "True",
+        no_user_modification=directory.attributes_dict[Names.NO_USER_MODIFICATION][0] == "True",
         is_system=directory.is_system,
         system_flags=int(directory.attributes_dict[Names.SYSTEM_FLAGS][0]),
-        is_included_anr=directory.attributes_dict[Names.IS_INCLUDED_ANR][0] == "True",  # noqa: E501
+        is_included_anr=directory.attributes_dict[Names.IS_INCLUDED_ANR][0] == "True",
         object_class_names=set(),
-    )  # fmt: skip
+    )
 
 
 class AttributeTypeDAO:
@@ -49,10 +47,7 @@ class AttributeTypeDAO:
             select(Directory)
             .join(qa(Directory.entity_type))
             .options(selectinload(qa(Directory.attributes)))
-            .where(
-                qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
-                qa(Directory.name) == name,
-            ),
+            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE, qa(Directory.name) == name)
         )
         dir_ = res.first()
         return dir_
@@ -61,10 +56,7 @@ class AttributeTypeDAO:
         res = await self.__session.scalars(
             select(qa(Directory.name))
             .join(qa(Directory.entity_type))
-            .where(
-                qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
-                qa(Directory.name).in_(names),
-            ),
+            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE, qa(Directory.name).in_(names))
         )
         return list(res.all())
 
@@ -73,7 +65,7 @@ class AttributeTypeDAO:
             select(Directory)
             .join(qa(Directory.entity_type))
             .options(selectinload(qa(Directory.attributes)))
-            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
+            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE)
         )
         return list(map(_convert_model_to_dto, res.all()))
 
@@ -81,9 +73,7 @@ class AttributeTypeDAO:
         """Get Attribute Type by name."""
         dir_ = await self._get_dir(name)
         if not dir_:
-            raise AttributeTypeNotFoundError(
-                f"Attribute Type with name '{name}' not found.",
-            )
+            raise AttributeTypeNotFoundError(f"Attribute Type with name '{name}' not found.")
 
         return _convert_model_to_dto(dir_)
 
@@ -102,9 +92,7 @@ class AttributeTypeDAO:
         """
         dir_ = await self._get_dir(name)
         if not dir_:
-            raise AttributeTypeNotFoundError(
-                f"Attribute Type with name '{name}' not found.",
-            )
+            raise AttributeTypeNotFoundError(f"Attribute Type with name '{name}' not found.")
 
         for attr in dir_.attributes:
             if not dir_.is_system:
@@ -125,9 +113,7 @@ class AttributeTypeDAO:
         """Update system flags of Attribute Type."""
         dir_ = await self._get_dir(name)
         if not dir_:
-            raise AttributeTypeNotFoundError(
-                f"Attribute Type with name '{name}' not found.",
-            )
+            raise AttributeTypeNotFoundError(f"Attribute Type with name '{name}' not found.")
 
         for attr in dir_.attributes:
             if attr.name == Names.SYSTEM_FLAGS:
@@ -136,10 +122,7 @@ class AttributeTypeDAO:
 
         await self.__session.flush()
 
-    async def get_paginator(
-        self,
-        params: PaginationParams,
-    ) -> PaginationResult[Directory, AttributeTypeDTO]:
+    async def get_paginator(self, params: PaginationParams) -> PaginationResult[Directory, AttributeTypeDTO]:
         """Retrieve paginated Attribute Types."""
         filters = [qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE]
 
@@ -155,10 +138,7 @@ class AttributeTypeDAO:
         )
 
         return await PaginationResult[Directory, AttributeTypeDTO].get(
-            params=params,
-            query=query,
-            converter=_convert_model_to_dto,
-            session=self.__session,
+            params=params, query=query, converter=_convert_model_to_dto, session=self.__session
         )
 
     async def delete_all_by_names(self, names: list[str]) -> None:
@@ -169,8 +149,7 @@ class AttributeTypeDAO:
         await self.__session.execute(
             delete(Directory)
             .where(
-                qa(Directory.entity_type)
-                .has(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
+                qa(Directory.entity_type).has(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE),
                 qa(Directory.name).in_(names),
                 qa(Directory.is_system).is_(False),
             ),

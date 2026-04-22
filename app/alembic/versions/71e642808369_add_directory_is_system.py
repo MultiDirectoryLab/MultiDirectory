@@ -35,17 +35,12 @@ def upgrade(container: AsyncContainer) -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    op.add_column(
-        "Directory",
-        sa.Column("is_system", sa.Boolean(), nullable=True),
-    )
+    op.add_column("Directory", sa.Column("is_system", sa.Boolean(), nullable=True))
     # NOTE: If instances of Directories exists, set default value
     session.execute(update(Directory).values({"is_system": False}))
     op.alter_column("Directory", "is_system", nullable=False)
 
-    async def _indicate_system_directories(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _indicate_system_directories(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -53,13 +48,7 @@ def upgrade(container: AsyncContainer) -> None:
         if not base_dn_list:
             return
 
-        await session.execute(
-            update(Directory)
-            .where(
-                qa(Directory.parent_id).is_(None),
-            )
-            .values(is_system=True),
-        )
+        await session.execute(update(Directory).where(qa(Directory.parent_id).is_(None)).values(is_system=True))
 
         await session.flush()
 
@@ -79,10 +68,10 @@ def upgrade(container: AsyncContainer) -> None:
                         "services",
                         "krbadmin",
                         "kerberos",
-                    ),
+                    )
                 ),
             )
-            .values(is_system=True),
+            .values(is_system=True)
         )
         await session.flush()
 
@@ -90,17 +79,14 @@ def upgrade(container: AsyncContainer) -> None:
         # Because only main administrator has object_class=='user'.
         await session.execute(
             update(Directory)
-            .where(
-                qa(Directory.is_system).is_(False),
-                qa(Directory.object_class) == "user",
-            )
-            .values(is_system=True),
+            .where(qa(Directory.is_system).is_(False), qa(Directory.object_class) == "user")
+            .values(is_system=True)
         )
         await session.flush()
 
     op.run_async(_indicate_system_directories)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.drop_column("Directory", "is_system")

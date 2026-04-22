@@ -11,9 +11,7 @@ from alembic import op
 from dishka import AsyncContainer, Scope
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from ldap_protocol.roles.migrations_ace_dao import (
-    AccessControlEntryDirectoryMappingDAO,
-)
+from ldap_protocol.roles.migrations_ace_dao import AccessControlEntryDirectoryMappingDAO
 from ldap_protocol.utils.queries import get_base_directories
 
 # revision identifiers, used by Alembic.
@@ -26,7 +24,7 @@ depends_on: None | list[str] = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _map_ace_to_directory_name(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _map_ace_to_directory_name(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             ace_dao = await cnt.get(AccessControlEntryDirectoryMappingDAO)
@@ -37,22 +35,13 @@ def upgrade(container: AsyncContainer) -> None:
         await ace_dao.upgrade()
         await session.commit()
 
-    op.add_column(
-        "AccessControlEntries",
-        sa.Column("attribute_type_name", sa.String(), nullable=True),
-    )
+    op.add_column("AccessControlEntries", sa.Column("attribute_type_name", sa.String(), nullable=True))
 
     op.run_async(_map_ace_to_directory_name)
 
-    op.drop_index(
-        op.f("idx_ace_attribute_type_id"),
-        table_name="AccessControlEntries",
-        postgresql_using="hash",
-    )
+    op.drop_index(op.f("idx_ace_attribute_type_id"), table_name="AccessControlEntries", postgresql_using="hash")
     op.drop_constraint(
-        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"),
-        "AccessControlEntries",
-        type_="foreignkey",
+        op.f("AccessControlEntries_directoryAttributeTypeId_fkey"), "AccessControlEntries", type_="foreignkey"
     )
     op.drop_column("AccessControlEntries", "attributeTypeId")
 
@@ -60,7 +49,7 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _map_ace_to_directory_id(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _map_ace_to_directory_id(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             ace_dao = await cnt.get(AccessControlEntryDirectoryMappingDAO)
@@ -72,13 +61,7 @@ def downgrade(container: AsyncContainer) -> None:
         await session.commit()
 
     op.add_column(
-        "AccessControlEntries",
-        sa.Column(
-            "attributeTypeId",
-            sa.INTEGER(),
-            autoincrement=False,
-            nullable=True,
-        ),
+        "AccessControlEntries", sa.Column("attributeTypeId", sa.INTEGER(), autoincrement=False, nullable=True)
     )
 
     op.run_async(_map_ace_to_directory_id)

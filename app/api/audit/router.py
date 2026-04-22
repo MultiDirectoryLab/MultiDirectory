@@ -16,17 +16,10 @@ from api.audit.schemas import (
     AuditPolicySchemaRequest,
 )
 from api.auth.utils import verify_auth
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.policies.audit.exception import (
-    AuditAlreadyExistsError,
-    AuditNotFoundError,
-)
+from ldap_protocol.policies.audit.exception import AuditAlreadyExistsError, AuditNotFoundError
 
 from .adapter import AuditPoliciesAdapter
 
@@ -34,93 +27,56 @@ translator = DomainErrorTranslator(DomainCodes.AUDIT)
 
 
 error_map: ERROR_MAP_TYPE = {
-    AuditNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuditAlreadyExistsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
+    AuditNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    AuditAlreadyExistsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
 }
 
 audit_router = ErrorAwareRouter(
-    prefix="/audit",
-    tags=["Audit policy"],
-    dependencies=[Depends(verify_auth)],
-    route_class=DishkaErrorAwareRoute,
+    prefix="/audit", tags=["Audit policy"], dependencies=[Depends(verify_auth)], route_class=DishkaErrorAwareRoute
 )
 
 
 @audit_router.get("/policies", error_map=error_map)
-async def get_audit_policies(
-    audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> list[AuditPolicyResponse]:
+async def get_audit_policies(audit_adapter: FromDishka[AuditPoliciesAdapter]) -> list[AuditPolicyResponse]:
     """Get all audit policies."""
     return await audit_adapter.get_policies()
 
 
-@audit_router.put(
-    "/policy/{policy_id}",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@audit_router.put("/policy/{policy_id}", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def update_audit_policy(
-    policy_id: int,
-    policy_data: AuditPolicySchemaRequest,
-    audit_adapter: FromDishka[AuditPoliciesAdapter],
+    policy_id: int, policy_data: AuditPolicySchemaRequest, audit_adapter: FromDishka[AuditPoliciesAdapter]
 ) -> None:
     """Update an existing audit policy."""
     return await audit_adapter.update_policy(policy_id, policy_data)
 
 
 @audit_router.get("/destinations", error_map=error_map)
-async def get_audit_destinations(
-    audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> list[AuditDestinationResponse]:
+async def get_audit_destinations(audit_adapter: FromDishka[AuditPoliciesAdapter]) -> list[AuditDestinationResponse]:
     """Get all audit destinations."""
     return await audit_adapter.get_destinations()
 
 
 @audit_router.post(
-    "/destination",
-    status_code=status.HTTP_201_CREATED,
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
+    "/destination", status_code=status.HTTP_201_CREATED, error_map=error_map, dependencies=[Depends(require_master_db)]
 )
 async def create_audit_destination(
-    destination_data: AuditDestinationSchemaRequest,
-    audit_adapter: FromDishka[AuditPoliciesAdapter],
+    destination_data: AuditDestinationSchemaRequest, audit_adapter: FromDishka[AuditPoliciesAdapter]
 ) -> None:
     """Create a new audit destination."""
     return await audit_adapter.create_destination(destination_data)
 
 
-@audit_router.delete(
-    "/destination/{destination_id}",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
-async def delete_audit_destination(
-    destination_id: int,
-    audit_adapter: FromDishka[AuditPoliciesAdapter],
-) -> None:
+@audit_router.delete("/destination/{destination_id}", error_map=error_map, dependencies=[Depends(require_master_db)])
+async def delete_audit_destination(destination_id: int, audit_adapter: FromDishka[AuditPoliciesAdapter]) -> None:
     """Delete an audit destination."""
     await audit_adapter.delete_destination(destination_id)
 
 
-@audit_router.put(
-    "/destination/{destination_id}",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@audit_router.put("/destination/{destination_id}", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def update_audit_destination(
     destination_id: int,
     destination_data: AuditDestinationSchemaRequest,
     audit_adapter: FromDishka[AuditPoliciesAdapter],
 ) -> None:
     """Update an existing audit destination."""
-    return await audit_adapter.update_destination(
-        destination_id,
-        destination_data,
-    )
+    return await audit_adapter.update_destination(destination_id, destination_data)

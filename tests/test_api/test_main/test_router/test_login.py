@@ -14,9 +14,7 @@ from tests.conftest import TestCreds
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_before_setup(
-    unbound_http_client: httpx.AsyncClient,
-) -> None:
+async def test_api_before_setup(unbound_http_client: httpx.AsyncClient) -> None:
     """Test api before setup."""
     response = await unbound_http_client.get("auth/me")
 
@@ -26,32 +24,18 @@ async def test_api_before_setup(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("session")
-async def test_api_auth_after_change_account_exp(
-    http_client: httpx.AsyncClient,
-) -> None:
+async def test_api_auth_after_change_account_exp(http_client: httpx.AsyncClient) -> None:
     """Test api auth."""
     await http_client.patch(
         "/entry/update",
         json={
             "object": "cn=test,dc=md,dc=test",
             "changes": [
-                {
-                    "operation": Operation.ADD,
-                    "modification": {
-                        "type": "accountExpires",
-                        "vals": ["133075840000000000"],
-                    },
-                },
+                {"operation": Operation.ADD, "modification": {"type": "accountExpires", "vals": ["133075840000000000"]}}
             ],
         },
     )
-    auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "new_user@md.test",
-            "password": "P@ssw0rd",
-        },
-    )
+    auth = await http_client.post("auth/", data={"username": "new_user@md.test", "password": "P@ssw0rd"})
 
     assert auth.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -59,38 +43,18 @@ async def test_api_auth_after_change_account_exp(
         "/entry/update",
         json={
             "object": "cn=test,dc=md,dc=test",
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "accountExpires",
-                        "vals": ["0"],
-                    },
-                },
-            ],
+            "changes": [{"operation": Operation.REPLACE, "modification": {"type": "accountExpires", "vals": ["0"]}}],
         },
     )
-    auth = await http_client.post(
-        "auth/",
-        data={
-            "username": "new_user@md.test",
-            "password": "P@ssw0rd",
-        },
-    )
+    auth = await http_client.post("auth/", data={"username": "new_user@md.test", "password": "P@ssw0rd"})
 
     assert auth.cookies.get("id")
 
 
 @pytest.mark.usefixtures("setup_session")
-async def test_refresh_and_logout_flow(
-    unbound_http_client: httpx.AsyncClient,
-    creds: TestCreds,
-) -> None:
+async def test_refresh_and_logout_flow(unbound_http_client: httpx.AsyncClient, creds: TestCreds) -> None:
     """Test login, refresh and logout cookie flow."""
-    await unbound_http_client.post(
-        "auth/",
-        data={"username": creds.un, "password": creds.pw},
-    )
+    await unbound_http_client.post("auth/", data={"username": creds.un, "password": creds.pw})
 
     old_token = unbound_http_client.cookies.get("id")
 

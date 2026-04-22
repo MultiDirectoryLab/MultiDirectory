@@ -52,19 +52,12 @@ class _MFAMissconfiguredError(Exception):
     """MFA missconfigured error."""
 
 
-async def get_creds(
-    session: AsyncSession,
-    key_name: str,
-    secret_name: str,
-) -> Creds | None:
+async def get_creds(session: AsyncSession, key_name: str, secret_name: str) -> Creds | None:
     """Get API creds.
 
     :return tuple[str, str]: api key and secret
     """
-    query = (
-        select(CatalogueSetting)
-        .where(qa(CatalogueSetting.name).in_([key_name, secret_name]))
-    )  # fmt: skip
+    query = select(CatalogueSetting).where(qa(CatalogueSetting.name).in_([key_name, secret_name]))
 
     vals = await session.scalars(query)
     secrets = {s.name: s.value for s in vals.all()}
@@ -117,13 +110,7 @@ class MultifactorAPI:
     client: httpx.AsyncClient
     settings: Settings
 
-    def __init__(
-        self,
-        key: str,
-        secret: str,
-        client: httpx.AsyncClient,
-        settings: Settings,
-    ):
+    def __init__(self, key: str, secret: str, client: httpx.AsyncClient, settings: Settings):
         """Set creds and web client.
 
         :param str key: mfa key
@@ -141,11 +128,7 @@ class MultifactorAPI:
         return {"mf-trace-id": f"md:{uuid.uuid4()}"}
 
     @log_mfa.catch(reraise=True)
-    async def ldap_validate_mfa(
-        self,
-        username: str,
-        password: str | None,
-    ) -> bool:
+    async def ldap_validate_mfa(self, username: str, password: str | None) -> bool:
         """Validate multifactor.
 
         If pwd not passed, use "m" for querying push request from mfa,
@@ -168,14 +151,9 @@ class MultifactorAPI:
                 self.settings.MFA_API_URI + self.AUTH_URL_USERS,
                 auth=self.auth,
                 headers=self._generate_trace_id_header(),
-                json={
-                    "Identity": username,
-                    "passCode": passcode,
-                    "GroupPolicyPreset": {},
-                },
+                json={"Identity": username, "passCode": passcode, "GroupPolicyPreset": {}},
                 timeout=httpx.Timeout(
-                    self.settings.MFA_LDAP_READ_TIMEOUT_SECONDS,
-                    connect=self.settings.MFA_CONNECT_TIMEOUT_SECONDS,
+                    self.settings.MFA_LDAP_READ_TIMEOUT_SECONDS, connect=self.settings.MFA_CONNECT_TIMEOUT_SECONDS
                 ),
             )
         except httpx.ConnectTimeout as err:
@@ -201,18 +179,13 @@ class MultifactorAPI:
                 "response": data,
                 "req_content": response.request.content.decode(),
                 "req_headers": response.request.headers,
-            },
+            }
         )
 
         return data.get("model", {}).get("status") == "Granted"
 
     @log_mfa.catch(reraise=True)
-    async def get_create_mfa(
-        self,
-        username: str,
-        callback_url: str,
-        uid: int,
-    ) -> str:
+    async def get_create_mfa(self, username: str, callback_url: str, uid: int) -> str:
         """Create mfa link.
 
         :param str username: un
@@ -225,14 +198,8 @@ class MultifactorAPI:
         """
         data = {
             "identity": username,
-            "claims": {
-                "uid": uid,
-                "grant_type": "multifactor",
-            },
-            "callback": {
-                "action": callback_url,
-                "target": "_self",
-            },
+            "claims": {"uid": uid, "grant_type": "multifactor"},
+            "callback": {"action": callback_url, "target": "_self"},
         }
         log_mfa.debug(data)
         try:

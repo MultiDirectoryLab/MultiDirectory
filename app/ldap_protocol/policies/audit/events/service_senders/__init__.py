@@ -10,7 +10,7 @@ from .base import AuditDestinationSenderABC
 from .syslog import SyslogSender
 
 senders: dict[AuditDestinationServiceType, type[AuditDestinationSenderABC]] = {
-    AuditDestinationServiceType.SYSLOG: SyslogSender,
+    AuditDestinationServiceType.SYSLOG: SyslogSender
 }
 
 __all__ = ["senders"]

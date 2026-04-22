@@ -16,19 +16,11 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
-    op.create_unique_constraint(
-        "group_policy_uc",
-        "GroupAccessPolicyMemberships",
-        ["group_id", "policy_id"],
-    )
+    op.create_unique_constraint("group_policy_uc", "GroupAccessPolicyMemberships", ["group_id", "policy_id"])
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    op.drop_constraint(
-        "group_policy_uc",
-        "GroupAccessPolicyMemberships",
-        type_="unique",
-    )
+    op.drop_constraint("group_policy_uc", "GroupAccessPolicyMemberships", type_="unique")

@@ -17,16 +17,10 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
-    op.create_index(
-        "idx_Directory_name_hash",
-        "Directory",
-        ["name"],
-        unique=False,
-        postgresql_using="hash",
-    )
+    op.create_index("idx_Directory_name_hash", "Directory", ["name"], unique=False, postgresql_using="hash")
     op.create_index(
         "idx_Directory_name_gin_trgm",
         "Directory",
@@ -36,13 +30,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     )
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    op.drop_index(
-        "idx_Directory_name_gin_trgm",
-        table_name="Directory",
-    )
-    op.drop_index(
-        "idx_Directory_name_hash",
-        table_name="Directory",
-    )
+    op.drop_index("idx_Directory_name_gin_trgm", table_name="Directory")
+    op.drop_index("idx_Directory_name_hash", table_name="Directory")

@@ -13,9 +13,7 @@ from extra.scripts.principal_block_user_sync import principal_block_sync
 from extra.scripts.uac_sync import disable_accounts
 from extra.scripts.update_admin_permissions import update_admin_permissions
 from extra.scripts.update_krb5_config import update_krb5_config
-from extra.scripts.update_status_proccess_events import (
-    update_status_process_events,
-)
+from extra.scripts.update_status_proccess_events import update_status_process_events
 from ioc import MainProvider
 from ldap_protocol.dependency import resolve_deps
 
@@ -32,11 +30,7 @@ _TASKS: set[tuple[task_type, float]] = {
 }
 
 
-async def _schedule(
-    task: task_type,
-    wait: float,
-    container: AsyncContainer,
-) -> None:
+async def _schedule(task: task_type, wait: float, container: AsyncContainer) -> None:
     """Run task periodically.
 
     :param Awaitable task: any task
@@ -58,10 +52,7 @@ async def _schedule(
 
 async def scheduler_factory(settings: Settings) -> None:
     """Run scheduler tasks."""
-    container = make_async_container(
-        MainProvider(),
-        context={Settings: settings},
-    )
+    container = make_async_container(MainProvider(), context={Settings: settings})
 
     async with asyncio.TaskGroup() as tg:
         for task, timeout in _TASKS:

@@ -57,35 +57,20 @@ async def resolve_dns_server_ip(host: str) -> str:
     return dns_server_ip_resolve.rrset[0].address
 
 
-async def create_initial_zone_records(
-    domain: str,
-    nameserver: str,
-) -> list[DNSRRSetDTO]:
+async def create_initial_zone_records(domain: str, nameserver: str) -> list[DNSRRSetDTO]:
     """Get initial records for new zone."""
     return [
         DNSRRSetDTO(
             name=f"{domain}",
             type=DNSRecordType.A,
-            records=[
-                DNSRecordDTO(
-                    content=nameserver,
-                    disabled=False,
-                    modified_at=None,
-                ),
-            ],
+            records=[DNSRecordDTO(content=nameserver, disabled=False, modified_at=None)],
             changetype=PowerDNSRecordChangeType.EXTEND,
             ttl=3600,
         ),
         DNSRRSetDTO(
             name=f"ns1.{domain}",
             type=DNSRecordType.A,
-            records=[
-                DNSRecordDTO(
-                    content=nameserver,
-                    disabled=False,
-                    modified_at=None,
-                ),
-            ],
+            records=[DNSRecordDTO(content=nameserver, disabled=False, modified_at=None)],
             changetype=PowerDNSRecordChangeType.EXTEND,
             ttl=3600,
         ),
@@ -94,11 +79,10 @@ async def create_initial_zone_records(
             type=DNSRecordType.SOA,
             records=[
                 DNSRecordDTO(
-                    content=f"ns1.{domain} hostmaster.{domain}"
-                    + " 1 10800 3600 604800 3600",
+                    content=f"ns1.{domain} hostmaster.{domain}" + " 1 10800 3600 604800 3600",
                     disabled=False,
                     modified_at=None,
-                ),
+                )
             ],
             changetype=PowerDNSRecordChangeType.EXTEND,
             ttl=3600,

@@ -14,19 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from abstract_service import AbstractService
 from entities import NetworkPolicy, User
 from enums import AuthorizationRules, ProtocolType
-from ldap_protocol.policies.network.dto import (
-    NetworkPolicyDTO,
-    NetworkPolicyUpdateDTO,
-    SwapPrioritiesDTO,
-)
-from ldap_protocol.policies.network.exceptions import (
-    LastActivePolicyError,
-    NetworkPolicyAlreadyExistsError,
-)
+from ldap_protocol.policies.network.dto import NetworkPolicyDTO, NetworkPolicyUpdateDTO, SwapPrioritiesDTO
+from ldap_protocol.policies.network.exceptions import LastActivePolicyError, NetworkPolicyAlreadyExistsError
 from ldap_protocol.policies.network.gateway import NetworkPolicyGateway
-from ldap_protocol.policies.network.validator_protocol import (
-    NetworkPolicyValidatorProtocol,
-)
+from ldap_protocol.policies.network.validator_protocol import NetworkPolicyValidatorProtocol
 
 
 def _convert_groups(policy: NetworkPolicy) -> list[str]:
@@ -43,55 +34,31 @@ _convert_model_to_dto = get_converter(
     NetworkPolicy,
     NetworkPolicyDTO[int],
     recipe=[
-        link_function(
-            _convert_groups,
-            P[NetworkPolicyDTO].groups,
-        ),
-        link_function(
-            _convert_mfa_groups,
-            P[NetworkPolicyDTO].mfa_groups,
-        ),
+        link_function(_convert_groups, P[NetworkPolicyDTO].groups),
+        link_function(_convert_mfa_groups, P[NetworkPolicyDTO].mfa_groups),
     ],
 )
 
-_convert_dto_to_model = get_converter(
-    NetworkPolicyDTO[None],
-    NetworkPolicy,
-)
+_convert_dto_to_model = get_converter(NetworkPolicyDTO[None], NetworkPolicy)
 
 
 class NetworkPolicyUseCase(AbstractService):
     """Network policies use cases."""
 
-    def __init__(
-        self,
-        network_policy_gateway: NetworkPolicyGateway,
-        session: AsyncSession,
-    ):
+    def __init__(self, network_policy_gateway: NetworkPolicyGateway, session: AsyncSession):
         """Initialize Network policies use cases."""
         self._network_policy_gateway = network_policy_gateway
         self._session = session
 
-    async def create(
-        self,
-        dto: NetworkPolicyDTO,
-    ) -> NetworkPolicyDTO:
+    async def create(self, dto: NetworkPolicyDTO) -> NetworkPolicyDTO:
         """Create network policy."""
         policy_model = _convert_dto_to_model(dto)
         if dto.groups:
-            policy_model.groups = (
-                await self._network_policy_gateway.get_groups(dto.groups)
-            )
+            policy_model.groups = await self._network_policy_gateway.get_groups(dto.groups)
         if dto.mfa_groups:
-            policy_model.mfa_groups = (
-                await self._network_policy_gateway.get_groups(
-                    dto.mfa_groups,
-                )
-            )
+            policy_model.mfa_groups = await self._network_policy_gateway.get_groups(dto.mfa_groups)
 
-        policy = await self._network_policy_gateway.create(
-            policy_model,
-        )
+        policy = await self._network_policy_gateway.create(policy_model)
         return NetworkPolicyDTO[int](
             id=policy.id,
             name=policy.name,
@@ -113,9 +80,7 @@ class NetworkPolicyUseCase(AbstractService):
         policy = await self._network_policy_gateway.get_with_for_update(_id)
         return _convert_model_to_dto(policy)
 
-    async def get_list_policies(
-        self,
-    ) -> list[NetworkPolicyDTO]:
+    async def get_list_policies(self) -> list[NetworkPolicyDTO]:
         """Get list of network policies."""
         policies = await self._network_policy_gateway.get_list_policies()
         return list(map(_convert_model_to_dto, policies))
@@ -142,10 +107,7 @@ class NetworkPolicyUseCase(AbstractService):
         if count == 1:
             raise LastActivePolicyError("At least one policy should be active")
 
-    async def update(
-        self,
-        dto: NetworkPolicyUpdateDTO,
-    ) -> NetworkPolicyDTO:
+    async def update(self, dto: NetworkPolicyUpdateDTO) -> NetworkPolicyDTO:
         """Update network policy."""
         policy = await self._network_policy_gateway.get_with_for_update(dto.id)
 
@@ -160,46 +122,26 @@ class NetworkPolicyUseCase(AbstractService):
 
         return _convert_model_to_dto(policy)
 
-    async def _apply_field_updates(
-        self,
-        policy: NetworkPolicy,
-        dto: NetworkPolicyUpdateDTO,
-    ) -> None:
+    async def _apply_field_updates(self, policy: NetworkPolicy, dto: NetworkPolicyUpdateDTO) -> None:
         """Apply regular field updates."""
         for field in dto.fields_to_update:
             value = getattr(dto, field)
             if value is not None:
                 setattr(policy, field, value)
 
-    async def _apply_netmask_updates(
-        self,
-        policy: NetworkPolicy,
-        dto: NetworkPolicyUpdateDTO,
-    ) -> None:
+    async def _apply_netmask_updates(self, policy: NetworkPolicy, dto: NetworkPolicyUpdateDTO) -> None:
         """Apply netmask updates."""
         if dto.netmasks and dto.raw:
             policy.netmasks = dto.netmasks
             policy.raw = dto.raw
 
-    async def _apply_group_updates(
-        self,
-        policy: NetworkPolicy,
-        dto: NetworkPolicyUpdateDTO,
-    ) -> None:
+    async def _apply_group_updates(self, policy: NetworkPolicy, dto: NetworkPolicyUpdateDTO) -> None:
         """Apply group updates."""
         if dto.groups is not None:
-            policy.groups = (
-                await self._network_policy_gateway.get_groups(dto.groups)
-                if dto.groups
-                else []
-            )
+            policy.groups = await self._network_policy_gateway.get_groups(dto.groups) if dto.groups else []
 
         if dto.mfa_groups is not None:
-            policy.mfa_groups = (
-                await self._network_policy_gateway.get_groups(dto.mfa_groups)
-                if dto.mfa_groups
-                else []
-            )
+            policy.mfa_groups = await self._network_policy_gateway.get_groups(dto.mfa_groups) if dto.mfa_groups else []
 
     async def swap_priorities(self, id1: int, id2: int) -> SwapPrioritiesDTO:
         """Swap priorities for network policies."""
@@ -207,116 +149,61 @@ class NetworkPolicyUseCase(AbstractService):
         policy2 = await self._network_policy_gateway.get(id2)
         policy1.priority, policy2.priority = policy2.priority, policy1.priority
         await self._session.commit()
-        return SwapPrioritiesDTO(
-            priority1=policy1.priority,
-            priority2=policy2.priority,
-        )
+        return SwapPrioritiesDTO(priority1=policy1.priority, priority2=policy2.priority)
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
         create.__name__: AuthorizationRules.NETWORK_POLICY_CREATE,
-        get_list_policies.__name__: AuthorizationRules.NETWORK_POLICY_GET_LIST_POLICIES,  # noqa: E501
+        get_list_policies.__name__: AuthorizationRules.NETWORK_POLICY_GET_LIST_POLICIES,
         delete.__name__: AuthorizationRules.NETWORK_POLICY_DELETE,
-        switch_network_policy.__name__: AuthorizationRules.NETWORK_POLICY_SWITCH_NETWORK_POLICY,  # noqa: E501
+        switch_network_policy.__name__: AuthorizationRules.NETWORK_POLICY_SWITCH_NETWORK_POLICY,
         update.__name__: AuthorizationRules.NETWORK_POLICY_UPDATE,
-        swap_priorities.__name__: AuthorizationRules.NETWORK_POLICY_SWAP_PRIORITIES,  # noqa: E501
+        swap_priorities.__name__: AuthorizationRules.NETWORK_POLICY_SWAP_PRIORITIES,
     }
 
 
 class NetworkPolicyValidatorUseCase(AbstractService):
     """Network policies validator use cases."""
 
-    def __init__(
-        self,
-        network_policy_validator_gateway: NetworkPolicyValidatorProtocol,
-    ):
+    def __init__(self, network_policy_validator_gateway: NetworkPolicyValidatorProtocol):
         """Initialize Network policies validator use cases."""
         self._gateway = network_policy_validator_gateway
 
-    async def get_by_protocol(
-        self,
-        ip: IPv4Address | IPv6Address,
-        protocol_type: ProtocolType,
-    ) -> NetworkPolicy | None:
+    async def get_by_protocol(self, ip: IPv4Address | IPv6Address, protocol_type: ProtocolType) -> NetworkPolicy | None:
         """Get network policy by protocol."""
-        return await self._gateway.get_by_protocol(
-            ip,
-            protocol_type,
-        )
+        return await self._gateway.get_by_protocol(ip, protocol_type)
 
     async def get_user_network_policy(
-        self,
-        ip: IPv4Address | IPv6Address,
-        user: User,
-        policy_type: ProtocolType,
+        self, ip: IPv4Address | IPv6Address, user: User, policy_type: ProtocolType
     ) -> NetworkPolicy | None:
         """Get user network policy."""
-        return await self._gateway.get_user_network_policy(
-            ip,
-            user,
-            policy_type,
-        )
+        return await self._gateway.get_user_network_policy(ip, user, policy_type)
 
-    async def get_user_http_policy(
-        self,
-        ip: IPv4Address | IPv6Address,
-        user: User,
-    ) -> NetworkPolicy | None:
+    async def get_user_http_policy(self, ip: IPv4Address | IPv6Address, user: User) -> NetworkPolicy | None:
         """Get user HTTP policy."""
-        return await self._gateway.get_user_http_policy(
-            ip,
-            user,
-        )
+        return await self._gateway.get_user_http_policy(ip, user)
 
-    async def get_user_kerberos_policy(
-        self,
-        ip: IPv4Address | IPv6Address,
-        user: User,
-    ) -> NetworkPolicy | None:
+    async def get_user_kerberos_policy(self, ip: IPv4Address | IPv6Address, user: User) -> NetworkPolicy | None:
         """Get user Kerberos policy."""
-        return await self._gateway.get_user_kerberos_policy(
-            ip,
-            user,
-        )
+        return await self._gateway.get_user_kerberos_policy(ip, user)
 
-    async def get_user_ldap_policy(
-        self,
-        ip: IPv4Address | IPv6Address,
-        user: User,
-    ) -> NetworkPolicy | None:
+    async def get_user_ldap_policy(self, ip: IPv4Address | IPv6Address, user: User) -> NetworkPolicy | None:
         """Get user LDAP policy."""
-        return await self._gateway.get_user_ldap_policy(
-            ip,
-            user,
-        )
+        return await self._gateway.get_user_ldap_policy(ip, user)
 
-    async def is_user_group_valid(
-        self,
-        user: User | None,
-        policy: NetworkPolicy | None,
-    ) -> bool:
+    async def is_user_group_valid(self, user: User | None, policy: NetworkPolicy | None) -> bool:
         """Validate user groups, is it including to policy."""
-        return await self._gateway.is_user_group_valid(
-            user,
-            policy,
-        )
+        return await self._gateway.is_user_group_valid(user, policy)
 
-    async def check_mfa_group(
-        self,
-        policy: NetworkPolicy,
-        user: User,
-    ) -> bool:
+    async def check_mfa_group(self, policy: NetworkPolicy, user: User) -> bool:
         """Check if user is in a group with MFA policy."""
-        return await self._gateway.check_mfa_group(
-            policy,
-            user,
-        )
+        return await self._gateway.check_mfa_group(policy, user)
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
-        get_by_protocol.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_BY_PROTOCOL,  # noqa: E501
-        get_user_network_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_NETWORK_POLICY,  # noqa: E501
-        get_user_http_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_HTTP_POLICY,  # noqa: E501
-        get_user_kerberos_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_KERBEROS_POLICY,  # noqa: E501
-        get_user_ldap_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_LDAP_POLICY,  # noqa: E501
-        is_user_group_valid.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_IS_USER_GROUP_VALID,  # noqa: E501
-        check_mfa_group.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_CHECK_MFA_GROUP,  # noqa: E501
+        get_by_protocol.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_BY_PROTOCOL,
+        get_user_network_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_NETWORK_POLICY,
+        get_user_http_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_HTTP_POLICY,
+        get_user_kerberos_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_KERBEROS_POLICY,
+        get_user_ldap_policy.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_GET_USER_LDAP_POLICY,
+        is_user_group_valid.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_IS_USER_GROUP_VALID,
+        check_mfa_group.__name__: AuthorizationRules.NETWORK_POLICY_VALIDATOR_CHECK_MFA_GROUP,
     }

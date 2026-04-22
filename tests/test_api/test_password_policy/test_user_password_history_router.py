@@ -12,17 +12,11 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_clear_success(
-    http_client: AsyncClient,
-    user_password_history_use_cases: Mock,
-) -> None:
+async def test_clear_success(http_client: AsyncClient, user_password_history_use_cases: Mock) -> None:
     """Test clear user password history endpoint."""
-    response = await http_client.post(
-        "/user/password_history/clear",
-        data={"identity": "testuser"},
-    )
+    response = await http_client.post("/user/password_history/clear", data={"identity": "testuser"})
 
-    # NOTE to user_password_history_use_cases.reset returned Mock, not wrapper  # noqa: E501
+    # NOTE to user_password_history_use_cases.reset returned Mock, not wrapper
     user_password_history_use_cases._perm_checker = None  # noqa: SLF001
     user_password_history_use_cases.clear.assert_called_once()
     assert response.status_code == status.HTTP_200_OK
@@ -30,16 +24,12 @@ async def test_clear_success(
 
 @pytest.mark.asyncio
 async def test_clear_unauthorized(
-    http_client_with_login_perm: AsyncClient,
-    user_password_history_use_cases: Mock,
+    http_client_with_login_perm: AsyncClient, user_password_history_use_cases: Mock
 ) -> None:
     """Test clear user password history endpoint without permissions."""
-    response = await http_client_with_login_perm.post(
-        "/user/password_history/clear",
-        data={"identity": "testuser"},
-    )
+    response = await http_client_with_login_perm.post("/user/password_history/clear", data={"identity": "testuser"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    # NOTE to user_password_history_use_cases.reset returned Mock, not wrapper  # noqa: E501
+    # NOTE to user_password_history_use_cases.reset returned Mock, not wrapper
     user_password_history_use_cases._perm_checker = None  # noqa: SLF001
     user_password_history_use_cases.clear.assert_not_called()

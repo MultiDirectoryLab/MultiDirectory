@@ -9,8 +9,7 @@ from ldap_protocol.dialogue import LDAPSession
 
 @inject
 async def get_ldap_session(
-    ldap_session: FromDishka[LDAPSession],
-    identity_adapter: FromDishka[AuthFastAPIAdapter],
+    ldap_session: FromDishka[LDAPSession], identity_adapter: FromDishka[AuthFastAPIAdapter]
 ) -> LDAPSession:
     """Create LDAP session."""
     await ldap_session.set_user(await identity_adapter.get_current_user())

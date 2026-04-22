@@ -14,9 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from entities import EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import EntityTypeDTO
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
@@ -30,9 +28,7 @@ depends_on: None | str = None
 def upgrade(container: AsyncContainer) -> None:
     """Add Contact objectClass and mailRecipient to LDAP schema."""
 
-    async def _create_entity_type(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _create_entity_type(connection: AsyncConnection) -> None:
         """Create Contact Entity Type."""
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
@@ -44,15 +40,9 @@ def upgrade(container: AsyncContainer) -> None:
         await entity_type_use_case.create_not_safe(
             EntityTypeDTO(
                 name=EntityTypeNames.CONTACT,
-                object_class_names=[
-                    "top",
-                    "person",
-                    "organizationalPerson",
-                    "contact",
-                    "mailRecipient",
-                ],
+                object_class_names=["top", "person", "organizationalPerson", "contact", "mailRecipient"],
                 is_system=True,
-            ),
+            )
         )
 
         await session.commit()
@@ -63,9 +53,7 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Remove Contact objectClass and mailRecipient from LDAP schema."""
 
-    async def _delete_entity_type(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _delete_entity_type(connection: AsyncConnection) -> None:
         """Delete Contact Entity Type."""
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
@@ -73,11 +61,7 @@ def downgrade(container: AsyncContainer) -> None:
         if not await get_base_directories(session):
             return
 
-        await session.execute(
-            delete(EntityType).where(
-                qa(EntityType.name) == EntityTypeNames.CONTACT,
-            ),
-        )
+        await session.execute(delete(EntityType).where(qa(EntityType.name) == EntityTypeNames.CONTACT))
 
         await session.commit()
 

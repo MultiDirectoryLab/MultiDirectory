@@ -25,11 +25,7 @@ class SessionContentResponseSchema:
 
     def __post_init__(self) -> None:
         """Post-initialization."""
-        self.issued = (
-            datetime.fromisoformat(self.issued)
-            if isinstance(self.issued, str)  # type: ignore[unreachable]
-            else self.issued
-        )
+        self.issued = datetime.fromisoformat(self.issued) if isinstance(self.issued, str) else self.issued  # type: ignore[unreachable]
 
 
 @dataclass
@@ -56,16 +52,10 @@ class SessionFastAPIGateway(BaseAdapter[SessionRepository]):
         """Initialize the session gateway with a repository."""
         self._service = repository
 
-    async def get_user_sessions(
-        self,
-        upn: str,
-    ) -> dict[str, SessionContentResponseSchema]:
+    async def get_user_sessions(self, upn: str) -> dict[str, SessionContentResponseSchema]:
         data = await self._service.get_user_sessions(upn)
 
-        return {
-            session_id: SessionContentResponseSchema(**asdict(data))
-            for session_id, data in data.items()
-        }
+        return {session_id: SessionContentResponseSchema(**asdict(data)) for session_id, data in data.items()}
 
     async def delete_user_sessions(self, upn: str) -> None:
         """Delete user sessions."""

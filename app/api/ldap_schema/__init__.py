@@ -12,11 +12,7 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from enums import DomainCodes
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.ldap_schema.exceptions import (
@@ -31,61 +27,24 @@ from ldap_protocol.ldap_schema.exceptions import (
     ObjectClassNotFoundError,
 )
 
-LimitedListType = Annotated[
-    list[str],
-    Len(min_length=1, max_length=10000),
-    Body(embed=True),
-]
+LimitedListType = Annotated[list[str], Len(min_length=1, max_length=10000), Body(embed=True)]
 
 translator = DomainErrorTranslator(DomainCodes.LDAP_SCHEMA)
 
 
 error_map: ERROR_MAP_TYPE = {
-    UnauthorizedError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
-    AttributeTypeAlreadyExistsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AttributeTypeNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AttributeTypeCantModifyError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    ObjectClassAlreadyExistsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    ObjectClassNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    ObjectClassCantModifyError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    EntityTypeAlreadyExistsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    EntityTypeNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    EntityTypeCantModifyError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
+    UnauthorizedError: rule(status=status.HTTP_401_UNAUTHORIZED, translator=translator),
+    AttributeTypeAlreadyExistsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    AttributeTypeNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    AttributeTypeCantModifyError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    ObjectClassAlreadyExistsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    ObjectClassNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    ObjectClassCantModifyError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    EntityTypeAlreadyExistsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    EntityTypeNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    EntityTypeCantModifyError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
 }
 
 ldap_schema_router = ErrorAwareRouter(
-    prefix="/schema",
-    tags=["Schema"],
-    dependencies=[Depends(verify_auth)],
-    route_class=DishkaErrorAwareRoute,
+    prefix="/schema", tags=["Schema"], dependencies=[Depends(verify_auth)], route_class=DishkaErrorAwareRoute
 )

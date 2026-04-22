@@ -18,63 +18,24 @@ branch_labels: None = None
 depends_on: None = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
-    op.add_column(
-        "EntityTypes",
-        sa.Column(
-            "id",
-            sa.Integer(),
-            primary_key=True,
-            autoincrement=True,
-            nullable=False,
-        ),
-    )
+    op.add_column("EntityTypes", sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True, nullable=False))
 
-    op.drop_constraint(
-        "Directory_entity_type_name_fkey",
-        "Directory",
-        type_="foreignkey",
-    )
-    op.drop_index(
-        op.f("ix_Directory_entity_type_name"),
-        table_name="Directory",
-    )
+    op.drop_constraint("Directory_entity_type_name_fkey", "Directory", type_="foreignkey")
+    op.drop_index(op.f("ix_Directory_entity_type_name"), table_name="Directory")
     op.drop_constraint("EntityTypes_pkey", "EntityTypes", type_="primary")
 
     op.create_primary_key("EntityTypes_pkey", "EntityTypes", ["id"])
 
-    op.create_index(
-        op.f("ix_EntityTypes_name"),
-        "EntityTypes",
-        ["name"],
-        unique=True,
-    )
-    op.add_column(
-        "Directory",
-        sa.Column("entity_type_id", sa.Integer(), nullable=True),
-    )
-    op.create_index(
-        op.f("ix_Directory_entity_type_id"),
-        "Directory",
-        ["entity_type_id"],
-        unique=False,
-    )
+    op.create_index(op.f("ix_EntityTypes_name"), "EntityTypes", ["name"], unique=True)
+    op.add_column("Directory", sa.Column("entity_type_id", sa.Integer(), nullable=True))
+    op.create_index(op.f("ix_Directory_entity_type_id"), "Directory", ["entity_type_id"], unique=False)
     op.create_foreign_key(
-        "Directory_entity_type_id_fkey",
-        "Directory",
-        "EntityTypes",
-        ["entity_type_id"],
-        ["id"],
-        ondelete="SET NULL",
+        "Directory_entity_type_id_fkey", "Directory", "EntityTypes", ["entity_type_id"], ["id"], ondelete="SET NULL"
     )
 
-    op.create_index(
-        op.f("ix_EntityTypes_object_class_names"),
-        "EntityTypes",
-        ["object_class_names"],
-        unique=False,
-    )
+    op.create_index(op.f("ix_EntityTypes_object_class_names"), "EntityTypes", ["object_class_names"], unique=False)
 
     op.execute(
         text("""
@@ -82,50 +43,35 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
                 SET entity_type_id = et.id
                 FROM "EntityTypes" et
                 WHERE d.entity_type_name = et.name
-            """),
+            """)
     )
 
     op.drop_column("Directory", "entity_type_name")
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    op.add_column(
-        "Directory",
-        sa.Column("entity_type_name", sa.String(), nullable=True),
-    )
+    op.add_column("Directory", sa.Column("entity_type_name", sa.String(), nullable=True))
     op.execute(
         text("""
                 UPDATE "Directory" d
                 SET entity_type_name = et.name
                 FROM "EntityTypes" et
                 WHERE d.entity_type_id = et.id
-            """),
+            """)
     )
-    op.drop_constraint(
-        "Directory_entity_type_id_fkey",
-        "Directory",
-        type_="foreignkey",
-    )
+    op.drop_constraint("Directory_entity_type_id_fkey", "Directory", type_="foreignkey")
 
     op.drop_column("Directory", "entity_type_id")
 
-    op.drop_index(
-        op.f("ix_EntityTypes_object_class_names"),
-        table_name="EntityTypes",
-    )
+    op.drop_index(op.f("ix_EntityTypes_object_class_names"), table_name="EntityTypes")
     op.drop_index(op.f("ix_EntityTypes_name"), table_name="EntityTypes")
 
     op.drop_constraint("EntityTypes_pkey", "EntityTypes", type_="primary")
     op.drop_column("EntityTypes", "id")
     op.create_primary_key("EntityTypes_pkey", "EntityTypes", ["name"])
 
-    op.create_index(
-        op.f("ix_Directory_entity_type_name"),
-        "Directory",
-        ["entity_type_name"],
-        unique=False,
-    )
+    op.create_index(op.f("ix_Directory_entity_type_name"), "Directory", ["entity_type_name"], unique=False)
     op.create_foreign_key(
         "Directory_entity_type_name_fkey",
         "Directory",

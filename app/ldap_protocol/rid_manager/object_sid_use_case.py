@@ -7,18 +7,12 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from enums import SidPrefix
-from ldap_protocol.ldap_schema.object_class.object_class_dao import (
-    ObjectClassDAO,
-)
-from ldap_protocol.rid_manager.exceptions import (
-    RIDManagerObjectSIDNotFoundError,
-)
+from ldap_protocol.ldap_schema.object_class.object_class_dao import ObjectClassDAO
+from ldap_protocol.rid_manager.exceptions import RIDManagerObjectSIDNotFoundError
 from ldap_protocol.rid_manager.object_sid_gateway import ObjectSIDGateway
 from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
-from ldap_protocol.utils.async_cache import (
-    objectsid_allowed_object_classes_cache,
-)
+from ldap_protocol.utils.async_cache import objectsid_allowed_object_classes_cache
 
 
 class ObjectSIDUseCase:
@@ -42,32 +36,20 @@ class ObjectSIDUseCase:
     @objectsid_allowed_object_classes_cache
     async def get_available_object_classes(self) -> set[str]:
         """ObjectClasses that allow objectSid (mustContain/mayContain)."""
-        names = await self._object_class_dao.get_object_class_names_include_attribute_type(  # noqa: E501
-            "objectSid",
-        )
+        names = await self._object_class_dao.get_object_class_names_include_attribute_type("objectSid")
         return {n.lower() for n in names}
 
-    async def is_objectsid_needed(
-        self,
-        object_class_names: set[str],
-    ) -> bool:
+    async def is_objectsid_needed(self, object_class_names: set[str]) -> bool:
         """Check if objectSid is needed for objectClasses."""
         allowed = await self.get_available_object_classes()
         oc_lower = {n.lower() for n in object_class_names}
         return bool(oc_lower & allowed)
 
     async def ensure_objectsid(
-        self,
-        directory_id: int,
-        rid: int | None = None,
-        sid_prefix: SidPrefix = SidPrefix.DOMAIN_IDENTIFIER,
+        self, directory_id: int, rid: int | None = None, sid_prefix: SidPrefix = SidPrefix.DOMAIN_IDENTIFIER
     ) -> None:
         """Add objectSid and raise if it still doesn't exist."""
-        await self.add(
-            directory_id=directory_id,
-            rid=rid,
-            sid_prefix=sid_prefix,
-        )
+        await self.add(directory_id=directory_id, rid=rid, sid_prefix=sid_prefix)
         await self._session.flush()
         try:
             await self._gateway.get(directory_id)
@@ -79,10 +61,7 @@ class ObjectSIDUseCase:
         return await self._gateway.get_domain_identifier()
 
     async def add(
-        self,
-        directory_id: int,
-        rid: int | None = None,
-        sid_prefix: SidPrefix = SidPrefix.DOMAIN_IDENTIFIER,
+        self, directory_id: int, rid: int | None = None, sid_prefix: SidPrefix = SidPrefix.DOMAIN_IDENTIFIER
     ) -> None:
         """Add object SID."""
         if rid is None:

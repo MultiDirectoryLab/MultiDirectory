@@ -6,11 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 from dataclasses import dataclass, field
 
-from enums import (
-    AuditDestinationProtocolType,
-    AuditDestinationServiceType,
-    AuditSeverity,
-)
+from enums import AuditDestinationProtocolType, AuditDestinationServiceType, AuditSeverity
 from ldap_protocol.objects import OperationEvent
 
 
@@ -68,19 +64,11 @@ class AuditPolicySetupDTO(AuditPolicyDTO):
     triggers: list[AuditPolicyTriggerDTO] = field(default_factory=list)
 
     @staticmethod
-    def create_name(
-        is_success: bool,
-        action: str,
-        object_class: str,
-    ) -> str:
+    def create_name(is_success: bool, action: str, object_class: str) -> str:
         """Return the name of the audit policy."""
         status = "ok" if is_success else "fail"
         return f"{action}_{object_class}_{status}"
 
     def as_dict(self) -> dict:
         """Convert the data transfer object to a dictionary."""
-        return {
-            "name": self.name,
-            "is_enabled": self.is_enabled,
-            "severity": self.severity,
-        }
+        return {"name": self.name, "is_enabled": self.is_enabled, "severity": self.severity}

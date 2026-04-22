@@ -21,11 +21,7 @@ from abstract_service import AbstractService
 from config import Settings
 from entities import CatalogueSetting, NetworkPolicy, User
 from enums import AuthorizationRules, MFAChallengeStatuses, MFAFlags
-from ldap_protocol.auth.dto import (
-    MFAChallengeResponseDTO,
-    MFACreateRequestDTO,
-    MFAGetResponseDTO,
-)
+from ldap_protocol.auth.dto import MFAChallengeResponseDTO, MFACreateRequestDTO, MFAGetResponseDTO
 from ldap_protocol.auth.exceptions.mfa import (
     AuthenticationError,
     ForbiddenError,
@@ -38,13 +34,7 @@ from ldap_protocol.auth.exceptions.mfa import (
 )
 from ldap_protocol.auth.utils import get_user
 from ldap_protocol.identity import IdentityProvider
-from ldap_protocol.multifactor import (
-    Creds,
-    LDAPMultiFactorAPI,
-    MFA_HTTP_Creds,
-    MFA_LDAP_Creds,
-    MultifactorAPI,
-)
+from ldap_protocol.multifactor import Creds, LDAPMultiFactorAPI, MFA_HTTP_Creds, MFA_LDAP_Creds, MultifactorAPI
 from ldap_protocol.policies.audit.monitor import AuditMonitorUseCase
 from ldap_protocol.policies.network import NetworkPolicyValidatorUseCase
 from ldap_protocol.session_storage import SessionStorage
@@ -112,20 +102,16 @@ class MFAManager(AbstractService):
             await self._session.execute(
                 delete(CatalogueSetting).filter(
                     operator.or_(
-                        qa(CatalogueSetting.name) == mfa.key_name,
-                        qa(CatalogueSetting.name) == mfa.secret_name,
-                    ),
-                ),
+                        qa(CatalogueSetting.name) == mfa.key_name, qa(CatalogueSetting.name) == mfa.secret_name
+                    )
+                )
             )
             await self._session.flush()
             self._session.add_all(
                 (
                     CatalogueSetting(name=mfa.key_name, value=mfa.mfa_key),
-                    CatalogueSetting(
-                        name=mfa.secret_name,
-                        value=mfa.mfa_secret,
-                    ),
-                ),
+                    CatalogueSetting(name=mfa.secret_name, value=mfa.mfa_secret),
+                )
             )
             await self._session.commit()
         return True
@@ -136,21 +122,13 @@ class MFAManager(AbstractService):
         :param scope: str ('http' or 'ldap')
         :return: None
         """
-        if scope == "http":
-            keys = ["mfa_key", "mfa_secret"]
-        else:
-            keys = ["mfa_key_ldap", "mfa_secret_ldap"]
-        await self._session.execute(
-            delete(CatalogueSetting)
-            .filter(qa(CatalogueSetting.name).in_(keys)),
-        )  # fmt: skip
+        keys = ["mfa_key", "mfa_secret"] if scope == "http" else ["mfa_key_ldap", "mfa_secret_ldap"]
+        await self._session.execute(delete(CatalogueSetting).filter(qa(CatalogueSetting.name).in_(keys)))
 
         await self._session.commit()
 
     async def get_mfa(
-        self,
-        mfa_creds: MFA_HTTP_Creds | None,
-        mfa_creds_ldap: MFA_LDAP_Creds | None,
+        self, mfa_creds: MFA_HTTP_Creds | None, mfa_creds_ldap: MFA_LDAP_Creds | None
     ) -> MFAGetResponseDTO:
         """Get MFA keys for http and ldap.
 
@@ -172,11 +150,7 @@ class MFAManager(AbstractService):
         )
 
     async def callback_mfa(
-        self,
-        access_token: str,
-        mfa_creds: MFA_HTTP_Creds,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
+        self, access_token: str, mfa_creds: MFA_HTTP_Creds, ip: IPv4Address | IPv6Address, user_agent: str
     ) -> str:
         """Process MFA callback and return session key.
 
@@ -191,12 +165,7 @@ class MFAManager(AbstractService):
         if not mfa_creds or not mfa_creds.secret:
             raise ForbiddenError("MFA credentials missing")
         try:
-            payload = jwt.decode(
-                access_token,
-                mfa_creds.secret,
-                audience=mfa_creds.key,
-                algorithms=ALGORITHM,
-            )
+            payload = jwt.decode(access_token, mfa_creds.secret, audience=mfa_creds.key, algorithms=ALGORITHM)
         except (JWTError, AttributeError, JWKError) as err:
             logger.error(f"Invalid MFA token: {err}")
             raise MFATokenError("Invalid MFA token")
@@ -206,19 +175,10 @@ class MFAManager(AbstractService):
         if user_id is None or not user:
             raise MFATokenError("User not found")
 
-        return await self._repository.create_session_key(
-            user,
-            ip,
-            user_agent,
-            self.key_ttl,
-        )
+        return await self._repository.create_session_key(user, ip, user_agent, self.key_ttl)
 
     async def _create_bypass_data(
-        self,
-        user: User,
-        message: str,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
+        self, user: User, message: str, ip: IPv4Address | IPv6Address, user_agent: str
     ) -> tuple[MFAChallengeResponseDTO, str | None]:
         """Create session key and response.
 
@@ -228,27 +188,11 @@ class MFAManager(AbstractService):
         :param user_agent: str
         :return: tuple[MFAChallengeResponseDTO, str | None]
         """
-        key = await self._repository.create_session_key(
-            user,
-            ip,
-            user_agent,
-            self.key_ttl,
-        )
-        return (
-            MFAChallengeResponseDTO(
-                status=MFAChallengeStatuses.BYPASS,
-                message=message,
-            ),
-            key,
-        )
+        key = await self._repository.create_session_key(user, ip, user_agent, self.key_ttl)
+        return (MFAChallengeResponseDTO(status=MFAChallengeStatuses.BYPASS, message=message), key)
 
     async def two_factor_protocol(
-        self,
-        user: User,
-        network_policy: NetworkPolicy,
-        url: URL,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
+        self, user: User, network_policy: NetworkPolicy, url: URL, ip: IPv4Address | IPv6Address, user_agent: str
     ) -> tuple[MFAChallengeResponseDTO, str | None]:
         """Initiate two-factor protocol with application.
 
@@ -266,19 +210,12 @@ class MFAManager(AbstractService):
         if not self._mfa_api.is_initialized:
             raise MissingMFACredentialsError()
 
-        bypass_coro = self._create_bypass_data(
-            user,
-            "",
-            ip,
-            user_agent,
-        )
+        bypass_coro = self._create_bypass_data(user, "", ip, user_agent)
         try:
             if self._settings.USE_CORE_TLS:
                 url = url.replace(scheme="https")
             redirect_url = await self._mfa_api.get_create_mfa(
-                user.user_principal_name,
-                url.components.geturl(),
-                user.id,
+                user.user_principal_name, url.components.geturl(), user.id
             )
 
         except self._mfa_api.MFAConnectError:
@@ -299,13 +236,7 @@ class MFAManager(AbstractService):
         else:
             weakref.finalize(bypass_coro, bypass_coro.close)
 
-        return (
-            MFAChallengeResponseDTO(
-                status=MFAChallengeStatuses.PENDING,
-                message=redirect_url,
-            ),
-            None,
-        )
+        return (MFAChallengeResponseDTO(status=MFAChallengeStatuses.PENDING, message=redirect_url), None)
 
     async def proxy_request(self, principal: str, ip: IPv4Address) -> None:
         """Proxy a request to the shadow account.
@@ -323,44 +254,23 @@ class MFAManager(AbstractService):
         user = await get_user(self._session, principal)
 
         if not user:
-            raise InvalidCredentialsError(
-                f"User {principal} not found in the database.",
-            )
+            raise InvalidCredentialsError(f"User {principal} not found in the database.")
 
-        network_policy = (
-            await self._network_policy_validator.get_user_kerberos_policy(
-                ip,
-                user,
-            )
-        )
+        network_policy = await self._network_policy_validator.get_user_kerberos_policy(ip, user)
 
         if network_policy is None or not network_policy.is_kerberos:
-            raise NetworkPolicyError(
-                f"Network policy not found for user {principal}.",
-            )
+            raise NetworkPolicyError(f"Network policy not found for user {principal}.")
 
-        if (
-            not self._ldap_mfa_api
-            or network_policy.mfa_status == MFAFlags.DISABLED
-        ):
+        if not self._ldap_mfa_api or network_policy.mfa_status == MFAFlags.DISABLED:
             return
-        elif network_policy.mfa_status in (
-            MFAFlags.ENABLED,
-            MFAFlags.WHITELIST,
-        ):
+        elif network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
             if (
                 network_policy.mfa_status == MFAFlags.WHITELIST
-                and not await self._network_policy_validator.check_mfa_group(
-                    network_policy,
-                    user,
-                )
+                and not await self._network_policy_validator.check_mfa_group(network_policy, user)
             ):
                 return
             try:
-                if await self._ldap_mfa_api.ldap_validate_mfa(
-                    user.user_principal_name,
-                    None,
-                ):
+                if await self._ldap_mfa_api.ldap_validate_mfa(user.user_principal_name, None):
                     return
 
             except MultifactorAPI.MFAConnectError:

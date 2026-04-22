@@ -17,12 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
-    AttributeTypeUseCaseLegacy,
-)
-from ldap_protocol.ldap_schema.raw_definition_parser import (
-    RawDefinitionParser as RDParser,
-)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import AttributeTypeUseCaseLegacy
+from ldap_protocol.ldap_schema.raw_definition_parser import RawDefinitionParser as RDParser
 
 # revision identifiers, used by Alembic.
 revision: None | str = "f24ed0e49df2"
@@ -52,12 +48,9 @@ def upgrade(container: AsyncContainer) -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    op.add_column(
-        "AttributeTypes",
-        sa.Column("is_included_anr", sa.Boolean(), nullable=True),
-    )
+    op.add_column("AttributeTypes", sa.Column("is_included_anr", sa.Boolean(), nullable=True))
 
-    async def _false_all_is_included_anr(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _false_all_is_included_anr(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             attribute_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
@@ -69,24 +62,15 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.alter_column("AttributeTypes", "is_included_anr", nullable=False)
 
-    op.alter_column(
-        "EntityTypes",
-        "object_class_names",
-        existing_type=postgresql.ARRAY(sa.VARCHAR()),
-        nullable=True,
-    )
+    op.alter_column("EntityTypes", "object_class_names", existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=True)
 
-    async def _ensure_anr_attributes_exist(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _ensure_anr_attributes_exist(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             attribute_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        existing_attr_types = (
-            await attribute_type_use_case.get_all_raw_by_names(
-                list(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES),
-            )
+        existing_attr_types = await attribute_type_use_case.get_all_raw_by_names(
+            list(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES)
         )
         existing_names = {attr_type.name for attr_type in existing_attr_types}
         missing_names = set(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES) - existing_names
@@ -94,9 +78,7 @@ def upgrade(container: AsyncContainer) -> None:
             return
 
         for raw_definition in ad_2012_r2_schema_json["raw"]["attributeTypes"]:
-            attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(
-                raw_definition,
-            )
+            attribute_type_dto = RDParser.collect_attribute_type_dto_from_raw(raw_definition)
             if attribute_type_dto.name not in missing_names:
                 continue
 
@@ -109,14 +91,12 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_ensure_anr_attributes_exist)
 
-    async def _mark_anr_included(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _mark_anr_included(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             attribute_type_use_case = await cnt.get(AttributeTypeUseCaseLegacy)
 
-        await attribute_type_use_case.mark_anr_included_by_attr_names(
-            _DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES,
-        )
+        await attribute_type_use_case.mark_anr_included_by_attr_names(_DEFAULT_ANR_ATTRIBUTE_TYPE_NAMES)
 
         await session.flush()
 
@@ -125,12 +105,7 @@ def upgrade(container: AsyncContainer) -> None:
     session.commit()
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    op.alter_column(
-        "EntityTypes",
-        "object_class_names",
-        existing_type=postgresql.ARRAY(sa.VARCHAR()),
-        nullable=False,
-    )
+    op.alter_column("EntityTypes", "object_class_names", existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=False)
     op.drop_column("AttributeTypes", "is_included_anr")

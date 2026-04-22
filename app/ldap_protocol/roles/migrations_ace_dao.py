@@ -33,7 +33,7 @@ class AccessControlEntryAttributeTypeRemapDAO:
                 WHERE
                   ace."attributeTypeId" = attribute_type.id
                   AND entity_type.name = :attribute_type_entity_name
-                """,  # noqa: E501
+                """
             ),
             {"attribute_type_entity_name": EntityTypeNames.ATTRIBUTE_TYPE},
         )
@@ -50,8 +50,8 @@ class AccessControlEntryAttributeTypeRemapDAO:
                       FROM "Directory" AS directory
                       WHERE directory.id = ace."attributeTypeId"
                   )
-                """,
-            ),
+                """
+            )
         )
 
     async def downgrade(self) -> None:
@@ -67,7 +67,7 @@ class AccessControlEntryAttributeTypeRemapDAO:
                 WHERE
                   ace."attributeTypeId" = directory.id
                   AND entity_type.name = :attribute_type_entity_name
-                """,  # noqa: E501
+                """
             ),
             {"attribute_type_entity_name": EntityTypeNames.ATTRIBUTE_TYPE},
         )
@@ -84,8 +84,8 @@ class AccessControlEntryAttributeTypeRemapDAO:
                       FROM "AttributeTypes" AS attribute_type
                       WHERE attribute_type.id = ace."attributeTypeId"
                   )
-                """,
-            ),
+                """
+            )
         )
 
 
@@ -104,8 +104,8 @@ class AccessControlEntryDirectoryMappingDAO:
                 SET attribute_type_name = directory.name
                 FROM "Directory" AS directory
                 WHERE ace."attributeTypeId" = directory.id
-                """,
-            ),
+                """
+            )
         )
 
     async def downgrade(self) -> None:
@@ -116,6 +116,6 @@ class AccessControlEntryDirectoryMappingDAO:
                 SET "attributeTypeId" = directory.id
                 FROM "Directory" AS directory
                 WHERE ace.attribute_type_name = directory.name
-                """,
-            ),
+                """
+            )
         )

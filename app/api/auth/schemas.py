@@ -12,19 +12,13 @@ from pydantic import BaseModel, SecretStr, computed_field, field_validator
 
 from ldap_protocol.utils.const import EmailStr
 
-_domain_re = re.compile(
-    "^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z-]{2,63}$",
-)
+_domain_re = re.compile("^((?!-)[A-Za-z0-9-]" + "{1,63}(?<!-)\\.)" + "+[A-Za-z-]{2,63}$")
 
 
 class OAuth2Form(OAuth2PasswordRequestForm):
     """OAuth2 custom form."""
 
-    def __init__(
-        self,
-        username: str = Form(),
-        password: str = Form(),
-    ):
+    def __init__(self, username: str = Form(), password: str = Form()):
         """Initialize form."""
         self.username = username
         self.password = password

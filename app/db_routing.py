@@ -18,11 +18,7 @@ class EngineRegistry:
     _master_engine: AsyncEngine
     _replica_engine: AsyncEngine | None
 
-    def __init__(
-        self,
-        master_engine: AsyncEngine,
-        replica_engine: AsyncEngine | None,
-    ) -> None:
+    def __init__(self, master_engine: AsyncEngine, replica_engine: AsyncEngine | None) -> None:
         self._master_engine = master_engine
         self._replica_engine = replica_engine
 

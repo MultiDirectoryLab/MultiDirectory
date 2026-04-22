@@ -6,9 +6,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 
 import pytest
 
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
-    AttributeTypeUseCase,
-)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import AttributeTypeUseCase
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 
 
@@ -30,11 +28,9 @@ async def test_attribute_type_system_flags_use_case_is_not_replicated(
             is_system=False,
             system_flags=0x00000001,  # ATTR_NOT_REPLICATED
             is_included_anr=False,
-        ),
+        )
     )
-    assert not await attribute_type_use_case.is_attr_replicated(
-        "objectClass123",
-    )
+    assert not await attribute_type_use_case.is_attr_replicated("objectClass123")
 
 
 @pytest.mark.asyncio
@@ -55,13 +51,8 @@ async def test_attribute_type_system_flags_use_case_is_replicated(
             is_system=False,
             system_flags=0x00000000,  # ATTR_NOT_REPLICATED
             is_included_anr=False,
-        ),
+        )
     )
     assert await attribute_type_use_case.is_attr_replicated("objectClass123")
-    await attribute_type_use_case.set_attr_replication_flag(
-        "objectClass123",
-        False,
-    )
-    assert not await attribute_type_use_case.is_attr_replicated(
-        "objectClass123",
-    )
+    await attribute_type_use_case.set_attr_replication_flag("objectClass123", False)
+    assert not await attribute_type_use_case.is_attr_replicated("objectClass123")

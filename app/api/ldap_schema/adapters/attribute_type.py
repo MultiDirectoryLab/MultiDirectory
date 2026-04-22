@@ -7,35 +7,21 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from __future__ import annotations
 
 from adaptix import P
-from adaptix.conversion import (
-    allow_unlinked_optional,
-    get_converter,
-    link_function,
-)
+from adaptix.conversion import allow_unlinked_optional, get_converter, link_function
 
 from api.base_adapter import BaseAdapter
-from api.ldap_schema.adapters.base_ldap_schema_adapter import (
-    BaseLDAPSchemaAdapter,
-)
+from api.ldap_schema.adapters.base_ldap_schema_adapter import BaseLDAPSchemaAdapter
 from api.ldap_schema.constants import (
     DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
     DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
     DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
 )
-from api.ldap_schema.schema import (
-    AttributeTypePaginationSchema,
-    AttributeTypeSchema,
-    AttributeTypeUpdateSchema,
-)
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
-    AttributeTypeUseCase,
-)
+from api.ldap_schema.schema import AttributeTypePaginationSchema, AttributeTypeSchema, AttributeTypeUpdateSchema
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import AttributeTypeUseCase
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
 
 
-def _convert_update_uschema_to_dto(
-    request: AttributeTypeUpdateSchema,
-) -> AttributeTypeDTO[None]:
+def _convert_update_uschema_to_dto(request: AttributeTypeUpdateSchema) -> AttributeTypeDTO[None]:
     """Convert AttributeTypeUpdateSchema to AttributeTypeDTO for update."""
     return AttributeTypeDTO[None](
         oid="",
@@ -55,29 +41,14 @@ _convert_schema_to_dto = get_converter(
     AttributeTypeDTO[None],
     recipe=[
         allow_unlinked_optional(P[AttributeTypeDTO].id),
-        link_function(
-            lambda _: _.ldap_display_name or "",
-            P[AttributeTypeDTO].ldap_display_name,
-        ),
-        link_function(
-            lambda _: DEFAULT_ATTRIBUTE_TYPE_SYNTAX,
-            P[AttributeTypeDTO].syntax,
-        ),
-        link_function(
-            lambda _: DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD,
-            P[AttributeTypeDTO].no_user_modification,
-        ),
-        link_function(
-            lambda _: DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM,
-            P[AttributeTypeDTO].is_system,
-        ),
+        link_function(lambda _: _.ldap_display_name or "", P[AttributeTypeDTO].ldap_display_name),
+        link_function(lambda _: DEFAULT_ATTRIBUTE_TYPE_SYNTAX, P[AttributeTypeDTO].syntax),
+        link_function(lambda _: DEFAULT_ATTRIBUTE_TYPE_NO_USER_MOD, P[AttributeTypeDTO].no_user_modification),
+        link_function(lambda _: DEFAULT_ATTRIBUTE_TYPE_IS_SYSTEM, P[AttributeTypeDTO].is_system),
     ],
 )
 
-_convert_dto_to_schema = get_converter(
-    AttributeTypeDTO[int],
-    AttributeTypeSchema[int],
-)
+_convert_dto_to_schema = get_converter(AttributeTypeDTO[int], AttributeTypeSchema[int])
 
 
 class AttributeTypeFastAPIAdapter(

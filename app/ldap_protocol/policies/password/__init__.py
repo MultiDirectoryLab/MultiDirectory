@@ -9,9 +9,4 @@ from .dataclasses import PasswordPolicyDTO
 from .use_cases import PasswordPolicyUseCases
 from .validator import PasswordPolicyValidator
 
-__all__ = [
-    "PasswordPolicyUseCases",
-    "PasswordPolicyDAO",
-    "PasswordPolicyDTO",
-    "PasswordPolicyValidator",
-]
+__all__ = ["PasswordPolicyUseCases", "PasswordPolicyDAO", "PasswordPolicyDTO", "PasswordPolicyValidator"]

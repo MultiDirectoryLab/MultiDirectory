@@ -7,12 +7,7 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 from ipaddress import IPv4Address
 
 from .base import AbstractDHCPManager
-from .dataclasses import (
-    DHCPLease,
-    DHCPLeaseToReservationError,
-    DHCPReservation,
-    DHCPSubnet,
-)
+from .dataclasses import DHCPLease, DHCPLeaseToReservationError, DHCPReservation, DHCPSubnet
 from .exceptions import (
     DHCPAPIError,
     DHCPEntryAddError,
@@ -27,10 +22,7 @@ from .exceptions import (
 class KeaDHCPManager(AbstractDHCPManager):
     """Kea DHCP server manager."""
 
-    async def create_subnet(
-        self,
-        subnet_dto: DHCPSubnet,
-    ) -> None:
+    async def create_subnet(self, subnet_dto: DHCPSubnet) -> None:
         """Create a new subnet."""
         subnet_dto.id = await self._get_new_subnet_id()
         try:
@@ -54,33 +46,17 @@ class KeaDHCPManager(AbstractDHCPManager):
         except DHCPEntryNotFoundError:
             return []
 
-        return (
-            [
-                await self._api_repository.get_subnet_by_id(s.id)
-                for s in subnets
-                if s and s.id
-            ]
-            if subnets
-            else []
-        )
+        return [await self._api_repository.get_subnet_by_id(s.id) for s in subnets if s and s.id] if subnets else []
 
-    async def update_subnet(
-        self,
-        subnet_dto: DHCPSubnet,
-    ) -> None:
+    async def update_subnet(self, subnet_dto: DHCPSubnet) -> None:
         """Update an existing subnet."""
         try:
             await self._api_repository.update_subnet(subnet_dto)
             await self._api_repository.write_config()
         except DHCPAPIError as e:
-            raise DHCPEntryUpdateError(
-                f"Failed to update subnet: {e}",
-            )
+            raise DHCPEntryUpdateError(f"Failed to update subnet: {e}")
 
-    async def create_lease(
-        self,
-        lease: DHCPLease,
-    ) -> None:
+    async def create_lease(self, lease: DHCPLease) -> None:
         """Create a new lease."""
         try:
             await self._api_repository.create_lease(lease)
@@ -94,42 +70,26 @@ class KeaDHCPManager(AbstractDHCPManager):
         except DHCPAPIError as e:
             raise DHCPEntryDeleteError(f"Failed to release lease: {e}")
 
-    async def list_active_leases(
-        self,
-        subnet_id: int,
-    ) -> list[DHCPLease]:
+    async def list_active_leases(self, subnet_id: int) -> list[DHCPLease]:
         """List active leases for a subnet."""
         try:
-            return await self._api_repository.list_leases_by_subnet_id(
-                [subnet_id],
-            )
+            return await self._api_repository.list_leases_by_subnet_id([subnet_id])
         except DHCPEntryNotFoundError:
             return []
 
-    async def find_lease(
-        self,
-        mac_address: str | None = None,
-        hostname: str | None = None,
-    ) -> DHCPLease:
+    async def find_lease(self, mac_address: str | None = None, hostname: str | None = None) -> DHCPLease:
         """Find a lease by MAC address or hostname."""
         if mac_address is not None:
-            lease = await self._api_repository.get_lease_by_hw_address(
-                mac_address,
-            )
+            lease = await self._api_repository.get_lease_by_hw_address(mac_address)
         elif hostname is not None:
-            lease = await self._api_repository.get_lease_by_hostname(
-                hostname,
-            )
+            lease = await self._api_repository.get_lease_by_hostname(hostname)
         else:
-            raise DHCPAPIError(
-                "Either MAC address or hostname must be provided.",
-            )
+            raise DHCPAPIError("Either MAC address or hostname must be provided.")
 
         return lease
 
     async def lease_to_reservation(
-        self,
-        reservations: list[DHCPReservation],
+        self, reservations: list[DHCPReservation]
     ) -> None | list[DHCPLeaseToReservationError]:
         """Transform lease to reservation.
 
@@ -139,30 +99,25 @@ class KeaDHCPManager(AbstractDHCPManager):
         errors = []
 
         for reservation in reservations:
-            if (
-                reservation.ip_address is None
-                or reservation.mac_address is None
-            ):
+            if reservation.ip_address is None or reservation.mac_address is None:
                 errors.append(
                     DHCPLeaseToReservationError(
                         ip_address=reservation.ip_address,
                         mac_address=reservation.mac_address,
                         text="MAC address and IP address must be specified",
-                    ),
+                    )
                 )
                 continue
 
             try:
-                await self._api_repository.release_lease(
-                    reservation.ip_address,
-                )
+                await self._api_repository.release_lease(reservation.ip_address)
             except DHCPError as e:
                 errors.append(
                     DHCPLeaseToReservationError(
                         ip_address=reservation.ip_address,
                         mac_address=reservation.mac_address,
                         text=f"Failed to release lease: {e}",
-                    ),
+                    )
                 )
                 continue
 
@@ -175,7 +130,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                         ip_address=reservation.ip_address,
                         mac_address=reservation.mac_address,
                         hostname=reservation.hostname,
-                    ),
+                    )
                 )
 
                 errors.append(
@@ -183,7 +138,7 @@ class KeaDHCPManager(AbstractDHCPManager):
                         ip_address=reservation.ip_address,
                         mac_address=reservation.mac_address,
                         text=f"Failed to add reservation: {e}",
-                    ),
+                    )
                 )
                 continue
 
@@ -194,53 +149,31 @@ class KeaDHCPManager(AbstractDHCPManager):
         else:
             raise DHCPOperationError("Transformation failed")
 
-    async def add_reservation(
-        self,
-        reservation: DHCPReservation,
-    ) -> None:
+    async def add_reservation(self, reservation: DHCPReservation) -> None:
         """Add a reservation for a MAC address."""
         try:
             await self._api_repository.create_reservation(reservation)
             await self._api_repository.write_config()
         except DHCPAPIError as e:
-            raise DHCPEntryAddError(
-                f"Failed to add reservation: {e}",
-            )
+            raise DHCPEntryAddError(f"Failed to add reservation: {e}")
 
-    async def update_reservation(
-        self,
-        reservation: DHCPReservation,
-    ) -> None:
+    async def update_reservation(self, reservation: DHCPReservation) -> None:
         try:
             await self._api_repository.update_reservation(reservation)
             await self._api_repository.write_config()
         except DHCPAPIError as e:
             raise DHCPEntryUpdateError(f"Failed to update reservation: {e}")
 
-    async def delete_reservation(
-        self,
-        mac_address: str,
-        ip_address: IPv4Address,
-        subnet_id: int,
-    ) -> None:
+    async def delete_reservation(self, mac_address: str, ip_address: IPv4Address, subnet_id: int) -> None:
         """Delete a reservation for a MAC address."""
-        reservation = DHCPReservation(
-            ip_address=ip_address,
-            subnet_id=subnet_id,
-            identifier=mac_address,
-        )
+        reservation = DHCPReservation(ip_address=ip_address, subnet_id=subnet_id, identifier=mac_address)
         try:
             await self._api_repository.delete_reservation(reservation)
             await self._api_repository.write_config()
         except DHCPAPIError as e:
-            raise DHCPEntryDeleteError(
-                f"Failed to delete reservation: {e}",
-            )
+            raise DHCPEntryDeleteError(f"Failed to delete reservation: {e}")
 
-    async def get_reservations(
-        self,
-        subnet_id: int,
-    ) -> list[DHCPReservation]:
+    async def get_reservations(self, subnet_id: int) -> list[DHCPReservation]:
         """Get all reservations for a subnet."""
         try:
             return await self._api_repository.list_reservations(subnet_id)

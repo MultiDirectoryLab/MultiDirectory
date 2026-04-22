@@ -12,30 +12,17 @@ from fastapi_error_map.routing import ErrorAwareRouter
 from fastapi_error_map.rules import rule
 
 from api.auth.utils import verify_auth
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from api.password_policy.adapter import UserPasswordHistoryResetFastAPIAdapter
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.identity.exceptions import (
-    AuthorizationError,
-    UserNotFoundError,
-)
+from ldap_protocol.identity.exceptions import AuthorizationError, UserNotFoundError
 
 translator = DomainErrorTranslator(DomainCodes.PASSWORD_POLICY)
 
 error_map: ERROR_MAP_TYPE = {
-    UserNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuthorizationError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
+    UserNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    AuthorizationError: rule(status=status.HTTP_401_UNAUTHORIZED, translator=translator),
 }
 
 user_password_history_router = ErrorAwareRouter(
@@ -48,7 +35,6 @@ user_password_history_router = ErrorAwareRouter(
 
 @user_password_history_router.post("/clear", error_map=error_map)
 async def clear(
-    identity: Annotated[str, Body(examples=["admin"])],
-    adapter: FromDishka[UserPasswordHistoryResetFastAPIAdapter],
+    identity: Annotated[str, Body(examples=["admin"])], adapter: FromDishka[UserPasswordHistoryResetFastAPIAdapter]
 ) -> None:
     await adapter.clear(identity)

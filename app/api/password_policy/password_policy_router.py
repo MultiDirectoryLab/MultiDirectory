@@ -27,52 +27,34 @@ password_policy_router = ErrorAwareRouter(
 
 
 @password_policy_router.get("/all", error_map=error_map)
-async def get_all(
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> list[PasswordPolicySchema[int]]:
+async def get_all(adapter: FromDishka[PasswordPolicyFastAPIAdapter]) -> list[PasswordPolicySchema[int]]:
     """Get all Password Policies."""
     return await adapter.get_all()
 
 
 @password_policy_router.get("/{id_}", error_map=error_map)
-async def get(
-    id_: int,
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> PasswordPolicySchema[int]:
+async def get(id_: int, adapter: FromDishka[PasswordPolicyFastAPIAdapter]) -> PasswordPolicySchema[int]:
     """Get one Password Policy."""
     return await adapter.get(id_)
 
 
 @password_policy_router.get("/by_dir_path_dn/{path_dn}", error_map=error_map)
 async def get_password_policy_by_dir_path_dn(
-    path_dn: GRANT_DN_STRING,
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
+    path_dn: GRANT_DN_STRING, adapter: FromDishka[PasswordPolicyFastAPIAdapter]
 ) -> PasswordPolicySchema[int]:
     """Get one Password Policy for one Directory by its path."""
     return await adapter.get_password_policy_by_dir_path_dn(path_dn)
 
 
-@password_policy_router.put(
-    "/{id_}",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@password_policy_router.put("/{id_}", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def update(
-    id_: int,
-    policy: PasswordPolicySchema[PriorityT],
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
+    id_: int, policy: PasswordPolicySchema[PriorityT], adapter: FromDishka[PasswordPolicyFastAPIAdapter]
 ) -> None:
     """Update one Password Policy."""
     await adapter.update(id_, policy)
 
 
-@password_policy_router.put(
-    "/reset/domain_policy",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
-async def reset_domain_policy_to_default_config(
-    adapter: FromDishka[PasswordPolicyFastAPIAdapter],
-) -> None:
+@password_policy_router.put("/reset/domain_policy", error_map=error_map, dependencies=[Depends(require_master_db)])
+async def reset_domain_policy_to_default_config(adapter: FromDishka[PasswordPolicyFastAPIAdapter]) -> None:
     """Reset domain Password Policy to default configuration."""
     await adapter.reset_domain_policy_to_default_config()

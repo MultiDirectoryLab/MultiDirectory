@@ -22,17 +22,12 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     op.create_table(
         "DedicatedServer",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
-        sa.Column(
-            "name",
-            sa.String(255),
-            nullable=False,
-            unique=True,
-        ),
+        sa.Column("name", sa.String(255), nullable=False, unique=True),
         sa.Column("host", sa.String(255), nullable=False),
         sa.Column("port", sa.Integer, nullable=False),
         sa.Column("username", sa.String(255), nullable=False),
@@ -46,9 +41,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    settings_query = sa.select(CatalogueSetting).where(
-        qa(CatalogueSetting.name).like("ldap_server_%"),
-    )
+    settings_query = sa.select(CatalogueSetting).where(qa(CatalogueSetting.name).like("ldap_server_%"))
     settings_records = session.scalars(settings_query)
 
     for setting in settings_records:
@@ -80,16 +73,13 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             )
 
         except Exception as err:
-            logger.error(
-                f"Error adding dedicated server: {err}"
-                + f" {setting.name=}, {setting.value=}",
-            )
+            logger.error(f"Error adding dedicated server: {err}" + f" {setting.name=}, {setting.value=}")
             continue
         session.add(dedicated_server)
     session.commit()
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -106,18 +96,13 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         )
 
         existing_setting = session.execute(
-            sa.select(CatalogueSetting).where(
-                qa(CatalogueSetting.name) == f"ldap_server_{server.name}",
-            ),
+            sa.select(CatalogueSetting).where(qa(CatalogueSetting.name) == f"ldap_server_{server.name}")
         ).scalar_one_or_none()
 
         if existing_setting:
             existing_setting.value = conn_string
         else:
-            new_setting = CatalogueSetting(
-                name=f"ldap_server_{server.name}",
-                value=conn_string,
-            )
+            new_setting = CatalogueSetting(name=f"ldap_server_{server.name}", value=conn_string)
             session.add(new_setting)
 
     session.commit()

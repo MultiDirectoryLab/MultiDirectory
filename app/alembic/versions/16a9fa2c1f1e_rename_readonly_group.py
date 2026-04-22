@@ -26,7 +26,7 @@ depends_on: None | list[str] = None
 
 
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -47,22 +47,14 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
         session.execute(
             update(Attribute)
-            .filter_by(
-                name="sAMAccountName",
-                directory=ro_dir,
-                value="readonly domain controllers",
-            )
-            .values({"value": ro_dir.name}),
+            .filter_by(name="sAMAccountName", directory=ro_dir, value="readonly domain controllers")
+            .values({"value": ro_dir.name})
         )
 
         session.execute(
             update(Attribute)
-            .filter_by(
-                name="cn",
-                directory=ro_dir,
-                value="readonly domain controllers",
-            )
-            .values({"value": ro_dir.name}),
+            .filter_by(name="cn", directory=ro_dir, value="readonly domain controllers")
+            .values({"value": ro_dir.name})
         )
 
         session.commit()
@@ -73,7 +65,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
 
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -94,22 +86,14 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
         session.execute(
             update(Attribute)
-            .filter_by(
-                name="sAMAccountName",
-                directory=ro_dir,
-                value=READ_ONLY_GROUP_NAME,
-            )
-            .values({"value": ro_dir.name}),
+            .filter_by(name="sAMAccountName", directory=ro_dir, value=READ_ONLY_GROUP_NAME)
+            .values({"value": ro_dir.name})
         )
 
         session.execute(
             update(Attribute)
-            .filter_by(
-                name="cn",
-                directory=ro_dir,
-                value=READ_ONLY_GROUP_NAME,
-            )
-            .values({"value": ro_dir.name}),
+            .filter_by(name="cn", directory=ro_dir, value=READ_ONLY_GROUP_NAME)
+            .values({"value": ro_dir.name})
         )
 
         session.commit()

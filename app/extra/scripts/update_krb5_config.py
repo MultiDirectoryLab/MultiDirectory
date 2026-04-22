@@ -24,16 +24,10 @@ def _migrate_legacy_dns(content: str) -> str:
     :param content: File content to migrate.
     :return: Migrated content.
     """
-    return content.replace("ou=services", "ou=System").replace(
-        "ou=users",
-        "cn=users",
-    )
+    return content.replace("ou=services", "ou=System").replace("ou=users", "cn=users")
 
 
-async def update_krb5_config(
-    session: AsyncSession,
-    settings: Settings,
-) -> None:
+async def update_krb5_config(session: AsyncSession, settings: Settings) -> None:
     """Update Kerberos configuration files via direct write to shared volume.
 
     Renders krb5.conf and kdc.conf from templates and writes them directly
@@ -45,10 +39,7 @@ async def update_krb5_config(
     :raises Exception: If config rendering or writing fails.
     """
     if not KRB5_CONF_PATH.parent.exists():
-        logger.error(
-            f"Config directory {KRB5_CONF_PATH.parent} not found, "
-            "kerberos volume not mounted",
-        )
+        logger.error(f"Config directory {KRB5_CONF_PATH.parent} not found, kerberos volume not mounted")
         return
 
     base_dn_list = await get_base_directories(session)
@@ -61,9 +52,7 @@ async def update_krb5_config(
     krbadmin = f"cn=krbadmin,cn=users,{base_dn}"
     services_container = get_system_container_dn(base_dn)
 
-    krb5_config = await settings.TEMPLATES.get_template(
-        "krb5.conf",
-    ).render_async(
+    krb5_config = await settings.TEMPLATES.get_template("krb5.conf").render_async(
         domain=domain,
         krbadmin=krbadmin,
         services_container=services_container,
@@ -71,11 +60,7 @@ async def update_krb5_config(
         mfa_push_url=settings.KRB5_MFA_PUSH_URL,
         sync_password_url=settings.KRB5_SYNC_PASSWORD_URL,
     )
-    kdc_config = await settings.TEMPLATES.get_template(
-        "kdc.conf",
-    ).render_async(
-        domain=domain,
-    )
+    kdc_config = await settings.TEMPLATES.get_template("kdc.conf").render_async(domain=domain)
 
     KRB5_CONF_PATH.write_text(krb5_config, encoding="utf-8")
     KDC_CONF_PATH.write_text(kdc_config, encoding="utf-8")
@@ -83,7 +68,4 @@ async def update_krb5_config(
     if STASH_FILE_PATH.exists():
         stash_content = STASH_FILE_PATH.read_text(encoding="utf-8")
         if "ou=services" in stash_content or "ou=users" in stash_content:
-            STASH_FILE_PATH.write_text(
-                _migrate_legacy_dns(stash_content),
-                encoding="utf-8",
-            )
+            STASH_FILE_PATH.write_text(_migrate_legacy_dns(stash_content), encoding="utf-8")

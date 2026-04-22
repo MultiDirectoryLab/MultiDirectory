@@ -21,10 +21,7 @@ class RootDSEReader:
         self._settings = settings
         self._gw = gw
 
-    async def get(
-        self,
-        requested_attrs: set[str],
-    ) -> defaultdict[str, list[str]]:
+    async def get(self, requested_attrs: set[str]) -> defaultdict[str, list[str]]:
         domain = await self._gw.get_domain()
         schema = "CN=Schema"
 
@@ -43,32 +40,21 @@ class RootDSEReader:
             "rootDomainNamingContext": [domain.path_dn],
             "supportedLDAPVersion": ["3"],
             "defaultNamingContext": [domain.path_dn],
-            "currentTime": [
-                get_generalized_now(self._settings.TIMEZONE),
-            ],
+            "currentTime": [get_generalized_now(self._settings.TIMEZONE)],
             "subschemaSubentry": [schema],
             "schemaNamingContext": [schema],
-            "supportedSASLMechanisms": [
-                "ANONYMOUS",
-                "PLAIN",
-                "GSSAPI",
-                "GSS-SPNEGO",
-            ],
+            "supportedSASLMechanisms": ["ANONYMOUS", "PLAIN", "GSSAPI", "GSS-SPNEGO"],
             "highestCommittedUSN": ["126991"],
             "supportedExtension": [
                 "1.3.6.1.4.1.4203.1.11.3",  # whoami
                 "1.3.6.1.4.1.4203.1.11.1",  # password modify
             ],
             "supportedControl": [
-                "2.16.840.1.113730.3.4.4",  # password expire policy
+                "2.16.840.1.113730.3.4.4"  # password expire policy
             ],
             "domainFunctionality": ["7"],
             "forestFunctionality": ["7"],
-            "supportedLDAPPolicies": [
-                "MaxConnIdleTime",
-                "MaxPageSize",
-                "MaxValRange",
-            ],
+            "supportedLDAPPolicies": ["MaxConnIdleTime", "MaxPageSize", "MaxValRange"],
             "supportedCapabilities": [
                 "1.2.840.113556.1.4.800",  # ACTIVE_DIRECTORY_OID
                 "1.2.840.113556.1.4.1670",  # ACTIVE_DIRECTORY_V51_OID
@@ -89,12 +75,7 @@ class RootDSEReader:
 
 
 class DCInfoReader:
-    def __init__(
-        self,
-        settings: Settings,
-        gw: DomainReadProtocol,
-        object_sid_use_case: ObjectSIDUseCase,
-    ) -> None:
+    def __init__(self, settings: Settings, gw: DomainReadProtocol, object_sid_use_case: ObjectSIDUseCase) -> None:
         self._settings = settings
         self._gw = gw
         self._object_sid_use_case = object_sid_use_case
@@ -103,9 +84,7 @@ class DCInfoReader:
         domain = await self._gw.get_domain()
         dns = domain.name.lower()
         nb_domain = dns.split(".")[0].upper()
-        domain_identifier = (
-            await self._object_sid_use_case.get_domain_identifier()
-        )
+        domain_identifier = await self._object_sid_use_case.get_domain_identifier()
 
         return DomainControllerInfo(
             net_bios_domain=nb_domain,

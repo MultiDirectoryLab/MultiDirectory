@@ -2,10 +2,7 @@
 
 from fastapi import status
 
-from api.ldap_schema.schema import (
-    AttributeTypeSchema,
-    AttributeTypeUpdateSchema,
-)
+from api.ldap_schema.schema import AttributeTypeSchema, AttributeTypeUpdateSchema
 
 test_modify_one_attribute_type_dataset = [
     {
@@ -21,10 +18,7 @@ test_modify_one_attribute_type_dataset = [
             is_included_anr=False,
         ),
         "attribute_type_changes": AttributeTypeUpdateSchema(
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_included_anr=False,
+            syntax="1.3.6.1.4.1.1466.115.121.1.15", single_value=True, no_user_modification=False, is_included_anr=False
         ),
         "status_code": status.HTTP_200_OK,
     },
@@ -41,10 +35,7 @@ test_modify_one_attribute_type_dataset = [
             is_included_anr=False,
         ),
         "attribute_type_changes": AttributeTypeUpdateSchema(
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_included_anr=False,
+            syntax="1.3.6.1.4.1.1466.115.121.1.15", single_value=True, no_user_modification=False, is_included_anr=False
         ),
         "status_code": status.HTTP_400_BAD_REQUEST,
     },
@@ -61,10 +52,7 @@ test_modify_one_attribute_type_dataset = [
             is_included_anr=False,
         ),
         "attribute_type_changes": AttributeTypeUpdateSchema(
-            syntax="1.3.6.1.4.1.1466.115.121.1.15",
-            single_value=True,
-            no_user_modification=False,
-            is_included_anr=False,
+            syntax="1.3.6.1.4.1.1466.115.121.1.15", single_value=True, no_user_modification=False, is_included_anr=False
         ),
         "status_code": status.HTTP_200_OK,
     },
@@ -94,10 +82,7 @@ test_delete_bulk_attribute_types_dataset = [
                 is_included_anr=False,
             ),
         ],
-        "attribute_types_deleted": [
-            "testAttributeType1",
-            "testAttributeType2",
-        ],
+        "attribute_types_deleted": ["testAttributeType1", "testAttributeType2"],
         "status_code": status.HTTP_200_OK,
     },
     {
@@ -111,7 +96,7 @@ test_delete_bulk_attribute_types_dataset = [
                 no_user_modification=False,
                 is_system=False,
                 is_included_anr=False,
-            ),
+            )
         ],
         "attribute_types_deleted": [
             "testAttributeType1",
@@ -121,9 +106,5 @@ test_delete_bulk_attribute_types_dataset = [
         ],
         "status_code": status.HTTP_200_OK,
     },
-    {
-        "attribute_type_schemas": [],
-        "attribute_types_deleted": [],
-        "status_code": status.HTTP_422_UNPROCESSABLE_CONTENT,
-    },
+    {"attribute_type_schemas": [], "attribute_types_deleted": [], "status_code": status.HTTP_422_UNPROCESSABLE_CONTENT},
 ]

@@ -14,9 +14,7 @@ from sqlalchemy.orm import joinedload
 
 from entities import Attribute, Directory, NetworkPolicy
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.utils.helpers import create_integer_hash
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
@@ -32,9 +30,7 @@ depends_on: None | list[str] = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _attach_entity_type_to_directories(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _attach_entity_type_to_directories(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             entity_type_use_case = await cnt.get(EntityTypeUseCase)
@@ -45,19 +41,16 @@ def upgrade(container: AsyncContainer) -> None:
         await entity_type_use_case.attach_entity_type_to_directories()
         await session.commit()
 
-    async def _change_uid_admin(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _change_uid_admin(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
         directory = await session.scalar(
             sa.select(Directory)
             .join(qa(Directory.attributes))
-            .where(
-                qa(Attribute.name) == "uidNumber",
-                qa(Attribute.value) == "1000",
-            )
-            .options(joinedload(qa(Directory.user))),
-        )  # fmt: skip
+            .where(qa(Attribute.name) == "uidNumber", qa(Attribute.value) == "1000")
+            .options(joinedload(qa(Directory.user)))
+        )
 
         if not directory:
             return
@@ -67,30 +60,19 @@ def upgrade(container: AsyncContainer) -> None:
 
         await session.execute(
             sa.update(Attribute)
-            .where(
-                qa(Attribute.directory_id) == directory.id,
-                qa(Attribute.name) == "uidNumber",
-            )
-            .values(
-                value=str(
-                    create_integer_hash(directory.user.sam_account_name),
-                ),
-            ),
+            .where(qa(Attribute.directory_id) == directory.id, qa(Attribute.name) == "uidNumber")
+            .values(value=str(create_integer_hash(directory.user.sam_account_name)))
         )
         await session.commit()
 
-    async def _change_ldap_session_ttl(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _change_ldap_session_ttl(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
         await session.execute(
             sa.update(NetworkPolicy)
-            .where(
-                qa(NetworkPolicy.name) == "Default open policy",
-            )
-            .values(
-                ldap_session_ttl=7200,
-            ),
+            .where(qa(NetworkPolicy.name) == "Default open policy")
+            .values(ldap_session_ttl=7200)
         )
         await session.commit()
 

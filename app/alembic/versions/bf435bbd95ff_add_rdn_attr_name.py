@@ -24,7 +24,7 @@ depends_on: None | str = None
 
 @temporary_stub_column("Directory", "entity_type_id", sa.Integer())
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     op.add_column("Directory", sa.Column("rdname", sa.String(length=64)))
 
@@ -44,13 +44,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         if rdname == "krbprincipalname":
             continue  # already exists
 
-        attrs.append(
-            Attribute(
-                name=rdname,
-                value=directory.name,
-                directory_id=directory.id,
-            ),
-        )
+        attrs.append(Attribute(name=rdname, value=directory.name, directory_id=directory.id))
 
     session.add_all(attrs)
     session.commit()
@@ -60,7 +54,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
 @temporary_stub_column("Directory", "entity_type_id", sa.Integer())
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)

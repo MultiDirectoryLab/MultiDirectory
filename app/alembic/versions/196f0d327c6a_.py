@@ -16,18 +16,10 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
-    op.drop_constraint(
-        "AccessPolicyMemberships_policy_id_fkey",
-        "AccessPolicyMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "AccessPolicyMemberships_dir_id_fkey",
-        "AccessPolicyMemberships",
-        type_="foreignkey",
-    )
+    op.drop_constraint("AccessPolicyMemberships_policy_id_fkey", "AccessPolicyMemberships", type_="foreignkey")
+    op.drop_constraint("AccessPolicyMemberships_dir_id_fkey", "AccessPolicyMemberships", type_="foreignkey")
     op.create_foreign_key(
         "AccessPolicyMemberships_policy_id_fkey",
         "AccessPolicyMemberships",
@@ -45,16 +37,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         ondelete="CASCADE",
     )
 
-    op.drop_constraint(
-        "DirectoryMemberships_directory_id_fkey",
-        "DirectoryMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "DirectoryMemberships_group_id_fkey",
-        "DirectoryMemberships",
-        type_="foreignkey",
-    )
+    op.drop_constraint("DirectoryMemberships_directory_id_fkey", "DirectoryMemberships", type_="foreignkey")
+    op.drop_constraint("DirectoryMemberships_group_id_fkey", "DirectoryMemberships", type_="foreignkey")
     op.create_foreign_key(
         "DirectoryMemberships_directory_id_fkey",
         "DirectoryMemberships",
@@ -73,15 +57,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     )
 
     op.drop_constraint(
-        "GroupAccessPolicyMemberships_policy_id_fkey",
-        "GroupAccessPolicyMemberships",
-        type_="foreignkey",
+        "GroupAccessPolicyMemberships_policy_id_fkey", "GroupAccessPolicyMemberships", type_="foreignkey"
     )
-    op.drop_constraint(
-        "GroupAccessPolicyMemberships_group_id_fkey",
-        "GroupAccessPolicyMemberships",
-        type_="foreignkey",
-    )
+    op.drop_constraint("GroupAccessPolicyMemberships_group_id_fkey", "GroupAccessPolicyMemberships", type_="foreignkey")
     op.create_foreign_key(
         "GroupAccessPolicyMemberships_policy_id_fkey",
         "GroupAccessPolicyMemberships",
@@ -99,16 +77,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         ondelete="CASCADE",
     )
 
-    op.drop_constraint(
-        "PolicyMFAMemberships_policy_id_fkey",
-        "PolicyMFAMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "PolicyMFAMemberships_group_id_fkey",
-        "PolicyMFAMemberships",
-        type_="foreignkey",
-    )
+    op.drop_constraint("PolicyMFAMemberships_policy_id_fkey", "PolicyMFAMemberships", type_="foreignkey")
+    op.drop_constraint("PolicyMFAMemberships_group_id_fkey", "PolicyMFAMemberships", type_="foreignkey")
     op.create_foreign_key(
         "PolicyMFAMemberships_policy_id_fkey",
         "PolicyMFAMemberships",
@@ -126,150 +96,50 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         ondelete="CASCADE",
     )
 
-    op.drop_constraint(
-        "PolicyMemberships_group_id_fkey",
-        "PolicyMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "PolicyMemberships_policy_id_fkey",
-        "PolicyMemberships",
-        type_="foreignkey",
+    op.drop_constraint("PolicyMemberships_group_id_fkey", "PolicyMemberships", type_="foreignkey")
+    op.drop_constraint("PolicyMemberships_policy_id_fkey", "PolicyMemberships", type_="foreignkey")
+    op.create_foreign_key(
+        "PolicyMemberships_group_id_fkey", "PolicyMemberships", "Groups", ["group_id"], ["id"], ondelete="CASCADE"
     )
     op.create_foreign_key(
-        "PolicyMemberships_group_id_fkey",
-        "PolicyMemberships",
-        "Groups",
-        ["group_id"],
-        ["id"],
-        ondelete="CASCADE",
-    )
-    op.create_foreign_key(
-        "PolicyMemberships_policy_id_fkey",
-        "PolicyMemberships",
-        "Policies",
-        ["policy_id"],
-        ["id"],
-        ondelete="CASCADE",
+        "PolicyMemberships_policy_id_fkey", "PolicyMemberships", "Policies", ["policy_id"], ["id"], ondelete="CASCADE"
     )
 
-    op.drop_constraint(
-        "Attributes_directoryId_fkey",
-        "Attributes",
-        type_="foreignkey",
-    )
+    op.drop_constraint("Attributes_directoryId_fkey", "Attributes", type_="foreignkey")
     op.create_foreign_key(
-        "Attributes_directoryId_fkey",
-        "Attributes",
-        "Directory",
-        ["directoryId"],
-        ["id"],
-        ondelete="CASCADE",
+        "Attributes_directoryId_fkey", "Attributes", "Directory", ["directoryId"], ["id"], ondelete="CASCADE"
     )
 
-    op.drop_constraint(
-        "Directory_parentId_fkey",
-        "Directory",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
-        "Directory_parentId_fkey",
-        "Directory",
-        "Directory",
-        ["parentId"],
-        ["id"],
-        ondelete="CASCADE",
-    )
+    op.drop_constraint("Directory_parentId_fkey", "Directory", type_="foreignkey")
+    op.create_foreign_key("Directory_parentId_fkey", "Directory", "Directory", ["parentId"], ["id"], ondelete="CASCADE")
 
     op.drop_constraint("Groups_directoryId_fkey", "Groups", type_="foreignkey")
-    op.create_foreign_key(
-        "Groups_directoryId_fkey",
-        "Groups",
-        "Directory",
-        ["directoryId"],
-        ["id"],
-        ondelete="CASCADE",
-    )
+    op.create_foreign_key("Groups_directoryId_fkey", "Groups", "Directory", ["directoryId"], ["id"], ondelete="CASCADE")
 
     op.drop_constraint("Users_directoryId_fkey", "Users", type_="foreignkey")
-    op.create_foreign_key(
-        "Users_directoryId_fkey",
-        "Users",
-        "Directory",
-        ["directoryId"],
-        ["id"],
-        ondelete="CASCADE",
-    )
+    op.create_foreign_key("Users_directoryId_fkey", "Users", "Directory", ["directoryId"], ["id"], ondelete="CASCADE")
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    op.drop_constraint(
-        "PolicyMemberships_policy_id_fkey",
-        "PolicyMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "PolicyMemberships_group_id_fkey",
-        "PolicyMemberships",
-        type_="foreignkey",
-    )
+    op.drop_constraint("PolicyMemberships_policy_id_fkey", "PolicyMemberships", type_="foreignkey")
+    op.drop_constraint("PolicyMemberships_group_id_fkey", "PolicyMemberships", type_="foreignkey")
+    op.create_foreign_key("PolicyMemberships_policy_id_fkey", "PolicyMemberships", "Policies", ["policy_id"], ["id"])
+    op.create_foreign_key("PolicyMemberships_group_id_fkey", "PolicyMemberships", "Groups", ["group_id"], ["id"])
+
+    op.drop_constraint("PolicyMFAMemberships_group_id_fkey", "PolicyMFAMemberships", type_="foreignkey")
+    op.drop_constraint("PolicyMFAMemberships_policy_id_fkey", "PolicyMFAMemberships", type_="foreignkey")
+    op.create_foreign_key("PolicyMFAMemberships_group_id_fkey", "PolicyMFAMemberships", "Groups", ["group_id"], ["id"])
     op.create_foreign_key(
-        "PolicyMemberships_policy_id_fkey",
-        "PolicyMemberships",
-        "Policies",
-        ["policy_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
-        "PolicyMemberships_group_id_fkey",
-        "PolicyMemberships",
-        "Groups",
-        ["group_id"],
-        ["id"],
+        "PolicyMFAMemberships_policy_id_fkey", "PolicyMFAMemberships", "Policies", ["policy_id"], ["id"]
     )
 
+    op.drop_constraint("GroupAccessPolicyMemberships_group_id_fkey", "GroupAccessPolicyMemberships", type_="foreignkey")
     op.drop_constraint(
-        "PolicyMFAMemberships_group_id_fkey",
-        "PolicyMFAMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "PolicyMFAMemberships_policy_id_fkey",
-        "PolicyMFAMemberships",
-        type_="foreignkey",
+        "GroupAccessPolicyMemberships_policy_id_fkey", "GroupAccessPolicyMemberships", type_="foreignkey"
     )
     op.create_foreign_key(
-        "PolicyMFAMemberships_group_id_fkey",
-        "PolicyMFAMemberships",
-        "Groups",
-        ["group_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
-        "PolicyMFAMemberships_policy_id_fkey",
-        "PolicyMFAMemberships",
-        "Policies",
-        ["policy_id"],
-        ["id"],
-    )
-
-    op.drop_constraint(
-        "GroupAccessPolicyMemberships_group_id_fkey",
-        "GroupAccessPolicyMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "GroupAccessPolicyMemberships_policy_id_fkey",
-        "GroupAccessPolicyMemberships",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
-        "GroupAccessPolicyMemberships_group_id_fkey",
-        "GroupAccessPolicyMemberships",
-        "Groups",
-        ["group_id"],
-        ["id"],
+        "GroupAccessPolicyMemberships_group_id_fkey", "GroupAccessPolicyMemberships", "Groups", ["group_id"], ["id"]
     )
     op.create_foreign_key(
         "GroupAccessPolicyMemberships_policy_id_fkey",
@@ -279,96 +149,30 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         ["id"],
     )
 
-    op.drop_constraint(
-        "DirectoryMemberships_group_id_fkey",
-        "DirectoryMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "DirectoryMemberships_directory_id_fkey",
-        "DirectoryMemberships",
-        type_="foreignkey",
-    )
+    op.drop_constraint("DirectoryMemberships_group_id_fkey", "DirectoryMemberships", type_="foreignkey")
+    op.drop_constraint("DirectoryMemberships_directory_id_fkey", "DirectoryMemberships", type_="foreignkey")
+    op.create_foreign_key("DirectoryMemberships_group_id_fkey", "DirectoryMemberships", "Groups", ["group_id"], ["id"])
     op.create_foreign_key(
-        "DirectoryMemberships_group_id_fkey",
-        "DirectoryMemberships",
-        "Groups",
-        ["group_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
-        "DirectoryMemberships_directory_id_fkey",
-        "DirectoryMemberships",
-        "Directory",
-        ["directory_id"],
-        ["id"],
+        "DirectoryMemberships_directory_id_fkey", "DirectoryMemberships", "Directory", ["directory_id"], ["id"]
     )
 
-    op.drop_constraint(
-        "AccessPolicyMemberships_policy_id_fkey",
-        "AccessPolicyMemberships",
-        type_="foreignkey",
-    )
-    op.drop_constraint(
-        "AccessPolicyMemberships_dir_id_fkey",
-        "AccessPolicyMemberships",
-        type_="foreignkey",
+    op.drop_constraint("AccessPolicyMemberships_policy_id_fkey", "AccessPolicyMemberships", type_="foreignkey")
+    op.drop_constraint("AccessPolicyMemberships_dir_id_fkey", "AccessPolicyMemberships", type_="foreignkey")
+    op.create_foreign_key(
+        "AccessPolicyMemberships_dir_id_fkey", "AccessPolicyMemberships", "Directory", ["dir_id"], ["id"]
     )
     op.create_foreign_key(
-        "AccessPolicyMemberships_dir_id_fkey",
-        "AccessPolicyMemberships",
-        "Directory",
-        ["dir_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
-        "AccessPolicyMemberships_policy_id_fkey",
-        "AccessPolicyMemberships",
-        "AccessPolicies",
-        ["policy_id"],
-        ["id"],
+        "AccessPolicyMemberships_policy_id_fkey", "AccessPolicyMemberships", "AccessPolicies", ["policy_id"], ["id"]
     )
 
     op.drop_constraint("Users_directoryId_fkey", "Users", type_="foreignkey")
-    op.create_foreign_key(
-        "Users_directoryId_fkey",
-        "Users",
-        "Directory",
-        ["directoryId"],
-        ["id"],
-    )
+    op.create_foreign_key("Users_directoryId_fkey", "Users", "Directory", ["directoryId"], ["id"])
 
     op.drop_constraint("Groups_directoryId_fkey", "Groups", type_="foreignkey")
-    op.create_foreign_key(
-        "Groups_directoryId_fkey",
-        "Groups",
-        "Directory",
-        ["directoryId"],
-        ["id"],
-    )
+    op.create_foreign_key("Groups_directoryId_fkey", "Groups", "Directory", ["directoryId"], ["id"])
 
-    op.drop_constraint(
-        "Directory_parentId_fkey",
-        "Directory",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
-        "Directory_parentId_fkey",
-        "Directory",
-        "Directory",
-        ["parentId"],
-        ["id"],
-    )
+    op.drop_constraint("Directory_parentId_fkey", "Directory", type_="foreignkey")
+    op.create_foreign_key("Directory_parentId_fkey", "Directory", "Directory", ["parentId"], ["id"])
 
-    op.drop_constraint(
-        "Attributes_directoryId_fkey",
-        "Attributes",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
-        "Attributes_directoryId_fkey",
-        "Attributes",
-        "Directory",
-        ["directoryId"],
-        ["id"],
-    )
+    op.drop_constraint("Attributes_directoryId_fkey", "Attributes", type_="foreignkey")
+    op.create_foreign_key("Attributes_directoryId_fkey", "Attributes", "Directory", ["directoryId"], ["id"])

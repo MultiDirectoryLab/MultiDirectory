@@ -35,9 +35,7 @@ class DHCPManagerRepository:
     async def change_state(self, state: DHCPManagerState) -> None:
         """Set the current state of the DHCP manager."""
         await self._session.execute(
-            update(CatalogueSetting)
-            .values({"value": state})
-            .where(qa(CatalogueSetting.name).in_([self.STATE_NAME])),
+            update(CatalogueSetting).values({"value": state}).where(qa(CatalogueSetting.name).in_([self.STATE_NAME]))
         )
 
         await self._session.flush()
@@ -47,12 +45,7 @@ class DHCPManagerRepository:
         current_state = await self.get_state()
 
         if current_state is None:
-            self._session.add(
-                CatalogueSetting(
-                    name=self.STATE_NAME,
-                    value=DHCPManagerState.NOT_CONFIGURED,
-                ),
-            )
+            self._session.add(CatalogueSetting(name=self.STATE_NAME, value=DHCPManagerState.NOT_CONFIGURED))
 
         await self._session.flush()
 

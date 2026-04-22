@@ -50,9 +50,7 @@ from ioc import (
     MFAProvider,
 )
 from ldap_protocol.dependency import resolve_deps
-from ldap_protocol.dns.bind_to_pdns_migration_use_case import (
-    BindToPDNSMigrationUseCase,
-)
+from ldap_protocol.dns.bind_to_pdns_migration_use_case import BindToPDNSMigrationUseCase
 from ldap_protocol.identity.exceptions import UnauthorizedError
 from ldap_protocol.policies.audit.events.handler import AuditEventHandler
 from ldap_protocol.policies.audit.events.sender import AuditEventSenderManager
@@ -92,11 +90,7 @@ def _create_basic_app(settings: Settings) -> FastAPI:
     app.include_router(ldap_schema_router)
     app.include_router(dhcp_router)
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
     )
     if settings.DEBUG:
         app.middleware("http")(proc_time_header_middleware)
@@ -139,26 +133,17 @@ def _add_app_sqlalchemy_debugger(app: FastAPI, settings: Settings) -> None:
             def handle(self, statistics: AlchemyStatistics) -> None:
                 logger.debug(str(statistics), json.dumps(asdict(statistics)))
 
-        app.add_middleware(
-            SQLAlchemyMonitor,
-            engine=settings.engine,
-            actions=[JsonPrintStatistics()],
-        )
+        app.add_middleware(SQLAlchemyMonitor, engine=settings.engine, actions=[JsonPrintStatistics()])
 
 
 def create_prod_app(
-    factory: Callable[[Settings], FastAPI] = _create_basic_app,
-    settings: Settings | None = None,
+    factory: Callable[[Settings], FastAPI] = _create_basic_app, settings: Settings | None = None
 ) -> FastAPI:
     """Create production app with container."""
     settings = settings or Settings.from_os()
     app = factory(settings)
     container = make_async_container(
-        MainProvider(),
-        MFAProvider(),
-        HTTPProvider(),
-        MFACredsProvider(),
-        context={Settings: settings},
+        MainProvider(), MFAProvider(), HTTPProvider(), MFACredsProvider(), context={Settings: settings}
     )
 
     if settings.ENABLE_SQLALCHEMY_LOGGING:
@@ -168,10 +153,7 @@ def create_prod_app(
     return app
 
 
-def run_entrypoint(
-    factory: Callable[[Settings], Coroutine],
-    settings: Settings,
-) -> None:
+def run_entrypoint(factory: Callable[[Settings], Coroutine], settings: Settings) -> None:
     """Run server."""
 
     def _run() -> None:
@@ -194,11 +176,7 @@ async def ldap_factory(settings: Settings) -> None:
 
     for setting in (settings, settings.get_copy_4_tls()):
         container = make_async_container(
-            LDAPServerProvider(),
-            MainProvider(),
-            MFAProvider(),
-            MFACredsProvider(),
-            context={Settings: setting},
+            LDAPServerProvider(), MainProvider(), MFAProvider(), MFACredsProvider(), context={Settings: setting}
         )
 
         settings = await container.get(Settings)
@@ -220,11 +198,7 @@ async def ldap_factory(settings: Settings) -> None:
 async def cldap_factory(settings: Settings) -> None:
     """Run CLDAP server factory."""
     container = make_async_container(
-        LDAPServerProvider(),
-        MainProvider(),
-        MFAProvider(),
-        MFACredsProvider(),
-        context={Settings: settings},
+        LDAPServerProvider(), MainProvider(), MFAProvider(), MFACredsProvider(), context={Settings: settings}
     )
 
     await CLDAPUDPServer(settings, container).start()
@@ -234,16 +208,9 @@ async def global_ldap_server_factory(settings: Settings) -> None:
     """Run global_ldap_server_factory."""
     servers = []
 
-    for setting in (
-        settings.get_copy_4_global(),
-        settings.get_copy_4_global_tls(),
-    ):
+    for setting in (settings.get_copy_4_global(), settings.get_copy_4_global_tls()):
         container = make_async_container(
-            GlobalLDAPServerProvider(),
-            MainProvider(),
-            MFAProvider(),
-            MFACredsProvider(),
-            context={Settings: setting},
+            GlobalLDAPServerProvider(), MainProvider(), MFAProvider(), MFACredsProvider(), context={Settings: setting}
         )
 
         settings = await container.get(Settings)
@@ -264,26 +231,16 @@ async def global_ldap_server_factory(settings: Settings) -> None:
 
 async def event_handler_factory(settings: Settings) -> None:
     """Run event handler."""
-    main_container = make_async_container(
-        MainProvider(),
-        context={Settings: settings},
-    )
+    main_container = make_async_container(MainProvider(), context={Settings: settings})
 
     async with main_container(scope=Scope.REQUEST) as container:
-        kwargs = await resolve_deps(
-            AuditEventHandler.__init__,
-            container=container,
-        )
+        kwargs = await resolve_deps(AuditEventHandler.__init__, container=container)
         await asyncio.gather(AuditEventHandler(**kwargs).run())
 
 
 async def event_sender_factory(settings: Settings) -> None:
     """Run event sender."""
-    main_container = make_async_container(
-        MainProvider(),
-        EventSenderProvider(),
-        context={Settings: settings},
-    )
+    main_container = make_async_container(MainProvider(), EventSenderProvider(), context={Settings: settings})
 
     async with main_container(scope=Scope.REQUEST) as container:
         manager = await container.get(AuditEventSenderManager)
@@ -292,10 +249,7 @@ async def event_sender_factory(settings: Settings) -> None:
 
 async def migrate_dns_factory(settings: Settings) -> None:
     """Run DNS migration."""
-    main_container = make_async_container(
-        MainProvider(),
-        context={Settings: settings},
-    )
+    main_container = make_async_container(MainProvider(), context={Settings: settings})
 
     async with main_container(scope=Scope.REQUEST) as container:
         usecase = await container.get(BindToPDNSMigrationUseCase)
@@ -304,10 +258,7 @@ async def migrate_dns_factory(settings: Settings) -> None:
 
 ldap = partial(run_entrypoint, factory=ldap_factory)
 cldap = partial(run_entrypoint, factory=cldap_factory)
-global_ldap_server = partial(
-    run_entrypoint,
-    factory=global_ldap_server_factory,
-)
+global_ldap_server = partial(run_entrypoint, factory=global_ldap_server_factory)
 scheduler = partial(run_entrypoint, factory=scheduler_factory)
 create_shadow_app = partial(create_prod_app, factory=_create_shadow_app)
 event_handler = partial(run_entrypoint, factory=event_handler_factory)
@@ -322,44 +273,16 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--ldap", action="store_true", help="Run ldap")
     group.add_argument("--cldap", action="store_true", help="Run cldap")
-    group.add_argument(
-        "--global_ldap_server",
-        action="store_true",
-        help="Run global_ldap_server",
-    )
+    group.add_argument("--global_ldap_server", action="store_true", help="Run global_ldap_server")
     group.add_argument("--http", action="store_true", help="Run http")
     group.add_argument("--shadow", action="store_true", help="Run http")
     group.add_argument("--scheduler", action="store_true", help="Run tasks")
-    group.add_argument(
-        "--event_handler",
-        action="store_true",
-        help="Run event handler",
-    )
-    group.add_argument(
-        "--event_sender",
-        action="store_true",
-        help="Run event sender",
-    )
-    group.add_argument(
-        "--certs_dumper",
-        action="store_true",
-        help="Dump certs",
-    )
-    group.add_argument(
-        "--migrate",
-        action="store_true",
-        help="Make migrations",
-    )
-    group.add_argument(
-        "--downgrade",
-        metavar="REV",
-        help="Downgrade database to revision",
-    )
-    group.add_argument(
-        "--migrate_dns",
-        action="store_true",
-        help="Migrate DNS from BIND to PowerDNS",
-    )
+    group.add_argument("--event_handler", action="store_true", help="Run event handler")
+    group.add_argument("--event_sender", action="store_true", help="Run event sender")
+    group.add_argument("--certs_dumper", action="store_true", help="Dump certs")
+    group.add_argument("--migrate", action="store_true", help="Make migrations")
+    group.add_argument("--downgrade", metavar="REV", help="Downgrade database to revision")
+    group.add_argument("--migrate_dns", action="store_true", help="Migrate DNS from BIND to PowerDNS")
 
     args = parser.parse_args()
 

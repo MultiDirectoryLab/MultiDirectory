@@ -37,12 +37,7 @@ class CLDAPUDPServer:
         self._container = container
         self._logger = DataLogger(log, is_full=self._settings.DEBUG)
 
-    async def _handle(
-        self,
-        data: bytes,
-        addr: tuple[str, int],
-        container: AsyncContainer,
-    ) -> bytes:
+    async def _handle(self, data: bytes, addr: tuple[str, int], container: AsyncContainer) -> bytes:
         """Handle individual datagram with proper error handling."""
         addr_str = f"{addr[0]}:{addr[1]}"
 
@@ -50,13 +45,8 @@ class CLDAPUDPServer:
         ldap_session.ip = ip_address(addr[0])
 
         try:
-            network_policy_use_case = await container.get(
-                NetworkPolicyValidatorUseCase,
-            )
-            await ldap_session.validate_conn(
-                ldap_session.ip,
-                network_policy_use_case,
-            )
+            network_policy_use_case = await container.get(NetworkPolicyValidatorUseCase)
+            await ldap_session.validate_conn(ldap_session.ip, network_policy_use_case)
         except PermissionError:
             log.warning(f"Whitelist violation from UDP {addr_str}")
             raise ConnectionAbortedError
@@ -67,19 +57,12 @@ class CLDAPUDPServer:
             request = LDAPRequestMessage.from_bytes(data)
             self._logger.req_log(addr_str, request)
 
-        except (
-            ValidationError,
-            IndexError,
-            KeyError,
-            ValueError,
-        ) as err:
+        except (ValidationError, IndexError, KeyError, ValueError) as err:
             log.trace(f"Invalid LDAP schema from {addr_str}")
             return LDAPRequestMessage.from_err(data, err).encode()
 
         handler = request.context.handle_udp(container)
-        responses = [
-            response async for response in request.create_response(handler)
-        ]
+        responses = [response async for response in request.create_response(handler)]
         for response in responses:
             self._logger.rsp_log(addr_str, response)
 
@@ -87,9 +70,7 @@ class CLDAPUDPServer:
 
     async def start(self) -> None:
         """Start UDP server for CLDAP protocol."""
-        sock = await create_udp_socket(
-            local_addr=(str(self._settings.HOST), self._settings.PORT),
-        )
+        sock = await create_udp_socket(local_addr=(str(self._settings.HOST), self._settings.PORT))
 
         mode = "DEBUG" if self._settings.DEBUG else "PROD"
         log.info(f"started {mode} CLDAP server")
@@ -100,11 +81,7 @@ class CLDAPUDPServer:
 
                 async with self._container(scope=Scope.REQUEST) as container:
                     try:
-                        response = await self._handle(
-                            packet.data,
-                            packet.addr,
-                            container,
-                        )
+                        response = await self._handle(packet.data, packet.addr, container)
                     except ConnectionAbortedError:
                         continue
                     else:

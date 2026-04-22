@@ -30,20 +30,11 @@ from ldap_protocol.kerberos.exceptions import (
 )
 from ldap_protocol.ldap_codes import LDAPCodes
 from ldap_protocol.ldap_responses import ModifyResponse, PartialAttribute
-from ldap_protocol.objects import (
-    Changes,
-    Operation,
-    ProtocolRequests,
-    UserAccountControlFlag,
-)
+from ldap_protocol.objects import Changes, Operation, ProtocolRequests, UserAccountControlFlag
 from ldap_protocol.policies.password import PasswordPolicyUseCases
 from ldap_protocol.session_storage import SessionStorage
 from ldap_protocol.utils.cte import check_root_group_membership_intersection
-from ldap_protocol.utils.helpers import (
-    ft_to_dt,
-    is_dn_in_base_directory,
-    validate_entry,
-)
+from ldap_protocol.utils.helpers import ft_to_dt, is_dn_in_base_directory, validate_entry
 from ldap_protocol.utils.queries import (
     add_lock_and_expire_attributes,
     clear_group_membership,
@@ -58,11 +49,7 @@ from ldap_protocol.utils.queries import (
     remove_from_group_membership,
 )
 from password_utils import PasswordUtils
-from repo.pg.tables import (
-    directory_memberships_table,
-    directory_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import directory_memberships_table, directory_table, queryable_attr as qa
 
 from .base import BaseRequest
 from .contexts import LDAPModifyRequestContext
@@ -126,29 +113,20 @@ class ModifyRequest(BaseRequest):
                     operation=Operation(int(change.value[0].value)),
                     modification=PartialAttribute(
                         type=change.value[1].value[0].value,
-                        vals=[
-                            attr.value
-                            for attr in change.value[1].value[1].value
-                        ],
+                        vals=[attr.value for attr in change.value[1].value[1].value],
                     ),
-                ),
+                )
             )
         return cls(object=entry.value, changes=changes)
 
     async def _update_password_expiration(
-        self,
-        change: Changes,
-        user: User | None,
-        password_use_cases: PasswordPolicyUseCases,
+        self, change: Changes, user: User | None, password_use_cases: PasswordPolicyUseCases
     ) -> None:
         """Update password expiration if policy allows."""
         if not user:
             return
 
-        if not (
-            change.l_type == "krbpasswordexpiration"
-            and change.modification.vals[0] == "19700101000000Z"
-        ):
+        if not (change.l_type == "krbpasswordexpiration" and change.modification.vals[0] == "19700101000000Z"):
             return
 
         max_age_days = await password_use_cases.get_max_age_days_for_user(user)
@@ -158,15 +136,10 @@ class ModifyRequest(BaseRequest):
         now = datetime.now(timezone.utc) + timedelta(days=max_age_days)
         change.modification.vals[0] = now.strftime("%Y%m%d%H%M%SZ")
 
-    async def handle(
-        self,
-        ctx: LDAPModifyRequestContext,
-    ) -> AsyncGenerator[ModifyResponse, None]:
+    async def handle(self, ctx: LDAPModifyRequestContext) -> AsyncGenerator[ModifyResponse, None]:
         """Change request handler."""
         if not ctx.ldap_session.user:
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
+            yield ModifyResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         if not validate_entry(self.object.lower()):
@@ -174,16 +147,12 @@ class ModifyRequest(BaseRequest):
             return
 
         if not ctx.ldap_session.user.role_ids:
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
+            yield ModifyResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
         query = self._get_dir_query()
         query = ctx.access_manager.mutate_query_with_ace_load(
-            user_role_ids=ctx.ldap_session.user.role_ids,
-            query=query,
-            ace_types=[AceType.WRITE, AceType.DELETE],
+            user_role_ids=ctx.ldap_session.user.role_ids, query=query, ace_types=[AceType.WRITE, AceType.DELETE]
         )
 
         directory = await ctx.session.scalar(query)
@@ -193,9 +162,7 @@ class ModifyRequest(BaseRequest):
             return
 
         can_modify = ctx.access_manager.check_modify_access(
-            changes=self.changes,
-            aces=directory.access_control_entries,
-            entity_type_id=directory.entity_type_id,
+            changes=self.changes, aces=directory.access_control_entries, entity_type_id=directory.entity_type_id
         )
 
         names = {change.l_type for change in self.changes}
@@ -203,23 +170,13 @@ class ModifyRequest(BaseRequest):
         password_change_requested = self._is_password_change_requested(names)
         self_modify = directory.id == ctx.ldap_session.user.directory_id
 
-        if (
-            password_change_requested
-            and await ctx.password_use_cases.is_password_change_restricted(
-                directory.id,
-            )
-        ) or (
+        if (password_change_requested and await ctx.password_use_cases.is_password_change_restricted(directory.id)) or (
             not can_modify and not (password_change_requested and self_modify)
         ):
-            yield ModifyResponse(
-                result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS,
-            )
+            yield ModifyResponse(result_code=LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS)
             return
 
-        if (
-            directory.rdname != "krbprincipalname"
-            and directory.rdname in names
-        ):
+        if directory.rdname != "krbprincipalname" and directory.rdname in names:
             yield ModifyResponse(result_code=LDAPCodes.NOT_ALLOWED_ON_RDN)
             return
 
@@ -230,22 +187,16 @@ class ModifyRequest(BaseRequest):
                 if change.l_type in Directory.ro_fields:
                     continue
 
-                if not ctx.attribute_value_validator.is_partial_attribute_valid(  # noqa: E501
-                    entity_type.name if entity_type else "",
-                    change.modification,
+                if not ctx.attribute_value_validator.is_partial_attribute_valid(
+                    entity_type.name if entity_type else "", change.modification
                 ):
                     await ctx.session.rollback()
                     yield ModifyResponse(
-                        result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE,
-                        error_message="Invalid attribute value(s)",
+                        result_code=LDAPCodes.UNDEFINED_ATTRIBUTE_TYPE, error_message="Invalid attribute value(s)"
                     )
                     return
 
-                await self._update_password_expiration(
-                    change,
-                    directory.user,
-                    ctx.password_use_cases,
-                )
+                await self._update_password_expiration(change, directory.user, ctx.password_use_cases)
 
                 add_args = (
                     change,
@@ -264,22 +215,11 @@ class ModifyRequest(BaseRequest):
                         await self._add(*add_args)
 
                     elif change.operation == Operation.DELETE:
-                        await self._delete(
-                            change,
-                            directory,
-                            ctx.session,
-                            ctx.ldap_session.user,
-                        )
+                        await self._delete(change, directory, ctx.session, ctx.ldap_session.user)
 
                     elif change.operation == Operation.REPLACE:
                         async with ctx.session.begin_nested():
-                            await self._delete(
-                                change,
-                                directory,
-                                ctx.session,
-                                ctx.ldap_session.user,
-                                True,
-                            )
+                            await self._delete(change, directory, ctx.session, ctx.ldap_session.user, True)
                             await ctx.session.flush()
                             await self._add(*add_args)
 
@@ -288,21 +228,14 @@ class ModifyRequest(BaseRequest):
                 except MODIFY_EXCEPTION_STACK as err:
                     await ctx.session.rollback()
                     result_code, error_message = self._match_bad_response(err)
-                    yield ModifyResponse(
-                        result_code=result_code,
-                        error_message=error_message,
-                    )
+                    yield ModifyResponse(result_code=result_code, error_message=error_message)
                     return
 
-                await ctx.session.refresh(
-                    instance=directory,
-                    attribute_names=["groups", "attributes", "user", "path"],
-                )
+                await ctx.session.refresh(instance=directory, attribute_names=["groups", "attributes", "user", "path"])
 
             if "objectclass" in names:
                 await ctx.entity_type_use_case.attach_entity_type_to_directory(
-                    directory=directory,
-                    is_system_entity_type=False,
+                    directory=directory, is_system_entity_type=False
                 )
 
             await ctx.session.commit()
@@ -311,12 +244,7 @@ class ModifyRequest(BaseRequest):
         finally:
             query = self._get_dir_query()
             directory = await ctx.session.scalar(query)
-            self.set_event_data(
-                {
-                    "after_attrs": self.get_directory_attrs(directory),
-                    "before_attrs": before_attrs,
-                },
-            )
+            self.set_event_data({"after_attrs": self.get_directory_attrs(directory), "before_attrs": before_attrs})
 
     def _match_bad_response(self, err: BaseException) -> tuple[LDAPCodes, str]:
         match err:
@@ -361,50 +289,24 @@ class ModifyRequest(BaseRequest):
             .options(selectinload(qa(Directory.attributes)))
             .options(joinedload(qa(Directory.entity_type)))
             .options(
-                selectinload(qa(Directory.groups)).joinedload(
-                    qa(Group.directory),
-                ),
-                joinedload(qa(Directory.group)).selectinload(
-                    qa(Group.members),
-                ),
+                selectinload(qa(Directory.groups)).joinedload(qa(Group.directory)),
+                joinedload(qa(Directory.group)).selectinload(qa(Group.members)),
             )
             .filter(get_filter_from_path(self.object))
         )
 
-    def _is_password_change_requested(
-        self,
-        names: set[str],
-    ) -> bool:
+    def _is_password_change_requested(self, names: set[str]) -> bool:
         return bool(names & {"userpassword", "unicodepwd"})
 
     def _get_primary_group_id(self, directory: Directory) -> str | None:
-        return next(
-            (
-                attr.value
-                for attr in directory.attributes
-                if attr.name == "primaryGroupID"
-            ),
-            None,
-        )
+        return next((attr.value for attr in directory.attributes if attr.name == "primaryGroupID"), None)
 
-    async def _contain_primary_group(
-        self,
-        groups: list[Group],
-        primary_group_id: str,
-        session: AsyncSession,
-    ) -> bool:
+    async def _contain_primary_group(self, groups: list[Group], primary_group_id: str, session: AsyncSession) -> bool:
         """Check whether membership includes the group for this RID."""
-        return await groups_include_primary_rid(
-            session,
-            groups,
-            primary_group_id,
-        )
+        return await groups_include_primary_rid(session, groups, primary_group_id)
 
     async def _get_directories_with_primary_group_id(
-        self,
-        primary_group_id: str,
-        session: AsyncSession,
-        directory_ids: list[int],
+        self, primary_group_id: str, session: AsyncSession, directory_ids: list[int]
     ) -> list[Directory]:
         query = (
             select(Directory)
@@ -418,17 +320,11 @@ class ModifyRequest(BaseRequest):
         return list(await session.scalars(query))
 
     async def _get_members_with_primary_group_id(
-        self,
-        primary_group_id: str,
-        group: Group,
-        session: AsyncSession,
+        self, primary_group_id: str, group: Group, session: AsyncSession
     ) -> list[Directory]:
         query = (
             select(Directory)
-            .join(
-                directory_memberships_table,
-                directory_memberships_table.c.directory_id == Directory.id,
-            )
+            .join(directory_memberships_table, directory_memberships_table.c.directory_id == Directory.id)
             .join(Attribute)
             .where(
                 directory_memberships_table.c.group_id == group.id,
@@ -439,33 +335,16 @@ class ModifyRequest(BaseRequest):
         return list(await session.scalars(query))
 
     async def _is_primary_group_deleted(
-        self,
-        groups: list[Group],
-        primary_group_id: str,
-        operation: Operation,
-        session: AsyncSession,
+        self, groups: list[Group], primary_group_id: str, operation: Operation, session: AsyncSession
     ) -> bool:
         if operation == Operation.REPLACE:
-            return not await self._contain_primary_group(
-                groups,
-                primary_group_id,
-                session,
-            )
+            return not await self._contain_primary_group(groups, primary_group_id, session)
         elif operation == Operation.DELETE:
-            return await self._contain_primary_group(
-                groups,
-                primary_group_id,
-                session,
-            )
+            return await self._contain_primary_group(groups, primary_group_id, session)
         return False
 
     async def _can_delete_group_from_directory(
-        self,
-        directory: Directory,
-        user: UserSchema,
-        groups: list[Group],
-        operation: Operation,
-        session: AsyncSession,
+        self, directory: Directory, user: UserSchema, groups: list[Group], operation: Operation, session: AsyncSession
     ) -> None:
         """Check if the request can delete group from directory."""
         if operation == Operation.REPLACE:
@@ -475,33 +354,19 @@ class ModifyRequest(BaseRequest):
                     and directory.path_dn == user.dn
                     and group not in groups
                 ):
-                    raise ModifyForbiddenError(
-                        "Can't delete yourself from group.",
-                    )
+                    raise ModifyForbiddenError("Can't delete yourself from group.")
 
         elif operation == Operation.DELETE:
             for group in groups:
-                if (
-                    group.directory.name == DOMAIN_ADMIN_GROUP_NAME
-                    and directory.path_dn == user.dn
-                ):
-                    raise ModifyForbiddenError(
-                        "Can't delete yourself from group.",
-                    )
+                if group.directory.name == DOMAIN_ADMIN_GROUP_NAME and directory.path_dn == user.dn:
+                    raise ModifyForbiddenError("Can't delete yourself from group.")
 
         primary_group_id = self._get_primary_group_id(directory)
         if not primary_group_id:
             return
 
-        if await self._is_primary_group_deleted(
-            groups,
-            primary_group_id,
-            operation,
-            session,
-        ):
-            raise ModifyForbiddenError(
-                "Can't delete primary group from user.",
-            )
+        if await self._is_primary_group_deleted(groups, primary_group_id, operation, session):
+            raise ModifyForbiddenError("Can't delete primary group from user.")
 
     async def _can_delete_member_from_directory(
         self,
@@ -513,126 +378,69 @@ class ModifyRequest(BaseRequest):
     ) -> None:
         """Check if the request can delete directory member."""
         modified_members_dns = {member.path_dn for member in members}
-        is_user_not_in_replaced = (
-            operation == Operation.REPLACE
-            and user.dn not in modified_members_dns
-        )
-        is_user_in_deleted = (
-            operation == Operation.DELETE and user.dn in modified_members_dns
-        )
+        is_user_not_in_replaced = operation == Operation.REPLACE and user.dn not in modified_members_dns
+        is_user_in_deleted = operation == Operation.DELETE and user.dn in modified_members_dns
 
-        if directory.name == DOMAIN_ADMIN_GROUP_NAME and (
-            is_user_in_deleted or is_user_not_in_replaced
-        ):
+        if directory.name == DOMAIN_ADMIN_GROUP_NAME and (is_user_in_deleted or is_user_not_in_replaced):
             raise ModifyForbiddenError("Can't delete yourself from group.")
 
         if operation == Operation.DELETE:
-            members_with_primary_group = (
-                await self._get_directories_with_primary_group_id(
-                    directory.relative_id,
-                    session,
-                    [m.id for m in members],
-                )
+            members_with_primary_group = await self._get_directories_with_primary_group_id(
+                directory.relative_id, session, [m.id for m in members]
             )
 
             if members_with_primary_group:
-                raise ModifyForbiddenError(
-                    "Can't delete member with primary group id same as group.",
-                )
+                raise ModifyForbiddenError("Can't delete member with primary group id same as group.")
 
         if operation == Operation.REPLACE:
-            members_with_primary_group = (
-                await self._get_members_with_primary_group_id(
-                    directory.relative_id,
-                    directory.group,
-                    session,
-                )
+            members_with_primary_group = await self._get_members_with_primary_group_id(
+                directory.relative_id, directory.group, session
             )
 
             new_members_ids = {m.id for m in members}
 
-            if any(
-                member.id not in new_members_ids
-                for member in members_with_primary_group
-            ):
-                raise ModifyForbiddenError(
-                    "Can't delete member with primary group.",
-                )
+            if any(member.id not in new_members_ids for member in members_with_primary_group):
+                raise ModifyForbiddenError("Can't delete member with primary group.")
 
     async def _delete_memberof(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
-        user: UserSchema,
+        self, change: Changes, directory: Directory, session: AsyncSession, user: UserSchema
     ) -> None:
         """Delete memberOf attribute from group."""
         groups = await get_groups(change.modification.vals, session)  # type: ignore
         await self._can_delete_group_from_directory(
-            directory=directory,
-            user=user,
-            groups=groups,
-            operation=change.operation,
-            session=session,
+            directory=directory, user=user, groups=groups, operation=change.operation, session=session
         )
 
         if not change.modification.vals:
             directory.groups.clear()
 
         elif change.operation == Operation.REPLACE:
-            directory.groups = [
-                g
-                for g in directory.groups
-                if g.id in map(lambda g: g.id, groups)
-            ]
+            directory.groups = [g for g in directory.groups if g.id in map(lambda g: g.id, groups)]
 
         else:
             for group in groups:
                 directory.groups.remove(group)
 
     async def _delete_member(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
-        user: UserSchema,
+        self, change: Changes, directory: Directory, session: AsyncSession, user: UserSchema
     ) -> None:
         """Delete member attribute from group."""
         members = await get_directories(change.modification.vals, session)  # type: ignore
         await self._can_delete_member_from_directory(
-            directory=directory,
-            user=user,
-            members=members,
-            operation=change.operation,
-            session=session,
+            directory=directory, user=user, members=members, operation=change.operation, session=session
         )
 
         if not change.modification.vals:
             await clear_group_membership(directory.group, session)
 
         elif change.operation == Operation.REPLACE:
-            await remove_disallowed_group_members(
-                directory.group,
-                members,
-                session,
-            )
+            await remove_disallowed_group_members(directory.group, members, session)
 
         else:
-            await remove_from_group_membership(
-                directory.group,
-                members,
-                session,
-            )
+            await remove_from_group_membership(directory.group, members, session)
 
-    async def _validate_object_class_modification(
-        self,
-        change: Changes,
-        directory: Directory,
-    ) -> None:
-        if not (
-            directory.entity_type
-            and directory.entity_type.name in EntityTypeNames
-        ):
+    async def _validate_object_class_modification(self, change: Changes, directory: Directory) -> None:
+        if not (directory.entity_type and directory.entity_type.name in EntityTypeNames):
             return
 
         required_obj_classes = directory.entity_type.object_class_names_set
@@ -650,44 +458,25 @@ class ModifyRequest(BaseRequest):
         if is_object_class_in_replaced or is_object_class_in_deleted:
             raise ModifyForbiddenError("ObjectClass can't be deleted.")
 
-    def _need_to_cache_samaccountname_old_value(
-        self,
-        change: Changes,
-        directory: Directory,
-    ) -> bool:
+    def _need_to_cache_samaccountname_old_value(self, change: Changes, directory: Directory) -> bool:
         return bool(
             directory.entity_type
             and directory.entity_type.name == EntityTypeNames.COMPUTER
             and change.l_type == "samaccountname"
-            and not self._old_vals.get(change.modification.type),
+            and not self._old_vals.get(change.modification.type)
         )
 
     async def _delete(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
-        user: UserSchema,
-        name_only: bool = False,
+        self, change: Changes, directory: Directory, session: AsyncSession, user: UserSchema, name_only: bool = False
     ) -> None:
         attrs = []
 
         if change.l_type == "memberof":
-            await self._delete_memberof(
-                change=change,
-                directory=directory,
-                session=session,
-                user=user,
-            )
+            await self._delete_memberof(change=change, directory=directory, session=session, user=user)
             return
 
         if change.l_type == "member":
-            await self._delete_member(
-                change=change,
-                directory=directory,
-                session=session,
-                user=user,
-            )
+            await self._delete_member(change=change, directory=directory, session=session, user=user)
             return
 
         if change.l_type == "objectclass":
@@ -697,20 +486,13 @@ class ModifyRequest(BaseRequest):
             attrs.append(qa(Attribute.name) == change.modification.type)
         else:
             for value in change.modification.vals:
-                if change.l_type not in (
-                    Directory.search_fields | User.search_fields
-                ):
+                if change.l_type not in (Directory.search_fields | User.search_fields):
                     if isinstance(value, str):
                         condition = qa(Attribute.value) == value
                     elif isinstance(value, bytes):
                         condition = qa(Attribute.bvalue) == value
 
-                    attrs.append(
-                        and_(
-                            func.lower(qa(Attribute.name)) == change.l_type,
-                            condition,
-                        ),
-                    )  # fmt: skip
+                    attrs.append(and_(func.lower(qa(Attribute.name)) == change.l_type, condition))
 
         if self._need_to_cache_samaccountname_old_value(change, directory):
             vals = directory.attributes_dict.get(change.modification.type)
@@ -718,33 +500,18 @@ class ModifyRequest(BaseRequest):
                 self._old_vals[change.modification.type] = vals[0]
 
         if attrs:
-            del_query = (
-                delete(Attribute)
-                .filter_by(directory=directory)
-                .filter(or_(*attrs))
-            )  # fmt: skip
+            del_query = delete(Attribute).filter_by(directory=directory).filter(or_(*attrs))
 
             await session.execute(del_query)
 
-    async def _add_primary_group_attribute(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
-    ) -> None:
+    async def _add_primary_group_attribute(self, change: Changes, directory: Directory, session: AsyncSession) -> None:
         if not change.modification.vals:
             return
 
         rid = str(change.modification.vals[0])
 
         if await self._contain_primary_group(directory.groups, rid, session):
-            session.add(
-                Attribute(
-                    name="primaryGroupID",
-                    value=rid,
-                    directory_id=directory.id,
-                ),
-            )
+            session.add(Attribute(name="primaryGroupID", value=rid, directory_id=directory.id))
             await session.commit()
             return
 
@@ -754,27 +521,14 @@ class ModifyRequest(BaseRequest):
             raise ModifyForbiddenError("Group with such RID not found.")
 
         directory.groups.append(rid_dir.group)
-        session.add(
-            Attribute(
-                name="primaryGroupID",
-                value=str(rid_dir.relative_id),
-                directory_id=directory.id,
-            ),
-        )
+        session.add(Attribute(name="primaryGroupID", value=str(rid_dir.relative_id), directory_id=directory.id))
         await session.commit()
 
-    async def _add_memberof(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
-    ) -> None:
+    async def _add_memberof(self, change: Changes, directory: Directory, session: AsyncSession) -> None:
         """Add memberOf attribute to user or computer."""
         directories = await get_directories(change.modification.vals, session)  # type: ignore
 
-        groups = [
-            _directory.group for _directory in directories if _directory.group
-        ]
+        groups = [_directory.group for _directory in directories if _directory.group]
         new_groups = [g for g in groups if g not in directory.groups]
         directories = [new_group.directory for new_group in new_groups]
 
@@ -782,59 +536,32 @@ class ModifyRequest(BaseRequest):
             return
 
         if directory.group and await check_root_group_membership_intersection(
-            directory.path_dn,
-            session,
-            [d.id for d in directories],
+            directory.path_dn, session, [d.id for d in directories]
         ):
             raise RecursionError
 
-        directory.groups.extend(
-            [_directory.group for _directory in directories],
-        )
+        directory.groups.extend([_directory.group for _directory in directories])
         await session.flush()
 
-    async def _add_member(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
-    ) -> None:
+    async def _add_member(self, change: Changes, directory: Directory, session: AsyncSession) -> None:
         """Add member attribute to group."""
-        directories = await get_directories(
-            change.modification.vals,  # type: ignore
-            session,
-            excluded_group=directory.group,
-        )
+        directories = await get_directories(change.modification.vals, session, excluded_group=directory.group)  # type: ignore
 
         if not directories:
             return
 
         group_directories = [d for d in directories if d.group]
-        if (
-            group_directories
-            and await check_root_group_membership_intersection(
-                directory.path_dn,
-                session,
-                [d.id for d in group_directories],
-            )
+        if group_directories and await check_root_group_membership_intersection(
+            directory.path_dn, session, [d.id for d in group_directories]
         ):
             raise RecursionError
 
         await extend_group_membership(directory.group, directories, session)
         await session.flush()
 
-    async def _add_group_attrs(
-        self,
-        change: Changes,
-        directory: Directory,
-        session: AsyncSession,
-    ) -> None:
+    async def _add_group_attrs(self, change: Changes, directory: Directory, session: AsyncSession) -> None:
         if change.l_type == "primarygroupid":
-            await self._add_primary_group_attribute(
-                change,
-                directory,
-                session,
-            )
+            await self._add_primary_group_attribute(change, directory, session)
         elif change.l_type == "memberof":
             await self._add_memberof(change, directory, session)
         elif change.l_type == "member":
@@ -866,70 +593,36 @@ class ModifyRequest(BaseRequest):
                 if not UserAccountControlFlag.is_value_valid(uac_val):
                     continue
 
-                elif (
-                    bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
-                    and directory.user
-                ):
+                elif bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE) and directory.user:
                     if directory.path_dn == current_user.dn:
-                        raise ModifyForbiddenError(
-                            "Can't swith off own account.",
-                        )
+                        raise ModifyForbiddenError("Can't swith off own account.")
 
-                    await kadmin.lock_principal(
-                        directory.user.sam_account_name,
-                    )
+                    await kadmin.lock_principal(directory.user.sam_account_name)
 
-                    await add_lock_and_expire_attributes(
-                        session,
-                        directory,
-                        settings.TIMEZONE,
-                    )
+                    await add_lock_and_expire_attributes(session, directory, settings.TIMEZONE)
 
-                    await session_storage.clear_user_sessions(
-                        directory.user.id,
-                    )
+                    await session_storage.clear_user_sessions(directory.user.id)
 
-                elif (
-                    not bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE)
-                    and directory.user
-                ):
-                    await unlock_principal(
-                        directory.user.user_principal_name,
-                        session,
-                    )
+                elif not bool(uac_val & UserAccountControlFlag.ACCOUNTDISABLE) and directory.user:
+                    await unlock_principal(directory.user.user_principal_name, session)
 
                     await session.execute(
                         delete(Attribute)
                         .where(
-                            or_(
-                                qa(Attribute.name) == "nsAccountLock",
-                                qa(Attribute.name) == "shadowExpire",
-                            ),
+                            or_(qa(Attribute.name) == "nsAccountLock", qa(Attribute.name) == "shadowExpire"),
                             qa(Attribute.directory) == directory,
                         ),
                     )  # fmt: skip
 
-            if (
-                change.l_type == "pwdlastset"
-                and value == "0"
-                and directory.user
-            ):
-                await kadmin.force_princ_pw_change(
-                    directory.user.sam_account_name,
-                )
+            if change.l_type == "pwdlastset" and value == "0" and directory.user:
+                await kadmin.force_princ_pw_change(directory.user.sam_account_name)
 
             if change.l_type == directory.rdname:
-                await session.execute(
-                    update(Directory)
-                    .filter(directory_table.c.id == directory.id)
-                    .values(name=value),
-                )
+                await session.execute(update(Directory).filter(directory_table.c.id == directory.id).values(name=value))
 
             if change.l_type in Directory.search_fields:
                 await session.execute(
-                    update(Directory)
-                    .filter(directory_table.c.id == directory.id)
-                    .values({change.l_type: value}),
+                    update(Directory).filter(directory_table.c.id == directory.id).values({change.l_type: value})
                 )
 
             elif (
@@ -946,30 +639,22 @@ class ModifyRequest(BaseRequest):
                 if change.l_type in ("userprincipalname", "samaccountname"):
                     if change.l_type == "userprincipalname":
                         new_user_principal_name = str(new_value)
-                        new_sam_account_name = new_user_principal_name.split("@")[0]  # noqa: E501  # fmt: skip
+                        new_sam_account_name = new_user_principal_name.split("@")[0]
                     elif change.l_type == "samaccountname":
                         if not base_dir:
-                            base_dir = await self._get_base_dir(
-                                directory,
-                                session,
-                            )
+                            base_dir = await self._get_base_dir(directory, session)
 
                         new_sam_account_name = str(new_value)
-                        new_user_principal_name = f"{new_sam_account_name}@{base_dir.name}"  # noqa: E501  # fmt: skip
+                        new_user_principal_name = f"{new_sam_account_name}@{base_dir.name}"
 
                     if directory.user.sam_account_name != new_sam_account_name:
-                        await kadmin.rename_princ(
-                            directory.user.sam_account_name,
-                            new_sam_account_name,
-                        )
+                        await kadmin.rename_princ(directory.user.sam_account_name, new_sam_account_name)
 
-                        directory.user.user_principal_name = new_user_principal_name  # noqa: E501  # fmt: skip
+                        directory.user.user_principal_name = new_user_principal_name
                         directory.user.sam_account_name = new_sam_account_name
                 else:
                     await session.execute(
-                        update(User)
-                        .filter_by(directory=directory)
-                        .values({change.l_type: new_value}),
+                        update(User).filter_by(directory=directory).values({change.l_type: new_value})
                     )
 
             elif (
@@ -978,17 +663,9 @@ class ModifyRequest(BaseRequest):
                 and directory.entity_type.name == EntityTypeNames.COMPUTER
             ):
                 if not base_dir:
-                    base_dir = await self._get_base_dir(
-                        directory,
-                        session,
-                    )
+                    base_dir = await self._get_base_dir(directory, session)
 
-                await self._modify_computer_samaccountname(
-                    change,
-                    kadmin,
-                    base_dir,
-                    value,
-                )
+                await self._modify_computer_samaccountname(change, kadmin, base_dir, value)
 
                 attrs.append(
                     Attribute(
@@ -996,13 +673,10 @@ class ModifyRequest(BaseRequest):
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory_id=directory.id,
-                    ),
-                )  # fmt: skip
+                    )
+                )
 
-            elif (
-                change.l_type in ("userpassword", "unicodepwd")
-                and directory.user
-            ):
+            elif change.l_type in ("userpassword", "unicodepwd") and directory.user:
                 if not settings.USE_CORE_TLS:
                     raise PermissionError("TLS required")
 
@@ -1015,26 +689,14 @@ class ModifyRequest(BaseRequest):
                 except UnicodeDecodeError:
                     pass
 
-                errors = await password_use_cases.check_password_violations(
-                    password=value,
-                    user=directory.user,
-                )
+                errors = await password_use_cases.check_password_violations(password=value, user=directory.user)
 
                 if errors:
-                    raise PermissionError(
-                        f"Password policy violation: {errors}",
-                    )
+                    raise PermissionError(f"Password policy violation: {errors}")
 
-                directory.user.password = password_utils.get_password_hash(
-                    value,
-                )
-                await password_use_cases.post_save_password_actions(
-                    directory.user,
-                )
-                await kadmin.create_or_update_principal_pw(
-                    directory.user.sam_account_name,
-                    value,
-                )
+                directory.user.password = password_utils.get_password_hash(value)
+                await password_use_cases.post_save_password_actions(directory.user)
+                await kadmin.create_or_update_principal_pw(directory.user.sam_account_name, value)
 
                 await session_storage.clear_user_sessions(directory.user.id)
 
@@ -1045,17 +707,13 @@ class ModifyRequest(BaseRequest):
                         value=value if isinstance(value, str) else None,
                         bvalue=value if isinstance(value, bytes) else None,
                         directory_id=directory.id,
-                    ),
+                    )
                 )
 
         session.add_all(attrs)
 
     async def _modify_computer_samaccountname(
-        self,
-        change: Changes,
-        kadmin: AbstractKadmin,
-        base_dir: Directory,
-        new_sam_account_name: bytes | str,
+        self, change: Changes, kadmin: AbstractKadmin, base_dir: Directory, new_sam_account_name: bytes | str
     ) -> None:
         old_sam_account_name = self._old_vals.get(change.modification.type)
         new_sam_account_name = str(new_sam_account_name)
@@ -1064,27 +722,16 @@ class ModifyRequest(BaseRequest):
             raise ModifyForbiddenError("Old sAMAccountName value not found.")
 
         if old_sam_account_name != new_sam_account_name:
+            await kadmin.rename_princ(f"host/{old_sam_account_name}", f"host/{new_sam_account_name}")
             await kadmin.rename_princ(
-                f"host/{old_sam_account_name}",
-                f"host/{new_sam_account_name}",
-            )
-            await kadmin.rename_princ(
-                f"host/{old_sam_account_name}.{base_dir.name}",
-                f"host/{new_sam_account_name}.{base_dir.name}",
+                f"host/{old_sam_account_name}.{base_dir.name}", f"host/{new_sam_account_name}.{base_dir.name}"
             )
 
-    async def _get_base_dir(
-        self,
-        directory: Directory,
-        session: AsyncSession,
-    ) -> Directory:
+    async def _get_base_dir(self, directory: Directory, session: AsyncSession) -> Directory:
         base_dir = None
 
         for base_directory in await get_base_directories(session):
-            if is_dn_in_base_directory(
-                base_directory,
-                directory.path_dn,
-            ):
+            if is_dn_in_base_directory(base_directory, directory.path_dn):
                 base_dir = base_directory
                 break
         else:

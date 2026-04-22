@@ -31,10 +31,7 @@ class DNSStateGateway:
 
     async def get(self, name: str) -> CatalogueSetting | None:
         """Get DNS by name."""
-        return await self._session.scalar(
-            select(CatalogueSetting)
-            .filter_by(name=name),
-        )  # fmt: skip
+        return await self._session.scalar(select(CatalogueSetting).filter_by(name=name))
 
     async def create(self, data: CatalogueSetting) -> None:
         """Create DNS."""
@@ -58,79 +55,39 @@ class DNSStateGateway:
 
         return result
 
-    async def update_settings(
-        self,
-        data: DNSSettingsDTO,
-    ) -> None:
+    async def update_settings(self, data: DNSSettingsDTO) -> None:
         """Update DNS settings."""
         settings = [
-            (
-                qa(CatalogueSetting.name) == DNS_MANAGER_ZONE_NAME,
-                data.domain,
-            ),
-            (
-                qa(CatalogueSetting.name) == DNS_MANAGER_IP_ADDRESS_NAME,
-                str(data.dns_server_ip),
-            ),
-            (
-                qa(CatalogueSetting.name) == DNS_MANAGER_TSIG_KEY_NAME,
-                data.tsig_key,
-            ),
+            (qa(CatalogueSetting.name) == DNS_MANAGER_ZONE_NAME, data.domain),
+            (qa(CatalogueSetting.name) == DNS_MANAGER_IP_ADDRESS_NAME, str(data.dns_server_ip)),
+            (qa(CatalogueSetting.name) == DNS_MANAGER_TSIG_KEY_NAME, data.tsig_key),
         ]
 
         await self._session.execute(
             update(CatalogueSetting)
             .where(
                 qa(CatalogueSetting.name).in_(
-                    [
-                        DNS_MANAGER_ZONE_NAME,
-                        DNS_MANAGER_IP_ADDRESS_NAME,
-                        DNS_MANAGER_TSIG_KEY_NAME,
-                    ],
-                ),
+                    [DNS_MANAGER_ZONE_NAME, DNS_MANAGER_IP_ADDRESS_NAME, DNS_MANAGER_TSIG_KEY_NAME]
+                )
             )
-            .values(
-                {
-                    "value": case(
-                        *settings,
-                        else_=qa(CatalogueSetting.value),
-                    ),
-                },
-            ),
+            .values({"value": case(*settings, else_=qa(CatalogueSetting.value))})
         )
 
-    async def create_settings(
-        self,
-        data: DNSSettingsDTO,
-    ) -> None:
+    async def create_settings(self, data: DNSSettingsDTO) -> None:
         """Create DNS settings."""
         self._session.add_all(
             [
-                CatalogueSetting(
-                    name=DNS_MANAGER_ZONE_NAME,
-                    value=data.domain or "",
-                ),
-                CatalogueSetting(
-                    name=DNS_MANAGER_IP_ADDRESS_NAME,
-                    value=str(data.dns_server_ip),
-                ),
-                CatalogueSetting(
-                    name=DNS_MANAGER_TSIG_KEY_NAME,
-                    value=data.tsig_key or "",
-                ),
-            ],
+                CatalogueSetting(name=DNS_MANAGER_ZONE_NAME, value=data.domain or ""),
+                CatalogueSetting(name=DNS_MANAGER_IP_ADDRESS_NAME, value=str(data.dns_server_ip)),
+                CatalogueSetting(name=DNS_MANAGER_TSIG_KEY_NAME, value=data.tsig_key or ""),
+            ]
         )
         await self._session.flush()
 
-    async def get_dns_manager_settings(
-        self,
-        app_settings: Settings,
-        domain: str,
-    ) -> DNSSettingsDTO:
+    async def get_dns_manager_settings(self, app_settings: Settings, domain: str) -> DNSSettingsDTO:
         """Get DNS manager settings."""
         power_dns_settings = PowerDNSSettingsDTO(
-            auth_server_ip=app_settings.PDNS_AUTH_SERVER_IP,
-            recursor_server_ip=app_settings.PDNS_RECURSOR_SERVER_IP,
+            auth_server_ip=app_settings.PDNS_AUTH_SERVER_IP, recursor_server_ip=app_settings.PDNS_RECURSOR_SERVER_IP
         )
         dns_settings = DNSSettingsDTO(
             domain=domain,
@@ -142,16 +99,9 @@ class DNSStateGateway:
 
         if await self.get_state() == DNSManagerState.HOSTED:
             settings_from_db = await self.get_settings_from_db()
-            dns_settings.domain = settings_from_db.get(
-                DNS_MANAGER_ZONE_NAME,
-                "",
-            )
-            dns_settings.dns_server_ip = IPv4Address(
-                settings_from_db.get(DNS_MANAGER_IP_ADDRESS_NAME),
-            )
-            dns_settings.tsig_key = settings_from_db.get(
-                DNS_MANAGER_TSIG_KEY_NAME,
-            )
+            dns_settings.domain = settings_from_db.get(DNS_MANAGER_ZONE_NAME, "")
+            dns_settings.dns_server_ip = IPv4Address(settings_from_db.get(DNS_MANAGER_IP_ADDRESS_NAME))
+            dns_settings.tsig_key = settings_from_db.get(DNS_MANAGER_TSIG_KEY_NAME)
 
         return dns_settings
 
@@ -159,31 +109,16 @@ class DNSStateGateway:
         """Get DNS state."""
         state = await self.get(DNS_MANAGER_STATE_NAME)
         if state is None:
-            await self.create(
-                CatalogueSetting(
-                    name=DNS_MANAGER_STATE_NAME,
-                    value=DNSManagerState.NOT_CONFIGURED,
-                ),
-            )
+            await self.create(CatalogueSetting(name=DNS_MANAGER_STATE_NAME, value=DNSManagerState.NOT_CONFIGURED))
             return DNSManagerState.NOT_CONFIGURED
         return DNSManagerState(state.value)
 
-    async def set_state(
-        self,
-        state: DNSManagerState,
-    ) -> None:
+    async def set_state(self, state: DNSManagerState) -> None:
         """Set DNS state."""
         existing_state = await self.get(DNS_MANAGER_STATE_NAME)
         if existing_state is None:
-            await self.create(
-                CatalogueSetting(
-                    name=DNS_MANAGER_STATE_NAME,
-                    value=state,
-                ),
-            )
+            await self.create(CatalogueSetting(name=DNS_MANAGER_STATE_NAME, value=state))
         else:
             await self._session.execute(
-                update(CatalogueSetting)
-                .values({"value": state})
-                .filter_by(name=DNS_MANAGER_STATE_NAME),
+                update(CatalogueSetting).values({"value": state}).filter_by(name=DNS_MANAGER_STATE_NAME)
             )

@@ -18,9 +18,7 @@ def _type_validate_entry(entry: str) -> str:
     raise ValueError(f"Invalid entry name {entry}")
 
 
-EMAIL_RE = re.compile(
-    r"([A-Za-z0-9]+[._-])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]{2,})+",
-)
+EMAIL_RE = re.compile(r"([A-Za-z0-9]+[._-])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]{2,})+")
 
 
 def _type_validate_email(email: str) -> str:

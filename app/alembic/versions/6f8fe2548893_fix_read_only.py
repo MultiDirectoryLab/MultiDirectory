@@ -26,79 +26,39 @@ depends_on: None = None
 
 @temporary_stub_column("Directory", "entity_type_id", sa.Integer())
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    directory_table = sa.table(
-        "Directory",
-        sa.column("id", sa.Integer),
-        sa.column("objectSid", sa.String),
-    )
+    directory_table = sa.table("Directory", sa.column("id", sa.Integer), sa.column("objectSid", sa.String))
 
-    ro_dir = session.scalar(
-        select(Directory)
-        .filter_by(name="readonly domain controllers"),
-    )  # fmt: skip
+    ro_dir = session.scalar(select(Directory).filter_by(name="readonly domain controllers"))
 
     if ro_dir:
-        session.execute(
-            delete(Attribute)
-            .filter_by(name="objectSid", directory=ro_dir),
-        )  # fmt: skip
+        session.execute(delete(Attribute).filter_by(name="objectSid", directory=ro_dir))
         session.execute(
             update(Attribute)
-            .filter_by(
-                name="sAMAccountName",
-                directory=ro_dir,
-                value=DOMAIN_USERS_GROUP_NAME,
-            )
-            .values({"value": ro_dir.name}),
+            .filter_by(name="sAMAccountName", directory=ro_dir, value=DOMAIN_USERS_GROUP_NAME)
+            .values({"value": ro_dir.name})
         )
 
         attr_object_class = session.scalar(
             select(Attribute)
-            .filter_by(
-                name="objectClass",
-                directory=ro_dir,
-                value="group",
-            ),
+            .filter_by(name="objectClass", directory=ro_dir, value="group")
         )  # fmt: skip
         if not attr_object_class:
+            session.add(Attribute(name="objectClass", value="group", directory_id=ro_dir.id))
+            session.add(Attribute(name=ro_dir.rdname, value=ro_dir.name, directory_id=ro_dir.id))
             session.add(
-                Attribute(
-                    name="objectClass",
-                    value="group",
-                    directory_id=ro_dir.id,
-                ),
-            )
-            session.add(
-                Attribute(
-                    name=ro_dir.rdname,
-                    value=ro_dir.name,
-                    directory_id=ro_dir.id,
-                ),
-            )
-            session.add(
-                Attribute(
-                    name="gidNumber",
-                    value=str(create_integer_hash(ro_dir.name)),
-                    directory_id=ro_dir.id,
-                ),
+                Attribute(name="gidNumber", value=str(create_integer_hash(ro_dir.name)), directory_id=ro_dir.id)
             )
 
-        ro_object_sid = session.scalar(
-            select(directory_table.c.objectSid).where(
-                directory_table.c.id == ro_dir.id,
-            ),
-        )
+        ro_object_sid = session.scalar(select(directory_table.c.objectSid).where(directory_table.c.id == ro_dir.id))
         if ro_object_sid:
             domain_sid = "-".join(ro_object_sid.split("-")[:-1])
             session.execute(
-                update(directory_table)
-                .where(directory_table.c.id == ro_dir.id)
-                .values(objectSid=domain_sid + "-521"),
+                update(directory_table).where(directory_table.c.id == ro_dir.id).values(objectSid=domain_sid + "-521")
             )
 
         session.commit()

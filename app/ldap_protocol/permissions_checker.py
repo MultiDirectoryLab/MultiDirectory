@@ -29,9 +29,7 @@ class AuthorizationProvider:
         :return: bool
         """
         user = await self._idp.get_current_user()
-        user_permissions = await self._idp.get_current_user_permissions(
-            user,
-        )
+        user_permissions = await self._idp.get_current_user_permissions(user)
 
         return (permission & user_permissions) == permission
 
@@ -43,14 +41,10 @@ class AuthorizationProvider:
         :return: None
         """
         if not await self._has_permission(permission):
-            raise AuthorizationError(
-                f"User does not have permission: {permission.name}",
-            )
+            raise AuthorizationError(f"User does not have permission: {permission.name}")
 
     def wrap_use_case(
-        self,
-        permission_name: AuthorizationRules,
-        func: Callable[_P, Awaitable[_R]],
+        self, permission_name: AuthorizationRules, func: Callable[_P, Awaitable[_R]]
     ) -> Callable[_P, Awaitable[_R]]:
         @wraps(func)
         async def wrapped_use_case(*args: _P.args, **kwargs: _P.kwargs) -> _R:

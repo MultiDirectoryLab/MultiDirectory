@@ -23,16 +23,8 @@ S = TypeVar("S", contravariant=True)
 class PaginationParams(BaseModel):
     """Pagination parameters."""
 
-    page_number: int = Field(
-        ...,
-        ge=1,
-        le=sys.maxsize,
-    )
-    page_size: int = Field(
-        default=25,
-        ge=1,
-        le=100,
-    )
+    page_number: int = Field(..., ge=1, le=sys.maxsize)
+    page_size: int = Field(default=25, ge=1, le=100)
     query: str | None = None
 
 
@@ -40,10 +32,7 @@ def build_paginated_search_query[S](
     model: type[S],
     order_by_field: InstrumentedAttribute | Column | QueryableAttribute,
     params: PaginationParams,
-    search_field: InstrumentedAttribute
-    | Column
-    | QueryableAttribute
-    | None = None,
+    search_field: InstrumentedAttribute | Column | QueryableAttribute | None = None,
     load_params: Iterable[_AbstractLoad] | _AbstractLoad | None = None,
 ) -> Select[tuple[S]]:
     """Build query."""
@@ -103,20 +92,13 @@ class PaginationResult[S, P]:
 
     @classmethod
     async def get(
-        cls,
-        query: Select[tuple[S]],
-        params: PaginationParams,
-        converter: Callable[[S], P],
-        session: AsyncSession,
+        cls, query: Select[tuple[S]], params: PaginationParams, converter: Callable[[S], P], session: AsyncSession
     ) -> Self:
         """Get paginator."""
         if not cls._validate_query(query):
             raise ValueError("Select query must have an order_by clause.")
 
-        metadata = PaginationMetadata(
-            page_number=params.page_number,
-            page_size=params.page_size,
-        )
+        metadata = PaginationMetadata(page_number=params.page_number, page_size=params.page_size)
 
         total_count_query = select(func.count()).select_from(query.subquery())
         metadata.total_count = (await session.scalars(total_count_query)).one()

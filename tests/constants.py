@@ -49,10 +49,7 @@ TEST_DATA = [
         "name": GROUPS_CONTAINER_NAME,
         "entity_type_name": EntityTypeNames.CONTAINER,
         "object_class": "container",
-        "attributes": {
-            "objectClass": ["top", "container"],
-            "sAMAccountName": ["groups"],
-        },
+        "attributes": {"objectClass": ["top", "container"], "sAMAccountName": ["groups"]},
         "children": [
             {
                 "name": DOMAIN_ADMIN_GROUP_NAME,
@@ -63,9 +60,7 @@ TEST_DATA = [
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_ADMIN_GROUP_NAME],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
-                    ],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                 },
                 "objectSid": SecurityPrincipalRid.DOMAIN_ADMINS,
             },
@@ -79,9 +74,7 @@ TEST_DATA = [
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": ["developers"],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
-                    ],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                 },
                 "objectSid": 999,
             },
@@ -94,9 +87,7 @@ TEST_DATA = [
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": ["admin login only"],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
-                    ],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                 },
             },
             {
@@ -108,9 +99,7 @@ TEST_DATA = [
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_USERS_GROUP_NAME],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
-                    ],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                 },
             },
             {
@@ -122,9 +111,7 @@ TEST_DATA = [
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": [DOMAIN_COMPUTERS_GROUP_NAME],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
-                    ],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                 },
             },
         ],
@@ -153,9 +140,7 @@ TEST_DATA = [
                     ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
-                    "userAccountControl": [
-                        str(UserAccountControlFlag.NORMAL_ACCOUNT),
-                    ],
+                    "userAccountControl": [str(UserAccountControlFlag.NORMAL_ACCOUNT)],
                     "description": ["123 desc"],
                 },
             },
@@ -175,9 +160,7 @@ TEST_DATA = [
                     ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
-                    "userAccountControl": [
-                        str(UserAccountControlFlag.NORMAL_ACCOUNT),
-                    ],
+                    "userAccountControl": [str(UserAccountControlFlag.NORMAL_ACCOUNT)],
                 },
             },
             {
@@ -196,9 +179,7 @@ TEST_DATA = [
                     ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
-                    "userAccountControl": [
-                        str(UserAccountControlFlag.NORMAL_ACCOUNT),
-                    ],
+                    "userAccountControl": [str(UserAccountControlFlag.NORMAL_ACCOUNT)],
                 },
             },
             {
@@ -225,28 +206,20 @@ TEST_DATA = [
                     ],
                     "posixEmail": ["abctest@mail.com"],
                     "attr_with_bvalue": [b"any"],
-                    "userAccountControl": [
-                        str(UserAccountControlFlag.NORMAL_ACCOUNT),
-                    ],
+                    "userAccountControl": [str(UserAccountControlFlag.NORMAL_ACCOUNT)],
                 },
             },
             {
                 "name": "russia",
                 "entity_type_name": EntityTypeNames.CONTAINER,
                 "object_class": "container",
-                "attributes": {
-                    "objectClass": ["top"],
-                    "sAMAccountName": ["groups"],
-                },
+                "attributes": {"objectClass": ["top"], "sAMAccountName": ["groups"]},
                 "children": [
                     {
                         "name": "moscow",
                         "entity_type_name": EntityTypeNames.CONTAINER,
                         "object_class": "container",
-                        "attributes": {
-                            "objectClass": ["top"],
-                            "sAMAccountName": ["groups"],
-                        },
+                        "attributes": {"objectClass": ["top"], "sAMAccountName": ["groups"]},
                         "children": [
                             {
                                 "name": "user1",
@@ -271,15 +244,11 @@ TEST_DATA = [
                                         "inetOrgPerson",
                                     ],
                                     "posixEmail": ["user1@mail.com"],
-                                    "userAccountControl": [
-                                        str(
-                                            UserAccountControlFlag.NORMAL_ACCOUNT,
-                                        ),
-                                    ],
+                                    "userAccountControl": [str(UserAccountControlFlag.NORMAL_ACCOUNT)],
                                 },
-                            },
+                            }
                         ],
-                    },
+                    }
                 ],
             },
         ],
@@ -318,8 +287,8 @@ TEST_DATA = [
                             UserAccountControlFlag.NOT_DELEGATED
                             + UserAccountControlFlag.NORMAL_ACCOUNT
                             + UserAccountControlFlag.LOCKOUT
-                            + UserAccountControlFlag.ACCOUNTDISABLE,
-                        ),
+                            + UserAccountControlFlag.ACCOUNTDISABLE
+                        )
                     ],
                 },
             },
@@ -347,10 +316,7 @@ TEST_DATA = [
                     "posixEmail": ["abctest123@mail.com"],
                     "attr_with_bvalue": [b"any"],
                     "userAccountControl": [
-                        str(
-                            UserAccountControlFlag.NOT_DELEGATED
-                            + UserAccountControlFlag.NORMAL_ACCOUNT,
-                        ),
+                        str(UserAccountControlFlag.NOT_DELEGATED + UserAccountControlFlag.NORMAL_ACCOUNT)
                     ],
                 },
             },
@@ -377,9 +343,7 @@ TEST_DATA = [
                     ],
                     "posixEmail": ["abctest123@mail.com"],
                     "attr_with_bvalue": [b"any"],
-                    "userAccountControl": [
-                        str(UserAccountControlFlag.ACCOUNTDISABLE),
-                    ],
+                    "userAccountControl": [str(UserAccountControlFlag.ACCOUNTDISABLE)],
                 },
             },
         ],
@@ -388,19 +352,13 @@ TEST_DATA = [
         "name": "testModifyDn1",
         "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class": "organizationalUnit",
-        "attributes": {
-            "objectClass": ["top", "container"],
-            "sAMAccountName": ["testModifyDn1"],
-        },
+        "attributes": {"objectClass": ["top", "container"], "sAMAccountName": ["testModifyDn1"]},
         "children": [
             {
                 "name": "testModifyDn2",
                 "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
                 "object_class": "organizationalUnit",
-                "attributes": {
-                    "objectClass": ["top", "container"],
-                    "sAMAccountName": ["testModifyDn2"],
-                },
+                "attributes": {"objectClass": ["top", "container"], "sAMAccountName": ["testModifyDn2"]},
                 "children": [
                     {
                         "name": "testGroup1",
@@ -411,13 +369,9 @@ TEST_DATA = [
                             "groupType": ["-2147483646"],
                             "instanceType": ["4"],
                             "sAMAccountName": ["testGroup1"],
-                            "sAMAccountType": [
-                                str(
-                                    SamAccountTypeCodes.SAM_GROUP_OBJECT.value,
-                                ),
-                            ],
+                            "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                         },
-                    },
+                    }
                 ],
             },
             {
@@ -429,9 +383,7 @@ TEST_DATA = [
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": ["testGroup2"],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
-                    ],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                 },
             },
         ],
@@ -440,10 +392,7 @@ TEST_DATA = [
         "name": "testModifyDn3",
         "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class": "organizationalUnit",
-        "attributes": {
-            "objectClass": ["top", "container"],
-            "sAMAccountName": ["testModifyDn3"],
-        },
+        "attributes": {"objectClass": ["top", "container"], "sAMAccountName": ["testModifyDn3"]},
         "children": [
             {
                 "name": "testGroup3",
@@ -454,11 +403,9 @@ TEST_DATA = [
                     "groupType": ["-2147483646"],
                     "instanceType": ["4"],
                     "sAMAccountName": ["testGroup3"],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value),
-                    ],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_GROUP_OBJECT.value)],
                 },
-            },
+            }
         ],
     },
     {
@@ -471,9 +418,7 @@ TEST_DATA = [
         "name": SYSTEM_CONTAINER_NAME,
         "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
         "object_class": "organizationalUnit",
-        "attributes": {
-            "objectClass": ["top", "container"],
-        },
+        "attributes": {"objectClass": ["top", "container"]},
         "children": [],
     },
 ]
@@ -491,14 +436,7 @@ TEST_SYSTEM_ADMIN_DATA = {
         "groups": [DOMAIN_ADMIN_GROUP_NAME],
     },
     "attributes": {
-        "objectClass": [
-            "top",
-            "person",
-            "organizationalPerson",
-            "posixAccount",
-            "inetOrgPerson",
-            "shadowAccount",
-        ],
+        "objectClass": ["top", "person", "organizationalPerson", "posixAccount", "inetOrgPerson", "shadowAccount"],
         "posixEmail": ["abctest@mail.com"],
         "attr_with_bvalue": [b"any"],
         "userAccountControl": [str(UserAccountControlFlag.NORMAL_ACCOUNT)],

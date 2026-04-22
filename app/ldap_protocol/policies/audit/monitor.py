@@ -35,9 +35,7 @@ from ldap_protocol.kerberos.exceptions import KRBAPIChangePasswordError
 from ldap_protocol.multifactor import MFA_HTTP_Creds
 from ldap_protocol.objects import OperationEvent
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
-from ldap_protocol.policies.audit.events.factory import (
-    RawAuditEventBuilderRedis,
-)
+from ldap_protocol.policies.audit.events.factory import RawAuditEventBuilderRedis
 from ldap_protocol.session_storage import SessionStorage
 
 _T = TypeVar("_T", bound=Callable)
@@ -75,15 +73,10 @@ class AuditMonitor:
     async def set_username(self) -> None:
         """Get the username from the session."""
         user_id = await self._session_storage.get_user_id(
-            self._settings,
-            self._session_key,
-            self.get_user_agent(),
-            str(self.get_ip()),
+            self._settings, self._session_key, self.get_user_agent(), str(self.get_ip())
         )
 
-        user = await self._session.scalar(
-            select(User).filter_by(id=user_id),
-        )
+        user = await self._session.scalar(select(User).filter_by(id=user_id))
 
         if not user:
             raise ValueError("User not found in session")
@@ -103,21 +96,14 @@ class AuditMonitor:
         if self.event_type is None:
             raise ValueError("Event type is not set")
         if self.is_proc_enabled is None:
-            self.is_proc_enabled = (
-                await self._audit_use_case.check_event_processing_enabled(
-                    self.event_type,
-                )
-            )
+            self.is_proc_enabled = await self._audit_use_case.check_event_processing_enabled(self.event_type)
         return self.is_proc_enabled
 
     def generate_details(self) -> dict[str, dict[str, str]]:
         """Generate details for the audit event."""
         details = {}
 
-        if self.event_type not in {
-            OperationEvent.CHANGE_PASSWORD_KERBEROS,
-            OperationEvent.KERBEROS_AUTH,
-        }:
+        if self.event_type not in {OperationEvent.CHANGE_PASSWORD_KERBEROS, OperationEvent.KERBEROS_AUTH}:
             details["user_agent"] = self.get_user_agent()
 
         if self.target:
@@ -160,35 +146,20 @@ class AuditMonitorUseCase:
         """Initialize the use case with a monitor."""
         self._monitor = monitor
 
-    def wrap_callback_mfa(
-        self,
-        attr: _T,
-    ) -> _T:
+    def wrap_callback_mfa(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_callback_mfa(
-            access_token: str,
-            mfa_creds: MFA_HTTP_Creds,
-            ip: IPv4Address | IPv6Address,
-            user_agent: str,
+            access_token: str, mfa_creds: MFA_HTTP_Creds, ip: IPv4Address | IPv6Address, user_agent: str
         ) -> str:
             """Wrap callback_mfa to handle session management."""
             self._monitor.event_type = OperationEvent.AFTER_2FA
             self._monitor.ip = ip
             self._monitor.user_agent = user_agent
             try:
-                key = await attr(
-                    access_token,
-                    mfa_creds,
-                    ip,
-                    user_agent,
-                )
+                key = await attr(access_token, mfa_creds, ip, user_agent)
                 self._monitor.username = key
                 return key
-            except (
-                ForbiddenError,
-                MFATokenError,
-                AuthorizationError,
-            ) as exc:
+            except (ForbiddenError, MFATokenError, AuthorizationError) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
             finally:
@@ -198,22 +169,14 @@ class AuditMonitorUseCase:
 
     def wrap_proxy_request(self, attr: _T) -> _T:
         @wraps(attr)
-        async def wrapped_proxy_request(
-            principal: str,
-            ip: IPv4Address,
-        ) -> None:
+        async def wrapped_proxy_request(principal: str, ip: IPv4Address) -> None:
             """Wrap the proxy_request method to manage session."""
             self._monitor.event_type = OperationEvent.KERBEROS_AUTH
             self._monitor.username = principal
             self._monitor.ip = ip
             try:
                 return await attr(principal, ip)
-            except (
-                InvalidCredentialsError,
-                NetworkPolicyError,
-                AuthenticationError,
-                AuthorizationError,
-            ) as exc:
+            except (InvalidCredentialsError, NetworkPolicyError, AuthenticationError, AuthorizationError) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
             finally:
@@ -224,27 +187,15 @@ class AuditMonitorUseCase:
     def wrap_login(self, attr: _T) -> _T:
         @wraps(attr)
         async def wrapped_login(
-            form: LoginRequestDTO,
-            url: URL,
-            ip: IPv4Address | IPv6Address,
-            user_agent: str,
+            form: LoginRequestDTO, url: URL, ip: IPv4Address | IPv6Address, user_agent: str
         ) -> object:
             self._monitor.event_type = OperationEvent.BIND
             self._monitor.username = form.username
             self._monitor.ip = ip
             self._monitor.user_agent = user_agent
             try:
-                return await attr(
-                    form=form,
-                    url=url,
-                    ip=ip,
-                    user_agent=user_agent,
-                )
-            except (
-                UnauthorizedError,
-                LoginFailedError,
-                AuthorizationError,
-            ) as exc:
+                return await attr(form=form, url=url, ip=ip, user_agent=user_agent)
+            except (UnauthorizedError, LoginFailedError, AuthorizationError) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
             except MFARequiredError as exc:
@@ -257,20 +208,13 @@ class AuditMonitorUseCase:
 
     def wrap_change_password(self, attr: _T) -> _T:
         @wraps(attr)
-        async def wrapped_change_password(
-            principal: str,
-            new_password: str,
-        ) -> None:
+        async def wrapped_change_password(principal: str, new_password: str) -> None:
             """Wrap the change_password method to manage session."""
             self._monitor.event_type = OperationEvent.CHANGE_PASSWORD_KERBEROS
             self._monitor.username = principal
             try:
                 return await attr(principal, new_password)
-            except (
-                UserNotFoundError,
-                PasswordPolicyError,
-                AuthorizationError,
-            ) as exc:
+            except (UserNotFoundError, PasswordPolicyError, AuthorizationError) as exc:
                 self._monitor.set_error_message(exc)
                 raise exc
             finally:
@@ -280,20 +224,12 @@ class AuditMonitorUseCase:
 
     def wrap_reset_password(self, attr: _T) -> _T:
         @wraps(attr)
-        async def wrapped_reset_password(
-            identity: str,
-            new_password: str,
-            old_password: str | None = None,
-        ) -> None:
+        async def wrapped_reset_password(identity: str, new_password: str, old_password: str | None = None) -> None:
             self._monitor.event_type = OperationEvent.CHANGE_PASSWORD
             self._monitor.target = identity
             await self._monitor.set_username()
             try:
-                return await attr(
-                    identity=identity,
-                    new_password=new_password,
-                    old_password=old_password,
-                )
+                return await attr(identity=identity, new_password=new_password, old_password=old_password)
             except (
                 UserNotFoundError,
                 PasswordPolicyError,

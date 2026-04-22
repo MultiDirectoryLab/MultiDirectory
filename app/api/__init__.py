@@ -14,11 +14,7 @@ from .ldap_schema.entity_type_router import ldap_schema_router
 from .main.krb5_router import krb5_router
 from .main.router import entry_router
 from .network.router import network_router
-from .password_policy import (
-    password_ban_word_router,
-    password_policy_router,
-    user_password_history_router,
-)
+from .password_policy import password_ban_word_router, password_policy_router, user_password_history_router
 from .shadow.router import shadow_router
 
 __all__ = [

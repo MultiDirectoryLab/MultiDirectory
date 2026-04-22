@@ -18,11 +18,7 @@ class StubKadminMDADPIClient(AbstractKadmin):
 
     @logger_wraps(is_stub=True)
     async def add_principal(
-        self,
-        principal_name: str,
-        password: str | None = None,
-        algorithms: list[str] | None = None,
-        timeout: int = 1,
+        self, principal_name: str, password: str | None = None, algorithms: list[str] | None = None, timeout: int = 1
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
@@ -32,34 +28,18 @@ class StubKadminMDADPIClient(AbstractKadmin):
     async def del_principal(self, name: str) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def change_principal_password(
-        self,
-        name: str,
-        password: str,
-    ) -> None: ...
+    async def change_principal_password(self, name: str, password: str) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def create_or_update_principal_pw(
-        self,
-        name: str,
-        password: str,
-    ) -> None: ...
+    async def create_or_update_principal_pw(self, name: str, password: str) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def modify_princ(
-        self,
-        name: str,
-        new_name: str | None,
-        algorithms: list[str] | None = None,
-        password: str | None = None,
+        self, name: str, new_name: str | None, algorithms: list[str] | None = None, password: str | None = None
     ) -> None: ...
 
     @logger_wraps(is_stub=True)
-    async def rename_princ(
-        self,
-        name: str,
-        new_name: str,
-    ) -> None: ...
+    async def rename_princ(self, name: str, new_name: str) -> None: ...
 
     @logger_wraps(is_stub=True)
     async def ktadd(self, names: list[str], is_rand_key: bool) -> NoReturn:  # noqa: ARG002

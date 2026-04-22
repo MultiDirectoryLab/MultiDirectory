@@ -98,7 +98,7 @@ class LDAPRequestMessage(LDAPMessage):
                         control_type=ctrl.value[0].value,
                         criticality=ctrl.value[1].value,
                         control_value=ctrl.value[2].value,
-                    ),
+                    )
                 )
         except (IndexError, ValueError, AttributeError):
             pass
@@ -107,12 +107,7 @@ class LDAPRequestMessage(LDAPMessage):
             logger.debug({"controls": seq_fields[2]})
 
         context = protocol_id_map[protocol.tag_id].from_data(protocol.value)
-        return cls(
-            messageID=message_id.value,
-            protocolOP=protocol.tag_id,
-            context=context,
-            controls=controls,
-        )
+        return cls(messageID=message_id.value, protocolOP=protocol.tag_id, context=context, controls=controls)
 
     @classmethod
     def from_err(cls, source: bytes, err: Exception) -> LDAPResponseMessage:
@@ -140,25 +135,15 @@ class LDAPRequestMessage(LDAPMessage):
         return LDAPResponseMessage(
             messageID=message_id,
             protocolOP=protocol_op,
-            context=LDAPResult(
-                result_code=LDAPCodes.PROTOCOL_ERROR,
-                matchedDN="",
-                errorMessage=str(err),
-            ),
+            context=LDAPResult(result_code=LDAPCodes.PROTOCOL_ERROR, matchedDN="", errorMessage=str(err)),
         )
 
-    async def create_response(
-        self,
-        handler: AsyncIterator[BaseResponse],
-    ) -> AsyncGenerator[LDAPResponseMessage, None]:
+    async def create_response(self, handler: AsyncIterator[BaseResponse]) -> AsyncGenerator[LDAPResponseMessage, None]:
         """Call unique context handler.
 
         :yield LDAPResponseMessage: create response for context.
         """
         async for response in handler:
             yield LDAPResponseMessage(
-                messageID=self.message_id,
-                protocolOP=response.PROTOCOL_OP,
-                context=response,
-                controls=self.controls,
+                messageID=self.message_id, protocolOP=response.PROTOCOL_OP, context=response, controls=self.controls
             )

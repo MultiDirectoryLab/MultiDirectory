@@ -39,17 +39,13 @@ class PasswordValidatorSettings:
     regexp_uppercase_letters: str
     regexp_lowercase_letters: str
 
-    def setup_language(
-        self,
-        language: PasswordValidatorLanguageType,
-    ) -> None:
+    def setup_language(self, language: PasswordValidatorLanguageType) -> None:
         """Set instance language params."""
         if language in ("Cyrillic", "Latin"):
             self.__language = language
         else:
             raise ValueError(
-                f"PasswordValidatorSettings: Unsupported language `{language}`. "  # noqa: E501
-                "Supported languages: Cyrillic, Latin.",
+                f"PasswordValidatorSettings: Unsupported language `{language}`. Supported languages: Cyrillic, Latin."
             )
 
         if self.__language == "Cyrillic":

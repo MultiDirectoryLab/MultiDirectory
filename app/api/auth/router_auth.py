@@ -15,19 +15,10 @@ from fastapi_error_map.rules import rule
 from api.auth.adapters import AuthFastAPIAdapter
 from api.auth.schemas import MFAChallengeResponse, OAuth2Form, SetupRequest
 from api.auth.utils import get_ip_from_request, get_user_agent_from_request
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from api.utils import require_master_db
 from enums import DomainCodes
-from ldap_protocol.auth.exceptions.mfa import (
-    MFAAPIError,
-    MFAConnectError,
-    MFARequiredError,
-    MissingMFACredentialsError,
-)
+from ldap_protocol.auth.exceptions.mfa import MFAAPIError, MFAConnectError, MFARequiredError, MissingMFACredentialsError
 from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.identity.exceptions import (
     AlreadyConfiguredError,
@@ -47,66 +38,23 @@ translator = DomainErrorTranslator(DomainCodes.AUTH)
 
 
 error_map: ERROR_MAP_TYPE = {
-    UnauthorizedError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
-    AlreadyConfiguredError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    ForbiddenError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    LoginFailedError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        translator=translator,
-    ),
-    UserNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuthValidationError: rule(
-        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        translator=translator,
-    ),
-    MFARequiredError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    MissingMFACredentialsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    MFAAPIError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    MFAConnectError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PermissionError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    KRBAPIChangePasswordError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
+    UnauthorizedError: rule(status=status.HTTP_401_UNAUTHORIZED, translator=translator),
+    AlreadyConfiguredError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    ForbiddenError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    LoginFailedError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordPolicyError: rule(status=status.HTTP_422_UNPROCESSABLE_CONTENT, translator=translator),
+    UserNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    AuthValidationError: rule(status=status.HTTP_422_UNPROCESSABLE_CONTENT, translator=translator),
+    MFARequiredError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    MissingMFACredentialsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    MFAAPIError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    MFAConnectError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PermissionError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    KRBAPIChangePasswordError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
 }
 
 
-auth_router = ErrorAwareRouter(
-    prefix="/auth",
-    tags=["Auth"],
-    route_class=DishkaErrorAwareRoute,
-)
+auth_router = ErrorAwareRouter(prefix="/auth", tags=["Auth"], route_class=DishkaErrorAwareRoute)
 
 
 @auth_router.post("/", error_map=error_map)
@@ -137,18 +85,11 @@ async def login(
     :raises HTTPException: 403 if user not part of network policy
     :return None: None
     """
-    return await auth_manager.login(
-        form=form,
-        request=request,
-        ip=ip,
-        user_agent=user_agent,
-    )
+    return await auth_manager.login(form=form, request=request, ip=ip, user_agent=user_agent)
 
 
 @auth_router.get("/me", error_map=error_map)
-async def users_me(
-    identity_adapter: FromDishka[AuthFastAPIAdapter],
-) -> UserSchema:
+async def users_me(identity_adapter: FromDishka[AuthFastAPIAdapter]) -> UserSchema:
     """Get current logged-in user data.
 
     :param identity_adapter: IdentityFastAPIAdapter instance for user
@@ -158,15 +99,9 @@ async def users_me(
     return await identity_adapter.get_current_user()
 
 
-@auth_router.delete(
-    "/",
-    response_class=Response,
-    error_map=error_map,
-)
+@auth_router.delete("/", response_class=Response, error_map=error_map)
 async def logout(
-    response: Response,
-    storage: FromDishka[SessionStorage],
-    identity_adapter: FromDishka[AuthFastAPIAdapter],
+    response: Response, storage: FromDishka[SessionStorage], identity_adapter: FromDishka[AuthFastAPIAdapter]
 ) -> None:
     """Delete token cookies and user session.
 
@@ -190,10 +125,7 @@ async def password_reset(
     auth_manager: FromDishka[AuthFastAPIAdapter],
     identity: Annotated[str, Body(examples=["admin"])],
     new_password: Annotated[str, Body(examples=["password"])],
-    old_password: Annotated[
-        str | None,
-        Body(examples=["old_password"]),
-    ] = None,
+    old_password: Annotated[str | None, Body(examples=["old_password"])] = None,
 ) -> None:
     """Reset user's (entry) password.
 
@@ -210,9 +142,7 @@ async def password_reset(
 
 
 @auth_router.get("/setup", error_map=error_map)
-async def check_setup(
-    auth_manager: FromDishka[AuthFastAPIAdapter],
-) -> bool:
+async def check_setup(auth_manager: FromDishka[AuthFastAPIAdapter]) -> bool:
     """Check if initial setup is required.
 
     :param auth_manager: IdentityFastAPIAdapter
@@ -228,10 +158,7 @@ async def check_setup(
     error_map=error_map,
     dependencies=[Depends(require_master_db)],
 )
-async def first_setup(
-    request: SetupRequest,
-    auth_manager: FromDishka[AuthFastAPIAdapter],
-) -> None:
+async def first_setup(request: SetupRequest, auth_manager: FromDishka[AuthFastAPIAdapter]) -> None:
     """Perform initial structure and policy setup.
 
     :param request: SetupRequest

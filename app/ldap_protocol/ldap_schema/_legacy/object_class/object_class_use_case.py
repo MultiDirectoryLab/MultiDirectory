@@ -10,13 +10,8 @@ from entities_legacy import ObjectClassLegacy
 
 from abstract_service import AbstractService
 from enums import AuthorizationRules
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import (  # noqa: E501
-    AttributeTypeDAOLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import (
-    ObjectClassCreateDTO,
-    ObjectClassDAOLegacy,
-)
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_dao import AttributeTypeDAOLegacy
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_dao import ObjectClassCreateDTO, ObjectClassDAOLegacy
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO, ObjectClassDTO
 from ldap_protocol.ldap_schema.exceptions import ObjectClassNotFoundError
 
@@ -28,9 +23,7 @@ class ObjectClassUseCaseLegacy(AbstractService):
     __object_class_dao_legacy: ObjectClassDAOLegacy
 
     def __init__(
-        self,
-        object_class_dao_legacy: ObjectClassDAOLegacy,
-        attribute_type_dao_legacy: AttributeTypeDAOLegacy,
+        self, object_class_dao_legacy: ObjectClassDAOLegacy, attribute_type_dao_legacy: AttributeTypeDAOLegacy
     ) -> None:
         """Init ObjectClassUseCase."""
         self.__attribute_type_dao_legacy = attribute_type_dao_legacy
@@ -57,36 +50,23 @@ class ObjectClassUseCaseLegacy(AbstractService):
         )
 
         if dto.superior_name:
-            create_dto.superior = (
-                await self.__object_class_dao_legacy.get_raw_by_name(
-                    dto.superior_name,
-                )
-            )
+            create_dto.superior = await self.__object_class_dao_legacy.get_raw_by_name(dto.superior_name)
 
         if dto.superior_name and not create_dto.superior:
-            raise ObjectClassNotFoundError(
-                f"Superior (parent) Object class {dto.superior_name} "
-                "not found in schema.",
-            )
+            raise ObjectClassNotFoundError(f"Superior (parent) Object class {dto.superior_name} not found in schema.")
 
         attribute_types_may_filtered = [
-            name
-            for name in dto.attribute_types_may
-            if name not in dto.attribute_types_must
+            name for name in dto.attribute_types_may if name not in dto.attribute_types_must
         ]
 
         if dto.attribute_types_must:
-            create_dto.attribute_types_must = (
-                await self.__attribute_type_dao_legacy.get_all_raw_by_names(
-                    dto.attribute_types_must,
-                )
+            create_dto.attribute_types_must = await self.__attribute_type_dao_legacy.get_all_raw_by_names(
+                dto.attribute_types_must
             )
 
         if attribute_types_may_filtered:
-            create_dto.attribute_types_may = (
-                await self.__attribute_type_dao_legacy.get_all_raw_by_names(
-                    attribute_types_may_filtered,
-                )
+            create_dto.attribute_types_may = await self.__attribute_type_dao_legacy.get_all_raw_by_names(
+                attribute_types_may_filtered
             )
 
         await self.__object_class_dao_legacy.create(create_dto)

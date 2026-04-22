@@ -6,28 +6,19 @@ from fastapi import HTTPException, Request, status
 from loguru import logger
 
 
-def handle_db_connect_error(
-    request: Request,  # noqa: ARG001
-    exc: Exception,
-) -> NoReturn:
+def handle_db_connect_error(request: Request, exc: Exception) -> NoReturn:  # noqa: ARG001
     """Handle duplicate."""
     if "QueuePool limit of size" in str(exc):
         logger.critical("POOL EXCEEDED {}", exc)
 
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Connection Pool Exceeded",
-        )
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail="Connection Pool Exceeded")
 
     logger.critical("DB BACKEND ERR {}", exc)
 
     raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
-async def handle_auth_error(
-    request: Request,  # noqa: ARG001
-    exc: Exception,
-) -> NoReturn:
+async def handle_auth_error(request: Request, exc: Exception) -> NoReturn:  # noqa: ARG001
     """Handle Auth error."""
     # fastapi-error-map doesn't handle exceptions from dependencies
     # (get_ldap_session), so we catch them manually here

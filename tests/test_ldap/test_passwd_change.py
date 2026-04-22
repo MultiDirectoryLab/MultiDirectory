@@ -17,20 +17,13 @@ from tests.conftest import TestCreds
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("_force_override_tls")
 async def test_anonymous_pwd_change(
-    session: AsyncSession,
-    anonymous_ldap_client: LDAPConnection,
-    creds: TestCreds,
-    password_utils: PasswordUtils,
+    session: AsyncSession, anonymous_ldap_client: LDAPConnection, creds: TestCreds, password_utils: PasswordUtils
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,cn=Users,dc=md,dc=test"
     password = creds.pw
     new_test_password = "Password123"  # noqa
-    await anonymous_ldap_client.modify_password(
-        new_test_password,
-        user_dn,
-        password,
-    )
+    await anonymous_ldap_client.modify_password(new_test_password, user_dn, password)
 
     user = await get_user(session, user_dn)
     assert user
@@ -43,10 +36,7 @@ async def test_anonymous_pwd_change(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("_force_override_tls")
 async def test_bind_pwd_change(
-    session: AsyncSession,
-    ldap_client: LDAPConnection,
-    creds: TestCreds,
-    password_utils: PasswordUtils,
+    session: AsyncSession, ldap_client: LDAPConnection, creds: TestCreds, password_utils: PasswordUtils
 ) -> None:
     """Test anonymous pwd change."""
     user_dn = "cn=user0,cn=Users,dc=md,dc=test"

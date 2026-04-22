@@ -18,7 +18,7 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     op.create_table(
         "AccessPolicies",
@@ -34,41 +34,13 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     op.create_table(
         "PasswordPolicies",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=255), server_default="Default Policy", nullable=False),
+        sa.Column("password_history_length", sa.Integer(), server_default="4", nullable=False),
+        sa.Column("maximum_password_age_days", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("minimum_password_age_days", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("minimum_password_length", sa.Integer(), server_default="7", nullable=False),
         sa.Column(
-            "name",
-            sa.String(length=255),
-            server_default="Default Policy",
-            nullable=False,
-        ),
-        sa.Column(
-            "password_history_length",
-            sa.Integer(),
-            server_default="4",
-            nullable=False,
-        ),
-        sa.Column(
-            "maximum_password_age_days",
-            sa.Integer(),
-            server_default="0",
-            nullable=False,
-        ),
-        sa.Column(
-            "minimum_password_age_days",
-            sa.Integer(),
-            server_default="0",
-            nullable=False,
-        ),
-        sa.Column(
-            "minimum_password_length",
-            sa.Integer(),
-            server_default="7",
-            nullable=False,
-        ),
-        sa.Column(
-            "password_must_meet_complexity_requirements",
-            sa.Boolean(),
-            server_default=sa.text("true"),
-            nullable=False,
+            "password_must_meet_complexity_requirements", sa.Boolean(), server_default=sa.text("true"), nullable=False
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
@@ -77,22 +49,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         "Policies",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
-        sa.Column(
-            "raw",
-            postgresql.JSON(astext_type=sa.Text()),
-            nullable=False,
-        ),
-        sa.Column(
-            "netmasks",
-            postgresql.ARRAY(postgresql.CIDR()),
-            nullable=False,
-        ),
-        sa.Column(
-            "enabled",
-            sa.Boolean(),
-            server_default=sa.text("true"),
-            nullable=False,
-        ),
+        sa.Column("raw", postgresql.JSON(astext_type=sa.Text()), nullable=False),
+        sa.Column("netmasks", postgresql.ARRAY(postgresql.CIDR()), nullable=False),
+        sa.Column("enabled", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column("priority", sa.Integer(), nullable=False),
         sa.Column(
             "mfa_status",
@@ -102,12 +61,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
-        sa.UniqueConstraint(
-            "priority",
-            deferrable=True,
-            initially="DEFERRED",
-            name="priority_uc",
-        ),
+        sa.UniqueConstraint("priority", deferrable=True, initially="DEFERRED", name="priority_uc"),
     )
 
     op.create_table(
@@ -124,47 +78,25 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         sa.Column("parentId", sa.Integer(), nullable=True),
         sa.Column("objectClass", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
-        sa.Column(
-            "whenCreated",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
+        sa.Column("whenCreated", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("whenChanged", sa.DateTime(timezone=True), nullable=True),
         sa.Column("depth", sa.Integer(), nullable=True),
         sa.Column("objectSid", sa.String(), nullable=True),
         sa.Column("password_policy_id", sa.Integer(), nullable=True),
         sa.Column("objectGUID", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("path", postgresql.ARRAY(sa.String()), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["parentId"],
-            ["Directory.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["password_policy_id"],
-            ["PasswordPolicies.id"],
-        ),
+        sa.ForeignKeyConstraint(["parentId"], ["Directory.id"]),
+        sa.ForeignKeyConstraint(["password_policy_id"], ["PasswordPolicies.id"]),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "parentId",
-            "name",
-            name="name_parent_uc",
-            postgresql_nulls_not_distinct=True,
-        ),
+        sa.UniqueConstraint("parentId", "name", name="name_parent_uc", postgresql_nulls_not_distinct=True),
     )
 
     op.create_table(
         "AccessPolicyMemberships",
         sa.Column("dir_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["dir_id"],
-            ["Directory.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["AccessPolicies.id"],
-        ),
+        sa.ForeignKeyConstraint(["dir_id"], ["Directory.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["AccessPolicies.id"]),
         sa.PrimaryKeyConstraint("dir_id", "policy_id"),
     )
     op.create_table(
@@ -174,14 +106,8 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         sa.Column("value", sa.String(), nullable=True),
         sa.Column("bvalue", sa.LargeBinary(), nullable=True),
         sa.Column("directoryId", sa.Integer(), nullable=False),
-        sa.CheckConstraint(
-            "(value IS NULL) <> (bvalue IS NULL)",
-            name="constraint_value_xor_bvalue",
-        ),
-        sa.ForeignKeyConstraint(
-            ["directoryId"],
-            ["Directory.id"],
-        ),
+        sa.CheckConstraint("(value IS NULL) <> (bvalue IS NULL)", name="constraint_value_xor_bvalue"),
+        sa.ForeignKeyConstraint(["directoryId"], ["Directory.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -189,10 +115,7 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         "Groups",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("directoryId", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["directoryId"],
-            ["Directory.id"],
-        ),
+        sa.ForeignKeyConstraint(["directoryId"], ["Directory.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -205,17 +128,9 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         sa.Column("password", sa.String(), nullable=True),
         sa.Column("lastLogon", sa.DateTime(timezone=True), nullable=True),
         sa.Column("accountExpires", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
-            "password_history",
-            postgresql.ARRAY(sa.String()),
-            server_default="{}",
-            nullable=False,
-        ),
+        sa.Column("password_history", postgresql.ARRAY(sa.String()), server_default="{}", nullable=False),
         sa.Column("directoryId", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["directoryId"],
-            ["Directory.id"],
-        ),
+        sa.ForeignKeyConstraint(["directoryId"], ["Directory.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("sAMAccountName"),
         sa.UniqueConstraint("userPrincipalName"),
@@ -224,91 +139,42 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         "DirectoryMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("directory_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["directory_id"],
-            ["Directory.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
+        sa.ForeignKeyConstraint(["directory_id"], ["Directory.id"]),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
         sa.PrimaryKeyConstraint("group_id", "directory_id"),
     )
     op.create_table(
         "GroupAccessPolicyMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["AccessPolicies.id"],
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["AccessPolicies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
     op.create_table(
         "PolicyMFAMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["Policies.id"],
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["Policies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
     op.create_table(
         "PolicyMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("policy_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["Policies.id"],
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"]),
+        sa.ForeignKeyConstraint(["policy_id"], ["Policies.id"]),
         sa.PrimaryKeyConstraint("group_id", "policy_id"),
     )
 
     op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
 
-    op.create_index(
-        op.f("ix_Policies_netmasks"),
-        "Policies",
-        ["netmasks"],
-        unique=True,
-    )
-    op.create_index(
-        op.f("ix_Settings_name"),
-        "Settings",
-        ["name"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_Directory_parentId"),
-        "Directory",
-        ["parentId"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_Directory_path"),
-        "Directory",
-        ["path"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_Attributes_name"),
-        "Attributes",
-        ["name"],
-        unique=False,
-    )
+    op.create_index(op.f("ix_Policies_netmasks"), "Policies", ["netmasks"], unique=True)
+    op.create_index(op.f("ix_Settings_name"), "Settings", ["name"], unique=False)
+    op.create_index(op.f("ix_Directory_parentId"), "Directory", ["parentId"], unique=False)
+    op.create_index(op.f("ix_Directory_path"), "Directory", ["path"], unique=False)
+    op.create_index(op.f("ix_Attributes_name"), "Attributes", ["name"], unique=False)
 
     op.create_index("ix_directory_objectGUID", "Directory", ["objectGUID"])
 
@@ -320,19 +186,19 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         SELECT btrim(lower(unnest($1)))::varchar AS tag
     ) AS q;
     $BODY$
-    language sql IMMUTABLE;"""),
+    language sql IMMUTABLE;""")
     )
     op.execute(
         sa.text(
             """
             CREATE INDEX lw_path
             ON "Directory" USING GIN(array_lowercase("path"));
-            """,
-        ),
+            """
+        )
     )
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.drop_index("ix_directory_objectGUID", table_name="Directory")
     op.drop_index(op.f("ix_Directory_path"), table_name="Directory")

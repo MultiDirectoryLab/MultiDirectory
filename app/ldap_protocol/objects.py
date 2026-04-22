@@ -72,9 +72,7 @@ class PartialAttribute(BaseModel):
         """Allow class to use property."""
 
         arbitrary_types_allowed = True
-        json_encoders = {
-            bytes: lambda value: value.hex(),
-        }
+        json_encoders = {bytes: lambda value: value.hex()}
 
 
 class Changes(BaseModel):

@@ -14,9 +14,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from config import Settings
 from entities import Directory
 from enums import AceType, EntityTypeNames, RoleScope
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import (
-    AttributeTypeDAO,
-)
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_dao import AttributeTypeDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
 from ldap_protocol.roles.dataclasses import AccessControlEntryDTO, RoleDTO
@@ -48,9 +46,7 @@ async def test_multiple_access(
     user_principal_name = await attribute_type_dao.get("userPrincipalName")
     assert user_principal_name
 
-    user_account_control_attr = await attribute_type_dao.get(
-        "userAccountControl",
-    )
+    user_account_control_attr = await attribute_type_dao.get("userAccountControl")
     assert user_account_control_attr
 
     aces = [
@@ -98,13 +94,8 @@ async def test_multiple_access(
         settings=settings,
         creds=creds,
         search_base="cn=russia,cn=Users,dc=md,dc=test",
-        expected_dn=[
-            "dn: cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test",
-        ],
-        expected_attrs_present=[
-            "userAccountControl: 512",
-            "userPrincipalName: user1",
-        ],
+        expected_dn=["dn: cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"],
+        expected_attrs_present=["userAccountControl: 512", "userPrincipalName: user1"],
         expected_attrs_absent=["posixEmail: user1@mail.com"],
     )
 
@@ -112,10 +103,7 @@ async def test_multiple_access(
 
     query = (
         select(Directory)
-        .options(
-            subqueryload(qa(Directory.attributes)),
-            joinedload(qa(Directory.user)),
-        )
+        .options(subqueryload(qa(Directory.attributes)), joinedload(qa(Directory.user)))
         .filter(get_filter_from_path(user_dn))
     )
 
@@ -128,11 +116,7 @@ async def test_multiple_access(
 
     session.expire_all()
     result = await run_ldap_modify(
-        settings=settings,
-        creds=creds,
-        dn=user_dn,
-        attribute="posixEmail",
-        value="modme@student.of.life.edu",
+        settings=settings, creds=creds, dn=user_dn, attribute="posixEmail", value="modme@student.of.life.edu"
     )
     assert result == 0
     session.expire_all()
@@ -146,11 +130,5 @@ async def test_multiple_access(
     assert attributes["posixEmail"] == ["modme@student.of.life.edu"]
 
     session.expire_all()
-    result = await run_ldap_modify(
-        settings=settings,
-        creds=creds,
-        dn=user_dn,
-        attribute="userPrincipalName",
-        value="v",
-    )
+    result = await run_ldap_modify(settings=settings, creds=creds, dn=user_dn, attribute="userPrincipalName", value="v")
     assert result == 50  # Expecting an error due to write access not allowed
