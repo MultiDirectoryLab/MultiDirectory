@@ -9,15 +9,8 @@ from ipaddress import IPv4Address, IPv6Address
 
 import dns.asyncresolver
 
-from ldap_protocol.dns.clients import (
-    PowerDNSAuthHTTPClient,
-    PowerDNSDistClient,
-    PowerDNSRecursorHTTPClient,
-)
-from ldap_protocol.dns.constants import (
-    DEFAULT_FORWARD_ZONE_NAMES,
-    DNS_FIRST_SETUP_RECORDS,
-)
+from ldap_protocol.dns.clients import PowerDNSAuthHTTPClient, PowerDNSDistClient, PowerDNSRecursorHTTPClient
+from ldap_protocol.dns.constants import DEFAULT_FORWARD_ZONE_NAMES, DNS_FIRST_SETUP_RECORDS
 from ldap_protocol.dns.dto import (
     DNSForwardServerStatus,
     DNSForwardZoneDTO,
@@ -26,11 +19,7 @@ from ldap_protocol.dns.dto import (
     DNSRRSetDTO,
     DNSSettingsDTO,
 )
-from ldap_protocol.dns.enums import (
-    DNSForwarderServerStatus,
-    DNSRecordType,
-    PowerDNSRecordChangeType,
-)
+from ldap_protocol.dns.enums import DNSForwarderServerStatus, DNSRecordType, PowerDNSRecordChangeType
 from ldap_protocol.dns.exceptions import (
     DNSError,
     DNSRecordCreateError,
@@ -73,11 +62,7 @@ class PowerDNSManager(AbstractDNSManager):
         return name if name.endswith(".") else f"{name}."
 
     @logger_wraps()
-    async def setup(
-        self,
-        dns_settings: DNSSettingsDTO,
-        is_migration: bool = False,
-    ) -> None:
+    async def setup(self, dns_settings: DNSSettingsDTO, is_migration: bool = False) -> None:
         """Set up DNS server and DNS manager."""
         records = []
         if dns_settings.power_dns_settings is None:
@@ -94,29 +79,21 @@ class PowerDNSManager(AbstractDNSManager):
                                 content=f"{record['value']}{self._dns_settings.domain}.",
                                 disabled=False,
                                 modified_at=None,
-                            ),
+                            )
                         ],
                         changetype=PowerDNSRecordChangeType.EXTEND,
                         ttl=3600,
-                    ),
+                    )
                 )
 
         try:
-            self._dnsdist_client.setup_dnsdist(
-                dns_settings.power_dns_settings.recursor_server_ip,
-            )
-            self._dnsdist_client.add_server(
-                dns_settings.power_dns_settings.auth_server_ip,
-                "master",
-            )
+            self._dnsdist_client.setup_dnsdist(dns_settings.power_dns_settings.recursor_server_ip)
+            self._dnsdist_client.add_server(dns_settings.power_dns_settings.auth_server_ip, "master")
             if not is_migration:
                 await self.create_master_zone(
                     DNSMasterZoneDTO(
-                        id=self._dns_settings.domain,
-                        name=self._dns_settings.domain,
-                        dnssec=False,
-                        rrsets=records,
-                    ),
+                        id=self._dns_settings.domain, name=self._dns_settings.domain, dnssec=False, rrsets=records
+                    )
                 )
         except DNSZoneCreateError as e:
             raise DNSSetupError(f"Failed to set up DNS: {e}")
@@ -166,28 +143,19 @@ class PowerDNSManager(AbstractDNSManager):
             raise DNSRecordDeleteError(f"Failed to delete DNS record: {e}")
 
     @logger_wraps()
-    async def create_master_zone(
-        self,
-        zone: DNSMasterZoneDTO,
-        is_empty: bool = False,
-    ) -> None:
+    async def create_master_zone(self, zone: DNSMasterZoneDTO, is_empty: bool = False) -> None:
         """Create a master DNS zone."""
         zone.name = self._normalize_dns_name(zone.name)
 
         if not is_empty:
             zone.nameservers.append(f"ns1.{zone.name}")
 
-            records = await create_initial_zone_records(
-                zone.name,
-                self._dns_settings.default_nameserver,
-            )
+            records = await create_initial_zone_records(zone.name, self._dns_settings.default_nameserver)
             zone.rrsets.extend(records)
 
         try:
             await self._power_dns_auth_client.create_master_zone(zone)
-            self._dnsdist_client.add_zone_rule(
-                zone.name if not zone.name.endswith(".") else zone.name[:-1],
-            )
+            self._dnsdist_client.add_zone_rule(zone.name if not zone.name.endswith(".") else zone.name[:-1])
         except DNSError as e:
             raise DNSZoneCreateError(f"Failed to create DNS zone: {e}")
 
@@ -218,9 +186,7 @@ class PowerDNSManager(AbstractDNSManager):
     async def get_master_zone_by_id(self, zone_id: str) -> DNSMasterZoneDTO:
         """Get master DNS zone by ID."""
         try:
-            return await self._power_dns_auth_client.get_master_zone_by_id(
-                zone_id,
-            )
+            return await self._power_dns_auth_client.get_master_zone_by_id(zone_id)
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
@@ -228,14 +194,8 @@ class PowerDNSManager(AbstractDNSManager):
     async def get_forward_zones(self) -> list[DNSForwardZoneDTO]:
         """Retrieve all forward DNS zones."""
         try:
-            forward_zones = (
-                await self._power_dns_recursor_client.get_forward_zones()
-            )
-            return [
-                zone
-                for zone in forward_zones
-                if zone.name not in DEFAULT_FORWARD_ZONE_NAMES
-            ]
+            forward_zones = await self._power_dns_recursor_client.get_forward_zones()
+            return [zone for zone in forward_zones if zone.name not in DEFAULT_FORWARD_ZONE_NAMES]
         except DNSError as e:
             raise DNSZoneGetError(f"Failed to get DNS zones: {e}")
 
@@ -254,10 +214,7 @@ class PowerDNSManager(AbstractDNSManager):
         zone.name = self._normalize_dns_name(zone.name)
 
         try:
-            await self._power_dns_recursor_client.update_forward_zone(
-                zone.id,
-                zone,
-            )
+            await self._power_dns_recursor_client.update_forward_zone(zone.id, zone)
         except DNSError as e:
             raise DNSZoneUpdateError(f"Failed to update DNS zone: {e}")
 
@@ -282,19 +239,12 @@ class PowerDNSManager(AbstractDNSManager):
 
     @logger_wraps()
     async def find_forward_dns_fqdn(
-        self,
-        dns_server_ip: IPv4Address | IPv6Address,
-        host_dns_servers: list[str],
+        self, dns_server_ip: IPv4Address | IPv6Address, host_dns_servers: list[str]
     ) -> str | None:
         """Find forward DNS FQDN."""
-        reversed_ip = (
-            ".".join(reversed((str(dns_server_ip)).split(".")))
-            + ".in-addr.arpa"
-        )
+        reversed_ip = ".".join(reversed((str(dns_server_ip)).split("."))) + ".in-addr.arpa"
 
-        async def get_fqdn_and_latency(
-            server: str,
-        ) -> tuple[float, str | None]:
+        async def get_fqdn_and_latency(server: str) -> tuple[float, str | None]:
             resolver = dns.asyncresolver.Resolver()
             resolver.nameservers = [server]
             resolver.timeout = 10
@@ -306,47 +256,25 @@ class PowerDNSManager(AbstractDNSManager):
                 latency = event_loop.time() - start_time
 
                 return (latency, fqdn[0].to_text())
-            except (
-                dns.asyncresolver.NoAnswer,
-                dns.asyncresolver.NXDOMAIN,
-            ):
+            except (dns.asyncresolver.NoAnswer, dns.asyncresolver.NXDOMAIN):
                 return (float("inf"), None)
 
-        fqdn_list = await asyncio.gather(
-            *(get_fqdn_and_latency(server) for server in host_dns_servers),
-        )
+        fqdn_list = await asyncio.gather(*(get_fqdn_and_latency(server) for server in host_dns_servers))
         fqdn_list.sort(key=lambda x: x[0])
         return fqdn_list[0][1] if fqdn_list else None
 
     @logger_wraps()
     async def check_forward_dns_server(
-        self,
-        dns_server_ip: IPv4Address | IPv6Address,
-        host_dns_servers: list[str],
+        self, dns_server_ip: IPv4Address | IPv6Address, host_dns_servers: list[str]
     ) -> DNSForwardServerStatus:
         str_dns_server_ip = str(dns_server_ip)
 
         try:
-            fqdn = await self.find_forward_dns_fqdn(
-                dns_server_ip,
-                host_dns_servers,
-            )
+            fqdn = await self.find_forward_dns_fqdn(dns_server_ip, host_dns_servers)
         except (dns.asyncresolver.NoAnswer, dns.asyncresolver.NXDOMAIN):
-            return DNSForwardServerStatus(
-                str_dns_server_ip,
-                DNSForwarderServerStatus.NOT_VALIDATED,
-                None,
-            )
+            return DNSForwardServerStatus(str_dns_server_ip, DNSForwarderServerStatus.NOT_VALIDATED, None)
 
         if not fqdn:
-            return DNSForwardServerStatus(
-                str_dns_server_ip,
-                DNSForwarderServerStatus.NOT_FOUND,
-                None,
-            )
+            return DNSForwardServerStatus(str_dns_server_ip, DNSForwarderServerStatus.NOT_FOUND, None)
 
-        return DNSForwardServerStatus(
-            str_dns_server_ip,
-            DNSForwarderServerStatus.VALIDATED,
-            fqdn,
-        )
+        return DNSForwardServerStatus(str_dns_server_ip, DNSForwarderServerStatus.VALIDATED, fqdn)

@@ -14,20 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from entities import Directory, EntityType
 from enums import EntityTypeNames
 from ldap_protocol.ldap_schema.dto import AttributeTypeDTO
-from ldap_protocol.ldap_schema.exceptions import (
-    AttributeTypeAlreadyExistsError,
-    AttributeTypeNotFoundError,
-)
+from ldap_protocol.ldap_schema.exceptions import AttributeTypeAlreadyExistsError, AttributeTypeNotFoundError
 from repo.pg.tables import queryable_attr as qa
 
 
-def _convert_model_to_dto(
-    attr_type: AttributeTypeLegacy,
-) -> AttributeTypeDTO[int]:
+def _convert_model_to_dto(attr_type: AttributeTypeLegacy) -> AttributeTypeDTO[int]:
     """Convert AttributeTypeLegacy to AttributeTypeDTO."""
-    ldap_display_name = (
-        f"{attr_type.name[0].lower()}{attr_type.name.replace('-', '')[1:]}"
-    )
+    ldap_display_name = f"{attr_type.name[0].lower()}{attr_type.name.replace('-', '')[1:]}"
     return AttributeTypeDTO[int](
         oid=attr_type.oid,
         name=attr_type.name,
@@ -42,14 +35,7 @@ def _convert_model_to_dto(
 
 
 _convert_dto_to_model = get_converter(
-    AttributeTypeDTO,
-    AttributeTypeLegacy,
-    recipe=[
-        link_function(
-            lambda _: None,
-            P[AttributeTypeLegacy].id,
-        ),
-    ],
+    AttributeTypeDTO, AttributeTypeLegacy, recipe=[link_function(lambda _: None, P[AttributeTypeLegacy].id)]
 )
 
 
@@ -64,19 +50,11 @@ class AttributeTypeDAOLegacy:
 
     async def delete_all_dirs(self) -> None:
         attr_subq = (
-            select(qa(EntityType.id))
-            .where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE)
-            .scalar_subquery(),
+            select(qa(EntityType.id)).where(qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE).scalar_subquery(),
         )
-        await self.__session.execute(
-            delete(Directory)
-            .where(qa(Directory.entity_type_id).in_(attr_subq)),
-        )  # fmt: skip
+        await self.__session.execute(delete(Directory).where(qa(Directory.entity_type_id).in_(attr_subq)))
 
-    async def get_object_class_names_include_attribute_type(
-        self,
-        attribute_type_name: str,
-    ) -> set[str]:
+    async def get_object_class_names_include_attribute_type(self, attribute_type_name: str) -> set[str]:
         """Get all Object Class names include Attribute Type name."""
         result = await self.__session.execute(
             select(qa(ObjectClassLegacy.name))
@@ -102,58 +80,41 @@ class AttributeTypeDAOLegacy:
 
         except IntegrityError:
             raise AttributeTypeAlreadyExistsError(
-                f"Attribute Type with oid '{dto.oid}' and name"
-                + f" '{dto.name}' already exists.",
+                f"Attribute Type with oid '{dto.oid}' and name" + f" '{dto.name}' already exists."
             )
 
     async def zero_all_replicated_flags(self) -> None:
         """Set replication flag to False for all Attribute Types."""
-        await self.__session.execute(update(AttributeTypeLegacy).values({"system_flags": 0}))  # fmt: skip # noqa: E501
+        await self.__session.execute(update(AttributeTypeLegacy).values({"system_flags": 0}))
 
     async def set_false_replication_flag(self, names: tuple[str, ...]) -> None:
         """Set replication flag in systemFlags."""
         await self.__session.execute(
-            update(AttributeTypeLegacy)
-            .where(qa(AttributeTypeLegacy.name).in_(names))
-            .values({"system_flags": 0}),
+            update(AttributeTypeLegacy).where(qa(AttributeTypeLegacy.name).in_(names)).values({"system_flags": 0})
         )
 
     async def false_all_is_included_anr(self) -> None:
         """Set is_included_anr to False for all Attribute Types."""
-        await self.__session.execute(update(AttributeTypeLegacy).values({"is_included_anr": False}))  # fmt: skip # noqa: E501
+        await self.__session.execute(update(AttributeTypeLegacy).values({"is_included_anr": False}))
 
-    async def mark_anr_included_by_attr_names(
-        self,
-        names: tuple[str, ...],
-    ) -> list[str]:
+    async def mark_anr_included_by_attr_names(self, names: tuple[str, ...]) -> list[str]:
         """Update Attribute Types and return updated AttrType names."""
         result = await self.__session.scalars(
             update(AttributeTypeLegacy)
             .where(qa(AttributeTypeLegacy.name).in_(names))
             .values({"is_included_anr": True})
-            .returning(qa(AttributeTypeLegacy.name)),
+            .returning(qa(AttributeTypeLegacy.name))
         )
         return list(result.all())
 
     async def get(self, name: str) -> AttributeTypeDTO[int]:
-        attribute_type = await self.__session.scalar(
-            select(AttributeTypeLegacy)
-            .filter_by(name=name),
-        )  # fmt: skip
+        attribute_type = await self.__session.scalar(select(AttributeTypeLegacy).filter_by(name=name))
 
         if not attribute_type:
-            raise AttributeTypeNotFoundError(
-                f"Attribute Type with name '{name}' not found.",
-            )
+            raise AttributeTypeNotFoundError(f"Attribute Type with name '{name}' not found.")
         return _convert_model_to_dto(attribute_type)
 
-    async def get_all_raw_by_names(
-        self,
-        names: list[str],
-    ) -> list[AttributeTypeLegacy]:
+    async def get_all_raw_by_names(self, names: list[str]) -> list[AttributeTypeLegacy]:
         """Get list of Attribute Types by names."""
-        res = await self.__session.scalars(
-            select(AttributeTypeLegacy)
-            .where(qa(AttributeTypeLegacy.name).in_(names)),
-        )  # fmt: skip
+        res = await self.__session.scalars(select(AttributeTypeLegacy).where(qa(AttributeTypeLegacy.name).in_(names)))
         return list(res.all())

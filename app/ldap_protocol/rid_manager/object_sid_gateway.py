@@ -26,10 +26,7 @@ class ObjectSIDGateway:
     async def get(self, directory_id: int) -> str:
         """Get object SID."""
         query = await self._session.scalar(
-            select(Attribute).where(
-                qa(Attribute.directory_id) == directory_id,
-                qa(Attribute.name) == "objectSid",
-            ),
+            select(Attribute).where(qa(Attribute.directory_id) == directory_id, qa(Attribute.name) == "objectSid")
         )
         if not (query and query.value):
             raise RIDManagerObjectSIDNotFoundError("object SID not found")
@@ -38,13 +35,7 @@ class ObjectSIDGateway:
 
     async def add(self, directory_id: int, object_sid: str) -> None:
         """Add object SID."""
-        self._session.add(
-            Attribute(
-                name="objectSid",
-                value=object_sid,
-                directory_id=directory_id,
-            ),
-        )
+        self._session.add(Attribute(name="objectSid", value=object_sid, directory_id=directory_id))
 
     @domain_identifier_cache
     async def get_domain_identifier(self) -> str:
@@ -56,17 +47,12 @@ class ObjectSIDGateway:
             select(Attribute).where(
                 qa(Attribute.name) == "DomainIdentifier",
                 select(Directory)
-                .where(
-                    qa(Directory.id) == qa(Attribute.directory_id),
-                    qa(Directory.parent_id).is_(None),
-                )
+                .where(qa(Directory.id) == qa(Attribute.directory_id), qa(Directory.parent_id).is_(None))
                 .exists(),
-            ),
+            )
         )
 
         if not query or not query.value:
-            raise RIDManagerDomainIdentifierNotFoundError(
-                "domain identifier not found",
-            )
+            raise RIDManagerDomainIdentifierNotFoundError("domain identifier not found")
 
         return query.value

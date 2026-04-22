@@ -4,13 +4,7 @@ from .base import AbstractKadmin
 from .client import KerberosMDAPIClient
 from .exceptions import KRBAPIPrincipalNotFoundError
 from .stub import StubKadminMDADPIClient
-from .utils import (
-    KERBEROS_STATE_NAME,
-    KerberosState,
-    get_krb_server_state,
-    set_state,
-    unlock_principal,
-)
+from .utils import KERBEROS_STATE_NAME, KerberosState, get_krb_server_state, set_state, unlock_principal
 
 
 async def get_kerberos_class(session: AsyncSession) -> type[AbstractKadmin]:

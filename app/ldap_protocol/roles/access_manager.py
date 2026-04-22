@@ -19,11 +19,7 @@ class AccessManager:
     """Manager for access control entries."""
 
     @classmethod
-    def check_search_access(
-        cls,
-        directory: Directory,
-        user_dn: str,
-    ) -> tuple[bool, set, set]:
+    def check_search_access(cls, directory: Directory, user_dn: str) -> tuple[bool, set, set]:
         """Check if search access is allowed based on access control entries.
 
         :param directory: Directory object to check access for.
@@ -31,16 +27,11 @@ class AccessManager:
         :return: Tuple containing a boolean indicating if access is allowed,
             a set of forbidden attributes, and a set of allowed attributes.
         """
-        aces = cls._get_effective_aces(
-            directory=directory,
-            user_dn=user_dn,
-        )
+        aces = cls._get_effective_aces(directory=directory, user_dn=user_dn)
         return cls._check_search_access(aces=aces)
 
     @staticmethod
-    def _check_search_access(
-        aces: list[AccessControlEntry],
-    ) -> tuple[bool, set, set]:
+    def _check_search_access(aces: list[AccessControlEntry]) -> tuple[bool, set, set]:
         """Check if search access is allowed based on access control entries.
 
         :param aces: List of access control entries.
@@ -79,9 +70,7 @@ class AccessManager:
 
     @staticmethod
     def check_search_filter_attrs(
-        filter_attrs: set[str],
-        forbidden_attributes: set[str],
-        allowed_attributes: set[str],
+        filter_attrs: set[str], forbidden_attributes: set[str], allowed_attributes: set[str]
     ) -> bool:
         """Check if filter attributes are allowed based on access control.
 
@@ -93,22 +82,14 @@ class AccessManager:
         if not filter_attrs or filter_attrs == {"objectclass"}:
             return True
 
-        if forbidden_attributes and not filter_attrs.isdisjoint(
-            forbidden_attributes,
-        ):
+        if forbidden_attributes and not filter_attrs.isdisjoint(forbidden_attributes):
             return False
 
-        return not (
-            allowed_attributes
-            and not filter_attrs.issubset(allowed_attributes)
-        )
+        return not (allowed_attributes and not filter_attrs.issubset(allowed_attributes))
 
     @classmethod
     def check_modify_access(
-        cls,
-        changes: list[Changes],
-        aces: list[AccessControlEntry],
-        entity_type_id: int | None,
+        cls, changes: list[Changes], aces: list[AccessControlEntry], entity_type_id: int | None
     ) -> bool:
         """Check if modify access is allowed based on access control entries.
 
@@ -117,41 +98,22 @@ class AccessManager:
         :param entity_type_id: ID of the entity type.
         :return: True if the modify is allowed, False otherwise.
         """
-        filtered_aces = cls._filter_aces_by_entity_type(
-            aces=aces,
-            entity_type_id=entity_type_id,
-        )
+        filtered_aces = cls._filter_aces_by_entity_type(aces=aces, entity_type_id=entity_type_id)
 
         if not filtered_aces:
             return False
 
         for change in changes:
             if change.operation == Operation.DELETE:
-                if not cls._check_modify_access(
-                    change.l_type,
-                    filtered_aces,
-                    AceType.DELETE,
-                ):
+                if not cls._check_modify_access(change.l_type, filtered_aces, AceType.DELETE):
                     return False
             elif change.operation == Operation.ADD:
-                if not cls._check_modify_access(
-                    change.l_type,
-                    filtered_aces,
-                    AceType.WRITE,
-                ):
+                if not cls._check_modify_access(change.l_type, filtered_aces, AceType.WRITE):
                     return False
             else:
                 if not (
-                    cls._check_modify_access(
-                        change.l_type,
-                        filtered_aces,
-                        AceType.WRITE,
-                    )
-                    and cls._check_modify_access(
-                        change.l_type,
-                        filtered_aces,
-                        AceType.DELETE,
-                    )
+                    cls._check_modify_access(change.l_type, filtered_aces, AceType.WRITE)
+                    and cls._check_modify_access(change.l_type, filtered_aces, AceType.DELETE)
                 ):
                     return False
 
@@ -159,9 +121,7 @@ class AccessManager:
 
     @staticmethod
     def _check_modify_access(
-        attr_name: str,
-        aces: list[AccessControlEntry],
-        ace_type: Literal[AceType.WRITE, AceType.DELETE],
+        attr_name: str, aces: list[AccessControlEntry], ace_type: Literal[AceType.WRITE, AceType.DELETE]
     ) -> bool:
         """Check if modify access is allowed for a specific attribute.
 
@@ -174,29 +134,20 @@ class AccessManager:
             if (
                 ace.ace_type == ace_type
                 and not ace.is_allow
-                and (
-                    ace.attribute_type_name is None
-                    or attr_name == ace.attribute_type_name.lower()
-                )
+                and (ace.attribute_type_name is None or attr_name == ace.attribute_type_name.lower())
             ):
                 return False
             elif (
                 ace.ace_type == ace_type
                 and ace.is_allow
-                and (
-                    ace.attribute_type_name is None
-                    or attr_name == ace.attribute_type_name.lower()
-                )
+                and (ace.attribute_type_name is None or attr_name == ace.attribute_type_name.lower())
             ):
                 return True
 
         return False
 
     @staticmethod
-    def check_entity_level_access(
-        aces: list[AccessControlEntry],
-        entity_type_id: int | None,
-    ) -> bool:
+    def check_entity_level_access(aces: list[AccessControlEntry], entity_type_id: int | None) -> bool:
         """Check if access is allowed at the entity level (ADD and DELETE).
 
         :param aces: List of access control entries.
@@ -204,20 +155,13 @@ class AccessManager:
         :return: True if access is allowed, False otherwise.
         """
         for ace in aces:
-            if (
-                ace.entity_type_id is None
-                or ace.entity_type_id == entity_type_id
-            ):
+            if ace.entity_type_id is None or ace.entity_type_id == entity_type_id:
                 return bool(ace.is_allow)
 
         return False
 
     @classmethod
-    def _get_effective_aces(
-        cls,
-        directory: Directory,
-        user_dn: str,
-    ) -> list[AccessControlEntry]:
+    def _get_effective_aces(cls, directory: Directory, user_dn: str) -> list[AccessControlEntry]:
         """Get effective access control entries for a directory.
 
         :param directory: Directory object.
@@ -225,22 +169,17 @@ class AccessManager:
         :return: List of effective access control entries.
         """
         filtered_aces = cls._filter_aces_by_entity_type(
-            aces=directory.access_control_entries,
-            entity_type_id=directory.entity_type_id,
+            aces=directory.access_control_entries, entity_type_id=directory.entity_type_id
         )
 
         if directory.user and directory.path_dn == user_dn:
-            return cls._extend_user_self_read_ace(
-                directory=directory,
-                aces=filtered_aces,
-            )
+            return cls._extend_user_self_read_ace(directory=directory, aces=filtered_aces)
 
         return filtered_aces
 
     @staticmethod
     def _filter_aces_by_entity_type(
-        aces: list[AccessControlEntry],
-        entity_type_id: int | None,
+        aces: list[AccessControlEntry], entity_type_id: int | None
     ) -> list[AccessControlEntry]:
         """Filter access control entries by entity type ID.
 
@@ -248,18 +187,10 @@ class AccessManager:
         :param entity_type_id: ID of the entity type to filter by.
         :return: Filtered list of access control entries.
         """
-        return [
-            ace
-            for ace in aces
-            if ace.entity_type_id is None
-            or ace.entity_type_id == entity_type_id
-        ]
+        return [ace for ace in aces if ace.entity_type_id is None or ace.entity_type_id == entity_type_id]
 
     @staticmethod
-    def _extend_user_self_read_ace(
-        directory: Directory,
-        aces: list[AccessControlEntry],
-    ) -> list[AccessControlEntry]:
+    def _extend_user_self_read_ace(directory: Directory, aces: list[AccessControlEntry]) -> list[AccessControlEntry]:
         """Extend user self-read ACEs to include all attributes.
 
         :param directory: Directory object.
@@ -306,36 +237,18 @@ class AccessManager:
             null attribute_type_id
         :return: mutated query with access control entries loaded
         """
-        base_loader = selectinload(
-            qa(Directory.access_control_entries),
-        )
+        base_loader = selectinload(qa(Directory.access_control_entries))
 
-        loader_options = [
-            base_loader.joinedload(qa(AccessControlEntry.entity_type)),
-        ]
+        loader_options = [base_loader.joinedload(qa(AccessControlEntry.entity_type))]
 
-        criteria_conditions = [
-            qa(AccessControlEntry.role_id).in_(user_role_ids),
-        ]
+        criteria_conditions = [qa(AccessControlEntry.role_id).in_(user_role_ids)]
 
         if len(ace_types) == 1:
-            criteria_conditions.append(
-                qa(AccessControlEntry.ace_type) == ace_types[0],  # type: ignore
-            )
+            criteria_conditions.append(qa(AccessControlEntry.ace_type) == ace_types[0])  # type: ignore
         else:
-            criteria_conditions.append(
-                qa(AccessControlEntry.ace_type).in_(ace_types),
-            )
+            criteria_conditions.append(qa(AccessControlEntry.ace_type).in_(ace_types))
 
         if require_attribute_type_null:
-            criteria_conditions.append(
-                qa(AccessControlEntry.attribute_type_name).is_(None),
-            )
+            criteria_conditions.append(qa(AccessControlEntry.attribute_type_name).is_(None))
 
-        return query.options(
-            *loader_options,
-            with_loader_criteria(
-                AccessControlEntry,
-                and_(*criteria_conditions),
-            ),
-        )
+        return query.options(*loader_options, with_loader_criteria(AccessControlEntry, and_(*criteria_conditions)))

@@ -25,7 +25,7 @@ depends_on: None | str = None
 
 @temporary_stub_column("Directory", "entity_type_id", sa.Integer())
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -37,24 +37,12 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         username, domain = user.user_principal_name.split("@")
         principal = f"{username}@{domain.upper()}"
 
-        attr_principal = session.scalar(
-            sa.select(Attribute)
-            .filter_by(name="krbprincipalname", value=principal),
-        )  # fmt: skip
+        attr_principal = session.scalar(sa.select(Attribute).filter_by(name="krbprincipalname", value=principal))
         if attr_principal:
-            session.add(
-                Attribute(
-                    name="krbticketflags",
-                    value="128",
-                    directory_id=attr_principal.directory_id,
-                ),
-            )
+            session.add(Attribute(name="krbticketflags", value="128", directory_id=attr_principal.directory_id))
 
     # NOTE: Remove duplicate Kerberos state settings and keep the latest one
-    settings = session.scalar(
-        sa.select(CatalogueSetting)
-        .filter_by(name=KERBEROS_STATE_NAME),
-    )  # fmt: skip
+    settings = session.scalar(sa.select(CatalogueSetting).filter_by(name=KERBEROS_STATE_NAME))
 
     if settings:
         session.execute(
@@ -70,20 +58,10 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
     # NOTE: Set unique constraint on Settings.name
     op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
 
-    op.create_index(
-        op.f("ix_Settings_name"),
-        "Settings",
-        ["name"],
-        unique=True,
-    )
+    op.create_index(op.f("ix_Settings_name"), "Settings", ["name"], unique=True)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.drop_index(op.f("ix_Settings_name"), table_name="Settings")
-    op.create_index(
-        op.f("ix_Settings_name"),
-        "Settings",
-        ["name"],
-        unique=False,
-    )
+    op.create_index(op.f("ix_Settings_name"), "Settings", ["name"], unique=False)

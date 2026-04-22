@@ -16,81 +16,45 @@ from .test_object_class_router_datasets import (
 
 
 @pytest.mark.asyncio
-async def test_get_extended_object_classes(
-    http_client: AsyncClient,
-) -> None:
+async def test_get_extended_object_classes(http_client: AsyncClient) -> None:
     """Test getting a single extended object class."""
-    response = await http_client.get(
-        "/schema/object_class/person",
-    )
+    response = await http_client.get("/schema/object_class/person")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert isinstance(data, dict)
-    assert set(data.get("entity_type_names")) == {  # type: ignore
-        EntityTypeNames.CONTACT,
-        EntityTypeNames.USER,
-    }
+    assert set(data.get("entity_type_names")) == {EntityTypeNames.CONTACT, EntityTypeNames.USER}  # type: ignore
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_create_one_object_class_dataset,
-)
+@pytest.mark.parametrize("dataset", test_create_one_object_class_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_create_one_object_class(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_create_one_object_class(dataset: dict, http_client: AsyncClient) -> None:
     """Test creating a single object class."""
     for attribute_type_data in dataset["attribute_types"]:
-        response = await http_client.post(
-            "/schema/attribute_type",
-            json=attribute_type_data,
-        )
+        response = await http_client.post("/schema/attribute_type", json=attribute_type_data)
         assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.post(
-        "/schema/object_class",
-        json=dataset["object_class"],
-    )
+    response = await http_client.post("/schema/object_class", json=dataset["object_class"])
     assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.get(
-        f"/schema/object_class/{dataset['object_class']['name']}",
-    )
+    response = await http_client.get(f"/schema/object_class/{dataset['object_class']['name']}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_create_one_object_class_dataset,
-)
+@pytest.mark.parametrize("dataset", test_create_one_object_class_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_create_object_class_type_conflict_when_already_exists(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_create_object_class_type_conflict_when_already_exists(dataset: dict, http_client: AsyncClient) -> None:
     """Test that creating a duplicate object class type returns a 409."""
     for attribute_type_data in dataset["attribute_types"]:
-        response = await http_client.post(
-            "/schema/attribute_type",
-            json=attribute_type_data,
-        )
+        response = await http_client.post("/schema/attribute_type", json=attribute_type_data)
         assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.post(
-        "/schema/object_class",
-        json=dataset["object_class"],
-    )
+    response = await http_client.post("/schema/object_class", json=dataset["object_class"])
     assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.post(
-        "/schema/object_class",
-        json=dataset["object_class"],
-    )
+    response = await http_client.post("/schema/object_class", json=dataset["object_class"])
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -101,16 +65,13 @@ async def test_modify_system_object_class(http_client: AsyncClient) -> None:
     """Test modify system object_class."""
     page_number = 1
     page_size = 10
-    response = await http_client.get(
-        f"/schema/object_classes?page_number={page_number}&page_size={page_size}",
-    )
+    response = await http_client.get(f"/schema/object_classes?page_number={page_number}&page_size={page_size}")
     for object_class in response.json()["items"]:
         if object_class["is_system"] is True:
             object_class_name = object_class["name"]
             request_data = ObjectClassUpdateSchema.model_validate(object_class)
             response = await http_client.patch(
-                f"/schema/object_class/{object_class_name}",
-                json=request_data.model_dump(),
+                f"/schema/object_class/{object_class_name}", json=request_data.model_dump()
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             break
@@ -119,143 +80,90 @@ async def test_modify_system_object_class(http_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_list_object_classes_with_pagination(
-    http_client: AsyncClient,
-) -> None:
+async def test_get_list_object_classes_with_pagination(http_client: AsyncClient) -> None:
     """Test retrieving a list of object classes."""
     page_number = 1
     page_size = 7
-    response = await http_client.get(
-        f"/schema/object_classes?page_number={page_number}&page_size={page_size}",
-    )
+    response = await http_client.get(f"/schema/object_classes?page_number={page_number}&page_size={page_size}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     assert len(response.json().get("items")) == page_size
 
 
 @pytest.mark.asyncio
-async def test_object_class_pagination_search_is_case_insensitive(
-    http_client: AsyncClient,
-) -> None:
+async def test_object_class_pagination_search_is_case_insensitive(http_client: AsyncClient) -> None:
     """Test case-insensitive search for object class pagination."""
     response = await http_client.get(
-        "/schema/object_classes",
-        params={"page_number": 1, "page_size": 50, "query": "InEtOrGpErSoN"},
+        "/schema/object_classes", params={"page_number": 1, "page_size": 50, "query": "InEtOrGpErSoN"}
     )
     assert response.status_code == status.HTTP_200_OK
     items = response.json().get("items", [])
     assert any(item.get("name") == "inetOrgPerson" for item in items)
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_modify_one_object_class_dataset,
-)
+@pytest.mark.parametrize("dataset", test_modify_one_object_class_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_modify_one_object_class(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_modify_one_object_class(dataset: dict, http_client: AsyncClient) -> None:
     """Test modifying a single object class."""
     for attribute_type_data in dataset["attribute_types"]:
-        response = await http_client.post(
-            "/schema/attribute_type",
-            json=attribute_type_data,
-        )
+        response = await http_client.post("/schema/attribute_type", json=attribute_type_data)
         assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.post(
-        "/schema/object_class",
-        json=dataset["object_class_data"],
-    )
+    response = await http_client.post("/schema/object_class", json=dataset["object_class_data"])
     assert response.status_code == status.HTTP_201_CREATED
 
     new_statement = dataset["new_statement"]
     response = await http_client.patch(
-        f"/schema/object_class/{dataset['object_class_data']['name']}",
-        json=new_statement,
+        f"/schema/object_class/{dataset['object_class_data']['name']}", json=new_statement
     )
     assert response.status_code == status.HTTP_200_OK
 
-    response = await http_client.get(
-        f"/schema/object_class/{dataset['object_class_data']['name']}",
-    )
+    response = await http_client.get(f"/schema/object_class/{dataset['object_class_data']['name']}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     object_class = response.json()
 
-    assert set(object_class.get("attribute_type_names_must")) == set(
-        new_statement.get("attribute_type_names_must"),
-    )
-    assert set(object_class.get("attribute_type_names_may")) == set(
-        new_statement.get("attribute_type_names_may"),
-    )
+    assert set(object_class.get("attribute_type_names_must")) == set(new_statement.get("attribute_type_names_must"))
+    assert set(object_class.get("attribute_type_names_may")) == set(new_statement.get("attribute_type_names_may"))
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_delete_bulk_object_classes_dataset,
-)
+@pytest.mark.parametrize("dataset", test_delete_bulk_object_classes_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_delete_bulk_object_classes(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_delete_bulk_object_classes(dataset: dict, http_client: AsyncClient) -> None:
     """Test deleting multiple object classes."""
     for object_class_data in dataset["object_class_datas"]:
-        response = await http_client.post(
-            "/schema/object_class",
-            json=object_class_data,
-        )
+        response = await http_client.post("/schema/object_class", json=object_class_data)
         assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/schema/object_class/delete",
-        json={"object_classes_names": dataset["object_classes_deleted"]},
+        "/schema/object_class/delete", json={"object_classes_names": dataset["object_classes_deleted"]}
     )
     assert response.status_code == dataset["status_code"]
 
     if dataset["status_code"] == status.HTTP_200_OK:
         for object_class_name in dataset["object_classes_deleted"]:
-            response = await http_client.get(
-                f"/schema/object_class/{object_class_name}",
-            )
+            response = await http_client.get(f"/schema/object_class/{object_class_name}")
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_delete_bulk_used_object_classes_dataset,
-)
+@pytest.mark.parametrize("dataset", test_delete_bulk_used_object_classes_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_delete_bulk_used_object_classes(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_delete_bulk_used_object_classes(dataset: dict, http_client: AsyncClient) -> None:
     """Test of removing object classes during use."""
-    response = await http_client.post(
-        "/schema/object_class",
-        json=dataset["object_class_data"],
-    )
+    response = await http_client.post("/schema/object_class", json=dataset["object_class_data"])
+    assert response.status_code == status.HTTP_201_CREATED
+
+    response = await http_client.post("/schema/entity_type", json=dataset["entity_type_data"])
     assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/schema/entity_type",
-        json=dataset["entity_type_data"],
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-
-    response = await http_client.post(
-        "/schema/object_class/delete",
-        json={"object_classes_names": [dataset["object_class_deleted"]]},
+        "/schema/object_class/delete", json={"object_classes_names": [dataset["object_class_deleted"]]}
     )
     assert response.status_code == status.HTTP_200_OK
 
-    response = await http_client.get(
-        f"/schema/object_class/{dataset['object_class_deleted']}",
-    )
+    response = await http_client.get(f"/schema/object_class/{dataset['object_class_deleted']}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json().get("name") == dataset["object_class_deleted"]

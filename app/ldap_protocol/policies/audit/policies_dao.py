@@ -29,12 +29,7 @@ class AuditPoliciesDAO(AbstractDAO[AuditPolicyDTO, int]):
     async def get_all(self) -> list[AuditPolicyDTO]:
         """Get all audit policies."""
         return [
-            AuditPolicyDTO(
-                id=policy.id,
-                name=policy.name,
-                is_enabled=policy.is_enabled,
-                severity=policy.severity,
-            )
+            AuditPolicyDTO(id=policy.id, name=policy.name, is_enabled=policy.is_enabled, severity=policy.severity)
             for policy in await self._session.scalars(select(AuditPolicy))
         ]
 
@@ -97,10 +92,7 @@ class AuditPoliciesDAO(AbstractDAO[AuditPolicyDTO, int]):
         await self._session.delete(policy)
         await self._session.flush()
 
-    async def create(
-        self,
-        dto: AuditPolicySetupDTO,  # type: ignore
-    ) -> None:
+    async def create(self, dto: AuditPolicySetupDTO) -> None:  # type: ignore
         """Create a new audit policy."""
         policy = AuditPolicy(**dto.as_dict())
         self._session.add(policy)

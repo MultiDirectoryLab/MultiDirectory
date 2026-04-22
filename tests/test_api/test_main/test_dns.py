@@ -11,10 +11,7 @@ from ldap_protocol.dns.enums import DNSRecordType, PowerDNSZoneType
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_dns_create_record(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_create_record(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager create record test."""
     zone_name = "hello.zone"
     hostname = "hello"
@@ -23,30 +20,13 @@ async def test_dns_create_record(
     ttl = 3600
     response = await http_client.post(
         f"/dns/record/{zone_name}",
-        json={
-            "record_name": hostname,
-            "record_value": ip,
-            "record_type": record_type,
-            "ttl": ttl,
-        },
+        json={"record_name": hostname, "record_value": ip, "record_type": record_type, "ttl": ttl},
     )
 
     dns_manager.create_record.assert_called()  # type: ignore
-    assert (
-        dns_manager.create_record.call_args.args  # type: ignore
-    ) == (
+    assert (dns_manager.create_record.call_args.args) == (  # type: ignore
         zone_name,
-        DNSRRSetDTO(
-            name=hostname,
-            type=record_type,
-            records=[
-                DNSRecordDTO(
-                    content=ip,
-                    disabled=False,
-                ),
-            ],
-            ttl=ttl,
-        ),
+        DNSRRSetDTO(name=hostname, type=record_type, records=[DNSRecordDTO(content=ip, disabled=False)], ttl=ttl),
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -54,10 +34,7 @@ async def test_dns_create_record(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_dns_delete_record(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_delete_record(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager delete record test."""
     zone_name = "hello.zone"
     hostname = "hello"
@@ -66,28 +43,13 @@ async def test_dns_delete_record(
     response = await http_client.request(
         "DELETE",
         f"/dns/record/{zone_name}",
-        json={
-            "record_name": hostname,
-            "record_value": ip,
-            "record_type": record_type,
-        },
+        json={"record_name": hostname, "record_value": ip, "record_type": record_type},
     )
 
     dns_manager.delete_record.assert_called()  # type: ignore
-    assert (
-        dns_manager.delete_record.call_args.args  # type: ignore
-    ) == (
+    assert (dns_manager.delete_record.call_args.args) == (  # type: ignore
         zone_name,
-        DNSRRSetDTO(
-            name=hostname,
-            type=record_type,
-            records=[
-                DNSRecordDTO(
-                    content=ip,
-                    disabled=False,
-                ),
-            ],
-        ),
+        DNSRRSetDTO(name=hostname, type=record_type, records=[DNSRecordDTO(content=ip, disabled=False)]),
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -95,10 +57,7 @@ async def test_dns_delete_record(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_dns_update_record(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_update_record(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager update record test."""
     zone_name = "hello.zone"
     hostname = "hello"
@@ -108,30 +67,13 @@ async def test_dns_update_record(
     response = await http_client.request(
         "PATCH",
         f"/dns/record/{zone_name}",
-        json={
-            "record_name": hostname,
-            "record_value": ip,
-            "record_type": record_type,
-            "ttl": ttl,
-        },
+        json={"record_name": hostname, "record_value": ip, "record_type": record_type, "ttl": ttl},
     )
 
     dns_manager.update_record.assert_called()  # type: ignore
-    assert (
-        dns_manager.update_record.call_args.args  # type: ignore
-    ) == (
+    assert (dns_manager.update_record.call_args.args) == (  # type: ignore
         zone_name,
-        DNSRRSetDTO(
-            name=hostname,
-            type=record_type,
-            records=[
-                DNSRecordDTO(
-                    content=ip,
-                    disabled=False,
-                ),
-            ],
-            ttl=ttl,
-        ),
+        DNSRRSetDTO(name=hostname, type=record_type, records=[DNSRecordDTO(content=ip, disabled=False)], ttl=ttl),
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -152,32 +94,21 @@ async def test_dns_get_all_records(http_client: AsyncClient) -> None:
             "name": "example.com",
             "type": "A",
             "changetype": None,
-            "records": [
-                {
-                    "content": "127.0.0.1",
-                    "disabled": False,
-                    "modified_at": None,
-                },
-            ],
+            "records": [{"content": "127.0.0.1", "disabled": False, "modified_at": None}],
             "ttl": 3600,
-        },
+        }
     ]
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_dns_setup_selfhosted(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_setup_selfhosted(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager setup test."""
     response = await http_client.post("/dns/state", json={"state": "1"})
 
     assert response.status_code == status.HTTP_200_OK
 
-    response = await http_client.post(
-        "/dns/setup",
-    )
+    response = await http_client.post("/dns/setup")
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -192,37 +123,23 @@ async def test_dns_get_status(http_client: AsyncClient) -> None:
     response = await http_client.get("/dns/status")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {
-        "dns_status": "2",
-        "zone_name": "example.com",
-        "dns_server_ip": "127.0.0.1",
-    }
+    assert response.json() == {"dns_status": "2", "zone_name": "example.com", "dns_server_ip": "127.0.0.1"}
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("add_dns_settings")
 @pytest.mark.usefixtures("session")
-async def test_dns_create_zone(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_create_zone(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager create zone test."""
     zone_name = "hello"
     nameserver = "192.168.1.1"
     response = await http_client.post(
-        "/dns/zone",
-        json={
-            "zone_name": zone_name,
-            "nameserver_ip": nameserver,
-            "dnssec": False,
-        },
+        "/dns/zone", json={"zone_name": zone_name, "nameserver_ip": nameserver, "dnssec": False}
     )
 
     assert response.status_code == status.HTTP_200_OK
     dns_manager.create_master_zone.assert_called()  # type: ignore
-    assert (
-        dns_manager.create_master_zone.call_args.args  # type: ignore
-    ) == (
+    assert (dns_manager.create_master_zone.call_args.args) == (  # type: ignore
         DNSMasterZoneDTO(
             id=zone_name,
             rrsets=[],
@@ -238,27 +155,17 @@ async def test_dns_create_zone(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("add_dns_settings")
 @pytest.mark.usefixtures("session")
-async def test_dns_update_zone(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_update_zone(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager update zone test."""
     zone_name = "hello"
     nameserver = "192.168.1.1"
     response = await http_client.patch(
-        "/dns/zone",
-        json={
-            "zone_name": zone_name,
-            "nameserver_ip": nameserver,
-            "dnssec": False,
-        },
+        "/dns/zone", json={"zone_name": zone_name, "nameserver_ip": nameserver, "dnssec": False}
     )
 
     assert response.status_code == status.HTTP_200_OK
     dns_manager.update_master_zone.assert_called()  # type: ignore
-    assert (
-        dns_manager.update_master_zone.call_args.args  # type: ignore
-    ) == (
+    assert (dns_manager.update_master_zone.call_args.args) == (  # type: ignore
         DNSMasterZoneDTO(
             id=zone_name,
             rrsets=[],
@@ -274,33 +181,21 @@ async def test_dns_update_zone(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("add_dns_settings")
 @pytest.mark.usefixtures("session")
-async def test_dns_delete_zone(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_delete_zone(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager delete zone test."""
     zone_ids = ["hello"]
 
-    response = await http_client.request(
-        "DELETE",
-        "/dns/zone",
-        json={"zone_ids": zone_ids},
-    )
+    response = await http_client.request("DELETE", "/dns/zone", json={"zone_ids": zone_ids})
 
     assert response.status_code == status.HTTP_200_OK
     dns_manager.delete_master_zone.assert_called()  # type: ignore
-    assert (
-        dns_manager.delete_master_zone.call_args.args  # type: ignore
-    ) == (zone_ids[0],)
+    assert (dns_manager.delete_master_zone.call_args.args) == (zone_ids[0],)  # type: ignore
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("add_dns_settings")
 @pytest.mark.usefixtures("session")
-async def test_dns_get_all_zones_with_records(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_get_all_zones_with_records(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager get DNS server settings test."""
     response = await http_client.get("/dns/zone")
 
@@ -317,31 +212,22 @@ async def test_dns_get_all_zones_with_records(
                     "name": "example.com",
                     "type": "A",
                     "changetype": None,
-                    "records": [
-                        {
-                            "content": "127.0.0.1",
-                            "disabled": False,
-                            "modified_at": None,
-                        },
-                    ],
+                    "records": [{"content": "127.0.0.1", "disabled": False, "modified_at": None}],
                     "ttl": 3600,
-                },
+                }
             ],
             "dnssec": False,
             "nameservers": ["ns1.example.com."],
             "kind": "Master",
             "type": "zone",
-        },
+        }
     ]
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("add_dns_settings")
 @pytest.mark.usefixtures("session")
-async def test_dns_get_all_forward_zones(
-    http_client: AsyncClient,
-    dns_manager: AbstractDNSManager,
-) -> None:
+async def test_dns_get_all_forward_zones(http_client: AsyncClient, dns_manager: AbstractDNSManager) -> None:
     """DNS Manager get DNS server settings test."""
     response = await http_client.get("/dns/zone/forward")
 
@@ -358,5 +244,5 @@ async def test_dns_get_all_forward_zones(
             "type": "zone",
             "servers": ["127.0.0.1"],
             "recursion_desired": False,
-        },
+        }
     ]

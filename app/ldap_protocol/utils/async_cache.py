@@ -20,10 +20,7 @@ class AsyncTTLCache(Generic[T]):
         self._value = None
         self._expires_at = None
 
-    def __call__(
-        self,
-        func: Callable[..., Awaitable[T]],
-    ) -> Callable[..., Awaitable[T]]:
+    def __call__(self, func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         @wraps(func)
         async def wrapper(*args: tuple, **kwargs: dict) -> T:
             if self._value is not None:
@@ -34,9 +31,7 @@ class AsyncTTLCache(Generic[T]):
             result = await func(*args, **kwargs)
 
             self._value = result
-            self._expires_at = (
-                time.monotonic() + self._ttl if self._ttl else None
-            )
+            self._expires_at = time.monotonic() + self._ttl if self._ttl else None
 
             return result
 
@@ -46,6 +41,4 @@ class AsyncTTLCache(Generic[T]):
 base_directories_cache = AsyncTTLCache[list[Directory]]()
 domain_identifier_cache = AsyncTTLCache[str]()
 rid_set_id_cache = AsyncTTLCache[int]()
-objectsid_allowed_object_classes_cache = AsyncTTLCache[set[str]](
-    ttl=60 * 60 * 24,
-)
+objectsid_allowed_object_classes_cache = AsyncTTLCache[set[str]](ttl=60 * 60 * 24)

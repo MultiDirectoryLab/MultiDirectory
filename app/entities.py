@@ -42,11 +42,7 @@ class EntityType:
     name: str = ""
     object_class_names: list[str] = field(default_factory=list)
     is_system: bool = False
-    directories: list[Directory] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-    )
+    directories: list[Directory] = field(init=False, default_factory=list, repr=False)
 
     @property
     def object_class_names_set(self) -> set[str]:
@@ -106,40 +102,22 @@ class Directory:
     entity_type_id: int | None = None
     object_class: str = ""
     rdname: str = ""
-    created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc),
-    )
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime | None = field(default=None)
     depth: int = field(default=0)
     path: list[str] = field(default_factory=list)
 
     parent: Directory | None = field(default=None, repr=False, compare=False)
-    entity_type: EntityType | None = field(
-        init=False,
-        default=None,
-        repr=False,
-        compare=False,
-    )
-    attributes: list[Attribute] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
+    entity_type: EntityType | None = field(init=False, default=None, repr=False, compare=False)
+    attributes: list[Attribute] = field(init=False, default_factory=list, repr=False, compare=False)
     group: Group = field(init=False, repr=False, compare=False)
     user: User | None = field(init=False, repr=False, compare=False)
     groups: list[Group] = field(init=False, repr=False, compare=False)
     access_control_entries: list[AccessControlEntry] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
+        init=False, default_factory=list, repr=False, compare=False
     )
 
-    search_fields: ClassVar[dict[str, str]] = {
-        "name": "name",
-        "objectguid": "objectGUID",
-    }
+    search_fields: ClassVar[dict[str, str]] = {"name": "name", "objectguid": "objectGUID"}
     ro_fields: ClassVar[set[str]] = {
         "uid",
         "whencreated",
@@ -152,14 +130,7 @@ class Directory:
     }
 
     def get_dn_prefix(self) -> DistinguishedNamePrefix:
-        return {
-            "organizationalUnit": "ou",
-            "domain": "dc",
-            "container": "cn",
-        }.get(
-            self.object_class,
-            "cn",
-        )  # type: ignore
+        return {"organizationalUnit": "ou", "domain": "dc", "container": "cn"}.get(self.object_class, "cn")  # type: ignore
 
     def get_dn(self, dn: str = "cn") -> str:
         return f"{dn}={self.name}"
@@ -172,11 +143,7 @@ class Directory:
     def path_dn(self) -> str:
         return ",".join(reversed(self.path))
 
-    def create_path(
-        self,
-        parent: Directory | None = None,
-        dn: str = "cn",
-    ) -> None:
+    def create_path(self, parent: Directory | None = None, dn: str = "cn") -> None:
         pre = parent.path if parent else []
         self.path = pre + [self.get_dn(dn)]
         self.depth = len(self.path)
@@ -204,18 +171,11 @@ class Directory:
 
     @property
     def object_class_names_set(self) -> set[str]:
-        return set(
-            self.attributes_dict.get("objectClass", [])
-            + self.attributes_dict.get("objectclass", []),
-        )
+        return set(self.attributes_dict.get("objectClass", []) + self.attributes_dict.get("objectclass", []))
 
     @property
     def entity_type_object_class_names_set(self) -> set[str]:
-        return (
-            self.entity_type.object_class_names_set
-            if self.entity_type
-            else set()
-        )
+        return self.entity_type.object_class_names_set if self.entity_type else set()
 
 
 @dataclass
@@ -294,53 +254,14 @@ class Group:
 
     id: int = field(init=False)
     directory_id: int = field()
-    directory: Directory = field(
-        init=False,
-        repr=False,
-        compare=False,
-    )
-    members: list[Directory] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
-    parent_groups: list[Group] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
-    policies: list[NetworkPolicy] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
-    mfa_policies: list[NetworkPolicy] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
-    users: list[User] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
-    roles: list[Role] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
-    password_policies: list[PasswordPolicy] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-        compare=False,
-    )
+    directory: Directory = field(init=False, repr=False, compare=False)
+    members: list[Directory] = field(init=False, default_factory=list, repr=False, compare=False)
+    parent_groups: list[Group] = field(init=False, default_factory=list, repr=False, compare=False)
+    policies: list[NetworkPolicy] = field(init=False, default_factory=list, repr=False, compare=False)
+    mfa_policies: list[NetworkPolicy] = field(init=False, default_factory=list, repr=False, compare=False)
+    users: list[User] = field(init=False, default_factory=list, repr=False, compare=False)
+    roles: list[Role] = field(init=False, default_factory=list, repr=False, compare=False)
+    password_policies: list[PasswordPolicy] = field(init=False, default_factory=list, repr=False, compare=False)
     search_fields: ClassVar[dict[str, str]] = {}
 
 
@@ -354,10 +275,7 @@ class Role:
     is_system: bool = False
     created_at: datetime = field(init=False, repr=False)
     groups: list[Group] = field(default_factory=list, repr=False)
-    access_control_entries: list[AccessControlEntry] = field(
-        default_factory=list,
-        repr=False,
-    )
+    access_control_entries: list[AccessControlEntry] = field(default_factory=list, repr=False)
     permissions: AuthorizationRules = AuthorizationRules(0)
 
 
@@ -376,15 +294,8 @@ class AccessControlEntry:
     is_allow: bool = False
 
     role: Role | None = field(init=False, default=None, repr=False)
-    entity_type: EntityType | None = field(
-        init=False,
-        default=None,
-        repr=False,
-    )
-    directories: list[Directory] = field(
-        default_factory=list,
-        repr=False,
-    )
+    entity_type: EntityType | None = field(init=False, default=None, repr=False)
+    directories: list[Directory] = field(default_factory=list, repr=False)
 
     @property
     def entity_type_name(self) -> str | None:
@@ -410,11 +321,7 @@ class NetworkPolicy:
     ldap_session_ttl: int = 7200
     http_session_ttl: int = 28800
     groups: list[Group] = field(init=False, default_factory=list, repr=False)
-    mfa_groups: list[Group] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-    )
+    mfa_groups: list[Group] = field(init=False, default_factory=list, repr=False)
 
 
 @dataclass
@@ -440,11 +347,7 @@ class AuditPolicy:
     severity: AuditSeverity
     name: str = ""
     is_enabled: bool = False
-    triggers: list[AuditPolicyTrigger] = field(
-        init=False,
-        default_factory=list,
-        repr=False,
-    )
+    triggers: list[AuditPolicyTrigger] = field(init=False, default_factory=list, repr=False)
 
 
 @dataclass

@@ -24,16 +24,12 @@ depends_on: None | str = None
 
 @temporary_stub_column("Directory", "entity_type_id", sa.Integer())
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    krb_admin_user = session.scalar(
-        sa.select(Directory)
-        .filter_by(name="krbadmin")
-        .join(qa(Directory.user)),
-    )
+    krb_admin_user = session.scalar(sa.select(Directory).filter_by(name="krbadmin").join(qa(Directory.user)))
 
     if krb_admin_user:
         for attr, new_value in {
@@ -42,41 +38,15 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             "gidNumber": "800",
             "homeDirectory": "/home/krbadmin",
         }.items():
-            session.execute(
-                sa.delete(Attribute)
-                .filter_by(
-                    name=attr,
-                    directory_id=krb_admin_user.id,
-                ),
-            )  # fmt: skip
-            session.add(
-                Attribute(
-                    name=attr,
-                    value=new_value,
-                    directory_id=krb_admin_user.id,
-                ),
-            )
+            session.execute(sa.delete(Attribute).filter_by(name=attr, directory_id=krb_admin_user.id))
+            session.add(Attribute(name=attr, value=new_value, directory_id=krb_admin_user.id))
 
         krb_admin_group = session.scalars(
-            sa.select(Directory)
-            .filter_by(name="krbadmin")
-            .join(qa(Directory.group)),
+            sa.select(Directory).filter_by(name="krbadmin").join(qa(Directory.group))
         ).one()
 
-        session.execute(
-            sa.delete(Attribute)
-            .filter_by(
-                name="gidNumber",
-                directory_id=krb_admin_group.id,
-            ),
-        )  # fmt: skip
-        session.add(
-            Attribute(
-                name="gidNumber",
-                value="800",
-                directory_id=krb_admin_group.id,
-            ),
-        )
+        session.execute(sa.delete(Attribute).filter_by(name="gidNumber", directory_id=krb_admin_group.id))
+        session.add(Attribute(name="gidNumber", value="800", directory_id=krb_admin_group.id))
 
     session.commit()
 

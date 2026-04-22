@@ -49,8 +49,4 @@ class DomainErrorTranslator(ErrorTranslator[ErrorResponse]):
         if not isinstance(err, BaseDomainException):
             raise TypeError(f"Expected BaseDomainException, got {type(err)}")
 
-        return ErrorResponse(
-            detail=str(err),
-            domain_code=self.domain_code,
-            error_code=err.code,
-        )
+        return ErrorResponse(detail=str(err), domain_code=self.domain_code, error_code=err.code)

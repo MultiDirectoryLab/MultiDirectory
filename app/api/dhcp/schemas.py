@@ -29,10 +29,7 @@ class DHCPSubnetSchemaAddRequest(BaseModel):
         return str(pool)
 
     @field_serializer("default_gateway")
-    def serialize_default_gateway(
-        self,
-        gateway: IPv4Address | None,
-    ) -> str | None:
+    def serialize_default_gateway(self, gateway: IPv4Address | None) -> str | None:
         return str(gateway) if gateway else None
 
 
@@ -54,10 +51,7 @@ class DHCPSubnetSchemaResponse(BaseModel):
         return [str(p) for p in pool]
 
     @field_serializer("default_gateway")
-    def serialize_default_gateway(
-        self,
-        gateway: IPv4Address | None,
-    ) -> str | None:
+    def serialize_default_gateway(self, gateway: IPv4Address | None) -> str | None:
         return str(gateway) if gateway else None
 
 

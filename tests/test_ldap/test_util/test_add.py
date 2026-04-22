@@ -30,11 +30,7 @@ from tests.conftest import TestCreds
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_ldap_root_add(
-    session: AsyncSession,
-    settings: Settings,
-    user: dict,
-) -> None:
+async def test_ldap_root_add(session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
     with tempfile.NamedTemporaryFile("w") as file:
@@ -46,7 +42,7 @@ async def test_ldap_root_add(
                 "objectClass: organization\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
-            ),
+            )
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -69,11 +65,7 @@ async def test_ldap_root_add(
 
     assert result == 0
 
-    new_dir_query = (
-        select(Directory)
-        .options(subqueryload(qa(Directory.attributes)))
-        .filter(get_filter_from_path(dn))
-    )
+    new_dir_query = select(Directory).options(subqueryload(qa(Directory.attributes))).filter(get_filter_from_path(dn))
     new_dir = (await session.scalars(new_dir_query)).one()
 
     assert new_dir.name == "test"
@@ -88,11 +80,7 @@ async def test_ldap_root_add(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_ldap_user_add_with_group(
-    session: AsyncSession,
-    settings: Settings,
-    user: dict,
-) -> None:
+async def test_ldap_user_add_with_group(session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapadd on server."""
     user_dn = "cn=test,dc=md,dc=test"
 
@@ -111,7 +99,7 @@ async def test_ldap_user_add_with_group(
             "objectClass: person\n"
             "objectClass: posixAccount\n"
             "objectClass: top\n"
-            f"memberOf: {group_dn}\n",
+            f"memberOf: {group_dn}\n"
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -134,11 +122,7 @@ async def test_ldap_user_add_with_group(
 
     assert result == 0
 
-    membership = (
-        selectinload(qa(Directory.user))
-        .selectinload(qa(User.groups))
-        .selectinload(qa(Group.directory))
-    )
+    membership = selectinload(qa(Directory.user)).selectinload(qa(User.groups)).selectinload(qa(Group.directory))
 
     new_dir_query = (
         select(Directory)
@@ -156,11 +140,7 @@ async def test_ldap_user_add_with_group(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_ldap_user_add_group_with_group(
-    session: AsyncSession,
-    settings: Settings,
-    user: dict,
-) -> None:
+async def test_ldap_user_add_group_with_group(session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapadd on server."""
     child_group_dn = "cn=twisted,cn=Groups,dc=md,dc=test"
     group_dn = "cn=domain admins,cn=groups,dc=md,dc=test"
@@ -174,7 +154,7 @@ async def test_ldap_user_add_group_with_group(
                 "objectClass: group\n"
                 "objectClass: top\n"
                 f"memberOf: {group_dn}\n"
-            ),
+            )
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -198,24 +178,15 @@ async def test_ldap_user_add_group_with_group(
         assert result == 0
 
     membership = (
-        selectinload(qa(Directory.group))
-        .selectinload(qa(Group.parent_groups))
-        .selectinload(qa(Group.directory))
+        selectinload(qa(Directory.group)).selectinload(qa(Group.parent_groups)).selectinload(qa(Group.directory))
     )
 
-    new_dir_query = (
-        select(Directory)
-        .options(membership)
-        .filter(get_filter_from_path(child_group_dn))
-    )
+    new_dir_query = select(Directory).options(membership).filter(get_filter_from_path(child_group_dn))
     new_dir = (await session.scalars(new_dir_query)).one()
 
     assert new_dir.name == "twisted"
 
-    groups = [
-        group.directory.path_dn.lower()
-        for group in new_dir.group.parent_groups
-    ]
+    groups = [group.directory.path_dn.lower() for group in new_dir.group.parent_groups]
 
     assert group_dn in groups
 
@@ -224,16 +195,11 @@ async def test_ldap_user_add_group_with_group(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("entity_type_dao")
-async def test_add_bvalue_attr(
-    ldap_bound_session: LDAPSession,
-    ctx_add: LDAPAddRequestContext,
-) -> None:
+async def test_add_bvalue_attr(ldap_bound_session: LDAPSession, ctx_add: LDAPAddRequestContext) -> None:
     """Test AddRequest with bytes data."""
     ctx_add.ldap_session = ldap_bound_session
     request = AddRequest(
-        entry="cn=test123,dc=md,dc=test",
-        attributes=[{"type": "objectClass", "vals": [b"container"]}],
-        password=None,
+        entry="cn=test123,dc=md,dc=test", attributes=[{"type": "objectClass", "vals": [b"container"]}], password=None
     )
     result = await anext(request.handle(ctx_add))
     assert result.result_code == LDAPCodes.SUCCESS
@@ -242,10 +208,7 @@ async def test_add_bvalue_attr(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_add_access_control(
-    settings: Settings,
-    creds: TestCreds,
-    role_dao: RoleDAO,
-    access_control_entry_dao: AccessControlEntryDAO,
+    settings: Settings, creds: TestCreds, role_dao: RoleDAO, access_control_entry_dao: AccessControlEntryDAO
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
@@ -253,15 +216,7 @@ async def test_ldap_add_access_control(
 
     async def try_add() -> int:
         with tempfile.NamedTemporaryFile("w") as file:
-            file.write(
-                (
-                    f"dn: {dn}\n"
-                    "name: test\n"
-                    "cn: test\n"
-                    "objectClass: organization\n"
-                    "objectClass: top\n"
-                ),
-            )
+            file.write((f"dn: {dn}\nname: test\ncn: test\nobjectClass: organization\nobjectClass: top\n"))
             file.seek(0)
             proc = await asyncio.create_subprocess_exec(
                 "ldapadd",
@@ -284,12 +239,7 @@ async def test_ldap_add_access_control(
     assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
 
     await role_dao.create(
-        dto=RoleDTO(
-            name="Add Role",
-            creator_upn=None,
-            is_system=False,
-            groups=["cn=domain users,cn=Groups," + base_dn],
-        ),
+        dto=RoleDTO(name="Add Role", creator_upn=None, is_system=False, groups=["cn=domain users,cn=Groups," + base_dn])
     )
 
     assert await try_add() == LDAPCodes.INSUFFICIENT_ACCESS_RIGHTS
@@ -349,11 +299,7 @@ async def test_ldap_add_access_control(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_ldap_user_add_with_duplicate_groups(
-    session: AsyncSession,
-    settings: Settings,
-    user: dict,
-) -> None:
+async def test_ldap_user_add_with_duplicate_groups(session: AsyncSession, settings: Settings, user: dict) -> None:
     """Duplicate memberOf yields single membership."""
     user_dn = "cn=dup,dc=md,dc=test"
     group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
@@ -399,9 +345,7 @@ async def test_ldap_user_add_with_duplicate_groups(
         select(User)
         .join(qa(User.directory))
         .filter(get_filter_from_path(user_dn))
-        .options(
-            selectinload(qa(User.groups)).selectinload(qa(Group.directory)),
-        ),
+        .options(selectinload(qa(User.groups)).selectinload(qa(Group.directory)))
     )
     assert user_row
     groups = [g.directory.path_dn for g in user_row.groups]

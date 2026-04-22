@@ -14,9 +14,7 @@ from api.auth.adapters import AuthFastAPIAdapter
 
 
 @inject
-async def verify_auth(
-    identity_adapter: FromDishka[AuthFastAPIAdapter],
-) -> None:
+async def verify_auth(identity_adapter: FromDishka[AuthFastAPIAdapter]) -> None:
     """Retrieve the currently authenticated user and rekey their session.
 
     This function fetches the current user based on the request's

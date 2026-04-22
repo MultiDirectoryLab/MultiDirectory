@@ -81,29 +81,19 @@ async def set_state(session: AsyncSession, state: "KerberosState") -> None:
     a new entry, updating an existing entry, or deleting and re-adding the
     entry if there are multiple entries found.
     """
-    results = await session.execute(
-        select(CatalogueSetting)
-        .filter_by(name = KERBEROS_STATE_NAME),
-    )  # fmt: skip
+    results = await session.execute(select(CatalogueSetting).filter_by(name=KERBEROS_STATE_NAME))
     kerberos_state = results.scalar_one_or_none()
 
     if not kerberos_state:
         session.add(CatalogueSetting(name=KERBEROS_STATE_NAME, value=state))
         return
 
-    await session.execute(
-        update(CatalogueSetting)
-        .filter_by(name=KERBEROS_STATE_NAME)
-        .values(value=state),
-    )
+    await session.execute(update(CatalogueSetting).filter_by(name=KERBEROS_STATE_NAME).values(value=state))
 
 
 async def get_krb_server_state(session: AsyncSession) -> "KerberosState":
     """Get kerberos server state."""
-    state = await session.scalar(
-        select(CatalogueSetting)
-        .filter_by(name=KERBEROS_STATE_NAME),
-    )  # fmt: skip
+    state = await session.scalar(select(CatalogueSetting).filter_by(name=KERBEROS_STATE_NAME))
 
     if state is None:
         return KerberosState.NOT_CONFIGURED
@@ -119,16 +109,13 @@ async def unlock_principal(name: str, session: AsyncSession) -> None:
     subquery = (
         select(qa(Directory.id))
         .outerjoin(qa(Directory.entity_type))
-        .where(
-            qa(Directory.name).ilike(name),
-            qa(EntityType.name) == EntityTypeNames.KRB_PRINCIPAL,
-        )
+        .where(qa(Directory.name).ilike(name), qa(EntityType.name) == EntityTypeNames.KRB_PRINCIPAL)
         .scalar_subquery()
     )
     await session.execute(
         delete(Attribute)
         .filter_by(directory_id=subquery, name="krbprincipalexpiration")
-        .execution_options(synchronize_session=False),
+        .execution_options(synchronize_session=False)
     )
 
 

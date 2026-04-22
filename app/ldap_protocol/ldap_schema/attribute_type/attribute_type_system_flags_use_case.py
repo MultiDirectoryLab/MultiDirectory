@@ -34,31 +34,19 @@ class AttributeTypeSystemFlags(IntFlag):
 
 
 class AttributeTypeSystemFlagsUseCase:
-    def is_attr_replicated(
-        self,
-        attribute_type_dto: AttributeTypeDTO,
-    ) -> bool:
+    def is_attr_replicated(self, attribute_type_dto: AttributeTypeDTO) -> bool:
         """Check if attribute is replicated based on system_flags."""
-        return not bool(
-            attribute_type_dto.system_flags
-            & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
-        )
+        return not bool(attribute_type_dto.system_flags & AttributeTypeSystemFlags.ATTR_NOT_REPLICATED)
 
-    def set_attr_replication(
-        self,
-        attribute_type_dto: AttributeTypeDTO,
-        need_to_replicate: bool,
-    ) -> AttributeTypeDTO:
+    def set_attr_replication(self, attribute_type_dto: AttributeTypeDTO, need_to_replicate: bool) -> AttributeTypeDTO:
         """Set/clear replication flag in systemFlags."""
         if not need_to_replicate:
             attribute_type_dto.system_flags = int(
-                attribute_type_dto.system_flags
-                | AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
+                attribute_type_dto.system_flags | AttributeTypeSystemFlags.ATTR_NOT_REPLICATED
             )
         else:
             attribute_type_dto.system_flags = int(
-                attribute_type_dto.system_flags
-                & ~AttributeTypeSystemFlags.ATTR_NOT_REPLICATED,
+                attribute_type_dto.system_flags & ~AttributeTypeSystemFlags.ATTR_NOT_REPLICATED
             )
 
         return attribute_type_dto

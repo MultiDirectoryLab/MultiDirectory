@@ -11,20 +11,12 @@ from sqlalchemy.sql.expression import select
 from sqlalchemy.sql.selectable import CTE
 
 from entities import Directory, Group
-from repo.pg.tables import (
-    directory_memberships_table,
-    directory_table,
-    groups_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import directory_memberships_table, directory_table, groups_table, queryable_attr as qa
 
 from .queries import get_filter_from_path
 
 
-def find_members_recursive_cte(
-    dn_list: list[str],
-    include_users: bool = True,
-) -> CTE:
+def find_members_recursive_cte(dn_list: list[str], include_users: bool = True) -> CTE:
     """Create CTE to filter group memberships based on directory hierarchy.
 
     This function generates a recursive CTE that starts with an initial
@@ -88,32 +80,18 @@ def find_members_recursive_cte(
 
     """
     directory_hierarchy = (
-        select(
-            directory_table.c.id.label("directory_id"),
-            groups_table.c.id.label("group_id"),
-        )
-        .join(
-            groups_table,
-            directory_table.c.id == groups_table.c.directory_id,
-        )
+        select(directory_table.c.id.label("directory_id"), groups_table.c.id.label("group_id"))
+        .join(groups_table, directory_table.c.id == groups_table.c.directory_id)
         .select_from(directory_table)
         .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
     recursive_part = (
-        select(
-            directory_memberships_table.c.directory_id.label("directory_id"),
-            groups_table.c.id.label("group_id"),
-        )
+        select(directory_memberships_table.c.directory_id.label("directory_id"), groups_table.c.id.label("group_id"))
         .select_from(directory_memberships_table)
-        .join(
-            directory_hierarchy,
-            directory_hierarchy.c.group_id
-            == directory_memberships_table.c.group_id,
-        )
+        .join(directory_hierarchy, directory_hierarchy.c.group_id == directory_memberships_table.c.group_id)
         .join(
             groups_table,
-            directory_memberships_table.c.directory_id
-            == groups_table.c.directory_id,
+            directory_memberships_table.c.directory_id == groups_table.c.directory_id,
             isouter=include_users,
         )
     )
@@ -155,38 +133,21 @@ def find_root_group_recursive_cte(dn_list: list) -> CTE:
 
     """
     directory_hierarchy = (
-        select(
-            directory_table.c.id.label("directory_id"),
-            groups_table.c.id.label("group_id"),
-        )
+        select(directory_table.c.id.label("directory_id"), groups_table.c.id.label("group_id"))
         .select_from(directory_table)
         .join(groups_table, isouter=True)
         .where(or_(*[get_filter_from_path(dn) for dn in dn_list]))
     ).cte(recursive=True)
     recursive_part = (
-        select(
-            groups_table.c.directory_id.label("directory_id"),
-            groups_table.c.id.label("group_id"),
-        )
+        select(groups_table.c.directory_id.label("directory_id"), groups_table.c.id.label("group_id"))
         .select_from(directory_memberships_table)
-        .join(
-            directory_hierarchy,
-            directory_hierarchy.c.directory_id
-            == directory_memberships_table.c.directory_id,
-        )
-        .join(
-            groups_table,
-            directory_memberships_table.c.group_id == groups_table.c.id,
-        )
+        .join(directory_hierarchy, directory_hierarchy.c.directory_id == directory_memberships_table.c.directory_id)
+        .join(groups_table, directory_memberships_table.c.group_id == groups_table.c.id)
     )
     return directory_hierarchy.union_all(recursive_part)
 
 
-async def check_root_group_membership_intersection(
-    dn: str,
-    session: AsyncSession,
-    directory_ids: list[int],
-) -> bool:
+async def check_root_group_membership_intersection(dn: str, session: AsyncSession, directory_ids: list[int]) -> bool:
     """Check if root group members have intersection with directory ids."""
     cte = find_root_group_recursive_cte([dn])
     result = await session.scalars(select(cte.c.directory_id))
@@ -195,31 +156,20 @@ async def check_root_group_membership_intersection(
     if not group_ids:
         return False
 
-    directories = await session.scalars(
-        select(Directory)
-        .where(qa(Directory.id).in_(group_ids)),
-    )  # fmt: skip
+    directories = await session.scalars(select(Directory).where(qa(Directory.id).in_(group_ids)))
 
     if not directories:
         raise RuntimeError
 
-    cte = find_members_recursive_cte(
-        [d.path_dn for d in directories],
-        include_users=False,
-    )
+    cte = find_members_recursive_cte([d.path_dn for d in directories], include_users=False)
 
-    exists_query = select(
-        exists().where(cte.c.directory_id.in_(directory_ids)),
-    )
+    exists_query = select(exists().where(cte.c.directory_id.in_(directory_ids)))
     exists_result = await session.scalar(exists_query)
 
     return bool(exists_result)
 
 
-async def get_all_parent_group_directories(
-    groups: list[Group],
-    session: AsyncSession,
-) -> AsyncScalarResult | None:
+async def get_all_parent_group_directories(groups: list[Group], session: AsyncSession) -> AsyncScalarResult | None:
     """Get all parent groups directory.
 
     :param list[Group] groups: directory groups

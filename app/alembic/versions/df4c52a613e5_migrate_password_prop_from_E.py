@@ -14,9 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import Session
 
 from entities import PasswordPolicy
-from ldap_protocol.policies.password.ban_word_repository import (
-    PasswordBanWordRepository,
-)
+from ldap_protocol.policies.password.ban_word_repository import PasswordBanWordRepository
 
 # revision identifiers, used by Alembic.
 revision: None | str = "df4c52a613e5"
@@ -34,19 +32,17 @@ def upgrade(container: AsyncContainer) -> None:
     session = Session(bind=bind)
 
     op.create_table(
-        "PasswordBanWords",
-        sa.Column("word", sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint("word"),
+        "PasswordBanWords", sa.Column("word", sa.String(length=255), nullable=False), sa.PrimaryKeyConstraint("word")
     )
 
     op.execute(
         sa.text(
             "CREATE INDEX IF NOT EXISTS idx_password_ban_words_word_gin_trgm "
-            'ON "PasswordBanWords" USING GIN(word gin_trgm_ops);',
-        ),
+            'ON "PasswordBanWords" USING GIN(word gin_trgm_ops);'
+        )
     )
 
-    async def _create_common_passwords(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _create_common_passwords(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             password_ban_word_repo = await cnt.get(PasswordBanWordRepository)
@@ -57,223 +53,82 @@ def upgrade(container: AsyncContainer) -> None:
 
     op.run_async(_create_common_passwords)
 
-    op.drop_column(
-        "PasswordPolicies",
-        "password_must_meet_complexity_requirements",
-    )
+    op.drop_column("PasswordPolicies", "password_must_meet_complexity_requirements")
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("language", sa.String(length=255), nullable=True),
-    )
+    op.add_column("PasswordPolicies", sa.Column("language", sa.String(length=255), nullable=True))
     session.execute(update(PasswordPolicy).values({"language": "Latin"}))
     op.alter_column("PasswordPolicies", "language", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("is_exact_match", sa.Boolean(), nullable=True),
-    )
+    op.add_column("PasswordPolicies", sa.Column("is_exact_match", sa.Boolean(), nullable=True))
     session.execute(update(PasswordPolicy).values({"is_exact_match": True}))
     op.alter_column("PasswordPolicies", "is_exact_match", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("max_length", sa.Integer(), nullable=True),
-    )
+    op.add_column("PasswordPolicies", sa.Column("max_length", sa.Integer(), nullable=True))
     session.execute(update(PasswordPolicy).values({"max_length": 32}))
     op.alter_column("PasswordPolicies", "max_length", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("min_lowercase_letters_count", sa.Integer(), nullable=True),
-    )
-    session.execute(
-        update(PasswordPolicy).values({"min_lowercase_letters_count": 0}),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_lowercase_letters_count",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("min_lowercase_letters_count", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"min_lowercase_letters_count": 0}))
+    op.alter_column("PasswordPolicies", "min_lowercase_letters_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("min_uppercase_letters_count", sa.Integer(), nullable=True),
-    )
-    session.execute(
-        update(PasswordPolicy).values({"min_uppercase_letters_count": 0}),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_uppercase_letters_count",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("min_uppercase_letters_count", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"min_uppercase_letters_count": 0}))
+    op.alter_column("PasswordPolicies", "min_uppercase_letters_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("min_special_symbols_count", sa.Integer(), nullable=True),
-    )
-    session.execute(
-        update(PasswordPolicy).values({"min_special_symbols_count": 0}),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_special_symbols_count",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("min_special_symbols_count", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"min_special_symbols_count": 0}))
+    op.alter_column("PasswordPolicies", "min_special_symbols_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("min_digits_count", sa.Integer(), nullable=True),
-    )
+    op.add_column("PasswordPolicies", sa.Column("min_digits_count", sa.Integer(), nullable=True))
     session.execute(update(PasswordPolicy).values({"min_digits_count": 0}))
-    op.alter_column(
-        "PasswordPolicies",
-        "min_digits_count",
-        nullable=False,
-    )
+    op.alter_column("PasswordPolicies", "min_digits_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("min_unique_symbols_count", sa.Integer(), nullable=True),
-    )
-    session.execute(
-        update(PasswordPolicy).values({"min_unique_symbols_count": 0}),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "min_unique_symbols_count",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("min_unique_symbols_count", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"min_unique_symbols_count": 0}))
+    op.alter_column("PasswordPolicies", "min_unique_symbols_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "max_repeating_symbols_in_row_count",
-            sa.Integer(),
-            nullable=True,
-        ),
-    )
-    session.execute(
-        update(PasswordPolicy).values(
-            {"max_repeating_symbols_in_row_count": 0},
-        ),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "max_repeating_symbols_in_row_count",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("max_repeating_symbols_in_row_count", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"max_repeating_symbols_in_row_count": 0}))
+    op.alter_column("PasswordPolicies", "max_repeating_symbols_in_row_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "max_sequential_keyboard_symbols_count",
-            sa.Integer(),
-            nullable=True,
-        ),
-    )
-    session.execute(
-        update(PasswordPolicy).values(
-            {"max_sequential_keyboard_symbols_count": 0},
-        ),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "max_sequential_keyboard_symbols_count",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("max_sequential_keyboard_symbols_count", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"max_sequential_keyboard_symbols_count": 0}))
+    op.alter_column("PasswordPolicies", "max_sequential_keyboard_symbols_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column(
-            "max_sequential_alphabet_symbols_count",
-            sa.Integer(),
-            nullable=True,
-        ),
-    )
-    session.execute(
-        update(PasswordPolicy).values(
-            {"max_sequential_alphabet_symbols_count": 0},
-        ),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "max_sequential_alphabet_symbols_count",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("max_sequential_alphabet_symbols_count", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"max_sequential_alphabet_symbols_count": 0}))
+    op.alter_column("PasswordPolicies", "max_sequential_alphabet_symbols_count", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("max_failed_attempts", sa.Integer(), nullable=True),
-    )
+    op.add_column("PasswordPolicies", sa.Column("max_failed_attempts", sa.Integer(), nullable=True))
     session.execute(update(PasswordPolicy).values({"max_failed_attempts": 6}))
     op.alter_column("PasswordPolicies", "max_failed_attempts", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("failed_attempts_reset_sec", sa.Integer(), nullable=True),
-    )
-    session.execute(
-        update(PasswordPolicy).values({"failed_attempts_reset_sec": 60}),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "failed_attempts_reset_sec",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("failed_attempts_reset_sec", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"failed_attempts_reset_sec": 60}))
+    op.alter_column("PasswordPolicies", "failed_attempts_reset_sec", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("lockout_duration_sec", sa.Integer(), nullable=True),
-    )
-    session.execute(
-        update(PasswordPolicy).values({"lockout_duration_sec": 600}),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "lockout_duration_sec",
-        nullable=False,
-    )
+    op.add_column("PasswordPolicies", sa.Column("lockout_duration_sec", sa.Integer(), nullable=True))
+    session.execute(update(PasswordPolicy).values({"lockout_duration_sec": 600}))
+    op.alter_column("PasswordPolicies", "lockout_duration_sec", nullable=False)
 
-    op.add_column(
-        "PasswordPolicies",
-        sa.Column("fail_delay_sec", sa.Integer(), nullable=True),
-    )
+    op.add_column("PasswordPolicies", sa.Column("fail_delay_sec", sa.Integer(), nullable=True))
     session.execute(update(PasswordPolicy).values({"fail_delay_sec": 5}))
     op.alter_column("PasswordPolicies", "fail_delay_sec", nullable=False)
 
-    op.drop_constraint(
-        op.f("PasswordPolicies_priority_key"),
-        "PasswordPolicies",
-        type_="unique",
-    )
+    op.drop_constraint(op.f("PasswordPolicies_priority_key"), "PasswordPolicies", type_="unique")
     op.create_unique_constraint(
-        "PasswordPolicies_priority_uc",
-        "PasswordPolicies",
-        ["priority"],
-        deferrable=True,
-        initially="DEFERRED",
+        "PasswordPolicies_priority_uc", "PasswordPolicies", ["priority"], deferrable=True, initially="DEFERRED"
     )
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
-    op.execute(
-        sa.text("DROP INDEX IF EXISTS idx_password_ban_words_word_gin_trgm"),
-    )
+    op.execute(sa.text("DROP INDEX IF EXISTS idx_password_ban_words_word_gin_trgm"))
     op.drop_table("PasswordBanWords")
 
-    op.drop_constraint(
-        "PasswordPolicies_priority_uc",
-        "PasswordPolicies",
-        type_="unique",
-    )
+    op.drop_constraint("PasswordPolicies_priority_uc", "PasswordPolicies", type_="unique")
     op.create_unique_constraint(
-        op.f("PasswordPolicies_priority_key"),
-        "PasswordPolicies",
-        ["priority"],
-        postgresql_nulls_not_distinct=False,
+        op.f("PasswordPolicies_priority_key"), "PasswordPolicies", ["priority"], postgresql_nulls_not_distinct=False
     )
     op.drop_column("PasswordPolicies", "fail_delay_sec")
     op.drop_column("PasswordPolicies", "lockout_duration_sec")
@@ -293,21 +148,7 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
 
     op.add_column(
         "PasswordPolicies",
-        sa.Column(
-            "password_must_meet_complexity_requirements",
-            sa.BOOLEAN(),
-            autoincrement=False,
-            nullable=True,
-        ),
+        sa.Column("password_must_meet_complexity_requirements", sa.BOOLEAN(), autoincrement=False, nullable=True),
     )
-    op.execute(
-        sa.text(
-            'UPDATE "PasswordPolicies" '
-            "SET password_must_meet_complexity_requirements = FALSE",
-        ),
-    )
-    op.alter_column(
-        "PasswordPolicies",
-        "password_must_meet_complexity_requirements",
-        nullable=False,
-    )
+    op.execute(sa.text('UPDATE "PasswordPolicies" SET password_must_meet_complexity_requirements = FALSE'))
+    op.alter_column("PasswordPolicies", "password_must_meet_complexity_requirements", nullable=False)

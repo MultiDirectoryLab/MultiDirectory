@@ -23,7 +23,7 @@ depends_on: None | list[str] = None
 
 
 @temporary_stub_column("Directory", "is_system", sa.Boolean())
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -32,23 +32,14 @@ def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         sa.select(User).where(
             ~sa.exists(
                 sa.select(1)
-                .where(
-                    qa(Attribute.directory_id) == qa(User.directory_id),
-                    qa(Attribute.name) == "givenName",
-                )
-                .select_from(Attribute),
-            ),
-        ),
+                .where(qa(Attribute.directory_id) == qa(User.directory_id), qa(Attribute.name) == "givenName")
+                .select_from(Attribute)
+            )
+        )
     ).all()
 
     for user in users_without_given_name:
-        session.add(
-            Attribute(
-                directory_id=user.directory_id,
-                name="givenName",
-                value=user.sam_account_name,
-            ),
-        )
+        session.add(Attribute(directory_id=user.directory_id, name="givenName", value=user.sam_account_name))
 
     session.commit()
 

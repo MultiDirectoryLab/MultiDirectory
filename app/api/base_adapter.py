@@ -19,11 +19,7 @@ class BaseAdapter(Protocol[_T]):
 
     _service: _T
 
-    def __init__(
-        self,
-        service: _T,
-        perm_checker: AuthorizationProviderProtocol,
-    ) -> None:
+    def __init__(self, service: _T, perm_checker: AuthorizationProviderProtocol) -> None:
         """Set service."""
         self._service = service
         self._service.set_permissions_checker(perm_checker)

@@ -17,16 +17,11 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
-    op.execute(
-        sa.text(
-            "CREATE INDEX idx_directory_path_hash "
-            'ON "Directory" USING HASH(array_lowercase(path));',
-        ),
-    )
+    op.execute(sa.text('CREATE INDEX idx_directory_path_hash ON "Directory" USING HASH(array_lowercase(path));'))
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.execute(sa.text("DROP INDEX idx_directory_path_hash"))

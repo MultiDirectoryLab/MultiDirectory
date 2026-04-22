@@ -11,10 +11,7 @@ from api.audit.schemas import (
     AuditPolicySchemaRequest,
 )
 from api.base_adapter import BaseAdapter
-from ldap_protocol.policies.audit.dataclasses import (
-    AuditDestinationDTO,
-    AuditPolicyDTO,
-)
+from ldap_protocol.policies.audit.dataclasses import AuditDestinationDTO, AuditPolicyDTO
 from ldap_protocol.policies.audit.service import AuditService
 
 
@@ -33,17 +30,10 @@ class AuditPoliciesAdapter(BaseAdapter[AuditService]):
             for policy in await self._service.get_policies()
         ]
 
-    async def update_policy(
-        self,
-        policy_id: int,
-        policy_data: AuditPolicySchemaRequest,
-    ) -> None:
+    async def update_policy(self, policy_id: int, policy_data: AuditPolicySchemaRequest) -> None:
         """Update an existing audit policy."""
         policy_dto = AuditPolicyDTO(**policy_data.model_dump())
-        return await self._service.update_policy(
-            policy_id,
-            policy_dto,
-        )
+        return await self._service.update_policy(policy_id, policy_dto)
 
     async def get_destinations(self) -> list[AuditDestinationResponse]:
         """Get all audit destinations."""
@@ -60,25 +50,15 @@ class AuditPoliciesAdapter(BaseAdapter[AuditService]):
             for destination in await self._service.get_destinations()
         ]
 
-    async def create_destination(
-        self,
-        destination_data: AuditDestinationSchemaRequest,
-    ) -> None:
+    async def create_destination(self, destination_data: AuditDestinationSchemaRequest) -> None:
         """Create a new audit destination."""
         destination_dto = AuditDestinationDTO(**destination_data.model_dump())
         return await self._service.create_destination(destination_dto)
 
-    async def update_destination(
-        self,
-        destination_id: int,
-        destination_data: AuditDestinationSchemaRequest,
-    ) -> None:
+    async def update_destination(self, destination_id: int, destination_data: AuditDestinationSchemaRequest) -> None:
         """Update an existing audit destination."""
         destination_dto = AuditDestinationDTO(**destination_data.model_dump())
-        return await self._service.update_destination(
-            destination_id,
-            destination_dto,
-        )
+        return await self._service.update_destination(destination_id, destination_dto)
 
     async def delete_destination(self, destination_id: int) -> None:
         """Delete an audit destination."""

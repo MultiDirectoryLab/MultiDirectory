@@ -41,9 +41,7 @@ class AttributeTypeUpdateSchema(BaseModel):
     is_included_anr: bool
 
 
-class AttributeTypePaginationSchema(
-    BasePaginationSchema[AttributeTypeSchema[int]],
-):
+class AttributeTypePaginationSchema(BasePaginationSchema[AttributeTypeSchema[int]]):
     """Attribute Type Schema with pagination result."""
 
     items: list[AttributeTypeSchema[int]]
@@ -63,9 +61,7 @@ class ObjectClassSchema(BaseModel, Generic[_IdT]):
     entity_type_names: set[str] = Field(default_factory=set)
 
 
-class ObjectClassPaginationSchema(
-    BasePaginationSchema[ObjectClassSchema[int]],
-):
+class ObjectClassPaginationSchema(BasePaginationSchema[ObjectClassSchema[int]]):
     """Object Class Schema with pagination result."""
 
     items: list[ObjectClassSchema[int]]
@@ -84,11 +80,7 @@ class EntityTypeSchema(BaseModel, Generic[_IdT]):
     id: _IdT = Field(default=None)  # type: ignore[assignment]
     name: EntityTypeNames | str
     is_system: bool
-    object_class_names: list[str] = Field(
-        default_factory=list,
-        min_length=1,
-        max_length=10000,
-    )
+    object_class_names: list[str] = Field(default_factory=list, min_length=1, max_length=10000)
 
 
 class EntityTypeUpdateSchema(BaseModel):
@@ -96,11 +88,7 @@ class EntityTypeUpdateSchema(BaseModel):
 
     is_system: bool = DEFAULT_ENTITY_TYPE_IS_SYSTEM
     name: str
-    object_class_names: list[str] = Field(
-        default_factory=list,
-        min_length=1,
-        max_length=10000,
-    )
+    object_class_names: list[str] = Field(default_factory=list, min_length=1, max_length=10000)
 
 
 class EntityTypePaginationSchema(BasePaginationSchema[EntityTypeSchema]):

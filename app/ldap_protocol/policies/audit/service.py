@@ -20,11 +20,7 @@ from .policies_dao import AuditPoliciesDAO
 class AuditService(AbstractService):
     """Audit service class for managing audit policies."""
 
-    def __init__(
-        self,
-        policy_dao: AuditPoliciesDAO,
-        destination_dao: AuditDestinationDAO,
-    ) -> None:
+    def __init__(self, policy_dao: AuditPoliciesDAO, destination_dao: AuditDestinationDAO) -> None:
         """Initialize AuditService with a policy DAO and a destination DAO."""
         self._policy_dao = policy_dao
         self._destination_dao = destination_dao
@@ -33,11 +29,7 @@ class AuditService(AbstractService):
         """Get all audit policies."""
         return await self._policy_dao.get_all()
 
-    async def update_policy(
-        self,
-        policy_id: int,
-        policy_dto: AuditPolicyDTO,
-    ) -> None:
+    async def update_policy(self, policy_id: int, policy_dto: AuditPolicyDTO) -> None:
         """Update an existing audit policy.
 
         Args:
@@ -50,10 +42,7 @@ class AuditService(AbstractService):
 
         """
         try:
-            return await self._policy_dao.update(
-                policy_id,
-                policy_dto,
-            )
+            return await self._policy_dao.update(policy_id, policy_dto)
         except IntegrityError:
             raise AuditAlreadyExistsError("Audit policy already exists")
 
@@ -61,10 +50,7 @@ class AuditService(AbstractService):
         """Get all audit destinations."""
         return await self._destination_dao.get_all()
 
-    async def create_destination(
-        self,
-        destination_dto: AuditDestinationDTO,
-    ) -> None:
+    async def create_destination(self, destination_dto: AuditDestinationDTO) -> None:
         """Create a new audit destination.
 
         Args:
@@ -79,11 +65,7 @@ class AuditService(AbstractService):
         except IntegrityError:
             raise AuditAlreadyExistsError("Audit destination already exists")
 
-    async def update_destination(
-        self,
-        destination_id: int,
-        destination_dto: AuditDestinationDTO,
-    ) -> None:
+    async def update_destination(self, destination_id: int, destination_dto: AuditDestinationDTO) -> None:
         """Update an existing audit destination.
 
         Args:
@@ -96,17 +78,11 @@ class AuditService(AbstractService):
 
         """
         try:
-            return await self._destination_dao.update(
-                destination_id,
-                destination_dto,
-            )
+            return await self._destination_dao.update(destination_id, destination_dto)
         except IntegrityError:
             raise AuditAlreadyExistsError("Audit destination already exists")
 
-    async def delete_destination(
-        self,
-        destination_id: int,
-    ) -> None:
+    async def delete_destination(self, destination_id: int) -> None:
         """Delete an audit destination.
 
         Args:
@@ -122,7 +98,7 @@ class AuditService(AbstractService):
         get_policies.__name__: AuthorizationRules.AUDIT_GET_POLICIES,
         update_policy.__name__: AuthorizationRules.AUDIT_UPDATE_POLICY,
         get_destinations.__name__: AuthorizationRules.AUDIT_GET_DESTINATIONS,
-        create_destination.__name__: AuthorizationRules.AUDIT_CREATE_DESTINATION,  # noqa: E501
-        delete_destination.__name__: AuthorizationRules.AUDIT_DELETE_DESTINATION,  # noqa: E501
-        update_destination.__name__: AuthorizationRules.AUDIT_UPDATE_DESTINATION,  # noqa: E501
+        create_destination.__name__: AuthorizationRules.AUDIT_CREATE_DESTINATION,
+        delete_destination.__name__: AuthorizationRules.AUDIT_DELETE_DESTINATION,
+        update_destination.__name__: AuthorizationRules.AUDIT_UPDATE_DESTINATION,
     }

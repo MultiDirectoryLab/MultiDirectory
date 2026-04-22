@@ -19,22 +19,13 @@ from ldap_protocol.dhcp.dataclasses import (
     DHCPReservation,
     DHCPSubnet,
 )
-from ldap_protocol.dhcp.exceptions import (
-    DHCPAPIError,
-    DHCPEntryAddError,
-    DHCPEntryNotFoundError,
-    DHCPOperationError,
-)
+from ldap_protocol.dhcp.exceptions import DHCPAPIError, DHCPEntryAddError, DHCPEntryNotFoundError, DHCPOperationError
 
 
 @pytest.fixture
 def sample_subnet_data() -> dict:
     """Sample subnet data for testing."""
-    return {
-        "subnet": "192.168.1.0/24",
-        "pool": "192.168.1.100-192.168.1.200",
-        "default_gateway": "192.168.1.1",
-    }
+    return {"subnet": "192.168.1.0/24", "pool": "192.168.1.100-192.168.1.200", "default_gateway": "192.168.1.1"}
 
 
 @pytest.fixture
@@ -52,30 +43,15 @@ def sample_lease_data() -> dict:
 @pytest.fixture
 def sample_reservation_data() -> dict:
     """Sample reservation data for testing."""
-    return {
-        "subnet_id": 1,
-        "ip_address": "192.168.1.50",
-        "mac_address": "00:11:22:33:44:55",
-        "hostname": "server-01",
-    }
+    return {"subnet_id": 1, "ip_address": "192.168.1.50", "mac_address": "00:11:22:33:44:55", "hostname": "server-01"}
 
 
 @pytest.fixture
 def sample_batch_reservation_data() -> list[dict]:
     """Sample batch reservation data for testing."""
     return [
-        {
-            "subnet_id": 1,
-            "ip_address": "192.168.1.50",
-            "mac_address": "00:11:22:33:44:55",
-            "hostname": "server-01",
-        },
-        {
-            "subnet_id": 1,
-            "ip_address": "192.168.1.51",
-            "mac_address": "00:11:22:33:44:66",
-            "hostname": "server-02",
-        },
+        {"subnet_id": 1, "ip_address": "192.168.1.50", "mac_address": "00:11:22:33:44:55", "hostname": "server-01"},
+        {"subnet_id": 1, "ip_address": "192.168.1.51", "mac_address": "00:11:22:33:44:66", "hostname": "server-02"},
     ]
 
 
@@ -86,9 +62,7 @@ def sample_subnet_response() -> DHCPSubnet:
         id=1,
         subnet=IPv4Network("192.168.1.0/24"),
         pools=[DHCPPool(pool="192.168.1.100-192.168.1.200")],
-        option_data=[
-            DHCPOptionData(name="routers", data=IPv4Address("192.168.1.1")),
-        ],
+        option_data=[DHCPOptionData(name="routers", data=IPv4Address("192.168.1.1"))],
     )
 
 
@@ -109,62 +83,35 @@ def sample_lease_response() -> DHCPLease:
 def sample_reservation_response() -> DHCPReservation:
     """Sample reservation response for testing."""
     return DHCPReservation(
-        subnet_id=1,
-        ip_address=IPv4Address("192.168.1.50"),
-        mac_address="00:11:22:33:44:55",
-        hostname="server-01",
+        subnet_id=1, ip_address=IPv4Address("192.168.1.50"), mac_address="00:11:22:33:44:55", hostname="server-01"
     )
 
 
 @pytest.mark.asyncio
-async def test_create_subnet_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_subnet_data: dict,
-) -> None:
+async def test_create_subnet_success(http_client: AsyncClient, dhcp_manager: Mock, sample_subnet_data: dict) -> None:
     """Test successful subnet creation."""
-    response = await http_client.post(
-        "/dhcp/subnet",
-        json=sample_subnet_data,
-    )
+    response = await http_client.post("/dhcp/subnet", json=sample_subnet_data)
 
     assert response.status_code == status.HTTP_201_CREATED
     dhcp_manager.create_subnet.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_create_subnet_invalid_data(
-    http_client: AsyncClient,
-) -> None:
+async def test_create_subnet_invalid_data(http_client: AsyncClient) -> None:
     """Test subnet creation with invalid data."""
-    invalid_data = {
-        "subnet": "invalid-subnet",
-        "pool": "invalid-pool",
-    }
+    invalid_data = {"subnet": "invalid-subnet", "pool": "invalid-pool"}
 
-    response = await http_client.post(
-        "/dhcp/subnet",
-        json=invalid_data,
-    )
+    response = await http_client.post("/dhcp/subnet", json=invalid_data)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
-async def test_create_subnet_api_error(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_subnet_data: dict,
-) -> None:
+async def test_create_subnet_api_error(http_client: AsyncClient, dhcp_manager: Mock, sample_subnet_data: dict) -> None:
     """Test subnet creation with API error."""
-    dhcp_manager.create_subnet.side_effect = DHCPEntryAddError(
-        "Subnet already exists",
-    )
+    dhcp_manager.create_subnet.side_effect = DHCPEntryAddError("Subnet already exists")
 
-    response = await http_client.post(
-        "/dhcp/subnet",
-        json=sample_subnet_data,
-    )
+    response = await http_client.post("/dhcp/subnet", json=sample_subnet_data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Subnet already exists" in response.json()["detail"]
@@ -172,9 +119,7 @@ async def test_create_subnet_api_error(
 
 @pytest.mark.asyncio
 async def test_get_subnets_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_subnet_response: DHCPSubnet,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_subnet_response: DHCPSubnet
 ) -> None:
     """Test successful subnet retrieval."""
     dhcp_manager.get_subnets.return_value = [sample_subnet_response]
@@ -190,10 +135,7 @@ async def test_get_subnets_success(
 
 
 @pytest.mark.asyncio
-async def test_get_subnets_empty(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_get_subnets_empty(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test getting subnets when none exist."""
     dhcp_manager.get_subnets.return_value = []
 
@@ -204,45 +146,26 @@ async def test_get_subnets_empty(
 
 
 @pytest.mark.asyncio
-async def test_update_subnet_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_subnet_data: dict,
-) -> None:
+async def test_update_subnet_success(http_client: AsyncClient, dhcp_manager: Mock, sample_subnet_data: dict) -> None:
     """Test successful subnet update."""
-    response = await http_client.put(
-        "/dhcp/subnet/1",
-        json=sample_subnet_data,
-    )
+    response = await http_client.put("/dhcp/subnet/1", json=sample_subnet_data)
 
     assert response.status_code == status.HTTP_200_OK
     dhcp_manager.update_subnet.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_update_subnet_not_found(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_subnet_data: dict,
-) -> None:
+async def test_update_subnet_not_found(http_client: AsyncClient, dhcp_manager: Mock, sample_subnet_data: dict) -> None:
     """Test subnet update when subnet not found."""
-    dhcp_manager.update_subnet.side_effect = DHCPEntryNotFoundError(
-        "Subnet not found",
-    )
+    dhcp_manager.update_subnet.side_effect = DHCPEntryNotFoundError("Subnet not found")
 
-    response = await http_client.put(
-        "/dhcp/subnet/999",
-        json=sample_subnet_data,
-    )
+    response = await http_client.put("/dhcp/subnet/999", json=sample_subnet_data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
-async def test_delete_subnet_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_subnet_success(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test successful subnet deletion."""
     response = await http_client.delete("/dhcp/subnet/1")
 
@@ -251,14 +174,9 @@ async def test_delete_subnet_success(
 
 
 @pytest.mark.asyncio
-async def test_delete_subnet_not_found(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_subnet_not_found(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test subnet deletion when subnet not found."""
-    dhcp_manager.delete_subnet.side_effect = DHCPEntryNotFoundError(
-        "Subnet not found",
-    )
+    dhcp_manager.delete_subnet.side_effect = DHCPEntryNotFoundError("Subnet not found")
 
     response = await http_client.delete("/dhcp/subnet/999")
 
@@ -266,55 +184,30 @@ async def test_delete_subnet_not_found(
 
 
 @pytest.mark.asyncio
-async def test_create_lease_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_lease_data: dict,
-) -> None:
+async def test_create_lease_success(http_client: AsyncClient, dhcp_manager: Mock, sample_lease_data: dict) -> None:
     """Test successful lease creation."""
-    response = await http_client.post(
-        "/dhcp/lease",
-        json=sample_lease_data,
-    )
+    response = await http_client.post("/dhcp/lease", json=sample_lease_data)
 
     assert response.status_code == status.HTTP_201_CREATED
     dhcp_manager.create_lease.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_create_lease_invalid_data(
-    http_client: AsyncClient,
-) -> None:
+async def test_create_lease_invalid_data(http_client: AsyncClient) -> None:
     """Test lease creation with invalid data."""
-    invalid_data = {
-        "subnet_id": "invalid",
-        "ip_address": "invalid-ip",
-        "mac_address": "invalid-mac",
-    }
+    invalid_data = {"subnet_id": "invalid", "ip_address": "invalid-ip", "mac_address": "invalid-mac"}
 
-    response = await http_client.post(
-        "/dhcp/lease",
-        json=invalid_data,
-    )
+    response = await http_client.post("/dhcp/lease", json=invalid_data)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
-async def test_create_lease_api_error(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_lease_data: dict,
-) -> None:
+async def test_create_lease_api_error(http_client: AsyncClient, dhcp_manager: Mock, sample_lease_data: dict) -> None:
     """Test lease creation with API error."""
-    dhcp_manager.create_lease.side_effect = DHCPEntryAddError(
-        "IP already in use",
-    )
+    dhcp_manager.create_lease.side_effect = DHCPEntryAddError("IP already in use")
 
-    response = await http_client.post(
-        "/dhcp/lease",
-        json=sample_lease_data,
-    )
+    response = await http_client.post("/dhcp/lease", json=sample_lease_data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "IP already in use" in response.json()["detail"]
@@ -322,14 +215,10 @@ async def test_create_lease_api_error(
 
 @pytest.mark.asyncio
 async def test_get_leases_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_lease_response: DHCPLease,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_lease_response: DHCPLease
 ) -> None:
     """Test successful lease retrieval."""
-    dhcp_manager.list_active_leases.return_value = [
-        sample_lease_response,
-    ]
+    dhcp_manager.list_active_leases.return_value = [sample_lease_response]
 
     response = await http_client.get("/dhcp/lease/1")
 
@@ -343,10 +232,7 @@ async def test_get_leases_success(
 
 
 @pytest.mark.asyncio
-async def test_get_leases_empty(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_get_leases_empty(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test getting leases when none exist."""
     dhcp_manager.list_active_leases.return_value = []
 
@@ -358,16 +244,12 @@ async def test_get_leases_empty(
 
 @pytest.mark.asyncio
 async def test_find_lease_by_mac_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_lease_response: DHCPLease,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_lease_response: DHCPLease
 ) -> None:
     """Test successful lease search by MAC address."""
     dhcp_manager.find_lease.return_value = sample_lease_response
 
-    response = await http_client.get(
-        "/dhcp/lease/?mac_address=00:11:22:33:44:55",
-    )
+    response = await http_client.get("/dhcp/lease/?mac_address=00:11:22:33:44:55")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -377,16 +259,12 @@ async def test_find_lease_by_mac_success(
 
 @pytest.mark.asyncio
 async def test_find_lease_by_hostname_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_lease_response: DHCPLease,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_lease_response: DHCPLease
 ) -> None:
     """Test successful lease search by hostname."""
     dhcp_manager.find_lease.return_value = sample_lease_response
 
-    response = await http_client.get(
-        "/dhcp/lease/?hostname=workstation-01",
-    )
+    response = await http_client.get("/dhcp/lease/?hostname=workstation-01")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -395,30 +273,20 @@ async def test_find_lease_by_hostname_success(
 
 
 @pytest.mark.asyncio
-async def test_find_lease_not_found(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_find_lease_not_found(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test lease search when not found."""
     dhcp_manager.find_lease.return_value = None
 
-    response = await http_client.get(
-        "/dhcp/lease/?mac_address=00:00:00:00:00:00",
-    )
+    response = await http_client.get("/dhcp/lease/?mac_address=00:00:00:00:00:00")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() is None
 
 
 @pytest.mark.asyncio
-async def test_find_lease_no_params(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_find_lease_no_params(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test lease search without parameters."""
-    dhcp_manager.find_lease.side_effect = DHCPAPIError(
-        "Either MAC address or hostname must be provided",
-    )
+    dhcp_manager.find_lease.side_effect = DHCPAPIError("Either MAC address or hostname must be provided")
 
     response = await http_client.get("/dhcp/lease/")
 
@@ -426,28 +294,18 @@ async def test_find_lease_no_params(
 
 
 @pytest.mark.asyncio
-async def test_delete_lease_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_lease_success(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test successful lease deletion."""
     response = await http_client.delete("/dhcp/lease/192.168.1.100")
 
     assert response.status_code == status.HTTP_200_OK
-    dhcp_manager.release_lease.assert_called_once_with(
-        IPv4Address("192.168.1.100"),
-    )
+    dhcp_manager.release_lease.assert_called_once_with(IPv4Address("192.168.1.100"))
 
 
 @pytest.mark.asyncio
-async def test_delete_lease_not_found(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_lease_not_found(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test lease deletion when not found."""
-    dhcp_manager.release_lease.side_effect = DHCPEntryNotFoundError(
-        "Lease not found",
-    )
+    dhcp_manager.release_lease.side_effect = DHCPEntryNotFoundError("Lease not found")
 
     response = await http_client.delete("/dhcp/lease/192.168.1.128")
 
@@ -456,54 +314,33 @@ async def test_delete_lease_not_found(
 
 @pytest.mark.asyncio
 async def test_create_reservation_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_data: dict,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_data: dict
 ) -> None:
     """Test successful reservation creation."""
-    response = await http_client.post(
-        "/dhcp/reservation",
-        json=sample_reservation_data,
-    )
+    response = await http_client.post("/dhcp/reservation", json=sample_reservation_data)
 
     assert response.status_code == status.HTTP_201_CREATED
     dhcp_manager.add_reservation.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_create_reservation_invalid_data(
-    http_client: AsyncClient,
-) -> None:
+async def test_create_reservation_invalid_data(http_client: AsyncClient) -> None:
     """Test reservation creation with invalid data."""
-    invalid_data = {
-        "subnet_id": "invalid",
-        "ip_address": "invalid-ip",
-        "mac_address": "invalid-mac",
-    }
+    invalid_data = {"subnet_id": "invalid", "ip_address": "invalid-ip", "mac_address": "invalid-mac"}
 
-    response = await http_client.post(
-        "/dhcp/reservation",
-        json=invalid_data,
-    )
+    response = await http_client.post("/dhcp/reservation", json=invalid_data)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
 async def test_create_reservation_api_error(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_data: dict,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_data: dict
 ) -> None:
     """Test reservation creation with API error."""
-    dhcp_manager.add_reservation.side_effect = DHCPEntryAddError(
-        "IP already reserved",
-    )
+    dhcp_manager.add_reservation.side_effect = DHCPEntryAddError("IP already reserved")
 
-    response = await http_client.post(
-        "/dhcp/reservation",
-        json=sample_reservation_data,
-    )
+    response = await http_client.post("/dhcp/reservation", json=sample_reservation_data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "IP already reserved" in response.json()["detail"]
@@ -511,14 +348,10 @@ async def test_create_reservation_api_error(
 
 @pytest.mark.asyncio
 async def test_get_reservations_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_response: DHCPReservation,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_response: DHCPReservation
 ) -> None:
     """Test successful reservation retrieval."""
-    dhcp_manager.get_reservations.return_value = [
-        sample_reservation_response,
-    ]
+    dhcp_manager.get_reservations.return_value = [sample_reservation_response]
 
     response = await http_client.get("/dhcp/reservation/1")
 
@@ -532,10 +365,7 @@ async def test_get_reservations_success(
 
 
 @pytest.mark.asyncio
-async def test_get_reservations_empty(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_get_reservations_empty(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test getting reservations when none exist."""
     dhcp_manager.get_reservations.return_value = []
 
@@ -546,54 +376,31 @@ async def test_get_reservations_empty(
 
 
 @pytest.mark.asyncio
-async def test_delete_reservation_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_reservation_success(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test successful reservation deletion."""
     response = await http_client.delete(
-        "/dhcp/reservation",
-        params={
-            "mac_address": "00:11:22:33:44:55",
-            "ip_address": "192.168.1.50",
-            "subnet_id": 1,
-        },
+        "/dhcp/reservation", params={"mac_address": "00:11:22:33:44:55", "ip_address": "192.168.1.50", "subnet_id": 1}
     )
 
     assert response.status_code == status.HTTP_200_OK
-    dhcp_manager.delete_reservation.assert_called_once_with(
-        "00:11:22:33:44:55",
-        IPv4Address("192.168.1.50"),
-        1,
-    )
+    dhcp_manager.delete_reservation.assert_called_once_with("00:11:22:33:44:55", IPv4Address("192.168.1.50"), 1)
 
 
 @pytest.mark.asyncio
-async def test_delete_reservation_not_found(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_reservation_not_found(http_client: AsyncClient, dhcp_manager: Mock) -> None:
     """Test reservation deletion when not found."""
-    dhcp_manager.delete_reservation.side_effect = DHCPEntryNotFoundError(
-        "Reservation not found",
-    )
+    dhcp_manager.delete_reservation.side_effect = DHCPEntryNotFoundError("Reservation not found")
 
     response = await http_client.delete(
         "/dhcp/reservation",
-        params={
-            "mac_address": "00:00:00:00:00:00",
-            "ip_address": "192.168.1.128",
-            "subnet_id": 999,
-        },
+        params={"mac_address": "00:00:00:00:00:00", "ip_address": "192.168.1.128", "subnet_id": 999},
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
-async def test_delete_reservation_missing_params(
-    http_client: AsyncClient,
-) -> None:
+async def test_delete_reservation_missing_params(http_client: AsyncClient) -> None:
     """Test reservation deletion with missing parameters."""
     response = await http_client.delete("/dhcp/reservation")
 
@@ -602,15 +409,10 @@ async def test_delete_reservation_missing_params(
 
 @pytest.mark.asyncio
 async def test_lease_to_reservation_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_data: dict,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_data: dict
 ) -> None:
     """Test successful lease to reservation transformation."""
-    response = await http_client.patch(
-        "/dhcp/lease/to_reservation",
-        json=[sample_reservation_data],
-    )
+    response = await http_client.patch("/dhcp/lease/to_reservation", json=[sample_reservation_data])
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -619,9 +421,7 @@ async def test_lease_to_reservation_success(
 
 @pytest.mark.asyncio
 async def test_lease_to_reservation_partial_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_batch_reservation_data: list[dict],
+    http_client: AsyncClient, dhcp_manager: Mock, sample_batch_reservation_data: list[dict]
 ) -> None:
     """Test partial success on lease to reservation transformation."""
     ip_address = "192.168.1.51"
@@ -629,17 +429,10 @@ async def test_lease_to_reservation_partial_success(
     error_text = "Failed to release lease: IPv4 lease not found"
 
     dhcp_manager.lease_to_reservation.return_value = [
-        DHCPLeaseToReservationError(
-            text=error_text,
-            ip_address=IPv4Address(ip_address),
-            mac_address=mac_address,
-        ),
+        DHCPLeaseToReservationError(text=error_text, ip_address=IPv4Address(ip_address), mac_address=mac_address)
     ]
 
-    response = await http_client.patch(
-        "/dhcp/lease/to_reservation",
-        json=sample_batch_reservation_data,
-    )
+    response = await http_client.patch("/dhcp/lease/to_reservation", json=sample_batch_reservation_data)
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -652,53 +445,34 @@ async def test_lease_to_reservation_partial_success(
 
 @pytest.mark.asyncio
 async def test_lease_to_reservation_not_found(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_data: dict,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_data: dict
 ) -> None:
     """Test lease to reservation transformation when lease is not found."""
-    dhcp_manager.lease_to_reservation.side_effect = DHCPEntryNotFoundError(
-        "Lease not found",
-    )
+    dhcp_manager.lease_to_reservation.side_effect = DHCPEntryNotFoundError("Lease not found")
 
-    response = await http_client.patch(
-        "/dhcp/lease/to_reservation",
-        json=[sample_reservation_data],
-    )
+    response = await http_client.patch("/dhcp/lease/to_reservation", json=[sample_reservation_data])
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
 async def test_lease_to_reservation_bad_request(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_data: dict,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_data: dict
 ) -> None:
     """Test lease to reservation cast when operation fails completely."""
-    dhcp_manager.lease_to_reservation.side_effect = DHCPOperationError(
-        "Transformation failed",
-    )
+    dhcp_manager.lease_to_reservation.side_effect = DHCPOperationError("Transformation failed")
 
-    response = await http_client.patch(
-        "/dhcp/lease/to_reservation",
-        json=[sample_reservation_data],
-    )
+    response = await http_client.patch("/dhcp/lease/to_reservation", json=[sample_reservation_data])
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
 async def test_update_reservation_success(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_data: dict,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_data: dict
 ) -> None:
     """Test successful reservation update."""
-    response = await http_client.put(
-        "/dhcp/reservation",
-        json=sample_reservation_data,
-    )
+    response = await http_client.put("/dhcp/reservation", json=sample_reservation_data)
 
     assert response.status_code == status.HTTP_200_OK
     dhcp_manager.update_reservation.assert_called_once()
@@ -706,18 +480,11 @@ async def test_update_reservation_success(
 
 @pytest.mark.asyncio
 async def test_update_reservation_not_found(
-    http_client: AsyncClient,
-    dhcp_manager: Mock,
-    sample_reservation_data: dict,
+    http_client: AsyncClient, dhcp_manager: Mock, sample_reservation_data: dict
 ) -> None:
     """Test reservation update when reservation not found."""
-    dhcp_manager.update_reservation.side_effect = DHCPEntryNotFoundError(
-        "Reservation not found",
-    )
+    dhcp_manager.update_reservation.side_effect = DHCPEntryNotFoundError("Reservation not found")
 
-    response = await http_client.put(
-        "/dhcp/reservation",
-        json=sample_reservation_data,
-    )
+    response = await http_client.put("/dhcp/reservation", json=sample_reservation_data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST

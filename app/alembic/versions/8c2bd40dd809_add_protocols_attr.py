@@ -17,21 +17,15 @@ branch_labels: None = None
 depends_on: None = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     for protocol_field in ("is_http", "is_ldap", "is_kerberos"):
         op.add_column(
-            "Policies",
-            sa.Column(
-                protocol_field,
-                sa.Boolean(),
-                server_default=sa.text("true"),
-                nullable=False,
-            ),
+            "Policies", sa.Column(protocol_field, sa.Boolean(), server_default=sa.text("true"), nullable=False)
         )
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     for protocol_field in ("is_http", "is_ldap", "is_kerberos"):
         op.drop_column("Policies", protocol_field)

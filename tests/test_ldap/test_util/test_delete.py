@@ -23,11 +23,7 @@ from tests.conftest import TestCreds
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_ldap_delete(
-    session: AsyncSession,
-    settings: Settings,
-    user: dict,
-) -> None:
+async def test_ldap_delete(session: AsyncSession, settings: Settings, user: dict) -> None:
     """Test ldapdelete on server."""
     dn = "cn=test,dc=md,dc=test"
 
@@ -40,7 +36,7 @@ async def test_ldap_delete(
                 "objectClass: organization\n"
                 "objectClass: top\n"
                 "memberOf: cn=domain admins,cn=Groups,dc=md,dc=test\n"
-            ),
+            )
         )
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
@@ -79,10 +75,7 @@ async def test_ldap_delete(
     )
 
     assert await proc.wait() == 0
-    assert not await session.scalar(
-        select(Directory)
-        .filter_by(name="test"),
-    )  # fmt: skip
+    assert not await session.scalar(select(Directory).filter_by(name="test"))
 
     proc = await asyncio.create_subprocess_exec(
         "ldapdelete",
@@ -99,34 +92,20 @@ async def test_ldap_delete(
         stderr=asyncio.subprocess.PIPE,
     )
     assert await proc.wait() == 1
-    assert await session.scalar(
-        select(Directory)
-        .filter_by(name="user0"),
-    )  # fmt: skip
+    assert await session.scalar(select(Directory).filter_by(name="user0"))
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_ldap_delete_w_access_control(
-    settings: Settings,
-    creds: TestCreds,
-    role_dao: RoleDAO,
-    access_control_entry_dao: AccessControlEntryDAO,
+    settings: Settings, creds: TestCreds, role_dao: RoleDAO, access_control_entry_dao: AccessControlEntryDAO
 ) -> None:
     """Test ldapadd on server."""
     dn = "cn=test,dc=md,dc=test"
     base_dn = "dc=md,dc=test"
 
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write(
-            (
-                f"dn: {dn}\n"
-                "name: test\n"
-                "cn: test\n"
-                "objectClass: organization\n"
-                "objectClass: top\n"
-            ),
-        )
+        file.write((f"dn: {dn}\nname: test\ncn: test\nobjectClass: organization\nobjectClass: top\n"))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(  # Add as Admin
             "ldapadd",
@@ -168,11 +147,8 @@ async def test_ldap_delete_w_access_control(
 
     await role_dao.create(
         dto=RoleDTO(
-            name="Delete Role",
-            creator_upn=None,
-            is_system=False,
-            groups=["cn=domain users,cn=Groups," + base_dn],
-        ),
+            name="Delete Role", creator_upn=None, is_system=False, groups=["cn=domain users,cn=Groups," + base_dn]
+        )
     )
 
     delete_ace = AccessControlEntryDTO(
@@ -218,21 +194,11 @@ async def test_ldap_delete_w_access_control(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_ldap_delete_primary_object_classes(
-    settings: Settings,
-    user: dict,
-) -> None:
+async def test_ldap_delete_primary_object_classes(settings: Settings, user: dict) -> None:
     """Test deleting primary object class."""
     entry_dn = "cn=user0,cn=Users,dc=md,dc=test"
     with tempfile.NamedTemporaryFile("w") as file:
-        file.write(
-            (
-                f"dn: {entry_dn}\n"
-                "changetype: modify\n"
-                "delete: objectClass\n"
-                "objectClass: top\n"
-            ),
-        )
+        file.write((f"dn: {entry_dn}\nchangetype: modify\ndelete: objectClass\nobjectClass: top\n"))
         file.seek(0)
         proc = await asyncio.create_subprocess_exec(
             "ldapmodify",

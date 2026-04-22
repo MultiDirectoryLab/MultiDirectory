@@ -8,10 +8,7 @@ import copy
 
 import pytest
 
-from ldap_protocol.policies.password.dataclasses import (
-    DefaultDomainPasswordPolicyPreset,
-    PasswordPolicyDTO,
-)
+from ldap_protocol.policies.password.dataclasses import DefaultDomainPasswordPolicyPreset, PasswordPolicyDTO
 from ldap_protocol.policies.password.use_cases import PasswordPolicyUseCases
 
 from .datasets import test_get_password_policy_by_dir_path_dn_extended_dataset
@@ -41,9 +38,7 @@ async def test_get(password_use_cases: PasswordPolicyUseCases) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_get_password_policy_by_dir_path_dn(
-    password_use_cases: PasswordPolicyUseCases,
-) -> None:
+async def test_get_password_policy_by_dir_path_dn(password_use_cases: PasswordPolicyUseCases) -> None:
     """Test get Password Policy by directory path endpoint."""
     dto = PasswordPolicyDTO[None, int](
         id=None,
@@ -69,29 +64,23 @@ async def test_get_password_policy_by_dir_path_dn(
         failed_attempts_reset_sec=60,
         lockout_duration_sec=600,
         fail_delay_sec=5,
-    )  # fmt: skip
+    )
     await password_use_cases.create(dto)
 
     policies = await password_use_cases.get_all()
     assert any(policy.name == "Test Password Policy" for policy in policies)
 
     path_dn = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
-    policy = await password_use_cases.get_password_policy_by_dir_path_dn(
-        path_dn,
-    )
+    policy = await password_use_cases.get_password_policy_by_dir_path_dn(path_dn)
     assert policy.name == "Test Password Policy"
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-@pytest.mark.parametrize(
-    "dataset",
-    test_get_password_policy_by_dir_path_dn_extended_dataset,
-)
+@pytest.mark.parametrize("dataset", test_get_password_policy_by_dir_path_dn_extended_dataset)
 async def test_get_password_policy_by_dir_path_dn_extended(
-    dataset: list[PasswordPolicyDTO],
-    password_use_cases: PasswordPolicyUseCases,
+    dataset: list[PasswordPolicyDTO], password_use_cases: PasswordPolicyUseCases
 ) -> None:
     """Test get Password Policy by directory path endpoint."""
     for dto in dataset:
@@ -101,9 +90,7 @@ async def test_get_password_policy_by_dir_path_dn_extended(
     assert any(policy.name == "Test Password Policy" for policy in policies)
 
     path_dn = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
-    policy = await password_use_cases.get_password_policy_by_dir_path_dn(
-        path_dn,
-    )
+    policy = await password_use_cases.get_password_policy_by_dir_path_dn(path_dn)
     assert policy.name == "Test Password Policy3"
 
 
@@ -136,15 +123,11 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
         failed_attempts_reset_sec=60,
         lockout_duration_sec=600,
         fail_delay_sec=5,
-    )  # fmt: skip
+    )
     await password_use_cases.create(dto)
 
     policies = await password_use_cases.get_all()
-    id_ = next(
-        policy.id
-        for policy in policies
-        if policy.name == "Test Password Policy"
-    )
+    id_ = next(policy.id for policy in policies if policy.name == "Test Password Policy")
 
     dto_upd = PasswordPolicyDTO[int, int](
         id=id_,
@@ -170,7 +153,7 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
         failed_attempts_reset_sec=120,
         lockout_duration_sec=660,
         fail_delay_sec=4,
-    )  # fmt: skip
+    )
     await password_use_cases.update(id_, dto_upd)
 
     policies = await password_use_cases.get_all()
@@ -189,16 +172,16 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
     assert policy_upd.max_age_days == dto_upd.max_age_days
     assert policy_upd.min_length == dto_upd.min_length
     assert policy_upd.max_length == dto_upd.max_length
-    assert policy_upd.min_lowercase_letters_count == dto_upd.min_lowercase_letters_count  # noqa: E501  # fmt: skip
-    assert policy_upd.min_uppercase_letters_count == dto_upd.min_uppercase_letters_count  # noqa: E501  # fmt: skip
-    assert policy_upd.min_special_symbols_count == dto_upd.min_special_symbols_count  # noqa: E501  # fmt: skip
+    assert policy_upd.min_lowercase_letters_count == dto_upd.min_lowercase_letters_count
+    assert policy_upd.min_uppercase_letters_count == dto_upd.min_uppercase_letters_count
+    assert policy_upd.min_special_symbols_count == dto_upd.min_special_symbols_count
     assert policy_upd.min_digits_count == dto_upd.min_digits_count
-    assert policy_upd.min_unique_symbols_count == dto_upd.min_unique_symbols_count  # noqa: E501  # fmt: skip
-    assert policy_upd.max_repeating_symbols_in_row_count == dto_upd.max_repeating_symbols_in_row_count  # noqa: E501  # fmt: skip
-    assert policy_upd.max_sequential_keyboard_symbols_count == dto_upd.max_sequential_keyboard_symbols_count  # noqa: E501  # fmt: skip
-    assert policy_upd.max_sequential_alphabet_symbols_count == dto_upd.max_sequential_alphabet_symbols_count  # noqa: E501  # fmt: skip
+    assert policy_upd.min_unique_symbols_count == dto_upd.min_unique_symbols_count
+    assert policy_upd.max_repeating_symbols_in_row_count == dto_upd.max_repeating_symbols_in_row_count
+    assert policy_upd.max_sequential_keyboard_symbols_count == dto_upd.max_sequential_keyboard_symbols_count
+    assert policy_upd.max_sequential_alphabet_symbols_count == dto_upd.max_sequential_alphabet_symbols_count
     assert policy_upd.max_failed_attempts == dto_upd.max_failed_attempts
-    assert policy_upd.failed_attempts_reset_sec == dto_upd.failed_attempts_reset_sec  # noqa: E501  # fmt: skip
+    assert policy_upd.failed_attempts_reset_sec == dto_upd.failed_attempts_reset_sec
     assert policy_upd.lockout_duration_sec == dto_upd.lockout_duration_sec
     assert policy_upd.fail_delay_sec == dto_upd.fail_delay_sec
 
@@ -206,17 +189,15 @@ async def test_update(password_use_cases: PasswordPolicyUseCases) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_reset_domain_policy_to_default_config(
-    password_use_cases: PasswordPolicyUseCases,
-) -> None:
+async def test_reset_domain_policy_to_default_config(password_use_cases: PasswordPolicyUseCases) -> None:
     """Test reset domain Password Policy to default config endpoint."""
     response = await password_use_cases.get_all()
     policy_data = response[0]
 
-    assert policy_data.history_length == DefaultDomainPasswordPolicyPreset.history_length  # noqa: E501  # fmt: skip
-    assert policy_data.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days  # noqa: E501  # fmt: skip
-    assert policy_data.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days  # noqa: E501  # fmt: skip
-    assert policy_data.min_length == DefaultDomainPasswordPolicyPreset.min_length  # noqa: E501  # fmt: skip
+    assert policy_data.history_length == DefaultDomainPasswordPolicyPreset.history_length
+    assert policy_data.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days
+    assert policy_data.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days
+    assert policy_data.min_length == DefaultDomainPasswordPolicyPreset.min_length
 
     changed_data = copy.deepcopy(policy_data)
     changed_data.min_age_days = 30
@@ -224,14 +205,14 @@ async def test_reset_domain_policy_to_default_config(
     await password_use_cases.update(policy_data.id, changed_data)
 
     policy = await password_use_cases.get(policy_data.id)
-    assert policy.min_age_days == changed_data.min_age_days  # fmt: skip
-    assert policy.max_age_days == changed_data.max_age_days  # fmt: skip
+    assert policy.min_age_days == changed_data.min_age_days
+    assert policy.max_age_days == changed_data.max_age_days
 
     await password_use_cases.reset_domain_policy_to_default_config()
 
     policy_upd = await password_use_cases.get(policy_data.id)
     assert policy_upd.name == DefaultDomainPasswordPolicyPreset.name
-    assert policy_upd.history_length == DefaultDomainPasswordPolicyPreset.history_length  # noqa: E501  # fmt: skip
-    assert policy_upd.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days  # noqa: E501  # fmt: skip
-    assert policy_upd.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days  # noqa: E501  # fmt: skip
-    assert policy_upd.min_length == DefaultDomainPasswordPolicyPreset.min_length  # noqa: E501  # fmt: skip
+    assert policy_upd.history_length == DefaultDomainPasswordPolicyPreset.history_length
+    assert policy_upd.min_age_days == DefaultDomainPasswordPolicyPreset.min_age_days
+    assert policy_upd.max_age_days == DefaultDomainPasswordPolicyPreset.max_age_days
+    assert policy_upd.min_length == DefaultDomainPasswordPolicyPreset.min_length

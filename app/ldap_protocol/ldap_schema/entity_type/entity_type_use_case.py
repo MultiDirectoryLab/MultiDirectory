@@ -17,9 +17,7 @@ from ldap_protocol.ldap_schema.exceptions import (
     EntityTypeCantModifyError,
     EntityTypeNotFoundError,
 )
-from ldap_protocol.ldap_schema.object_class.object_class_dao import (
-    ObjectClassDAO,
-)
+from ldap_protocol.ldap_schema.object_class.object_class_dao import ObjectClassDAO
 from ldap_protocol.utils.pagination import PaginationParams, PaginationResult
 
 if TYPE_CHECKING:
@@ -34,10 +32,7 @@ class EntityTypeUseCase(AbstractService):
     __directory_dao: DirectoryDAO
 
     def __init__(
-        self,
-        entity_type_dao: EntityTypeDAO,
-        object_class_dao: ObjectClassDAO,
-        directory_dao: DirectoryDAO,
+        self, entity_type_dao: EntityTypeDAO, object_class_dao: ObjectClassDAO, directory_dao: DirectoryDAO
     ) -> None:
         """Initialize Entity Use Case."""
         self.__entity_type_dao = entity_type_dao
@@ -46,9 +41,7 @@ class EntityTypeUseCase(AbstractService):
 
     async def create(self, dto: EntityTypeDTO) -> None:
         """Create Entity Type."""
-        await self.__object_class_dao.is_all_object_classes_exists(
-            dto.object_class_names,
-        )
+        await self.__object_class_dao.is_all_object_classes_exists(dto.object_class_names)
 
         await self.__entity_type_dao.create(dto)
 
@@ -61,21 +54,15 @@ class EntityTypeUseCase(AbstractService):
         try:
             entity_type = await self.get(name)
         except EntityTypeNotFoundError:
-            raise EntityTypeCantModifyError(
-                "Can't update non-existent Entity Type.",
-            )
+            raise EntityTypeCantModifyError("Can't update non-existent Entity Type.")
 
         if entity_type.is_system:
-            raise EntityTypeCantModifyError(
-                f"Entity Type '{dto.name}' is system and cannot be modified.",
-            )
+            raise EntityTypeCantModifyError(f"Entity Type '{dto.name}' is system and cannot be modified.")
 
         if name != dto.name:
             await self._validate_name(name=dto.name)
 
-        await self.__object_class_dao.is_all_object_classes_exists(
-            dto.object_class_names,
-        )
+        await self.__object_class_dao.is_all_object_classes_exists(dto.object_class_names)
 
         await self.__entity_type_dao.update(entity_type.name, dto)
 
@@ -83,23 +70,15 @@ class EntityTypeUseCase(AbstractService):
         """Get Entity Type by name."""
         return await self.__entity_type_dao.get(name)
 
-    async def _validate_name(
-        self,
-        name: str,
-    ) -> None:
+    async def _validate_name(self, name: str) -> None:
         if name in EntityTypeNames:
-            raise EntityTypeCantModifyError(
-                f"Can't change entity type name {name}",
-            )
+            raise EntityTypeCantModifyError(f"Can't change entity type name {name}")
 
     async def delete_all_by_names_not_safe(self, names: list[str]) -> None:
         """Delete all Entity Types by names without any checks."""
         await self.__entity_type_dao.delete_all_by_names_not_safe(names)
 
-    async def get_paginator(
-        self,
-        params: PaginationParams,
-    ) -> PaginationResult:
+    async def get_paginator(self, params: PaginationParams) -> PaginationResult:
         """Get paginated Entity Types."""
         return await self.__entity_type_dao.get_paginator(params)
 
@@ -110,9 +89,7 @@ class EntityTypeUseCase(AbstractService):
         if not entity_type.object_class_names:
             return []
 
-        object_class_dirs = await self.__object_class_dao.get_all_by_names(
-            entity_type.object_class_names,
-        )
+        object_class_dirs = await self.__object_class_dao.get_all_by_names(entity_type.object_class_names)
 
         attribute_names: set[str] = set()
         for object_class_dir in object_class_dirs:
@@ -121,30 +98,20 @@ class EntityTypeUseCase(AbstractService):
 
         return sorted(attribute_names)
 
-    async def get_entity_type_by_object_class_names(
-        self,
-        object_class_names: Iterable[str],
-    ) -> EntityTypeDTO | None:
+    async def get_entity_type_by_object_class_names(self, object_class_names: Iterable[str]) -> EntityTypeDTO | None:
         """Get Entity Type by object class names."""
-        return (
-            await self.__entity_type_dao.get_entity_type_by_object_class_names(
-                object_class_names,
-            )
-        )
+        return await self.__entity_type_dao.get_entity_type_by_object_class_names(object_class_names)
 
     async def delete_all_by_names(self, names: list[str]) -> None:
         """Delete all Entity Types by names."""
         await self.__entity_type_dao.delete_all_by_names(names)
 
     async def attach_entity_type_to_directories(self) -> None:
-        """Find all Directories without an Entity Type and attach it to them."""  # noqa: E501
+        """Find all Directories without an Entity Type and attach it to them."""
         directories = await self.__directory_dao.get_all_without_entity_type()
 
         for directory in directories:
-            await self.attach_entity_type_to_directory(
-                directory=directory,
-                is_system_entity_type=False,
-            )
+            await self.attach_entity_type_to_directory(directory=directory, is_system_entity_type=False)
 
     async def attach_entity_type_to_directory(
         self,
@@ -155,40 +122,27 @@ class EntityTypeUseCase(AbstractService):
     ) -> None:
         """Try to find the Entity Type, attach it to the Directory."""
         if entity_type_id:
-            await self.__directory_dao.bind_entity_type(
-                directory,
-                entity_type_id,
-            )
+            await self.__directory_dao.bind_entity_type(directory, entity_type_id)
             return
 
         if object_class_names is None:
             object_class_names = directory.object_class_names_set
 
-        await self.__object_class_dao.is_all_object_classes_exists(
-            object_class_names,
-        )
+        await self.__object_class_dao.is_all_object_classes_exists(object_class_names)
 
-        entity_type = (
-            await self.__entity_type_dao.get_entity_type_by_object_class_names(
-                object_class_names,
-            )
-        )
+        entity_type = await self.__entity_type_dao.get_entity_type_by_object_class_names(object_class_names)
         if not entity_type:
-            entity_type_name = (
-                self.__entity_type_dao.generate_entity_type_name(directory)
-            )
+            entity_type_name = self.__entity_type_dao.generate_entity_type_name(directory)
             with contextlib.suppress(EntityTypeAlreadyExistsError):
                 await self.create(
                     EntityTypeDTO[None](
                         name=entity_type_name,
                         object_class_names=list(object_class_names),
                         is_system=is_system_entity_type,
-                    ),
+                    )
                 )
 
-            entity_type = await self.__entity_type_dao.get_entity_type_by_object_class_names(  # noqa: E501
-                object_class_names,
-            )
+            entity_type = await self.__entity_type_dao.get_entity_type_by_object_class_names(object_class_names)
 
         await self.__directory_dao.bind_entity_type(directory, entity_type.id)  # type: ignore
 
@@ -196,6 +150,6 @@ class EntityTypeUseCase(AbstractService):
         get.__name__: AuthorizationRules.ENTITY_TYPE_GET,
         create.__name__: AuthorizationRules.ENTITY_TYPE_CREATE,
         update.__name__: AuthorizationRules.ENTITY_TYPE_UPDATE,
-        delete_all_by_names.__name__: AuthorizationRules.ENTITY_TYPE_DELETE_ALL_BY_NAMES,  # noqa: E501
-        get_entity_type_attributes.__name__: AuthorizationRules.ENTITY_TYPE_GET_ATTRIBUTES,  # noqa: E501
+        delete_all_by_names.__name__: AuthorizationRules.ENTITY_TYPE_DELETE_ALL_BY_NAMES,
+        get_entity_type_attributes.__name__: AuthorizationRules.ENTITY_TYPE_GET_ATTRIBUTES,
     }

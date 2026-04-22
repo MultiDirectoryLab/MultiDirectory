@@ -13,66 +13,46 @@ from ldap_protocol.dialogue import UserSchema
 from ldap_protocol.permissions_checker import AuthorizationError
 from ldap_protocol.utils.queries import get_user
 from tests.conftest import TestCreds
-from tests.test_api.test_web_permissions.conftest import (
-    get_params,
-    get_test_instance_generator,
-)
+from tests.test_api.test_web_permissions.conftest import get_params, get_test_instance_generator
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_perm_checker_without_roles(
-    creds_with_login_perm: TestCreds,
-    session: AsyncSession,
-    api_permissions_checker: AuthorizationProviderProtocol,
+    creds_with_login_perm: TestCreds, session: AsyncSession, api_permissions_checker: AuthorizationProviderProtocol
 ) -> None:
     """Test that user without permissions cannot access protected resources."""
-    user_with_login_perm = await get_user(
-        session,
-        creds_with_login_perm.un,
-    )
+    user_with_login_perm = await get_user(session, creds_with_login_perm.un)
     assert user_with_login_perm
 
     api_permissions_checker._idp.get_current_user = AsyncMock(  # type: ignore  # noqa: SLF001
-        return_value=await UserSchema.from_db(user_with_login_perm, ""),
+        return_value=await UserSchema.from_db(user_with_login_perm, "")
     )
 
-    has_perm = await api_permissions_checker._has_permission(  # type: ignore # noqa: SLF001
-        AuthorizationRules.PASSWORD_POLICY_GET_ALL,
-    )
+    has_perm = await api_permissions_checker._has_permission(AuthorizationRules.PASSWORD_POLICY_GET_ALL)  # type: ignore  # noqa: SLF001
     assert has_perm is False
 
     with pytest.raises(AuthorizationError):  # type: ignore
-        await api_permissions_checker.check_permission(
-            AuthorizationRules.PASSWORD_POLICY_GET_ALL,
-        )
+        await api_permissions_checker.check_permission(AuthorizationRules.PASSWORD_POLICY_GET_ALL)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_perm_checker_with_roles(
-    creds_with_login_perm: TestCreds,
-    session: AsyncSession,
-    api_permissions_checker: AuthorizationProviderProtocol,
+    creds_with_login_perm: TestCreds, session: AsyncSession, api_permissions_checker: AuthorizationProviderProtocol
 ) -> None:
     """Test that user with permissions can access protected resources."""
     user = await get_user(session, creds_with_login_perm.un)
     assert user
-    user.groups[0].roles[0].permissions |= AuthorizationRules.PASSWORD_POLICY_GET_ALL  # fmt: skip  # noqa: E501
+    user.groups[0].roles[0].permissions |= AuthorizationRules.PASSWORD_POLICY_GET_ALL
     await session.commit()
-    api_permissions_checker._idp.get_current_user = AsyncMock(  # type: ignore # noqa: SLF001
-        return_value=await UserSchema.from_db(user, ""),
-    )
+    api_permissions_checker._idp.get_current_user = AsyncMock(return_value=await UserSchema.from_db(user, ""))  # type: ignore  # noqa: SLF001
 
-    has_perm = await api_permissions_checker._has_permission(  # type: ignore # noqa: SLF001
-        AuthorizationRules.PASSWORD_POLICY_GET_ALL,
-    )
+    has_perm = await api_permissions_checker._has_permission(AuthorizationRules.PASSWORD_POLICY_GET_ALL)  # type: ignore  # noqa: SLF001
     assert has_perm is True
 
     try:  # type: ignore
-        await api_permissions_checker.check_permission(
-            AuthorizationRules.PASSWORD_POLICY_GET_ALL,
-        )
+        await api_permissions_checker.check_permission(AuthorizationRules.PASSWORD_POLICY_GET_ALL)
     except AuthorizationError:
         pytest.fail("AuthorizationError was raised unexpectedly")
 
@@ -125,13 +105,9 @@ async def test_all_authorization_rules_forbid(
     assert user_without_api_perms
 
     api_permissions_checker._idp.get_current_user = AsyncMock(  # type: ignore  # noqa: SLF001
-        return_value=await UserSchema.from_db(user_without_api_perms, ""),
+        return_value=await UserSchema.from_db(user_without_api_perms, "")
     )
-    cls_instances = get_test_instance_generator(
-        container,
-        request_params,
-        api_permissions_checker,
-    )
+    cls_instances = get_test_instance_generator(container, request_params, api_permissions_checker)
     async for cls_instance in cls_instances:
         for method_name in cls_instance.PERMISSIONS:
             method = getattr(cls_instance, method_name)
@@ -154,13 +130,9 @@ async def test_all_authorization_rules_available(
     assert user_with_api_perms
 
     api_permissions_checker._idp.get_current_user = AsyncMock(  # type: ignore  # noqa: SLF001
-        return_value=await UserSchema.from_db(user_with_api_perms, ""),
+        return_value=await UserSchema.from_db(user_with_api_perms, "")
     )
-    cls_instances = get_test_instance_generator(
-        container,
-        request_params,
-        api_permissions_checker,
-    )
+    cls_instances = get_test_instance_generator(container, request_params, api_permissions_checker)
     async for cls_instance in cls_instances:
         for method_name in cls_instance.PERMISSIONS:
             method = getattr(cls_instance, method_name)

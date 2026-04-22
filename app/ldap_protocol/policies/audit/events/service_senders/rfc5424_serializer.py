@@ -8,9 +8,7 @@ import socket
 from datetime import datetime, timezone
 from typing import Any
 
-from ldap_protocol.policies.audit.events.dataclasses import (
-    NormalizedAuditEvent,
-)
+from ldap_protocol.policies.audit.events.dataclasses import NormalizedAuditEvent
 
 
 class RFC5424Serializer:
@@ -50,21 +48,12 @@ class RFC5424Serializer:
         "local7": 23,
     }
 
-    def __init__(
-        self,
-        app_name: str,
-        facility: str,
-    ) -> None:
+    def __init__(self, app_name: str, facility: str) -> None:
         """Initialize RFC 5424 serializer."""
         self.app_name = app_name
         self.facility = facility
 
-    def serialize(
-        self,
-        event: NormalizedAuditEvent,
-        structured_data: dict[str, Any],
-        syslog_version: int,
-    ) -> str:
+    def serialize(self, event: NormalizedAuditEvent, structured_data: dict[str, Any], syslog_version: int) -> str:
         """Serialize audit event to RFC 5424 format."""
         severity = self._format_severity(event.severity)
         timestamp = self._format_timestamp(event.timestamp)
@@ -75,21 +64,14 @@ class RFC5424Serializer:
         sd_str = self._format_structured_data(structured_data)
         msg = self._format_message(event.syslog_message)
 
-        return (
-            f"<{severity}>{syslog_version} "
-            f"{timestamp} {hostname} {app_name} {proc_id} {msg_id} "
-            f"{sd_str}{msg}"
-        )
+        return f"<{severity}>{syslog_version} {timestamp} {hostname} {app_name} {proc_id} {msg_id} {sd_str}{msg}"
 
     def _format_severity(self, severity: int) -> int:
         """Calculate PRIORITY value (RFC 5424 section 6.2.1)."""
         if not 0 <= severity <= 7:
             raise NotImplementedError(f"Severity must be 0-7, got {severity}")
 
-        facility_code = self.SYSLOG_FACILITIES.get(
-            self.facility.lower(),
-            self.SYSLOG_FACILITIES["authpriv"],
-        )
+        facility_code = self.SYSLOG_FACILITIES.get(self.facility.lower(), self.SYSLOG_FACILITIES["authpriv"])
 
         return (facility_code << 3) | severity
 
@@ -105,25 +87,16 @@ class RFC5424Serializer:
 
         return self._format_field(hostname, 255)
 
-    def _format_field(
-        self,
-        value: str | None,
-        max_length: int,
-    ) -> str:
+    def _format_field(self, value: str | None, max_length: int) -> str:
         """Format generic RFC 5424 field."""
         if not value:
             return self.NILVALUE
 
-        sanitized = "".join(c for c in value if 33 <= ord(c) <= 126)[
-            :max_length
-        ]
+        sanitized = "".join(c for c in value if 33 <= ord(c) <= 126)[:max_length]
 
         return sanitized or self.NILVALUE
 
-    def _format_structured_data(
-        self,
-        structured_data: dict[str, Any],
-    ) -> str:
+    def _format_structured_data(self, structured_data: dict[str, Any]) -> str:
         """Format STRUCTURED-DATA field (RFC 5424 section 6.3)."""
         if not structured_data:
             return self.NILVALUE
@@ -150,17 +123,11 @@ class RFC5424Serializer:
         except: =, space, ], "
         Max length: 32 characters
         """
-        return "".join(
-            c
-            for c in name
-            if 33 <= ord(c) <= 126 and c not in ("=", " ", "]", '"')
-        )[:32]
+        return "".join(c for c in name if 33 <= ord(c) <= 126 and c not in ("=", " ", "]", '"'))[:32]
 
     def _escape_param_value(self, value: str) -> str:
         """Escape PARAM-VALUE for STRUCTURED-DATA."""
-        return (
-            value.replace("\\", "\\\\").replace('"', r"\"").replace("]", r"\]")
-        )
+        return value.replace("\\", "\\\\").replace('"', r"\"").replace("]", r"\]")
 
     def _format_message(self, msg: str | None) -> str:
         """Format MSG field (RFC 5424 section 6.4)."""

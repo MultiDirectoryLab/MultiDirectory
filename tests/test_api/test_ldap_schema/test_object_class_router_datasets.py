@@ -42,10 +42,7 @@ test_create_one_object_class_dataset = [
             "superior_name": None,
             "kind": "STRUCTURAL",
             "is_system": False,
-            "attribute_type_names_must": [
-                "testAttributeType1",
-                "testAttributeType2",
-            ],
+            "attribute_type_names_must": ["testAttributeType1", "testAttributeType2"],
             "attribute_type_names_may": ["testAttributeType3"],
         },
     },
@@ -88,10 +85,7 @@ test_modify_one_object_class_dataset = [
             "attribute_type_names_must": [],
             "attribute_type_names_may": [],
         },
-        "new_statement": {
-            "attribute_type_names_must": [],
-            "attribute_type_names_may": [],
-        },
+        "new_statement": {"attribute_type_names_must": [], "attribute_type_names_may": []},
     },
     {
         "attribute_types": [
@@ -104,7 +98,7 @@ test_modify_one_object_class_dataset = [
                 "no_user_modification": False,
                 "is_system": False,
                 "is_included_anr": False,
-            },
+            }
         ],
         "object_class_data": {
             "oid": "1.2.3.4",
@@ -115,10 +109,7 @@ test_modify_one_object_class_dataset = [
             "attribute_type_names_must": ["testAttributeType1"],
             "attribute_type_names_may": [],
         },
-        "new_statement": {
-            "attribute_type_names_must": [],
-            "attribute_type_names_may": ["testAttributeType1"],
-        },
+        "new_statement": {"attribute_type_names_must": [], "attribute_type_names_may": ["testAttributeType1"]},
     },
     {
         "attribute_types": [
@@ -153,10 +144,7 @@ test_modify_one_object_class_dataset = [
             "attribute_type_names_may": [],
         },
         "new_statement": {
-            "attribute_type_names_must": [
-                "testAttributeType1",
-                "testAttributeType2",
-            ],
+            "attribute_type_names_must": ["testAttributeType1", "testAttributeType2"],
             "attribute_type_names_may": [],
         },
     },
@@ -212,11 +200,7 @@ test_modify_one_object_class_dataset = [
 
 
 test_delete_bulk_object_classes_dataset = [
-    {
-        "object_class_datas": [],
-        "object_classes_deleted": [],
-        "status_code": status.HTTP_422_UNPROCESSABLE_CONTENT,
-    },
+    {"object_class_datas": [], "object_classes_deleted": [], "status_code": status.HTTP_422_UNPROCESSABLE_CONTENT},
     {
         "object_class_datas": [
             {
@@ -251,14 +235,9 @@ test_delete_bulk_object_classes_dataset = [
                 "is_system": False,
                 "attribute_type_names_must": [],
                 "attribute_type_names_may": [],
-            },
+            }
         ],
-        "object_classes_deleted": [
-            "testObjectClass1",
-            "testObjectClass2",
-            "testObjectClass3",
-            "testObjectClass4",
-        ],
+        "object_classes_deleted": ["testObjectClass1", "testObjectClass2", "testObjectClass3", "testObjectClass4"],
         "status_code": status.HTTP_200_OK,
     },
 ]
@@ -274,11 +253,7 @@ test_delete_bulk_used_object_classes_dataset = [
             "attribute_type_names_must": [],
             "attribute_type_names_may": [],
         },
-        "entity_type_data": {
-            "name": "testEntityType1",
-            "is_system": False,
-            "object_class_names": ["testObjectClass1"],
-        },
+        "entity_type_data": {"name": "testEntityType1", "is_system": False, "object_class_names": ["testObjectClass1"]},
         "object_class_deleted": "testObjectClass1",
-    },
+    }
 ]

@@ -10,11 +10,7 @@ from entities import AccessControlEntry, AceType, Directory, Role
 from enums import AuthorizationRules, RoleConstants, RoleScope
 from ldap_protocol.kerberos.utils import get_system_container_dn
 from ldap_protocol.utils.queries import get_base_directories
-from repo.pg.tables import (
-    access_control_entries_table,
-    ace_directory_memberships_table,
-    queryable_attr as qa,
-)
+from repo.pg.tables import access_control_entries_table, ace_directory_memberships_table, queryable_attr as qa
 
 from .ace_dao import AccessControlEntryDAO
 from .dataclasses import AccessControlEntryDTO, RoleDTO
@@ -27,11 +23,7 @@ class RoleUseCase:
 
     _role_dao: RoleDAO
 
-    def __init__(
-        self,
-        role_dao: RoleDAO,
-        access_control_entry_dao: AccessControlEntryDAO,
-    ) -> None:
+    def __init__(self, role_dao: RoleDAO, access_control_entry_dao: AccessControlEntryDAO) -> None:
         """Initialize RoleUseCase with a database session.
 
         :param role_dao: RoleDAO instance for database operations.
@@ -39,53 +31,32 @@ class RoleUseCase:
         self._role_dao = role_dao
         self._access_control_entry_dao = access_control_entry_dao
 
-    async def inherit_parent_aces(
-        self,
-        parent_directory: Directory,
-        directory: Directory,
-    ) -> None:
+    async def inherit_parent_aces(self, parent_directory: Directory, directory: Directory) -> None:
         """Inherit access control entries from the parent directory.
 
         :param parent_directory: Parent directory from which to inherit ACES.
         :param directory: Directory to which the ACES will be added.
         """
-        ace_subquery = (
-            select(
-                access_control_entries_table.c.id,
-                literal(directory.id).label("directory_id"),
-            )
-            .where(
-                or_(
-                    and_(
-                        qa(AccessControlEntry.scope) == RoleScope.WHOLE_SUBTREE,  # noqa: E501
-                        qa(AccessControlEntry.directories).any(
-                            qa(Directory.id) == parent_directory.id,
-                        ),
-                    ),
-                    and_(
-                        qa(AccessControlEntry.scope) == RoleScope.SINGLE_LEVEL,
-                        qa(AccessControlEntry.depth) == parent_directory.depth,
-                        qa(AccessControlEntry.directories).any(
-                            qa(Directory.parent_id) == parent_directory.id,
-                        ),
-                    ),
+        ace_subquery = select(access_control_entries_table.c.id, literal(directory.id).label("directory_id")).where(
+            or_(
+                and_(
+                    qa(AccessControlEntry.scope) == RoleScope.WHOLE_SUBTREE,
+                    qa(AccessControlEntry.directories).any(qa(Directory.id) == parent_directory.id),
+                ),
+                and_(
+                    qa(AccessControlEntry.scope) == RoleScope.SINGLE_LEVEL,
+                    qa(AccessControlEntry.depth) == parent_directory.depth,
+                    qa(AccessControlEntry.directories).any(qa(Directory.parent_id) == parent_directory.id),
                 ),
             )
-        )  # fmt: skip
+        )
 
-        await self._role_dao._session.execute(  # noqa: SLF001
+        await self._role_dao._session.execute( # noqa: SLF001
             insert(ace_directory_memberships_table)
-            .from_select(
-                ["access_control_entry_id", "directory_id"],
-                ace_subquery,
-            ),
+            .from_select(["access_control_entry_id", "directory_id"], ace_subquery),
         )  # fmt: skip
 
-    async def get_password_ace(
-        self,
-        dir_id: int,
-        user_role_ids: list[int],
-    ) -> AccessControlEntry | None:
+    async def get_password_ace(self, dir_id: int, user_role_ids: list[int]) -> AccessControlEntry | None:
         """Get access control entries by directory ID.
 
         :param dir_id: Directory ID to filter access control entries.
@@ -100,19 +71,13 @@ class RoleUseCase:
                 qa(AccessControlEntry.role_id).in_(user_role_ids),
                 qa(AccessControlEntry.ace_type) == AceType.PASSWORD_MODIFY,
             )
-            .order_by(
-                qa(AccessControlEntry.depth).asc(),
-                qa(AccessControlEntry.is_allow).asc(),
-            )
+            .order_by(qa(AccessControlEntry.depth).asc(), qa(AccessControlEntry.is_allow).asc())
             .limit(1)
         )
         result = await self._role_dao._session.scalar(query)  # noqa: SLF001
         return result
 
-    async def contains_domain_admins_role(
-        self,
-        user_role_ids: list[int],
-    ) -> bool:
+    async def contains_domain_admins_role(self, user_role_ids: list[int]) -> bool:
         """Check if the user has the Domain Admins role.
 
         :param user_role_ids: List of user role IDs.
@@ -120,16 +85,13 @@ class RoleUseCase:
         """
         query = (
             select(Role)
-            .where(
-                qa(Role.id).in_(user_role_ids),
-                qa(Role.name) == RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
-            )
+            .where(qa(Role.id).in_(user_role_ids), qa(Role.name) == RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
             .limit(1)
             .exists()
         )
 
         return bool(
-            (await self._role_dao._session.scalars(select(query))).one(),  # noqa: SLF001
+            (await self._role_dao._session.scalars(select(query))).one()  # noqa: SLF001
         )
 
     async def create_domain_admins_role(self) -> None:
@@ -142,9 +104,7 @@ class RoleUseCase:
         if not base_dn_list:
             return
 
-        group_dn = (
-            RoleConstants.DOMAIN_ADMINS_GROUP_CN + base_dn_list[0].path_dn
-        )
+        group_dn = RoleConstants.DOMAIN_ADMINS_GROUP_CN + base_dn_list[0].path_dn
         await self._role_dao.create(
             dto=RoleDTO(
                 name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME,
@@ -152,14 +112,11 @@ class RoleUseCase:
                 is_system=True,
                 groups=[group_dn],
                 permissions=AuthorizationRules.get_all(),
-            ),
+            )
         )
 
         role_id = self._role_dao.get_last_id()
-        aces = self._get_full_access_aces(
-            role_id=role_id,
-            base_dn=base_dn_list[0].path_dn,
-        )
+        aces = self._get_full_access_aces(role_id=role_id, base_dn=base_dn_list[0].path_dn)
 
         await self._access_control_entry_dao.create_bulk(aces)
 
@@ -171,12 +128,7 @@ class RoleUseCase:
 
         group_dn = RoleConstants.READONLY_GROUP_CN + base_dn_list[0].path_dn
         await self._role_dao.create(
-            dto=RoleDTO(
-                name=RoleConstants.READ_ONLY_ROLE_NAME,
-                creator_upn=None,
-                is_system=True,
-                groups=[group_dn],
-            ),
+            dto=RoleDTO(name=RoleConstants.READ_ONLY_ROLE_NAME, creator_upn=None, is_system=True, groups=[group_dn])
         )
 
         ace = AccessControlEntryDTO(
@@ -202,17 +154,11 @@ class RoleUseCase:
 
         group_dn = RoleConstants.KERBEROS_GROUP_CN + base_dn_list[0].path_dn
         await self._role_dao.create(
-            dto=RoleDTO(
-                name=RoleConstants.KERBEROS_ROLE_NAME,
-                creator_upn=None,
-                is_system=True,
-                groups=[group_dn],
-            ),
+            dto=RoleDTO(name=RoleConstants.KERBEROS_ROLE_NAME, creator_upn=None, is_system=True, groups=[group_dn])
         )
 
         aces = self._get_full_access_aces(
-            role_id=self._role_dao.get_last_id(),
-            base_dn=get_system_container_dn(base_dn_list[0].path_dn),
+            role_id=self._role_dao.get_last_id(), base_dn=get_system_container_dn(base_dn_list[0].path_dn)
         )
         await self._access_control_entry_dao.create_bulk(aces)
 
@@ -223,9 +169,7 @@ class RoleUseCase:
             return
 
         try:
-            read_only_role = await self._role_dao.get_by_name(
-                RoleConstants.READ_ONLY_ROLE_NAME,
-            )
+            read_only_role = await self._role_dao.get_by_name(RoleConstants.READ_ONLY_ROLE_NAME)
         except RoleNotFoundError:
             return
         else:
@@ -236,27 +180,18 @@ class RoleUseCase:
 
             read_only_role.groups = new_groups_dn
 
-            await self._role_dao.update(
-                read_only_role.get_id(),
-                read_only_role,
-            )
+            await self._role_dao.update(read_only_role.get_id(), read_only_role)
 
     async def delete_kerberos_system_role(self) -> None:
         """Delete the Kerberos system role."""
         try:
-            role = await self._role_dao.get_by_name(
-                RoleConstants.KERBEROS_ROLE_NAME,
-            )
+            role = await self._role_dao.get_by_name(RoleConstants.KERBEROS_ROLE_NAME)
         except RoleNotFoundError:
             return
         else:
             await self._role_dao.delete(role.get_id())
 
-    def _get_full_access_aces(
-        self,
-        role_id: int,
-        base_dn: str,
-    ) -> list[AccessControlEntryDTO]:
+    def _get_full_access_aces(self, role_id: int, base_dn: str) -> list[AccessControlEntryDTO]:
         """Get a full access ACE.
 
         :param base_dn: Base DN for the role.

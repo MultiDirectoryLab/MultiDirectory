@@ -36,12 +36,8 @@ class RawDefinitionParser:
         return RawDefinitionParser._list_to_string(tmp.values())
 
     @staticmethod
-    def collect_attribute_type_dto_from_raw(
-        raw_definition: str,
-    ) -> AttributeTypeDTO[None]:
-        attribute_type_info = RawDefinitionParser._get_attribute_type_info(
-            raw_definition=raw_definition,
-        )
+    def collect_attribute_type_dto_from_raw(raw_definition: str) -> AttributeTypeDTO[None]:
+        attribute_type_info = RawDefinitionParser._get_attribute_type_info(raw_definition=raw_definition)
 
         name = RawDefinitionParser._list_to_string(attribute_type_info.name)
         if not name:
@@ -61,9 +57,7 @@ class RawDefinitionParser:
         )
 
     @staticmethod
-    async def collect_object_class_dto_from_info(
-        object_class_info: ObjectClassInfo,
-    ) -> ObjectClassDTO:
+    async def collect_object_class_dto_from_info(object_class_info: ObjectClassInfo) -> ObjectClassDTO:
         """Create Object Class by ObjectClassInfo."""
         name = RawDefinitionParser._list_to_string(object_class_info.name)
         if not name:
@@ -77,4 +71,4 @@ class RawDefinitionParser:
             is_system=True,
             attribute_types_must=object_class_info.must_contain,
             attribute_types_may=object_class_info.may_contain,
-        )  # fmt: skip
+        )

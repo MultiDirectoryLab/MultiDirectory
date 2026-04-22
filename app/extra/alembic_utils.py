@@ -6,11 +6,7 @@ import sqlalchemy as sa
 from alembic import op
 
 
-def temporary_stub_column(
-    table_name: str,
-    column_name: str,
-    type_: Any,
-) -> Callable:
+def temporary_stub_column(table_name: str, column_name: str, type_: Any) -> Callable:
     """Add and drop a temporary column in the table.
 
     State of the database at the time of migration
@@ -30,10 +26,7 @@ def temporary_stub_column(
 
     def decorator(func: Callable) -> Callable:
         def wrapper(*args: tuple, **kwargs: dict) -> None:
-            op.add_column(
-                table_name,
-                sa.Column(column_name, type_, nullable=True),
-            )
+            op.add_column(table_name, sa.Column(column_name, type_, nullable=True))
             func(*args, **kwargs)
             op.drop_column(table_name, column_name)
             return None

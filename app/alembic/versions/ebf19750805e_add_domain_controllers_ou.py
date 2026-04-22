@@ -41,9 +41,7 @@ _OU_DOMAIN_CONTROLLERS_DATA: dict[str, Any] = {
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _create_domain_controllers_ou(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _create_domain_controllers_ou(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             settings = await cnt.get(Settings)
             session = await cnt.get(AsyncSession)
@@ -71,52 +69,29 @@ def upgrade(container: AsyncContainer) -> None:
                 "object_class": "computer",
                 "attributes": {
                     "objectClass": ["top"],
-                    "userAccountControl": [
-                        str(
-                            UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value,
-                        ),
-                    ],
-                    "sAMAccountType": [
-                        str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
-                    ],
+                    "userAccountControl": [str(UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value)],
+                    "sAMAccountType": [str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT)],
                     "sAMAccountName": [settings.HOST_MACHINE_SHORT_NAME],
                     "ipHostNumber": [settings.DEFAULT_NAMESERVER],
                 },
-            },
+            }
         ]
         _OU_DOMAIN_CONTROLLERS_DATA["children"] = domain_controller_data
 
         await setup_gateway.create_dir(
-            _OU_DOMAIN_CONTROLLERS_DATA,
-            is_system=True,
-            domain=domain_dir,
-            parent=domain_dir,
+            _OU_DOMAIN_CONTROLLERS_DATA, is_system=True, domain=domain_dir, parent=domain_dir
         )
 
-        dc_ou = await session.scalar(
-            select(Directory).where(
-                qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
-            ),
-        )
+        dc_ou = await session.scalar(select(Directory).where(qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME))
         if not dc_ou:
             raise Exception("Domain Controllers OU was not created")
 
-        dc = await session.scalar(
-            select(Directory).where(
-                qa(Directory.name) == settings.HOST_MACHINE_SHORT_NAME,
-            ),
-        )
+        dc = await session.scalar(select(Directory).where(qa(Directory.name) == settings.HOST_MACHINE_SHORT_NAME))
         if not dc:
             raise Exception("Domain Controller was not created")
 
-        await role_use_case.inherit_parent_aces(
-            parent_directory=domain_dir,
-            directory=dc_ou,
-        )
-        await role_use_case.inherit_parent_aces(
-            parent_directory=dc_ou,
-            directory=dc,
-        )
+        await role_use_case.inherit_parent_aces(parent_directory=domain_dir, directory=dc_ou)
+        await role_use_case.inherit_parent_aces(parent_directory=dc_ou, directory=dc)
 
         await session.commit()
 
@@ -126,32 +101,20 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _delete_domain_controllers_ou(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _delete_domain_controllers_ou(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
         domain_controller_ou = await session.scalar(
-            select(Directory).where(
-                qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME,
-            ),
+            select(Directory).where(qa(Directory.name) == DOMAIN_CONTROLLERS_OU_NAME)
         )
 
         if not domain_controller_ou:
             return
 
-        await session.execute(
-            delete(Directory).where(
-                qa(Directory.parent_id) == domain_controller_ou.id,
-            ),
-        )
+        await session.execute(delete(Directory).where(qa(Directory.parent_id) == domain_controller_ou.id))
 
-        await session.execute(
-            delete(Directory).where(
-                qa(Directory.id) == domain_controller_ou.id,
-            ),
-        )
+        await session.execute(delete(Directory).where(qa(Directory.id) == domain_controller_ou.id))
         await session.commit()
 
     op.run_async(_delete_domain_controllers_ou)

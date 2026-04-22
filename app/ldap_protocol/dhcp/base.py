@@ -14,12 +14,7 @@ from loguru import logger as loguru_logger
 from abstract_service import AbstractService
 from enums import AuthorizationRules
 
-from .dataclasses import (
-    DHCPLease,
-    DHCPLeaseToReservationError,
-    DHCPReservation,
-    DHCPSubnet,
-)
+from .dataclasses import DHCPLease, DHCPLeaseToReservationError, DHCPReservation, DHCPSubnet
 from .dhcp_manager_repository import DHCPManagerRepository
 from .enums import DHCPManagerState
 
@@ -44,10 +39,7 @@ class DHCPAPIRepository(ABC):
         self._client = client
 
     @abstractmethod
-    async def create_subnet(
-        self,
-        subnet_dto: DHCPSubnet,
-    ) -> None:
+    async def create_subnet(self, subnet_dto: DHCPSubnet) -> None:
         """Create a new subnet."""
 
     @abstractmethod
@@ -75,17 +67,11 @@ class DHCPAPIRepository(ABC):
         """Release a lease."""
 
     @abstractmethod
-    async def list_leases_by_subnet_id(
-        self,
-        subnet_ids: list[int],
-    ) -> list[DHCPLease]:
+    async def list_leases_by_subnet_id(self, subnet_ids: list[int]) -> list[DHCPLease]:
         """List all active leases for a given subnet."""
 
     @abstractmethod
-    async def get_lease_by_hw_address(
-        self,
-        hw_address: str,
-    ) -> DHCPLease:
+    async def get_lease_by_hw_address(self, hw_address: str) -> DHCPLease:
         """Get a lease by hardware address."""
 
     @abstractmethod
@@ -119,98 +105,59 @@ class AbstractDHCPManager(AbstractService):
     _api_repository: DHCPAPIRepository
     _manager_repository: DHCPManagerRepository
 
-    def __init__(
-        self,
-        kea_dhcp_repository: DHCPAPIRepository,
-        dhcp_manager_repository: DHCPManagerRepository,
-    ) -> None:
+    def __init__(self, kea_dhcp_repository: DHCPAPIRepository, dhcp_manager_repository: DHCPManagerRepository) -> None:
         """Initialize Kea DHCP manager."""
         self._api_repository = kea_dhcp_repository
         self._manager_repository = dhcp_manager_repository
 
     async def change_state(self, dhcp_state: DHCPManagerState) -> None:
         """Change DHCP service state."""
-        await self._manager_repository.change_state(
-            dhcp_state,
-        )
+        await self._manager_repository.change_state(dhcp_state)
 
     async def get_state(self) -> DHCPManagerState:
         """Get current DHCP service state."""
         return await self._manager_repository.ensure_state()
 
     @abstractmethod
-    async def create_subnet(
-        self,
-        subnet_dto: DHCPSubnet,
-    ) -> None: ...
+    async def create_subnet(self, subnet_dto: DHCPSubnet) -> None: ...
 
     @abstractmethod
     async def delete_subnet(self, subnet_id: int) -> None: ...
 
     @abstractmethod
-    async def get_subnets(
-        self,
-    ) -> list[DHCPSubnet]: ...
+    async def get_subnets(self) -> list[DHCPSubnet]: ...
 
     @abstractmethod
-    async def update_subnet(
-        self,
-        subnet_dto: DHCPSubnet,
-    ) -> None: ...
+    async def update_subnet(self, subnet_dto: DHCPSubnet) -> None: ...
 
     @abstractmethod
-    async def create_lease(
-        self,
-        lease: DHCPLease,
-    ) -> None: ...
+    async def create_lease(self, lease: DHCPLease) -> None: ...
 
     @abstractmethod
     async def release_lease(self, ip_address: IPv4Address) -> None: ...
 
     @abstractmethod
-    async def list_active_leases(
-        self,
-        subnet_id: int,
-    ) -> list[DHCPLease]: ...
+    async def list_active_leases(self, subnet_id: int) -> list[DHCPLease]: ...
 
     @abstractmethod
-    async def find_lease(
-        self,
-        mac_address: str | None = None,
-        hostname: str | None = None,
-    ) -> DHCPLease: ...
+    async def find_lease(self, mac_address: str | None = None, hostname: str | None = None) -> DHCPLease: ...
 
     @abstractmethod
     async def lease_to_reservation(
-        self,
-        reservations: list[DHCPReservation],
+        self, reservations: list[DHCPReservation]
     ) -> None | list[DHCPLeaseToReservationError]: ...
 
     @abstractmethod
-    async def add_reservation(
-        self,
-        reservation: DHCPReservation,
-    ) -> None: ...
+    async def add_reservation(self, reservation: DHCPReservation) -> None: ...
 
     @abstractmethod
-    async def update_reservation(
-        self,
-        reservation: DHCPReservation,
-    ) -> None: ...
+    async def update_reservation(self, reservation: DHCPReservation) -> None: ...
 
     @abstractmethod
-    async def delete_reservation(
-        self,
-        mac_address: str,
-        ip_address: IPv4Address,
-        subnet_id: int,
-    ) -> None: ...
+    async def delete_reservation(self, mac_address: str, ip_address: IPv4Address, subnet_id: int) -> None: ...
 
     @abstractmethod
-    async def get_reservations(
-        self,
-        subnet_id: int,
-    ) -> list[DHCPReservation]: ...
+    async def get_reservations(self, subnet_id: int) -> list[DHCPReservation]: ...
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
         change_state.__name__: AuthorizationRules.DHCP_CHANGE_STATE,
@@ -221,11 +168,11 @@ class AbstractDHCPManager(AbstractService):
         update_subnet.__name__: AuthorizationRules.DHCP_UPDATE_SUBNET,
         create_lease.__name__: AuthorizationRules.DHCP_CREATE_LEASE,
         release_lease.__name__: AuthorizationRules.DHCP_RELEASE_LEASE,
-        list_active_leases.__name__: AuthorizationRules.DHCP_LIST_ACTIVE_LEASES,  # noqa: E501
+        list_active_leases.__name__: AuthorizationRules.DHCP_LIST_ACTIVE_LEASES,
         find_lease.__name__: AuthorizationRules.DHCP_FIND_LEASE,
-        lease_to_reservation.__name__: AuthorizationRules.DHCP_LEASE_TO_RESERVATION,  # noqa: E501
+        lease_to_reservation.__name__: AuthorizationRules.DHCP_LEASE_TO_RESERVATION,
         add_reservation.__name__: AuthorizationRules.DHCP_ADD_RESERVATION,
         get_reservations.__name__: AuthorizationRules.DHCP_GET_RESERVATIONS,
-        update_reservation.__name__: AuthorizationRules.DHCP_UPDATE_RESERVATION,  # noqa: E501
-        delete_reservation.__name__: AuthorizationRules.DHCP_DELETE_RESERVATION,  # noqa: E501
+        update_reservation.__name__: AuthorizationRules.DHCP_UPDATE_RESERVATION,
+        delete_reservation.__name__: AuthorizationRules.DHCP_DELETE_RESERVATION,
     }

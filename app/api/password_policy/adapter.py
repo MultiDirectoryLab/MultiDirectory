@@ -13,9 +13,7 @@ from fastapi.responses import StreamingResponse
 from api.base_adapter import BaseAdapter
 from api.password_policy.schemas import PasswordPolicySchema, PriorityT
 from ldap_protocol.policies.password.dataclasses import PasswordPolicyDTO
-from ldap_protocol.policies.password.exceptions import (
-    PasswordBanWordWrongFileExtensionError,
-)
+from ldap_protocol.policies.password.exceptions import PasswordBanWordWrongFileExtensionError
 from ldap_protocol.policies.password.use_cases import (
     PasswordBanWordUseCases,
     PasswordPolicyUseCases,
@@ -23,15 +21,10 @@ from ldap_protocol.policies.password.use_cases import (
 )
 
 _convert_schema_to_dto = get_converter(PasswordPolicySchema, PasswordPolicyDTO)
-_convert_dto_to_schema = get_converter(
-    PasswordPolicyDTO[int, int],
-    PasswordPolicySchema[int],
-)
+_convert_dto_to_schema = get_converter(PasswordPolicyDTO[int, int], PasswordPolicySchema[int])
 
 
-class UserPasswordHistoryResetFastAPIAdapter(
-    BaseAdapter[UserPasswordHistoryUseCases],
-):
+class UserPasswordHistoryResetFastAPIAdapter(BaseAdapter[UserPasswordHistoryUseCases]):
     """Adapter for clearing user password history."""
 
     async def clear(self, identity: str) -> None:
@@ -51,19 +44,12 @@ class PasswordPolicyFastAPIAdapter(BaseAdapter[PasswordPolicyUseCases]):
         dto = await self._service.get(id_)
         return _convert_dto_to_schema(dto)
 
-    async def get_password_policy_by_dir_path_dn(
-        self,
-        path_dn: str,
-    ) -> PasswordPolicySchema[int]:
+    async def get_password_policy_by_dir_path_dn(self, path_dn: str) -> PasswordPolicySchema[int]:
         """Get one Password Policy for one Directory by its path."""
         dto = await self._service.get_password_policy_by_dir_path_dn(path_dn)
         return _convert_dto_to_schema(dto)
 
-    async def update(
-        self,
-        id_: int,
-        policy: PasswordPolicySchema[PriorityT],
-    ) -> None:
+    async def update(self, id_: int, policy: PasswordPolicySchema[PriorityT]) -> None:
         """Update one Password Policy."""
         dto = _convert_schema_to_dto(policy)
         await self._service.update(id_, dto)
@@ -77,14 +63,8 @@ class PasswordBanWordsFastAPIAdapter(BaseAdapter[PasswordBanWordUseCases]):
     """Adapter for password ban words."""
 
     async def upload_ban_words_txt(self, file: UploadFile) -> None:
-        if (
-            file
-            and file.filename
-            and not file.filename.lower().endswith(".txt")
-        ):
-            raise PasswordBanWordWrongFileExtensionError(
-                "Only '.txt' files are allowed",
-            )
+        if file and file.filename and not file.filename.lower().endswith(".txt"):
+            raise PasswordBanWordWrongFileExtensionError("Only '.txt' files are allowed")
 
         content = await file.read()
         lines = content.decode("utf-8").splitlines()
@@ -109,9 +89,5 @@ class PasswordBanWordsFastAPIAdapter(BaseAdapter[PasswordBanWordUseCases]):
 
         file_like = io.BytesIO(file_content.encode("utf-8"))
         return StreamingResponse(
-            file_like,
-            media_type="text/plain",
-            headers={
-                "Content-Disposition": "attachment; filename=ban_words.txt",
-            },
+            file_like, media_type="text/plain", headers={"Content-Disposition": "attachment; filename=ban_words.txt"}
         )

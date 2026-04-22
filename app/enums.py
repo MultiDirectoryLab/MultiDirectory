@@ -230,9 +230,7 @@ class AuthorizationRules(IntFlag):
         return cls(sum(cls))
 
     @staticmethod
-    def combine(
-        permissions: Iterable[AuthorizationRules],
-    ) -> AuthorizationRules:
+    def combine(permissions: Iterable[AuthorizationRules]) -> AuthorizationRules:
         return reduce(or_, permissions, AuthorizationRules(0))
 
 

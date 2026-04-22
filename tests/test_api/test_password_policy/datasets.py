@@ -31,5 +31,5 @@ test_update_data = [
         failed_attempts_reset_sec=1,
         lockout_duration_sec=1,
         fail_delay_sec=0,
-    ),
+    )
 ]

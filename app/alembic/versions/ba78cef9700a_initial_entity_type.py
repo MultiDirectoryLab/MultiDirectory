@@ -16,9 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from constants import ENTITY_TYPE_DTOS_V1
 from entities import Attribute, Directory, User
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from repo.pg.tables import queryable_attr as qa
 
@@ -35,18 +33,9 @@ def upgrade(container: AsyncContainer) -> None:
     """Upgrade database schema and data, creating Entity Types."""
     op.create_table(
         "EntityTypes",
-        sa.Column(
-            "id",
-            sa.Integer(),
-            nullable=True,
-            server_default="0",
-        ),
+        sa.Column("id", sa.Integer(), nullable=True, server_default="0"),
         sa.Column("name", sa.String(length=255), nullable=False, unique=True),
-        sa.Column(
-            "object_class_names",
-            postgresql.ARRAY(sa.String()),
-            nullable=False,
-        ),
+        sa.Column("object_class_names", postgresql.ARRAY(sa.String()), nullable=False),
         sa.Column("is_system", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("name"),
     )
@@ -57,23 +46,10 @@ def upgrade(container: AsyncContainer) -> None:
         postgresql_using="gin",
         postgresql_ops={"name": "gin_trgm_ops"},
     )
-    op.create_index(
-        op.f("ix_Entity_Type_object_class_names"),
-        "EntityTypes",
-        ["object_class_names"],
-        unique=True,
-    )
+    op.create_index(op.f("ix_Entity_Type_object_class_names"), "EntityTypes", ["object_class_names"], unique=True)
 
-    op.add_column(
-        "Directory",
-        sa.Column("entity_type_name", sa.String(length=255), nullable=True),
-    )
-    op.create_index(
-        op.f("ix_Directory_entity_type_name"),
-        "Directory",
-        ["entity_type_name"],
-        unique=False,
-    )
+    op.add_column("Directory", sa.Column("entity_type_name", sa.String(length=255), nullable=True))
+    op.create_index(op.f("ix_Directory_entity_type_name"), "Directory", ["entity_type_name"], unique=False)
     op.create_foreign_key(
         "Directory_entity_type_name_fkey",
         "Directory",
@@ -84,20 +60,12 @@ def upgrade(container: AsyncContainer) -> None:
     )
 
     op.drop_index("ix_AttributeTypes_oid", table_name="AttributeTypes")
-    op.create_unique_constraint(
-        "AttributeTypes_oid_uc",
-        "AttributeTypes",
-        ["oid"],
-    )
+    op.create_unique_constraint("AttributeTypes_oid_uc", "AttributeTypes", ["oid"])
 
     op.drop_index("ix_ObjectClasses_oid", table_name="ObjectClasses")
-    op.create_unique_constraint(
-        "ObjectClasses_oid_uc",
-        "ObjectClasses",
-        ["oid"],
-    )
+    op.create_unique_constraint("ObjectClasses_oid_uc", "ObjectClasses", ["oid"])
 
-    async def _create_entity_types(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _create_entity_types(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             entity_type_use_case = await cnt.get(EntityTypeUseCase)
@@ -110,9 +78,7 @@ def upgrade(container: AsyncContainer) -> None:
 
         await session.commit()
 
-    async def _append_object_class_to_user_dirs(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _append_object_class_to_user_dirs(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -124,33 +90,21 @@ def upgrade(container: AsyncContainer) -> None:
             .join(Directory)
             .where(
                 ~exists(
-                    select(qa(Attribute.id))
-                    .where(
+                    select(qa(Attribute.id)).where(
                         qa(Attribute.directory_id) == qa(Directory.id),
-                        or_(
-                            qa(Attribute.name) == "objectClass",
-                            qa(Attribute.name) == "objectclass",
-                        ),
+                        or_(qa(Attribute.name) == "objectClass", qa(Attribute.name) == "objectclass"),
                         qa(Attribute).value == "inetOrgPerson",
-                    ),
-                ),
+                    )
+                )
             )
-        )  # fmt: skip
+        )
 
         for user in await session.scalars(query):
-            session.add(
-                Attribute(
-                    directory_id=user.directory_id,
-                    name="objectClass",
-                    value="inetOrgPerson",
-                ),
-            )
+            session.add(Attribute(directory_id=user.directory_id, name="objectClass", value="inetOrgPerson"))
 
         await session.commit()
 
-    async def _attach_entity_type_to_directories(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _attach_entity_type_to_directories(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             entity_type_use_case = await cnt.get(EntityTypeUseCase)
@@ -168,7 +122,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.drop_column("EntityTypes", "id")
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade database schema and data back to the previous state."""
     op.drop_index(
         "idx_entity_types_name_gin_trgm",
@@ -177,38 +131,14 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
         postgresql_ops={"name": "gin_trgm_ops"},
     )
     op.drop_constraint("ObjectClasses_oid_uc", "ObjectClasses", type_="unique")
-    op.create_index(
-        "ix_ObjectClasses_oid",
-        "ObjectClasses",
-        ["oid"],
-        unique=True,
-    )
+    op.create_index("ix_ObjectClasses_oid", "ObjectClasses", ["oid"], unique=True)
 
-    op.drop_constraint(
-        "AttributeTypes_oid_uc",
-        "AttributeTypes",
-        type_="unique",
-    )
-    op.create_index(
-        "ix_AttributeTypes_oid",
-        "AttributeTypes",
-        ["oid"],
-        unique=True,
-    )
+    op.drop_constraint("AttributeTypes_oid_uc", "AttributeTypes", type_="unique")
+    op.create_index("ix_AttributeTypes_oid", "AttributeTypes", ["oid"], unique=True)
 
-    op.drop_constraint(
-        "Directory_entity_type_name_fkey",
-        "Directory",
-        type_="foreignkey",
-    )
-    op.drop_index(
-        op.f("ix_Directory_entity_type_name"),
-        table_name="Directory",
-    )
+    op.drop_constraint("Directory_entity_type_name_fkey", "Directory", type_="foreignkey")
+    op.drop_index(op.f("ix_Directory_entity_type_name"), table_name="Directory")
     op.drop_column("Directory", "entity_type_name")
 
-    op.drop_index(
-        op.f("ix_Entity_Type_object_class_names"),
-        table_name="EntityTypes",
-    )
+    op.drop_index(op.f("ix_Entity_Type_object_class_names"), table_name="EntityTypes")
     op.drop_table("EntityTypes")

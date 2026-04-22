@@ -11,9 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ldap_protocol.ldap_schema.attribute_dao import AttributeDAO
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.dto import AttributeDTO, DirCreateDTO
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 
 if TYPE_CHECKING:
@@ -61,47 +59,24 @@ class DirectoryCreateUseCase:
         """Delete configuration directory."""
         await self.__directory_dao.delete_configuration_dir()
 
-    async def create_dir(
-        self,
-        dto: DirCreateDTO,
-        parent_dir: "Directory",
-    ) -> None:
+    async def create_dir(self, dto: DirCreateDTO, parent_dir: "Directory") -> None:
         """Create."""
         dir_ = await self.__directory_dao.create_directory(
-            name=dto.name,
-            is_system=dto.is_system,
-            parent_dir=parent_dir,
+            name=dto.name, is_system=dto.is_system, parent_dir=parent_dir
         )
 
         attr_dto = AttributeDTO(name=dir_.rdname, values=[dir_.name])
-        await self.__attribute_dao.add_directory_name_attribute(
-            dir_.id,
-            attr_dto,
-        )
+        await self.__attribute_dao.add_directory_name_attribute(dir_.id, attr_dto)
 
-        await self.__attribute_dao.add_attributes_from_dto(
-            directory_id=dir_.id,
-            attributes=dto.attributes,
-        )
+        await self.__attribute_dao.add_attributes_from_dto(directory_id=dir_.id, attributes=dto.attributes)
 
         await self.__session.flush()
 
-        await self.__session.refresh(
-            instance=dir_,
-            attribute_names=["attributes"],
-        )
+        await self.__session.refresh(instance=dir_, attribute_names=["attributes"])
 
-        entity_type = await self.__entity_type_use_case.get(
-            dto.entity_type_name,
-        )
-        await self.__directory_dao.bind_entity_type(
-            dir_,
-            entity_type.id if entity_type else None,
-        )
+        entity_type = await self.__entity_type_use_case.get(dto.entity_type_name)
+        await self.__directory_dao.bind_entity_type(dir_, entity_type.id if entity_type else None)
         await self.__session.flush()
 
-        await self.__role_use_case.inherit_parent_aces(
-            parent_directory=parent_dir,
-            directory=dir_,
-        )
+        await self.__role_use_case.inherit_parent_aces(parent_directory=parent_dir, directory=dir_)
         await self.__session.flush()

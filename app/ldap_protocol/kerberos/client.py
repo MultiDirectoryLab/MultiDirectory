@@ -17,21 +17,11 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def add_principal(
-        self,
-        name: str,
-        password: str | None,
-        algorithms: list[str] | None = None,
-        timeout: int | float = 1,
+        self, name: str, password: str | None, algorithms: list[str] | None = None, timeout: int | float = 1
     ) -> None:
         """Add request."""
         response = await self.client.post(
-            "principal",
-            json={
-                "principal_name": name,
-                "password": password,
-                "algorithms": algorithms,
-            },
-            timeout=timeout,
+            "principal", json={"principal_name": name, "password": password, "algorithms": algorithms}, timeout=timeout
         )
 
         if response.status_code != 201:
@@ -62,30 +52,16 @@ class KerberosMDAPIClient(AbstractKadmin):
             raise krb_exc.KRBAPIDeletePrincipalError(response.text)
 
     @logger_wraps()
-    async def change_principal_password(
-        self,
-        name: str,
-        password: str,
-    ) -> None:
+    async def change_principal_password(self, name: str, password: str) -> None:
         """Change password request."""
-        response = await self.client.patch(
-            "principal",
-            json={"name": name, "password": password},
-        )
+        response = await self.client.patch("principal", json={"name": name, "password": password})
         if response.status_code != 201:
             raise krb_exc.KRBAPIChangePasswordError(response.text)
 
     @logger_wraps()
-    async def create_or_update_principal_pw(
-        self,
-        name: str,
-        password: str,
-    ) -> None:
+    async def create_or_update_principal_pw(self, name: str, password: str) -> None:
         """Change password request."""
-        response = await self.client.post(
-            "/principal/create_or_update",
-            json={"name": name, "password": password},
-        )
+        response = await self.client.post("/principal/create_or_update", json={"name": name, "password": password})
 
         if response.status_code == 404:
             raise krb_exc.KRBAPIPrincipalNotFoundError
@@ -95,54 +71,32 @@ class KerberosMDAPIClient(AbstractKadmin):
 
     @logger_wraps()
     async def modify_princ(
-        self,
-        name: str,
-        new_name: str | None,
-        algorithms: list[str] | None,
-        password: str | None,
+        self, name: str, new_name: str | None, algorithms: list[str] | None, password: str | None
     ) -> None:
         """Rename request."""
         response = await self.client.put(
             "principal/modify",
-            json={
-                "principal_name": name,
-                "new_name": new_name,
-                "algorithms": algorithms,
-                "password": password,
-            },
+            json={"principal_name": name, "new_name": new_name, "algorithms": algorithms, "password": password},
         )
         if response.status_code != 202:
             raise krb_exc.KRBAPIModifyPrincipalError(response.text)
 
     @logger_wraps()
-    async def rename_princ(
-        self,
-        name: str,
-        new_name: str,
-    ) -> None:
+    async def rename_princ(self, name: str, new_name: str) -> None:
         """Rename request."""
-        response = await self.client.put(
-            "principal/rename",
-            json={"name": name, "new_name": new_name},
-        )
+        response = await self.client.put("principal/rename", json={"name": name, "new_name": new_name})
         if response.status_code != 202:
             raise krb_exc.KRBAPIModifyPrincipalError(response.text)
 
     @logger_wraps()
-    async def ktadd(
-        self,
-        names: list[str],
-        is_rand_key: bool,
-    ) -> httpx.Response:
+    async def ktadd(self, names: list[str], is_rand_key: bool) -> httpx.Response:
         """Ktadd build request for stream and return response.
 
         :param list[str] names: principals
         :return httpx.Response: stream
         """
         request = self.client.build_request(
-            "POST",
-            "/principal/ktadd",
-            json={"names": names, "is_rand_key": is_rand_key},
+            "POST", "/principal/ktadd", json={"names": names, "is_rand_key": is_rand_key}
         )
 
         response = await self.client.send(request, stream=True)
@@ -159,10 +113,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         :raises KRBAPIPrincipalNotFoundError: on error
         :raises KRBAPILockPrincipalError: on error
         """
-        response = await self.client.post(
-            "principal/lock",
-            json={"name": name},
-        )
+        response = await self.client.post("principal/lock", json={"name": name})
 
         if response.status_code == 404:
             raise krb_exc.KRBAPIPrincipalNotFoundError
@@ -178,10 +129,7 @@ class KerberosMDAPIClient(AbstractKadmin):
         :raises KRBAPIPrincipalNotFoundError: err
         :raises KRBAPIForcePasswordChangeError: err
         """
-        response = await self.client.post(
-            "principal/force_reset",
-            json={"name": name},
-        )
+        response = await self.client.post("principal/force_reset", json={"name": name})
 
         if response.status_code == 404:
             raise krb_exc.KRBAPIPrincipalNotFoundError

@@ -12,11 +12,7 @@ from typing import ClassVar, Generic, Protocol, TypeVar
 from pydantic import BaseModel
 
 from api.ldap_schema import LimitedListType
-from ldap_protocol.utils.pagination import (
-    BasePaginationSchema,
-    PaginationParams,
-    PaginationResult,
-)
+from ldap_protocol.utils.pagination import BasePaginationSchema, PaginationParams, PaginationResult
 
 
 class _DataclassInstance(Protocol):
@@ -33,10 +29,7 @@ class _ServiceProtocol(Protocol[DtoT]):
 
     async def get(self, _id: str) -> DtoT: ...
 
-    async def get_paginator(
-        self,
-        params: PaginationParams,
-    ) -> PaginationResult: ...
+    async def get_paginator(self, params: PaginationParams) -> PaginationResult: ...
 
     async def update(self, _id: str, dto: DtoT) -> None: ...
 
@@ -49,15 +42,7 @@ UpdateSchemaT = TypeVar("UpdateSchemaT", bound=BaseModel)
 PaginationSchemaT = TypeVar("PaginationSchemaT", bound=BasePaginationSchema)
 
 
-class BaseLDAPSchemaAdapter(
-    Generic[
-        ServiceT,
-        SchemaT,
-        UpdateSchemaT,
-        PaginationSchemaT,
-        DtoT,
-    ],
-):
+class BaseLDAPSchemaAdapter(Generic[ServiceT, SchemaT, UpdateSchemaT, PaginationSchemaT, DtoT]):
     """Base interface for LDAP Schema adapters with ClassVar behavior."""
 
     _service: ServiceT
@@ -72,42 +57,24 @@ class BaseLDAPSchemaAdapter(
         dto = self._converter_to_dto(data)
         await self._service.create(dto)
 
-    async def get(
-        self,
-        name: str,
-    ) -> SchemaT:
+    async def get(self, name: str) -> SchemaT:
         """Get a single entity by name."""
         attribute_type = await self._service.get(name)
         return self._converter_to_schema(attribute_type)
 
-    async def get_list_paginated(
-        self,
-        params: PaginationParams,
-    ) -> PaginationSchemaT:
+    async def get_list_paginated(self, params: PaginationParams) -> PaginationSchemaT:
         """Get a list of entities with pagination."""
         pagination_result = await self._service.get_paginator(params)
 
-        items: list[SchemaT] = [
-            self._converter_to_schema(item) for item in pagination_result.items
-        ]
+        items: list[SchemaT] = [self._converter_to_schema(item) for item in pagination_result.items]
 
-        return self._pagination_schema(
-            metadata=pagination_result.metadata,
-            items=items,
-        )
+        return self._pagination_schema(metadata=pagination_result.metadata, items=items)
 
-    async def update(
-        self,
-        name: str,
-        data: UpdateSchemaT,
-    ) -> None:
+    async def update(self, name: str, data: UpdateSchemaT) -> None:
         """Modify an entity."""
         dto = self._converter_update_sch_to_dto(data)
         await self._service.update(name, dto)
 
-    async def delete_bulk(
-        self,
-        names: LimitedListType,
-    ) -> None:
+    async def delete_bulk(self, names: LimitedListType) -> None:
         """Delete multiple entities."""
         await self._service.delete_all_by_names(names)

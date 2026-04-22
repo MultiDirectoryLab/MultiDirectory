@@ -9,17 +9,13 @@ from datetime import datetime, timedelta
 import pytest
 
 from ldap_protocol.policies.password import PasswordPolicyValidator
-from ldap_protocol.policies.password.ban_word_repository import (
-    PasswordBanWordRepository,
-)
+from ldap_protocol.policies.password.ban_word_repository import PasswordBanWordRepository
 from ldap_protocol.utils.helpers import dt_to_ft
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_letters_count(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_min_letters_count(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for minimum letters count."""
     password_policy_validator.setup_language("Latin")
     validator = password_policy_validator.min_letters_count(2)
@@ -31,9 +27,7 @@ async def test_password_validator_min_letters_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_language_latin(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_language_latin(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for no OTP-like suffix."""
     password_policy_validator.setup_language("Latin")
     password_policy_validator.language()
@@ -45,9 +39,7 @@ async def test_password_language_latin(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_language_cyrillic(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_language_cyrillic(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for no OTP-like suffix."""
     password_policy_validator.setup_language("Cyrillic")
     password_policy_validator.language()
@@ -59,9 +51,7 @@ async def test_password_language_cyrillic(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_digits_count(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_min_digits_count(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for minimum digits count."""
     validator = password_policy_validator.min_digits_count(2)
     assert await validator.validate("abc123")
@@ -98,14 +88,11 @@ async def test_password_validator_min_lowercase_letters_count(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_password_validator_not_equal_any_ban_word(
-    password_policy_validator: PasswordPolicyValidator,
-    password_ban_word_repository: PasswordBanWordRepository,
+    password_policy_validator: PasswordPolicyValidator, password_ban_word_repository: PasswordBanWordRepository
 ) -> None:
     """Test password validator for not equaling banned words into password."""
     password_policy_validator.setup_language("Latin")
-    validator = password_policy_validator.not_equal_any_ban_word(
-        password_ban_word_repository,
-    )
+    validator = password_policy_validator.not_equal_any_ban_word(password_ban_word_repository)
     assert not await validator.validate("alex")
     assert not await validator.validate("aLex")
     assert not await validator.validate("ALEX")
@@ -119,14 +106,11 @@ async def test_password_validator_not_equal_any_ban_word(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 async def test_password_validator_not_contain_any_ban_word(
-    password_policy_validator: PasswordPolicyValidator,
-    password_ban_word_repository: PasswordBanWordRepository,
+    password_policy_validator: PasswordPolicyValidator, password_ban_word_repository: PasswordBanWordRepository
 ) -> None:
-    """Test password validator for not containing banned words into password."""  # noqa: E501
+    """Test password validator for not containing banned words into password."""
     password_policy_validator.setup_language("Latin")
-    validator = password_policy_validator.not_contain_any_ban_word(
-        password_ban_word_repository,
-    )
+    validator = password_policy_validator.not_contain_any_ban_word(password_ban_word_repository)
     assert not await validator.validate("prefix_alex_suffix")
     assert not await validator.validate("_alex_sUffix_120*!_")
     assert not await validator.validate("_ALex_sUffix_120*!_")
@@ -137,9 +121,7 @@ async def test_password_validator_not_contain_any_ban_word(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_special_symbols_count(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_min_special_symbols_count(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for minimum special symbols count."""
     password_policy_validator.setup_language("Latin")
     validator = password_policy_validator.min_special_symbols_count(2)
@@ -150,9 +132,7 @@ async def test_password_validator_min_special_symbols_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_unique_symbols_count(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_min_unique_symbols_count(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for minimum unique symbols count."""
     validator = password_policy_validator.min_unique_symbols_count(2)
     assert await validator.validate("aaaaa!!!!!33333333")
@@ -165,11 +145,9 @@ async def test_password_validator_min_unique_symbols_count(
 async def test_password_validator_max_sequential_keyboard_symbols_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
-    """Test password validator for maximum sequential keyboard symbols count."""  # noqa: E501
+    """Test password validator for maximum sequential keyboard symbols count."""
     password_policy_validator.setup_language("Latin")
-    validator = (
-        password_policy_validator.max_sequential_keyboard_symbols_count(4)
-    )
+    validator = password_policy_validator.max_sequential_keyboard_symbols_count(4)
     assert not await validator.validate("qwerty")
     assert not await validator.validate("QWERTY")
     assert not await validator.validate("PQWE")
@@ -195,12 +173,10 @@ async def test_password_validator_max_sequential_keyboard_symbols_count(
 async def test_password_validator_max_sequential_alphabet_symbols_count(
     password_policy_validator: PasswordPolicyValidator,
 ) -> None:
-    """Test password validator for maximum sequential alphabet symbols count."""  # noqa: E501
+    """Test password validator for maximum sequential alphabet symbols count."""
     password_policy_validator.setup_language("Latin")
 
-    validator = (
-        password_policy_validator.max_sequential_alphabet_symbols_count(4)
-    )
+    validator = password_policy_validator.max_sequential_alphabet_symbols_count(4)
     assert not await validator.validate("18abcdef!_")
     assert not await validator.validate("18abCDef!_")
     assert not await validator.validate("18yzAB!_")
@@ -223,9 +199,7 @@ async def test_password_validator_max_repeating_symbols_in_row_count(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_max_length(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_min_max_length(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for min and max length."""
     validator = password_policy_validator.min_length(3).max_length(5)
     assert not await validator.validate("ab")
@@ -237,9 +211,7 @@ async def test_password_validator_min_max_length(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_no_otp_like_suffix(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_no_otp_like_suffix(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator for no OTP-like suffix."""
     validator = password_policy_validator.not_otp_like_suffix()
     assert not await validator.validate("abc123456")
@@ -249,18 +221,10 @@ async def test_password_validator_no_otp_like_suffix(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_chained_rules(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_chained_rules(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator with chained rules."""
     password_policy_validator.setup_language("Latin")
-    validator = (
-        password_policy_validator
-        .min_letters_count(2)
-        .min_digits_count(2)
-        .min_length(5)
-        .max_length(10)
-    )  # fmt: skip
+    validator = password_policy_validator.min_letters_count(2).min_digits_count(2).min_length(5).max_length(10)
     assert await validator.validate("abc12")
     assert not await validator.validate("abc")
     assert not await validator.validate("12345")
@@ -269,9 +233,7 @@ async def test_password_validator_chained_rules(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_password_validator_min_age(
-    password_policy_validator: PasswordPolicyValidator,
-) -> None:
+async def test_password_validator_min_age(password_policy_validator: PasswordPolicyValidator) -> None:
     """Test password validator with chained rules."""
     required_date = str(dt_to_ft(datetime.now() - timedelta(days=5)))
 

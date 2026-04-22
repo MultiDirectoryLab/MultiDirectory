@@ -27,10 +27,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
                 {"type": "name", "vals": ["test"]},
                 {"type": "cn", "vals": ["test"]},
                 {"type": "objectClass", "vals": ["organization", "top"]},
-                {
-                    "type": "memberOf",
-                    "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
-                },
+                {"type": "memberOf", "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},
             ],
         },
     )
@@ -45,9 +42,7 @@ async def test_api_correct_add(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_incorrect_user_samaccount_with_dot(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_add_incorrect_user_samaccount_with_dot(http_client: AsyncClient) -> None:
     """Test api incorrect (sAMAccountName) add."""
     un = "test0"
 
@@ -97,18 +92,9 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
             "entry": new_entry,
             "password": None,
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "objectClass",
-                    "vals": ["computer", "top"],
-                },
+                {"type": "name", "vals": ["test"]},
+                {"type": "cn", "vals": ["test"]},
+                {"type": "objectClass", "vals": ["computer", "top"]},
             ],
         },
     )
@@ -135,10 +121,7 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
 
     for attr in data["search_result"][0]["partial_attributes"]:
         if attr["type"] == "userAccountControl":
-            assert (
-                int(attr["vals"][0])
-                & UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
-            )
+            assert int(attr["vals"][0]) & UserAccountControlFlag.WORKSTATION_TRUST_ACCOUNT
             break
     else:
         raise Exception("Computer without userAccountControl")
@@ -153,9 +136,7 @@ async def test_api_add_computer(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_add_user_samaccounttype(
-    http_client: AsyncClient,
-) -> None:
+async def test_add_user_samaccounttype(http_client: AsyncClient) -> None:
     """Add user without sAMAccountType: server sets SAM_USER_OBJECT."""
     entry = "cn=samuser,dc=md,dc=test"
     await http_client.post(
@@ -187,19 +168,13 @@ async def test_add_user_samaccounttype(
         },
     )
     data = response.json()
-    attrs = {
-        a["type"]: a for a in data["search_result"][0]["partial_attributes"]
-    }
-    assert attrs["sAMAccountType"]["vals"][0] == str(
-        SamAccountTypeCodes.SAM_USER_OBJECT,
-    )
+    attrs = {a["type"]: a for a in data["search_result"][0]["partial_attributes"]}
+    assert attrs["sAMAccountType"]["vals"][0] == str(SamAccountTypeCodes.SAM_USER_OBJECT)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_correct_add_double_member_of(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_correct_add_double_member_of(http_client: AsyncClient) -> None:
     """Test api correct add a group with a register.
 
     assigning it to a user,
@@ -208,10 +183,7 @@ async def test_api_correct_add_double_member_of(
     new_group = "cn=Domain Admins,dc=md,dc=test"
     user = "cn=test0,dc=md,dc=test"
     un = "test0"
-    groups = [
-        "cn=domain admins,cn=Groups,dc=md,dc=test",
-        new_group,
-    ]
+    groups = ["cn=domain admins,cn=Groups,dc=md,dc=test", new_group]
 
     response = await http_client.post(
         "/entry/add",
@@ -219,18 +191,9 @@ async def test_api_correct_add_double_member_of(
             "entry": new_group,
             "password": None,
             "attributes": [
-                {
-                    "type": "objectClass",
-                    "vals": ["top", "group"],
-                },
-                {
-                    "type": "groupType",
-                    "vals": ["-2147483646"],
-                },
-                {
-                    "type": "instanceType",
-                    "vals": ["4"],
-                },
+                {"type": "objectClass", "vals": ["top", "group"]},
+                {"type": "groupType", "vals": ["-2147483646"]},
+                {"type": "instanceType", "vals": ["4"]},
             ],
         },
     )
@@ -266,42 +229,15 @@ async def test_api_correct_add_double_member_of(
             "entry": user,
             "password": "P@ssw0rd",
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": [un],
-                },
-                {
-                    "type": "cn",
-                    "vals": [un],
-                },
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top", "user"],
-                },
-                {
-                    "type": "sAMAccountName",
-                    "vals": [un],
-                },
-                {
-                    "type": "userPrincipalName",
-                    "vals": [f"{un}@md.ru"],
-                },
-                {
-                    "type": "mail",
-                    "vals": [f"{un}@md.ru"],
-                },
-                {
-                    "type": "displayName",
-                    "vals": [un],
-                },
-                {
-                    "type": "memberOf",
-                    "vals": groups,
-                },
-                {
-                    "type": "userAccountControl",
-                    "vals": ["514"],
-                },
+                {"type": "name", "vals": [un]},
+                {"type": "cn", "vals": [un]},
+                {"type": "objectClass", "vals": ["organization", "top", "user"]},
+                {"type": "sAMAccountName", "vals": [un]},
+                {"type": "userPrincipalName", "vals": [f"{un}@md.ru"]},
+                {"type": "mail", "vals": [f"{un}@md.ru"]},
+                {"type": "displayName", "vals": [un]},
+                {"type": "memberOf", "vals": groups},
+                {"type": "userAccountControl", "vals": ["514"]},
             ],
         },
     )
@@ -360,38 +296,14 @@ async def test_api_add_user_inccorect_uac(http_client: AsyncClient) -> None:
             "entry": user,
             "password": "P@ssw0rd",
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": [un],
-                },
-                {
-                    "type": "cn",
-                    "vals": [un],
-                },
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top", "user"],
-                },
-                {
-                    "type": "sAMAccountName",
-                    "vals": [un],
-                },
-                {
-                    "type": "userPrincipalName",
-                    "vals": [f"{un}@md.ru"],
-                },
-                {
-                    "type": "mail",
-                    "vals": [f"{un}@md.ru"],
-                },
-                {
-                    "type": "displayName",
-                    "vals": [un],
-                },
-                {
-                    "type": "userAccountControl",
-                    "vals": ["516"],
-                },
+                {"type": "name", "vals": [un]},
+                {"type": "cn", "vals": [un]},
+                {"type": "objectClass", "vals": ["organization", "top", "user"]},
+                {"type": "sAMAccountName", "vals": [un]},
+                {"type": "userPrincipalName", "vals": [f"{un}@md.ru"]},
+                {"type": "mail", "vals": [f"{un}@md.ru"]},
+                {"type": "displayName", "vals": [un]},
+                {"type": "userAccountControl", "vals": ["516"]},
             ],
         },
     )
@@ -435,12 +347,7 @@ async def test_api_add_non_auth_user(unbound_http_client: AsyncClient) -> None:
     """Test API add for unauthorized user."""
     unbound_http_client.cookies.set("id", "09e67421-2f92-8ddc-494108a6e04f")
     response = await unbound_http_client.post(
-        "/entry/add",
-        json={
-            "entry": "cn=test,dc=md,dc=test",
-            "password": "password_test",
-            "attributes": [],
-        },
+        "/entry/add", json={"entry": "cn=test,dc=md,dc=test", "password": "password_test", "attributes": []}
     )
 
     data = response.json()
@@ -454,12 +361,7 @@ async def test_api_add_non_auth_user(unbound_http_client: AsyncClient) -> None:
 async def test_api_add_with_incorrect_dn(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect DN."""
     response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": "cn!=test,dc=md,dc=test",
-            "password": "password_test",
-            "attributes": [],
-        },
+        "/entry/add", json={"entry": "cn!=test,dc=md,dc=test", "password": "password_test", "attributes": []}
     )
 
     data = response.json()
@@ -472,12 +374,7 @@ async def test_api_add_with_incorrect_dn(http_client: AsyncClient) -> None:
 async def test_api_add_with_incorrect_name(http_client: AsyncClient) -> None:
     """Test API add a user with incorrect name."""
     response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": "cn=test,test,dc=md,dc=test",
-            "password": "password_test",
-            "attributes": [],
-        },
+        "/entry/add", json={"entry": "cn=test,test,dc=md,dc=test", "password": "password_test", "attributes": []}
     )
 
     data = response.json()
@@ -487,18 +384,10 @@ async def test_api_add_with_incorrect_name(http_client: AsyncClient) -> None:
 @pytest.mark.parametrize("dataset", test_api_forbidden_chars_in_attr_value)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_with_forbidden_chars(
-    http_client: AsyncClient,
-    dataset: str,
-) -> None:
+async def test_api_add_with_forbidden_chars(http_client: AsyncClient, dataset: str) -> None:
     """Test API add an entry with forbidden chars in attribute value."""
     response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": f"cn={dataset},dc=md,dc=test",
-            "password": "password_test",
-            "attributes": [],
-        },
+        "/entry/add", json={"entry": f"cn={dataset},dc=md,dc=test", "password": "password_test", "attributes": []}
     )
 
     data = response.json()
@@ -510,12 +399,7 @@ async def test_api_add_with_forbidden_chars(
 async def test_api_add_with_non_exist_parent(http_client: AsyncClient) -> None:
     """Test API add a user with non-existen parent."""
     response = await http_client.post(
-        "/entry/add",
-        json={
-            "entry": "cn=test,ou=testing,dc=md,dc=test",
-            "password": "password_test",
-            "attributes": [],
-        },
+        "/entry/add", json={"entry": "cn=test,ou=testing,dc=md,dc=test", "password": "password_test", "attributes": []}
     )
 
     data = response.json()
@@ -536,24 +420,10 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
             "entry": "cn=test,dc=md,dc=test",
             "password": None,
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-                {
-                    "type": "memberOf",
-                    "vals": [
-                        "cn=domain admins,cn=Groups,dc=md,dc=test",
-                    ],
-                },
+                {"type": "name", "vals": ["test"]},
+                {"type": "cn", "vals": ["test"]},
+                {"type": "objectClass", "vals": ["organization", "top"]},
+                {"type": "memberOf", "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},
             ],
         },
     )
@@ -567,33 +437,17 @@ async def test_api_double_add(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_add_double_case_insensetive(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_add_double_case_insensetive(http_client: AsyncClient) -> None:
     """Test api double add."""
     response = await http_client.post(
         "/entry/add",
         json={
             "entry": "cn=test,dc=md,dc=test",
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-                {
-                    "type": "memberOf",
-                    "vals": [
-                        "cn=domain admins,cn=Groups,dc=md,dc=test",
-                    ],
-                },
+                {"type": "name", "vals": ["test"]},
+                {"type": "cn", "vals": ["test"]},
+                {"type": "objectClass", "vals": ["organization", "top"]},
+                {"type": "memberOf", "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},
             ],
         },
     )
@@ -605,24 +459,10 @@ async def test_api_add_double_case_insensetive(
         json={
             "entry": "cn=Test,dc=md,dc=test",
             "attributes": [
-                {
-                    "type": "name",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "cn",
-                    "vals": ["test"],
-                },
-                {
-                    "type": "objectClass",
-                    "vals": ["organization", "top"],
-                },
-                {
-                    "type": "memberOf",
-                    "vals": [
-                        "cn=domain admins,cn=Groups,dc=md,dc=test",
-                    ],
-                },
+                {"type": "name", "vals": ["test"]},
+                {"type": "cn", "vals": ["test"]},
+                {"type": "objectClass", "vals": ["organization", "top"]},
+                {"type": "memberOf", "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},
             ],
         },
     )

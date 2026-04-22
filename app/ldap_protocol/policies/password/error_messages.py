@@ -14,7 +14,7 @@ class ErrorMessages:
     NOT_IN_HISTORY = "Password must not be in history"
     NOT_LIKE_OTP = "Password suffix should not be similar to OTP"
 
-    UNAUTHORIZED_LANGUAGE = "Password must not contain characters from an unauthorized language"  # fmt: skip # noqa: E501
+    UNAUTHORIZED_LANGUAGE = "Password must not contain characters from an unauthorized language"
 
     MORE_LOWERCASE_LETTERS = "Password must contain more lowercase letters"
     MORE_UPPERCASE_LETTERS = "Password must contain more uppercase letters"
@@ -27,9 +27,9 @@ class ErrorMessages:
     MORE_UNIQUE_SYMBOLS = "Password must contain more unique symbols"
     MORE_SPECIAL_SYMBOLS = "Password must contain more special symbols"
 
-    FEWER_ALPHABET_LETTERS = "Password must contain fewer consecutive alphabet letters"  # fmt: skip # noqa: E501
-    FEWER_KEYBOARD_CHARACTERS = "Password must contain fewer consecutive keyboard characters"  # fmt: skip # noqa: E501
-    FEWER_REPEATING_CHARACTERS = "Password must contain fewer consecutive repeating characters"  # fmt: skip # noqa: E501
+    FEWER_ALPHABET_LETTERS = "Password must contain fewer consecutive alphabet letters"
+    FEWER_KEYBOARD_CHARACTERS = "Password must contain fewer consecutive keyboard characters"
+    FEWER_REPEATING_CHARACTERS = "Password must contain fewer consecutive repeating characters"
 
     NOT_EQUAL_BAN_WORD = "Password must not equal ban word"
     NOT_CONTAIN_BAN_WORD = "Password must not contain ban word"

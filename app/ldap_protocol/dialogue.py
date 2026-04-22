@@ -46,11 +46,7 @@ class UserSchema:
     role_ids: list[int]
 
     @classmethod
-    async def from_db(
-        cls,
-        user: User,
-        session_id: str,
-    ) -> UserSchema:
+    async def from_db(cls, user: User, session_id: str) -> UserSchema:
         """Create model from db model."""
         return cls(
             id=user.id,
@@ -62,9 +58,7 @@ class UserSchema:
             directory_id=user.directory_id,
             dn=user.directory.path_dn,
             account_exp=user.account_exp,
-            role_ids=[
-                role.id for group in user.groups for role in group.roles
-            ],
+            role_ids=[role.id for group in user.groups for role in group.roles],
         )
 
 
@@ -80,12 +74,7 @@ class LDAPSession:
 
     event_task_group: TaskGroup = None  # type: ignore[assignment]
 
-    def __init__(
-        self,
-        *,
-        user: UserSchema | None = None,
-        storage: SessionStorage | None = None,
-    ) -> None:
+    def __init__(self, *, user: UserSchema | None = None, storage: SessionStorage | None = None) -> None:
         """Set lock."""
         self._lock = asyncio.Lock()
         self._user: UserSchema | None = user
@@ -111,9 +100,7 @@ class LDAPSession:
 
     @user.setter
     def user(self, user: User) -> None:
-        raise NotImplementedError(
-            "Cannot manually set user, use `set_user()` instead",
-        )
+        raise NotImplementedError("Cannot manually set user, use `set_user()` instead")
 
     async def set_user(self, user: User | UserSchema) -> None:
         """Bind user to session concurrently save."""
@@ -143,15 +130,10 @@ class LDAPSession:
             yield self._user
 
     async def validate_conn(
-        self,
-        ip: IPv4Address | IPv6Address,
-        network_policy_use_case: NetworkPolicyValidatorUseCase,
+        self, ip: IPv4Address | IPv6Address, network_policy_use_case: NetworkPolicyValidatorUseCase
     ) -> None:
         """Validate network policies."""
-        policy = await network_policy_use_case.get_by_protocol(
-            ip,
-            ProtocolType.LDAP,
-        )
+        policy = await network_policy_use_case.get_by_protocol(ip, ProtocolType.LDAP)
         if policy is not None:
             self.policy = policy
             await self.bind_session()
@@ -174,9 +156,7 @@ class LDAPSession:
 
         await self.storage.delete_user_session(self.key)
         await self.storage.create_ldap_session(
-            uid=self.user.id,
-            key=self.key,
-            data={"id": self.user.id, "ip": str(self.ip)},
+            uid=self.user.id, key=self.key, data={"id": self.user.id, "ip": str(self.ip)}
         )
 
     async def disconnect(self) -> None:

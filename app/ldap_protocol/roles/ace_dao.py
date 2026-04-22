@@ -32,14 +32,8 @@ _convert = get_converter(
     recipe=[
         link_function(lambda x: x.path, P[AccessControlEntryDTO].base_dn),
         link_function(lambda x: x.role_id, P[AccessControlEntryDTO].role_id),
-        link_function(
-            lambda x: x.role.name,
-            P[AccessControlEntryDTO].role_name,
-        ),
-        link_function(
-            lambda x: x.entity_type_id,
-            P[AccessControlEntryDTO].entity_type_id,
-        ),
+        link_function(lambda x: x.role.name, P[AccessControlEntryDTO].role_name),
+        link_function(lambda x: x.entity_type_id, P[AccessControlEntryDTO].entity_type_id),
     ],
 )
 
@@ -70,9 +64,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         )
         retval = await self._session.scalar(query)
         if not retval:
-            raise AccessControlEntryNotFoundError(
-                f"AccessControlEntry with ID {_id} does not exist.",
-            )
+            raise AccessControlEntryNotFoundError(f"AccessControlEntry with ID {_id} does not exist.")
         return retval
 
     async def get(self, _id: int) -> AccessControlEntryDTO:
@@ -91,18 +83,13 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         access_control_entries = (
             await self._session.scalars(
                 select(AccessControlEntry).options(
-                    joinedload(qa(AccessControlEntry.entity_type)),
-                    joinedload(qa(AccessControlEntry.role)),
-                ),
+                    joinedload(qa(AccessControlEntry.entity_type)), joinedload(qa(AccessControlEntry.role))
+                )
             )
         ).all()
         return list(map(_convert, access_control_entries))
 
-    async def _get_directories_with_scope(
-        self,
-        base_dn: str,
-        scope: RoleScope,
-    ) -> list[Directory]:
+    async def _get_directories_with_scope(self, base_dn: str, scope: RoleScope) -> list[Directory]:
         """Get directories based on the scope.
 
         :param str base_dn: Base DN to start searching from.
@@ -111,35 +98,21 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         search_path = get_search_path(base_dn)
         if scope == RoleScope.BASE_OBJECT:
             path_filter = get_path_filter(path=search_path)
-            directory = await self._session.scalar(
-                select(Directory).where(path_filter),
-            )
+            directory = await self._session.scalar(select(Directory).where(path_filter))
             return [directory] if directory else []
 
         elif scope == RoleScope.SINGLE_LEVEL:
             query = select(Directory).filter(
                 and_(
                     func.cardinality(Directory.path) == len(search_path) + 1,
-                    get_path_filter(
-                        column=qa(Directory.path)[0 : len(search_path)],
-                        path=search_path,
-                    ),
-                ),
+                    get_path_filter(column=qa(Directory.path)[0 : len(search_path)], path=search_path),
+                )
             )
             return list((await self._session.scalars(query)).all())
 
         elif scope == RoleScope.WHOLE_SUBTREE:
-            path_filter = get_path_filter(
-                column=qa(Directory.path)[1 : len(search_path)],
-                path=search_path,
-            )
-            return list(
-                (
-                    await self._session.scalars(
-                        select(Directory).where(path_filter),
-                    )
-                ).all(),
-            )
+            path_filter = get_path_filter(column=qa(Directory.path)[1 : len(search_path)], path=search_path)
+            return list((await self._session.scalars(select(Directory).where(path_filter))).all())
 
         else:
             raise ValueError(f"Invalid scope: {scope}")
@@ -149,15 +122,10 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
 
         :param dto: AccessControlEntryDTO object to create.
         """
-        directories = await self._get_directories_with_scope(
-            base_dn=dto.base_dn,
-            scope=dto.scope,
-        )
+        directories = await self._get_directories_with_scope(base_dn=dto.base_dn, scope=dto.scope)
 
         if not directories:
-            raise NoValidDistinguishedNameError(
-                f"Invalid distinguished name: {dto.base_dn}",
-            )
+            raise NoValidDistinguishedNameError(f"Invalid distinguished name: {dto.base_dn}")
 
         new_ace = AccessControlEntry(
             role_id=dto.role_id,
@@ -175,9 +143,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         try:
             await self._session.flush()
         except IntegrityError:
-            raise AccessControlEntryAddError(
-                "Failed to add access control entries.",
-            )
+            raise AccessControlEntryAddError("Failed to add access control entries.")
 
     async def create_bulk(self, dtos: list[AccessControlEntryDTO]) -> None:
         """Create multiple access control entries.
@@ -189,17 +155,12 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         for ace in dtos:
             cache_key = (ace.base_dn, ace.scope)
             if cache_key not in directory_cache:
-                directory_cache[
-                    cache_key
-                ] = await self._get_directories_with_scope(
-                    base_dn=ace.base_dn,
-                    scope=ace.scope,
+                directory_cache[cache_key] = await self._get_directories_with_scope(
+                    base_dn=ace.base_dn, scope=ace.scope
                 )
 
             if not directory_cache[cache_key]:
-                raise NoValidDistinguishedNameError(
-                    f"Invalid distinguished name: {ace.base_dn}",
-                )
+                raise NoValidDistinguishedNameError(f"Invalid distinguished name: {ace.base_dn}")
 
             new_ace = AccessControlEntry(
                 role_id=ace.role_id,
@@ -218,9 +179,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
             await self._session.flush()
         except IntegrityError:
             await self._session.rollback()
-            raise AccessControlEntryAddError(
-                "Failed to add access control entries.",
-            )
+            raise AccessControlEntryAddError("Failed to add access control entries.")
 
     async def update(self, _id: int, dto: AccessControlEntryDTO) -> None:
         """Update an existing access control entry.
@@ -238,14 +197,9 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         ace.is_allow = dto.is_allow
 
         if dto.scope != ace.scope or dto.base_dn != ace.path:
-            directories = await self._get_directories_with_scope(
-                base_dn=dto.base_dn,
-                scope=dto.scope,
-            )
+            directories = await self._get_directories_with_scope(base_dn=dto.base_dn, scope=dto.scope)
             if not directories:
-                raise NoValidDistinguishedNameError(
-                    f"Invalid distinguished name: {dto.base_dn}",
-                )
+                raise NoValidDistinguishedNameError(f"Invalid distinguished name: {dto.base_dn}")
 
             ace.directories.clear()
             ace.directories.extend(directories)
@@ -256,9 +210,7 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         try:
             await self._session.flush()
         except IntegrityError:
-            raise AccessControlEntryUpdateError(
-                "Failed to update access control entry.",
-            )
+            raise AccessControlEntryUpdateError("Failed to update access control entry.")
 
     async def delete(self, _id: int) -> None:
         """Delete an existing access control entry.
@@ -266,7 +218,5 @@ class AccessControlEntryDAO(AbstractDAO[AccessControlEntryDTO, int]):
         :param int _id: ID of the access control entry to delete.
         """
         ace = await self._get_raw(_id)
-        await self._session.execute(
-            delete(AccessControlEntry).filter_by(id=ace.id),
-        )
+        await self._session.execute(delete(AccessControlEntry).filter_by(id=ace.id))
         await self._session.flush()

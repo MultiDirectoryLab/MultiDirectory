@@ -8,17 +8,11 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ldap_protocol.auth.setup_gateway import SetupGateway
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
+from ldap_protocol.ldap_schema.attribute_value_validator import AttributeValueValidator
 from ldap_protocol.ldap_schema.directory_dao import DirectoryDAO
 from ldap_protocol.ldap_schema.entity_type.entity_type_dao import EntityTypeDAO
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
-from ldap_protocol.ldap_schema.object_class.object_class_dao import (
-    ObjectClassDAO,
-)
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.object_class.object_class_dao import ObjectClassDAO
 from ldap_protocol.rid_manager.object_sid_use_case import ObjectSIDUseCase
 from ldap_protocol.utils.queries import get_base_directories
 from password_utils import PasswordUtils
@@ -37,14 +31,10 @@ async def add_system_administrator(
     object_class_dao = ObjectClassDAO(session)
     directory_dao = DirectoryDAO(session)
     entity_type_dao = EntityTypeDAO(
-        session=session,
-        attribute_value_validator=attribute_value_validator,
-        directory_dao=directory_dao,
+        session=session, attribute_value_validator=attribute_value_validator, directory_dao=directory_dao
     )
     entity_type_use_case = EntityTypeUseCase(
-        entity_type_dao=entity_type_dao,
-        object_class_dao=object_class_dao,
-        directory_dao=directory_dao,
+        entity_type_dao=entity_type_dao, object_class_dao=object_class_dao, directory_dao=directory_dao
     )
 
     setup_gateway = SetupGateway(
@@ -57,9 +47,4 @@ async def add_system_administrator(
     )
 
     domain = (await get_base_directories(session))[0]
-    await setup_gateway.create_dir(
-        data=TEST_SYSTEM_ADMIN_DATA,
-        is_system=True,
-        domain=domain,
-        parent=domain,
-    )
+    await setup_gateway.create_dir(data=TEST_SYSTEM_ADMIN_DATA, is_system=True, domain=domain, parent=domain)

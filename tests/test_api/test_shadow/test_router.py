@@ -21,11 +21,7 @@ from .conftest import ProxyRequestModel
 async def test_shadow_api_non_existent_user(http_client: AsyncClient) -> None:
     """Test shadow api with non-existent user."""
     response = await http_client.post(
-        "/shadow/mfa/push",
-        json=ProxyRequestModel(
-            principal="non-existent_user",
-            ip="127.0.0.1",
-        ).model_dump(),
+        "/shadow/mfa/push", json=ProxyRequestModel(principal="non-existent_user", ip="127.0.0.1").model_dump()
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -34,17 +30,12 @@ async def test_shadow_api_non_existent_user(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_without_network_policies(
-    http_client: AsyncClient,
-    adding_mfa_user_and_group: dict,
-    session: AsyncSession,
+    http_client: AsyncClient, adding_mfa_user_and_group: dict, session: AsyncSession
 ) -> None:
     """Test shadow api without network policy."""
     await session.execute(delete(NetworkPolicy))
 
-    response = await http_client.post(
-        "/shadow/mfa/push",
-        json=adding_mfa_user_and_group,
-    )
+    response = await http_client.post("/shadow/mfa/push", json=adding_mfa_user_and_group)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -52,34 +43,21 @@ async def test_shadow_api_without_network_policies(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_without_kerberos_protocol(
-    http_client: AsyncClient,
-    adding_mfa_user_and_group: dict,
-    session: AsyncSession,
+    http_client: AsyncClient, adding_mfa_user_and_group: dict, session: AsyncSession
 ) -> None:
     """Test shadow api without network policy with kerberos protocol."""
-    await session.execute(
-        update(NetworkPolicy).values({NetworkPolicy.is_kerberos: False}),
-    )
+    await session.execute(update(NetworkPolicy).values({NetworkPolicy.is_kerberos: False}))
 
-    response = await http_client.post(
-        "/shadow/mfa/push",
-        json=adding_mfa_user_and_group,
-    )
+    response = await http_client.post("/shadow/mfa/push", json=adding_mfa_user_and_group)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_shadow_api_with_disable_mfa(
-    http_client: AsyncClient,
-    adding_mfa_user_and_group: dict,
-) -> None:
+async def test_shadow_api_with_disable_mfa(http_client: AsyncClient, adding_mfa_user_and_group: dict) -> None:
     """Test shadow api with disable mfa."""
-    response = await http_client.post(
-        "/shadow/mfa/push",
-        json=adding_mfa_user_and_group,
-    )
+    response = await http_client.post("/shadow/mfa/push", json=adding_mfa_user_and_group)
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -87,21 +65,12 @@ async def test_shadow_api_with_disable_mfa(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_whitelist_without_user_group(
-    http_client: AsyncClient,
-    adding_mfa_user_and_group: dict,
-    session: AsyncSession,
+    http_client: AsyncClient, adding_mfa_user_and_group: dict, session: AsyncSession
 ) -> None:
     """Test shadow api whitelist without user group."""
-    await session.execute(
-        update(NetworkPolicy).values(
-            {NetworkPolicy.mfa_status: MFAFlags.WHITELIST},
-        ),
-    )
+    await session.execute(update(NetworkPolicy).values({NetworkPolicy.mfa_status: MFAFlags.WHITELIST}))
 
-    response = await http_client.post(
-        "/shadow/mfa/push",
-        json=adding_mfa_user_and_group,
-    )
+    response = await http_client.post("/shadow/mfa/push", json=adding_mfa_user_and_group)
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -109,20 +78,11 @@ async def test_shadow_api_whitelist_without_user_group(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_shadow_api_enable_mfa(
-    http_client: AsyncClient,
-    adding_mfa_user_and_group: dict,
-    session: AsyncSession,
+    http_client: AsyncClient, adding_mfa_user_and_group: dict, session: AsyncSession
 ) -> None:
     """Test shadow api enable mfa."""
-    await session.execute(
-        update(NetworkPolicy).values(
-            {NetworkPolicy.mfa_status: MFAFlags.ENABLED},
-        ),
-    )
+    await session.execute(update(NetworkPolicy).values({NetworkPolicy.mfa_status: MFAFlags.ENABLED}))
 
-    response = await http_client.post(
-        "/shadow/mfa/push",
-        json=adding_mfa_user_and_group,
-    )
+    response = await http_client.post("/shadow/mfa/push", json=adding_mfa_user_and_group)
 
     assert response.status_code == status.HTTP_200_OK

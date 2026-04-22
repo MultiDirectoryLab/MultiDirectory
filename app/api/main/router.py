@@ -11,50 +11,24 @@ from fastapi_error_map.rules import rule
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.error_routing import (
-    ERROR_MAP_TYPE,
-    DishkaErrorAwareRoute,
-    DomainErrorTranslator,
-)
+from api.error_routing import ERROR_MAP_TYPE, DishkaErrorAwareRoute, DomainErrorTranslator
 from api.utils import require_master_db
 from enums import DomainCodes
 from ldap_protocol.custom_requests.rename import RenameRequest
 from ldap_protocol.identity.exceptions import UnauthorizedError
-from ldap_protocol.ldap_requests import (
-    AddRequest,
-    DeleteRequest,
-    ModifyDNRequest,
-    ModifyRequest,
-)
+from ldap_protocol.ldap_requests import AddRequest, DeleteRequest, ModifyDNRequest, ModifyRequest
 from ldap_protocol.ldap_responses import LDAPResult
-from ldap_protocol.utils.queries import (
-    get_group_path_dn_by_primary_group_id,
-    set_or_update_primary_group,
-)
+from ldap_protocol.utils.queries import get_group_path_dn_by_primary_group_id, set_or_update_primary_group
 
-from .schema import (
-    PrimaryGroupPathDNResponse,
-    PrimaryGroupRequest,
-    SearchRequest,
-    SearchResponse,
-    SearchResultDone,
-)
+from .schema import PrimaryGroupPathDNResponse, PrimaryGroupRequest, SearchRequest, SearchResponse, SearchResultDone
 from .utils import get_ldap_session
 
 translator = DomainErrorTranslator(DomainCodes.LDAP)
 
-error_map: ERROR_MAP_TYPE = {
-    UnauthorizedError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
-}
+error_map: ERROR_MAP_TYPE = {UnauthorizedError: rule(status=status.HTTP_401_UNAUTHORIZED, translator=translator)}
 
 entry_router = ErrorAwareRouter(
-    prefix="/entry",
-    tags=["LDAP API"],
-    route_class=DishkaErrorAwareRoute,
-    dependencies=[Depends(get_ldap_session)],
+    prefix="/entry", tags=["LDAP API"], route_class=DishkaErrorAwareRoute, dependencies=[Depends(get_ldap_session)]
 )
 
 
@@ -74,35 +48,20 @@ async def search(request: SearchRequest, req: Request) -> SearchResponse:
     )
 
 
-@entry_router.post(
-    "/add",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@entry_router.post("/add", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def add(request: AddRequest, req: Request) -> LDAPResult:
     """LDAP ADD entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.patch(
-    "/update",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@entry_router.patch("/update", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def modify(request: ModifyRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.patch(
-    "/update_many",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
-async def modify_many(
-    requests: list[ModifyRequest],
-    req: Request,
-) -> list[LDAPResult]:
+@entry_router.patch("/update_many", error_map=error_map, dependencies=[Depends(require_master_db)])
+async def modify_many(requests: list[ModifyRequest], req: Request) -> list[LDAPResult]:
     """Bulk LDAP MODIFY entry request."""
     results = []
     for request in requests:
@@ -110,25 +69,14 @@ async def modify_many(
     return results
 
 
-@entry_router.put(
-    "/update/dn",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@entry_router.put("/update/dn", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def modify_dn(request: ModifyDNRequest, req: Request) -> LDAPResult:
     """LDAP MODIFY entry DN request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.post(
-    "/update_many/dn",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
-async def modify_dn_many(
-    requests: list[ModifyDNRequest],
-    req: Request,
-) -> list[LDAPResult]:
+@entry_router.post("/update_many/dn", error_map=error_map, dependencies=[Depends(require_master_db)])
+async def modify_dn_many(requests: list[ModifyDNRequest], req: Request) -> list[LDAPResult]:
     """LDAP MODIFY entry DN request."""
     results = []
     for request in requests:
@@ -136,35 +84,20 @@ async def modify_dn_many(
     return results
 
 
-@entry_router.put(
-    "/rename",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@entry_router.put("/rename", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def rename(request: RenameRequest, req: Request) -> LDAPResult:
     """LDAP rename entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.delete(
-    "/delete",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
+@entry_router.delete("/delete", error_map=error_map, dependencies=[Depends(require_master_db)])
 async def delete(request: DeleteRequest, req: Request) -> LDAPResult:
     """LDAP DELETE entry request."""
     return await request.handle_api(req.state.dishka_container)
 
 
-@entry_router.post(
-    "/delete_many",
-    error_map=error_map,
-    dependencies=[Depends(require_master_db)],
-)
-async def delete_many(
-    requests: list[DeleteRequest],
-    req: Request,
-) -> list[LDAPResult]:
+@entry_router.post("/delete_many", error_map=error_map, dependencies=[Depends(require_master_db)])
+async def delete_many(requests: list[DeleteRequest], req: Request) -> list[LDAPResult]:
     """Bulk LDAP DELETE entry request."""
     results = []
     for request in requests:
@@ -172,36 +105,22 @@ async def delete_many(
     return results
 
 
-@entry_router.post(
-    "/set_primary_group",
-    dependencies=[Depends(require_master_db)],
-)
-async def set_primary_group(
-    request: PrimaryGroupRequest,
-    session: FromDishka[AsyncSession],
-) -> None:
+@entry_router.post("/set_primary_group", dependencies=[Depends(require_master_db)])
+async def set_primary_group(request: PrimaryGroupRequest, session: FromDishka[AsyncSession]) -> None:
     """Set primary group for a directory (user or group)."""
     try:
-        await set_or_update_primary_group(
-            directory_dn=request.directory_dn,
-            group_dn=request.group_dn,
-            session=session,
-        )
+        await set_or_update_primary_group(directory_dn=request.directory_dn, group_dn=request.group_dn, session=session)
     except (ValueError, IntegrityError):
         raise HTTPException(status_code=400, detail="Invalid request")
 
 
 @entry_router.get("/group/primary/{primary_group_id}")
 async def get_group_path_dn_by_primary_grp_id(
-    primary_group_id: int,
-    session: FromDishka[AsyncSession],
+    primary_group_id: int, session: FromDishka[AsyncSession]
 ) -> PrimaryGroupPathDNResponse:
     """Get group path DN by primary group ID."""
     try:
-        path_dn = await get_group_path_dn_by_primary_group_id(
-            primary_group_id,
-            session,
-        )
+        path_dn = await get_group_path_dn_by_primary_group_id(primary_group_id, session)
     except ValueError:
         raise HTTPException(status_code=404, detail="Invalid primary group ID")
 

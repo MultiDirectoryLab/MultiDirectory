@@ -18,9 +18,7 @@ def dump_acme_cert(resolver: str = "md-resolver") -> None:
     acme file can be generated long enough to exit the script,
     try read until file contents is generated.
     """
-    if os.path.exists("/certs/cert.pem") and os.path.exists(
-        "/certs/privkey.pem",
-    ):
+    if os.path.exists("/certs/cert.pem") and os.path.exists("/certs/privkey.pem"):
         logger.info("Certeficate and key already exists, exiting...")
         return
 
@@ -42,10 +40,7 @@ def dump_acme_cert(resolver: str = "md-resolver") -> None:
 
     logger.info(f"Loaded certeficate for {domain}")
 
-    with (
-        open("/certs/cert.pem", "w") as cert_f,
-        open("/certs/privkey.pem", "w") as key_f,
-    ):
+    with open("/certs/cert.pem", "w") as cert_f, open("/certs/privkey.pem", "w") as key_f:
         cert_f.write(base64.b64decode(cert.encode("ascii")).decode())
         key_f.write(base64.b64decode(key.encode("ascii")).decode())
 

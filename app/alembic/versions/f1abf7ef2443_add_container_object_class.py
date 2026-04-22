@@ -28,9 +28,7 @@ depends_on: None | str = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _migrate_ou_to_cn_containers(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _migrate_ou_to_cn_containers(connection: AsyncConnection) -> None:
         """Migrate existing ou= containers to cn= containers."""
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
@@ -38,30 +36,21 @@ def upgrade(container: AsyncContainer) -> None:
         containers_to_migrate = ["groups", "computers", "users"]
         directories = await session.scalars(
             select(Directory).where(
-                qa(Directory.name).in_(containers_to_migrate),
-                qa(Directory.object_class) == "organizationalUnit",
-            ),
+                qa(Directory.name).in_(containers_to_migrate), qa(Directory.object_class) == "organizationalUnit"
+            )
         )
-        entity_type = await session.scalar(
-            select(EntityType)
-            .where(qa(EntityType.name) == EntityTypeNames.CONTAINER),
-        )  # fmt: skip
+        entity_type = await session.scalar(select(EntityType).where(qa(EntityType.name) == EntityTypeNames.CONTAINER))
 
         for directory in directories:
             directory.entity_type_id = entity_type.id  # type: ignore
             await session.execute(
-                update(Directory)
-                .where(qa(Directory.id) == directory.id)
-                .values(object_class="container", rdname="cn"),
+                update(Directory).where(qa(Directory.id) == directory.id).values(object_class="container", rdname="cn")
             )
 
             await session.execute(
                 update(Attribute)
-                .where(
-                    qa(Attribute.directory_id) == directory.id,
-                    qa(Attribute.name) == "ou",
-                )
-                .values(name="cn"),
+                .where(qa(Attribute.directory_id) == directory.id, qa(Attribute.name) == "ou")
+                .values(name="cn")
             )
 
             await session.execute(
@@ -81,28 +70,13 @@ def upgrade(container: AsyncContainer) -> None:
                 else:
                     new_path.append(path_component)
 
-            await session.execute(
-                update(Directory)
-                .where(qa(Directory.id) == directory.id)
-                .values(path=new_path),
-            )
+            await session.execute(update(Directory).where(qa(Directory.id) == directory.id).values(path=new_path))
 
         for container_name in containers_to_migrate:
             await session.execute(
                 update(Directory)
-                .where(
-                    func.array_position(
-                        qa(Directory.path),
-                        f"ou={container_name}",
-                    ).isnot(None),
-                )
-                .values(
-                    path=func.array_replace(
-                        qa(Directory.path),
-                        f"ou={container_name}",
-                        f"cn={container_name}",
-                    ),
-                ),
+                .where(func.array_position(qa(Directory.path), f"ou={container_name}").isnot(None))
+                .values(path=func.array_replace(qa(Directory.path), f"ou={container_name}", f"cn={container_name}"))
             )
 
         await session.commit()
@@ -114,9 +88,7 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _migrate_cn_to_ou_containers(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _migrate_cn_to_ou_containers(connection: AsyncConnection) -> None:
         """Migrate existing cn= containers back to ou= containers."""
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
@@ -124,9 +96,8 @@ def downgrade(container: AsyncContainer) -> None:
         containers_to_migrate = ["groups", "computers", "users"]
         directories = await session.scalars(
             select(Directory).where(
-                qa(Directory.name).in_(containers_to_migrate),
-                qa(Directory.object_class) == "container",
-            ),
+                qa(Directory.name).in_(containers_to_migrate), qa(Directory.object_class) == "container"
+            )
         )
         entity_type = await session.scalar(
             select(EntityType)
@@ -136,27 +107,18 @@ def downgrade(container: AsyncContainer) -> None:
         for directory in directories:
             directory.entity_type_id = entity_type.id  # type: ignore
             await session.execute(
-                update(Directory)
-                .where(qa(Directory.id) == directory.id)
-                .values(object_class="organizationalUnit"),
+                update(Directory).where(qa(Directory.id) == directory.id).values(object_class="organizationalUnit")
             )
 
             await session.execute(
                 update(Attribute)
-                .where(
-                    qa(Attribute.directory_id) == directory.id,
-                    qa(Attribute.name) == "cn",
-                )
-                .values(name="ou"),
+                .where(qa(Attribute.directory_id) == directory.id, qa(Attribute.name) == "cn")
+                .values(name="ou")
             )
 
             await session.execute(
                 insert(Attribute)
-                .values(
-                    directory_id=directory.id,
-                    name="objectClass",
-                    value="organizationalUnit",
-                ),
+                .values(directory_id=directory.id, name="objectClass", value="organizationalUnit"),
             )  # fmt: skip
 
             new_path = []
@@ -167,28 +129,13 @@ def downgrade(container: AsyncContainer) -> None:
                 else:
                     new_path.append(path_component)
 
-            await session.execute(
-                update(Directory)
-                .where(qa(Directory.id) == directory.id)
-                .values(path=new_path),
-            )
+            await session.execute(update(Directory).where(qa(Directory.id) == directory.id).values(path=new_path))
 
         for container_name in containers_to_migrate:
             await session.execute(
                 update(Directory)
-                .where(
-                    func.array_position(
-                        qa(Directory.path),
-                        f"cn={container_name}",
-                    ).isnot(None),
-                )
-                .values(
-                    path=func.array_replace(
-                        qa(Directory.path),
-                        f"cn={container_name}",
-                        f"ou={container_name}",
-                    ),
-                ),
+                .where(func.array_position(qa(Directory.path), f"cn={container_name}").isnot(None))
+                .values(path=func.array_replace(qa(Directory.path), f"cn={container_name}", f"ou={container_name}"))
             )
 
         await session.commit()

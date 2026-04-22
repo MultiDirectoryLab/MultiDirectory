@@ -31,23 +31,11 @@ def make_aces(role: Role) -> list[AccessControlEntryDTO]:
     return [ace_convert(ace) for ace in role.access_control_entries]
 
 
-base_retort = ConversionRetort(
-    recipe=[
-        link_function(make_groups, P[RoleDTO].groups),
-    ],
-)
+base_retort = ConversionRetort(recipe=[link_function(make_groups, P[RoleDTO].groups)])
 
-retort = base_retort.extend(
-    recipe=[
-        link_function(make_aces, P[RoleDTO].access_control_entries),
-    ],
-)
+retort = base_retort.extend(recipe=[link_function(make_aces, P[RoleDTO].access_control_entries)])
 
-retort_without_ace = base_retort.extend(
-    recipe=[
-        link_function(lambda _: None, P[RoleDTO].access_control_entries),
-    ],
-)
+retort_without_ace = base_retort.extend(recipe=[link_function(lambda _: None, P[RoleDTO].access_control_entries)])
 
 _convert = retort.get_converter(Role, RoleDTO)
 _convert_without_aces = retort_without_ace.get_converter(Role, RoleDTO)
@@ -71,12 +59,9 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         query = (
             select(Role)
             .options(
-                selectinload(qa(Role.groups)).selectinload(
-                    qa(Group.directory),
-                ),
+                selectinload(qa(Role.groups)).selectinload(qa(Group.directory)),
                 selectinload(qa(Role.access_control_entries)).options(
-                    joinedload(qa(AccessControlEntry.entity_type)),
-                    joinedload(qa(AccessControlEntry.role)),
+                    joinedload(qa(AccessControlEntry.entity_type)), joinedload(qa(AccessControlEntry.role))
                 ),
             )
             .filter_by(id=_id)
@@ -103,21 +88,16 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         query = (
             select(Role)
             .options(
-                selectinload(qa(Role.groups)).selectinload(
-                    qa(Group.directory),
-                ),
+                selectinload(qa(Role.groups)).selectinload(qa(Group.directory)),
                 selectinload(qa(Role.access_control_entries)).options(
-                    joinedload(qa(AccessControlEntry.entity_type)),
-                    joinedload(qa(AccessControlEntry.role)),
+                    joinedload(qa(AccessControlEntry.entity_type)), joinedload(qa(AccessControlEntry.role))
                 ),
             )
             .filter_by(name=role_name)
         )
         retval = await self._session.scalar(query)
         if not retval:
-            raise RoleNotFoundError(
-                f"Role with name {role_name} does not exist.",
-            )
+            raise RoleNotFoundError(f"Role with name {role_name} does not exist.")
         return _convert(retval)
 
     async def get_all(self) -> list[RoleDTO]:
@@ -127,11 +107,7 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         """
         roles = (
             await self._session.scalars(
-                select(Role).options(
-                    selectinload(qa(Role.groups)).selectinload(
-                        qa(Group.directory),
-                    ),
-                ),
+                select(Role).options(selectinload(qa(Role.groups)).selectinload(qa(Group.directory)))
             )
         ).all()
         return list(map(_convert_without_aces, roles))
@@ -141,10 +117,7 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
 
         :param RoleDTO dto: Data transfer object containing role information.
         """
-        groups: list[Group] = await get_groups(
-            dn_list=dto.groups,
-            session=self._session,
-        )
+        groups: list[Group] = await get_groups(dn_list=dto.groups, session=self._session)
         if not groups:
             raise NoValidGroupsError("No valid groups provided for the role.")
 
@@ -178,10 +151,7 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
             role information.
         """
         role = await self._get_raw(_id)
-        groups: list[Group] = await get_groups(
-            dn_list=dto.groups,
-            session=self._session,
-        )
+        groups: list[Group] = await get_groups(dn_list=dto.groups, session=self._session)
 
         if not groups:
             raise NoValidGroupsError("No valid groups provided for the role.")
@@ -209,10 +179,7 @@ class RoleDAO(AbstractDAO[RoleDTO, int]):
         :param int _id: ID of the role to update.
         :param int permissions: New permissions value.
         """
-        query = (
-            select(Role)
-            .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
-        )  # fmt: skip
+        query = select(Role).filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         role = (await self._session.scalars(query)).first()
         if not role:
             return

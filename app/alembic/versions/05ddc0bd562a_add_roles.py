@@ -33,12 +33,7 @@ def upgrade(container: AsyncContainer) -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("creator_upn", sa.String(), nullable=True),
         sa.Column("is_system", sa.Boolean(), nullable=False),
-        sa.Column(
-            "whenCreated",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
+        sa.Column("whenCreated", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
@@ -48,57 +43,25 @@ def upgrade(container: AsyncContainer) -> None:
         sa.Column("roleId", sa.Integer(), nullable=False),
         sa.Column(
             "ace_type",
-            sa.Enum(
-                "CREATE_CHILD",
-                "READ",
-                "WRITE",
-                "DELETE",
-                "PASSWORD_MODIFY",
-                name="acetype",
-            ),
+            sa.Enum("CREATE_CHILD", "READ", "WRITE", "DELETE", "PASSWORD_MODIFY", name="acetype"),
             nullable=False,
         ),
         sa.Column("depth", sa.Integer(), nullable=False),
-        sa.Column(
-            "scope",
-            sa.Enum(
-                "BASE_OBJECT",
-                "SINGLE_LEVEL",
-                "WHOLE_SUBTREE",
-                name="rolescope",
-            ),
-            nullable=False,
-        ),
+        sa.Column("scope", sa.Enum("BASE_OBJECT", "SINGLE_LEVEL", "WHOLE_SUBTREE", name="rolescope"), nullable=False),
         sa.Column("path", sa.String(), nullable=False),
         sa.Column("attributeTypeId", sa.Integer(), nullable=True),
         sa.Column("entityTypeId", sa.Integer(), nullable=True),
         sa.Column("is_allow", sa.Boolean(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["attributeTypeId"],
-            ["AttributeTypes.id"],
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["entityTypeId"],
-            ["EntityTypes.id"],
-            ondelete="CASCADE",
-        ),
+        sa.ForeignKeyConstraint(["attributeTypeId"], ["AttributeTypes.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["entityTypeId"], ["EntityTypes.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["roleId"], ["Roles.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("idx_ace_type_hash"),
-        "AccessControlEntries",
-        ["ace_type"],
-        unique=False,
-        postgresql_using="hash",
+        op.f("idx_ace_type_hash"), "AccessControlEntries", ["ace_type"], unique=False, postgresql_using="hash"
     )
     op.create_index(
-        op.f("idx_ace_scope_hash"),
-        "AccessControlEntries",
-        ["scope"],
-        unique=False,
-        postgresql_using="hash",
+        op.f("idx_ace_scope_hash"), "AccessControlEntries", ["scope"], unique=False, postgresql_using="hash"
     )
     op.create_index(
         op.f("idx_ace_attribute_type_id"),
@@ -108,44 +71,24 @@ def upgrade(container: AsyncContainer) -> None:
         postgresql_using="hash",
     )
     op.create_index(
-        op.f("idx_ace_entity_type_id"),
-        "AccessControlEntries",
-        ["entityTypeId"],
-        unique=False,
-        postgresql_using="hash",
+        op.f("idx_ace_entity_type_id"), "AccessControlEntries", ["entityTypeId"], unique=False, postgresql_using="hash"
     )
     op.create_index(
-        op.f("idx_ace_role_id_id"),
-        "AccessControlEntries",
-        ["roleId"],
-        unique=False,
-        postgresql_using="hash",
+        op.f("idx_ace_role_id_id"), "AccessControlEntries", ["roleId"], unique=False, postgresql_using="hash"
     )
     op.create_table(
         "AccessControlEntryDirectoryMemberships",
         sa.Column("access_control_entry_id", sa.Integer(), nullable=False),
         sa.Column("directory_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["access_control_entry_id"],
-            ["AccessControlEntries.id"],
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["directory_id"],
-            ["Directory.id"],
-            ondelete="CASCADE",
-        ),
+        sa.ForeignKeyConstraint(["access_control_entry_id"], ["AccessControlEntries.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["directory_id"], ["Directory.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("access_control_entry_id", "directory_id"),
     )
     op.create_table(
         "GroupRoleMemberships",
         sa.Column("group_id", sa.Integer(), nullable=False),
         sa.Column("role_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-            ondelete="CASCADE",
-        ),
+        sa.ForeignKeyConstraint(["group_id"], ["Groups.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["role_id"], ["Roles.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("group_id", "role_id"),
     )
@@ -153,7 +96,7 @@ def upgrade(container: AsyncContainer) -> None:
     op.drop_table("AccessPolicyMemberships")
     op.drop_table("AccessPolicies")
 
-    async def _create_system_roles(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _create_system_roles(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
             role_use_case = await cnt.get(RoleUseCase)
@@ -165,16 +108,9 @@ def upgrade(container: AsyncContainer) -> None:
         await role_use_case.create_domain_admins_role()
         await role_use_case.create_read_only_role()
 
-        krb_group_query = (
-            select(Group)
-            .join(qa(Group.directory))
-            .where(qa(Directory.name) == "krbadmin")
-            .exists()
-        )
+        krb_group_query = select(Group).join(qa(Group.directory)).where(qa(Directory.name) == "krbadmin").exists()
 
-        krb_group_exists = (
-            await session.scalars(select(krb_group_query))
-        ).one()
+        krb_group_exists = (await session.scalars(select(krb_group_query))).one()
         if krb_group_exists:
             await role_use_case.create_kerberos_system_role()
 
@@ -183,98 +119,43 @@ def upgrade(container: AsyncContainer) -> None:
     op.run_async(_create_system_roles)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.create_table(
         "AccessPolicies",
         sa.Column(
             "id",
             sa.INTEGER(),
-            server_default=sa.text(
-                "nextval('\"AccessPolicies_id_seq\"'::regclass)",
-            ),
+            server_default=sa.text("nextval('\"AccessPolicies_id_seq\"'::regclass)"),
             autoincrement=True,
             nullable=False,
         ),
-        sa.Column(
-            "name",
-            sa.VARCHAR(length=255),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column(
-            "can_read",
-            sa.BOOLEAN(),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column(
-            "can_add",
-            sa.BOOLEAN(),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column(
-            "can_modify",
-            sa.BOOLEAN(),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column(
-            "can_delete",
-            sa.BOOLEAN(),
-            autoincrement=False,
-            nullable=False,
-        ),
+        sa.Column("name", sa.VARCHAR(length=255), autoincrement=False, nullable=False),
+        sa.Column("can_read", sa.BOOLEAN(), autoincrement=False, nullable=False),
+        sa.Column("can_add", sa.BOOLEAN(), autoincrement=False, nullable=False),
+        sa.Column("can_modify", sa.BOOLEAN(), autoincrement=False, nullable=False),
+        sa.Column("can_delete", sa.BOOLEAN(), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint("id", name="AccessPolicies_pkey"),
         sa.UniqueConstraint("name"),
     )
     op.create_table(
         "AccessPolicyMemberships",
         sa.Column("dir_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.Column(
-            "policy_id",
-            sa.INTEGER(),
-            autoincrement=False,
-            nullable=False,
+        sa.Column("policy_id", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.ForeignKeyConstraint(
+            ["dir_id"], ["Directory.id"], name=op.f("AccessPolicyMemberships_policy_id_fkey"), ondelete="CASCADE"
         ),
         sa.ForeignKeyConstraint(
-            ["dir_id"],
-            ["Directory.id"],
-            name=op.f("AccessPolicyMemberships_policy_id_fkey"),
-            ondelete="CASCADE",
+            ["policy_id"], ["AccessPolicies.id"], name=op.f("AccessPolicyMemberships_dir_id_fkey"), ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(
-            ["policy_id"],
-            ["AccessPolicies.id"],
-            name=op.f("AccessPolicyMemberships_dir_id_fkey"),
-            ondelete="CASCADE",
-        ),
-        sa.PrimaryKeyConstraint(
-            "dir_id",
-            "policy_id",
-            name=op.f("AccessPolicyMemberships_pkey"),
-        ),
+        sa.PrimaryKeyConstraint("dir_id", "policy_id", name=op.f("AccessPolicyMemberships_pkey")),
     )
     op.create_table(
         "GroupAccessPolicyMemberships",
-        sa.Column(
-            "group_id",
-            sa.INTEGER(),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column(
-            "policy_id",
-            sa.INTEGER(),
-            autoincrement=False,
-            nullable=False,
-        ),
+        sa.Column("group_id", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.Column("policy_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.ForeignKeyConstraint(
-            ["group_id"],
-            ["Groups.id"],
-            name=op.f("GroupAccessPolicyMemberships_policy_id_fkey"),
-            ondelete="CASCADE",
+            ["group_id"], ["Groups.id"], name=op.f("GroupAccessPolicyMemberships_policy_id_fkey"), ondelete="CASCADE"
         ),
         sa.ForeignKeyConstraint(
             ["policy_id"],
@@ -282,44 +163,17 @@ def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
             name=op.f("GroupAccessPolicyMemberships_group_id_fkey"),
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint(
-            "group_id",
-            "policy_id",
-            name=op.f("GroupAccessPolicyMemberships_pkey"),
-        ),
-        sa.UniqueConstraint(
-            "group_id",
-            "policy_id",
-            name=op.f("group_policy_uc"),
-        ),
+        sa.PrimaryKeyConstraint("group_id", "policy_id", name=op.f("GroupAccessPolicyMemberships_pkey")),
+        sa.UniqueConstraint("group_id", "policy_id", name=op.f("group_policy_uc")),
     )
-    op.create_unique_constraint(
-        "group_policy_uc",
-        "GroupAccessPolicyMemberships",
-        ["group_id", "policy_id"],
-    )
+    op.create_unique_constraint("group_policy_uc", "GroupAccessPolicyMemberships", ["group_id", "policy_id"])
     op.drop_table("GroupRoleMemberships")
     op.drop_table("AccessControlEntryDirectoryMemberships")
-    op.drop_index(
-        op.f("idx_ace_type_hash"),
-        table_name="AccessControlEntries",
-    )
-    op.drop_index(
-        op.f("idx_ace_scope_hash"),
-        table_name="AccessControlEntries",
-    )
-    op.drop_index(
-        op.f("idx_ace_attribute_type_id"),
-        table_name="AccessControlEntries",
-    )
-    op.drop_index(
-        op.f("idx_ace_entity_type_id"),
-        table_name="AccessControlEntries",
-    )
-    op.drop_index(
-        op.f("idx_ace_role_id_id"),
-        table_name="AccessControlEntries",
-    )
+    op.drop_index(op.f("idx_ace_type_hash"), table_name="AccessControlEntries")
+    op.drop_index(op.f("idx_ace_scope_hash"), table_name="AccessControlEntries")
+    op.drop_index(op.f("idx_ace_attribute_type_id"), table_name="AccessControlEntries")
+    op.drop_index(op.f("idx_ace_entity_type_id"), table_name="AccessControlEntries")
+    op.drop_index(op.f("idx_ace_role_id_id"), table_name="AccessControlEntries")
     op.drop_table("AccessControlEntries")
     op.drop_table("Roles")
     op.execute(sa.text("DROP TYPE acetype"))

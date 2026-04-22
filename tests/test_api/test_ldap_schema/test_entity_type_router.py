@@ -17,80 +17,47 @@ from .test_entity_type_router_datasets import (
 )
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_create_one_entity_type_dataset,
-)
+@pytest.mark.parametrize("dataset", test_create_one_entity_type_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_create_one_entity_type(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_create_one_entity_type(dataset: dict, http_client: AsyncClient) -> None:
     """Test creating a single entity type."""
     for object_class_data in dataset["object_classes"]:
-        response = await http_client.post(
-            "/schema/object_class",
-            json=object_class_data,
-        )
+        response = await http_client.post("/schema/object_class", json=object_class_data)
         assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.post(
-        "/schema/entity_type",
-        json=dataset["entity_type"],
-    )
+    response = await http_client.post("/schema/entity_type", json=dataset["entity_type"])
     assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.get(
-        f"/schema/entity_type/{dataset['entity_type']['name']}",
-    )
+    response = await http_client.get(f"/schema/entity_type/{dataset['entity_type']['name']}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_create_one_entity_type_value_400(
-    http_client: AsyncClient,
-) -> None:
+async def test_create_one_entity_type_value_400(http_client: AsyncClient) -> None:
     """Test bad request error while creating a single entity type."""
     response = await http_client.post(
         "/schema/entity_type",
-        json={
-            "name": "testEntityType1",
-            "object_class_names": ["testObjectClass1"],
-            "is_system": False,
-        },
+        json={"name": "testEntityType1", "object_class_names": ["testObjectClass1"], "is_system": False},
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_create_one_entity_type_value_422(
-    http_client: AsyncClient,
-) -> None:
+async def test_create_one_entity_type_value_422(http_client: AsyncClient) -> None:
     """Test bad request error while creating a single entity type."""
     response = await http_client.post(
-        "/schema/entity_type",
-        json={
-            "name": "testEntityType1",
-            "object_class_names": [],
-            "is_system": False,
-        },
+        "/schema/entity_type", json={"name": "testEntityType1", "object_class_names": [], "is_system": False}
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_get_list_entity_types_with_pagination_dataset,
-)
+@pytest.mark.parametrize("dataset", test_get_list_entity_types_with_pagination_dataset)
 @pytest.mark.asyncio
-async def test_get_list_entity_types_with_pagination(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_get_list_entity_types_with_pagination(dataset: dict, http_client: AsyncClient) -> None:
     """Test retrieving a list of entity types."""
     for oid, object_class_name in dataset["object_class_names"]:
         response = await http_client.post(
@@ -108,17 +75,12 @@ async def test_get_list_entity_types_with_pagination(
         assert response.status_code == status.HTTP_201_CREATED
 
     for entity_type_data in dataset["entity_types"]:
-        response = await http_client.post(
-            "/schema/entity_type",
-            json=entity_type_data,
-        )
+        response = await http_client.post("/schema/entity_type", json=entity_type_data)
         assert response.status_code == status.HTTP_201_CREATED
 
     page_number = 1
     page_size = 2
-    response = await http_client.get(
-        f"/schema/entity_types?page_number={page_number}&page_size={page_size}",
-    )
+    response = await http_client.get(f"/schema/entity_types?page_number={page_number}&page_size={page_size}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     assert len(response.json().get("items")) == page_size
@@ -151,10 +113,7 @@ async def test_get_entity_type_attributes(http_client: AsyncClient) -> None:
         ),
     ]
     for attribute_type in attribute_types:
-        response = await http_client.post(
-            "/schema/attribute_type",
-            json=attribute_type.model_dump(),
-        )
+        response = await http_client.post("/schema/attribute_type", json=attribute_type.model_dump())
         assert response.status_code == status.HTTP_201_CREATED
 
     object_class_name = "testEntityTypeObjectClass"
@@ -176,113 +135,67 @@ async def test_get_entity_type_attributes(http_client: AsyncClient) -> None:
     response = await http_client.post(
         "/schema/entity_type",
         json=EntityTypeSchema(
-            name=entity_type_name,
-            object_class_names=[object_class_name],
-            is_system=False,
+            name=entity_type_name, object_class_names=[object_class_name], is_system=False
         ).model_dump(),
     )
     assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.get(
-        f"/schema/entity_type/{entity_type_name}/attrs",
-    )
+    response = await http_client.get(f"/schema/entity_type/{entity_type_name}/attrs")
     assert response.status_code == status.HTTP_200_OK
-    assert set(response.json()) == {
-        "testEntityTypeAttr1",
-        "testEntityTypeAttr2",
-    }
+    assert set(response.json()) == {"testEntityTypeAttr1", "testEntityTypeAttr2"}
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_modify_entity_type_with_duplicates_dataset,
-)
+@pytest.mark.parametrize("dataset", test_modify_entity_type_with_duplicates_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_modify_entity_type_with_duplicate_data(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_modify_entity_type_with_duplicate_data(dataset: dict, http_client: AsyncClient) -> None:
     """Test modifying an entity type with duplicate data."""
     for object_class_data in dataset["object_classes"]:
-        response = await http_client.post(
-            "/schema/object_class",
-            json=object_class_data,
-        )
+        response = await http_client.post("/schema/object_class", json=object_class_data)
         assert response.status_code == status.HTTP_201_CREATED
 
     for entity_type in dataset["entity_types"]:
-        response = await http_client.post(
-            "/schema/entity_type",
-            json=entity_type,
-        )
+        response = await http_client.post("/schema/entity_type", json=entity_type)
         assert response.status_code == status.HTTP_201_CREATED
 
     new_statements = dataset["new_statements"]
     update_entity, update_data = new_statements["duplicate_object_class_names"]
-    response = await http_client.patch(
-        f"/schema/entity_type/{update_entity}",
-        json=update_data,
-    )
+    response = await http_client.patch(f"/schema/entity_type/{update_entity}", json=update_data)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     update_entity, update_data = new_statements["duplicate_name"]
-    response = await http_client.patch(
-        f"/schema/entity_type/{update_entity}",
-        json=update_data,
-    )
+    response = await http_client.patch(f"/schema/entity_type/{update_entity}", json=update_data)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_modify_one_entity_type_dataset,
-)
+@pytest.mark.parametrize("dataset", test_modify_one_entity_type_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_modify_one_entity_type(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_modify_one_entity_type(dataset: dict, http_client: AsyncClient) -> None:
     """Test modifying a single entity type."""
     for object_class_data in dataset["object_classes"]:
-        response = await http_client.post(
-            "/schema/object_class",
-            json=object_class_data,
-        )
+        response = await http_client.post("/schema/object_class", json=object_class_data)
         assert response.status_code == status.HTTP_201_CREATED
 
-    response = await http_client.post(
-        "/schema/entity_type",
-        json=dataset["entity_type"],
-    )
+    response = await http_client.post("/schema/entity_type", json=dataset["entity_type"])
     assert response.status_code == status.HTTP_201_CREATED
 
     new_statement = dataset["new_statement"]
-    response = await http_client.patch(
-        f"/schema/entity_type/{dataset['entity_type']['name']}",
-        json=new_statement,
-    )
+    response = await http_client.patch(f"/schema/entity_type/{dataset['entity_type']['name']}", json=new_statement)
     assert response.status_code == status.HTTP_200_OK
 
-    response = await http_client.get(
-        f"/schema/entity_type/{dataset['new_statement']['name']}",
-    )
+    response = await http_client.get(f"/schema/entity_type/{dataset['new_statement']['name']}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
     entity_type = response.json()
     assert set(entity_type.get("name")) == set(new_statement.get("name"))
-    assert set(entity_type.get("object_class_names")) == set(
-        new_statement.get("object_class_names"),
-    )
+    assert set(entity_type.get("object_class_names")) == set(new_statement.get("object_class_names"))
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_modify_primary_entity_type_name(
-    http_client: AsyncClient,
-) -> None:
+async def test_modify_primary_entity_type_name(http_client: AsyncClient) -> None:
     """Test modifying a primary entity type name."""
     new_statement = "TestEntityTypeName"
     entity_type_dto = ENTITY_TYPE_DTOS_V1[0]
@@ -296,48 +209,31 @@ async def test_modify_primary_entity_type_name(
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    response = await http_client.get(
-        f"/schema/entity_type/{entity_type_dto.name}",
-    )
+    response = await http_client.get(f"/schema/entity_type/{entity_type_dto.name}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), dict)
 
 
-@pytest.mark.parametrize(
-    "dataset",
-    test_delete_bulk_entity_types_dataset,
-)
+@pytest.mark.parametrize("dataset", test_delete_bulk_entity_types_dataset)
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_delete_bulk_entries(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_delete_bulk_entries(dataset: dict, http_client: AsyncClient) -> None:
     """Test deleting multiple entries."""
     for object_class_data in dataset["object_classes"]:
-        response = await http_client.post(
-            "/schema/object_class",
-            json=object_class_data,
-        )
+        response = await http_client.post("/schema/object_class", json=object_class_data)
         assert response.status_code == status.HTTP_201_CREATED
 
     for entity_type_data in dataset["entity_types"]:
-        response = await http_client.post(
-            "/schema/entity_type",
-            json=entity_type_data,
-        )
+        response = await http_client.post("/schema/entity_type", json=entity_type_data)
         assert response.status_code == status.HTTP_201_CREATED
 
     response = await http_client.post(
-        "/schema/entity_type/delete",
-        json={"entity_type_names": dataset["entity_type_names_deleted"]},
+        "/schema/entity_type/delete", json={"entity_type_names": dataset["entity_type_names_deleted"]}
     )
     assert response.status_code == status.HTTP_200_OK
 
     for entity_type_name in dataset["entity_type_names_deleted"]:
-        response = await http_client.get(
-            f"/schema/entity_type/{entity_type_name}",
-        )
+        response = await http_client.get(f"/schema/entity_type/{entity_type_name}")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -346,13 +242,8 @@ async def test_delete_bulk_entries(
 async def test_delete_entry_with_directory(http_client: AsyncClient) -> None:
     """Test deleting entry with directory."""
     entity_type_name = EntityTypeNames.USER
-    response = await http_client.post(
-        "/schema/entity_type/delete",
-        json={"entity_type_names": [entity_type_name]},
-    )
+    response = await http_client.post("/schema/entity_type/delete", json={"entity_type_names": [entity_type_name]})
     assert response.status_code == status.HTTP_200_OK
 
-    response = await http_client.get(
-        f"/schema/entity_type/{entity_type_name}",
-    )
+    response = await http_client.get(f"/schema/entity_type/{entity_type_name}")
     assert response.status_code == status.HTTP_200_OK

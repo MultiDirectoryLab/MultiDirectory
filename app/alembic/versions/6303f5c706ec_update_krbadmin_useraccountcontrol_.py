@@ -30,44 +30,29 @@ depends_on: None | list[str] = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _update_krbadmin_uac(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _update_krbadmin_uac(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        krbadmin_user_dir = await session.scalar(
-            select(Directory)
-            .filter_by(name="krbadmin")
-            .join(qa(Directory.user)),
-        )
+        krbadmin_user_dir = await session.scalar(select(Directory).filter_by(name="krbadmin").join(qa(Directory.user)))
 
         if krbadmin_user_dir:
             await session.execute(
                 update(Attribute)
-                .where(
-                    qa(Attribute.directory_id) == krbadmin_user_dir.id,
-                    qa(Attribute.name) == "userAccountControl",
-                )
-                .values(
-                    value=str(
-                        UserAccountControlFlag.NORMAL_ACCOUNT
-                        + UserAccountControlFlag.DONT_EXPIRE_PASSWORD,
-                    ),
-                ),
+                .where(qa(Attribute.directory_id) == krbadmin_user_dir.id, qa(Attribute.name) == "userAccountControl")
+                .values(value=str(UserAccountControlFlag.NORMAL_ACCOUNT + UserAccountControlFlag.DONT_EXPIRE_PASSWORD))
             )
 
-    async def _change_uid_admin(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _change_uid_admin(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
         directory = await session.scalar(
             select(Directory)
             .join(qa(Directory.attributes))
-            .where(
-                qa(Attribute.name) == "uidNumber",
-                qa(Attribute.value) == "1000",
-            )
-            .options(joinedload(qa(Directory.user))),
-        )  # fmt: skip
+            .where(qa(Attribute.name) == "uidNumber", qa(Attribute.value) == "1000")
+            .options(joinedload(qa(Directory.user)))
+        )
 
         if not directory:
             return
@@ -77,15 +62,8 @@ def upgrade(container: AsyncContainer) -> None:
 
         await session.execute(
             update(Attribute)
-            .where(
-                qa(Attribute.directory_id) == directory.id,
-                qa(Attribute.name) == "uidNumber",
-            )
-            .values(
-                value=str(
-                    create_integer_hash(directory.user.sam_account_name),
-                ),
-            ),
+            .where(qa(Attribute.directory_id) == directory.id, qa(Attribute.name) == "uidNumber")
+            .values(value=str(create_integer_hash(directory.user.sam_account_name)))
         )
         await session.commit()
 
@@ -98,26 +76,17 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _downgrade_krbadmin_uac(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _downgrade_krbadmin_uac(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        krbadmin_user_dir = await session.scalar(
-            select(Directory)
-            .filter_by(name="krbadmin")
-            .join(qa(Directory.user)),
-        )
+        krbadmin_user_dir = await session.scalar(select(Directory).filter_by(name="krbadmin").join(qa(Directory.user)))
 
         if krbadmin_user_dir:
             await session.execute(
                 update(Attribute)
-                .where(
-                    qa(Attribute.directory_id) == krbadmin_user_dir.id,
-                    qa(Attribute.name) == "userAccountControl",
-                )
-                .values(
-                    value=str(UserAccountControlFlag.NORMAL_ACCOUNT),
-                ),
+                .where(qa(Attribute.directory_id) == krbadmin_user_dir.id, qa(Attribute.name) == "userAccountControl")
+                .values(value=str(UserAccountControlFlag.NORMAL_ACCOUNT))
             )
 
     op.run_async(_downgrade_krbadmin_uac)

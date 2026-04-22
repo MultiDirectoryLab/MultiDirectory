@@ -22,11 +22,7 @@ branch_labels: None | list[str] = None
 depends_on: None | list[str] = None
 
 _SAM_ACCOUNT_TYPE_ATTR = "sAMAccountType"
-_SECURITY_PRINCIPAL_TYPES = (
-    EntityTypeNames.USER,
-    EntityTypeNames.GROUP,
-    EntityTypeNames.COMPUTER,
-)
+_SECURITY_PRINCIPAL_TYPES = (EntityTypeNames.USER, EntityTypeNames.GROUP, EntityTypeNames.COMPUTER)
 _ENTITY_TO_SAM: dict[str, SamAccountTypeCodes] = {
     EntityTypeNames.USER: SamAccountTypeCodes.SAM_USER_OBJECT,
     EntityTypeNames.GROUP: SamAccountTypeCodes.SAM_GROUP_OBJECT,
@@ -37,7 +33,7 @@ _ENTITY_TO_SAM: dict[str, SamAccountTypeCodes] = {
 def upgrade(container: AsyncContainer) -> None:
     """Add sAMAccountType attributes for user/group/computer."""
 
-    async def _add_samaccounttype(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _add_samaccounttype(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -49,36 +45,19 @@ def upgrade(container: AsyncContainer) -> None:
         if not entity_type_ids:
             return
 
-        has_sam = select(
-            qa(Attribute.directory_id),
-        ).where(
-            qa(Attribute.name).ilike(_SAM_ACCOUNT_TYPE_ATTR.lower()),
-        )
+        has_sam = select(qa(Attribute.directory_id)).where(qa(Attribute.name).ilike(_SAM_ACCOUNT_TYPE_ATTR.lower()))
         dirs_without_sam = await session.scalars(
             select(Directory)
-            .where(
-                qa(Directory.entity_type_id).in_(entity_type_ids),
-                ~qa(Directory.id).in_(has_sam),
-            )
-            .options(joinedload(qa(Directory.entity_type))),
+            .where(qa(Directory.entity_type_id).in_(entity_type_ids), ~qa(Directory.id).in_(has_sam))
+            .options(joinedload(qa(Directory.entity_type)))
         )
 
         for directory in dirs_without_sam:
-            sam_value = (
-                _ENTITY_TO_SAM.get(directory.entity_type.name)
-                if directory.entity_type
-                else None
-            )
+            sam_value = _ENTITY_TO_SAM.get(directory.entity_type.name) if directory.entity_type else None
             if sam_value is None:
                 continue
 
-            session.add(
-                Attribute(
-                    name=_SAM_ACCOUNT_TYPE_ATTR,
-                    value=str(sam_value),
-                    directory_id=directory.id,
-                ),
-            )
+            session.add(Attribute(name=_SAM_ACCOUNT_TYPE_ATTR, value=str(sam_value), directory_id=directory.id))
 
         await session.commit()
 

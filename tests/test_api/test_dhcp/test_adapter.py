@@ -10,39 +10,20 @@ from unittest.mock import Mock
 import pytest
 
 from api.dhcp.adapter import DHCPAdapter
-from api.dhcp.schemas import (
-    DHCPLeaseSchemaRequest,
-    DHCPReservationSchemaRequest,
-    DHCPSubnetSchemaAddRequest,
-)
+from api.dhcp.schemas import DHCPLeaseSchemaRequest, DHCPReservationSchemaRequest, DHCPSubnetSchemaAddRequest
 from authorization_provider_protocol import AuthorizationProviderProtocol
-from ldap_protocol.dhcp.dataclasses import (
-    DHCPLease,
-    DHCPOptionData,
-    DHCPPool,
-    DHCPReservation,
-    DHCPSubnet,
-)
+from ldap_protocol.dhcp.dataclasses import DHCPLease, DHCPOptionData, DHCPPool, DHCPReservation, DHCPSubnet
 
 
 @pytest.fixture
-def dhcp_adapter(
-    dhcp_manager: Mock,
-    api_permissions_checker: AuthorizationProviderProtocol,
-) -> DHCPAdapter:
+def dhcp_adapter(dhcp_manager: Mock, api_permissions_checker: AuthorizationProviderProtocol) -> DHCPAdapter:
     """Create DHCP adapter with mocked service."""
-    adapter = DHCPAdapter(
-        service=dhcp_manager,
-        perm_checker=api_permissions_checker,
-    )
+    adapter = DHCPAdapter(service=dhcp_manager, perm_checker=api_permissions_checker)
     return adapter
 
 
 @pytest.mark.asyncio
-async def test_create_subnet_with_gateway(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_create_subnet_with_gateway(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test subnet creation with default gateway."""
     subnet_data = DHCPSubnetSchemaAddRequest(
         subnet=IPv4Network("192.168.1.0/24"),
@@ -64,15 +45,10 @@ async def test_create_subnet_with_gateway(
 
 
 @pytest.mark.asyncio
-async def test_create_subnet_without_gateway(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_create_subnet_without_gateway(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test subnet creation without default gateway."""
     subnet_data = DHCPSubnetSchemaAddRequest(
-        subnet=IPv4Network("192.168.1.0/24"),
-        pool="192.168.1.100-192.168.1.200",
-        default_gateway=None,
+        subnet=IPv4Network("192.168.1.0/24"), pool="192.168.1.100-192.168.1.200", default_gateway=None
     )
 
     await dhcp_adapter.create_subnet(subnet_data)
@@ -87,10 +63,7 @@ async def test_create_subnet_without_gateway(
 
 
 @pytest.mark.asyncio
-async def test_delete_subnet(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_subnet(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test subnet deletion."""
     await dhcp_adapter.delete_subnet(1)
 
@@ -98,31 +71,19 @@ async def test_delete_subnet(
 
 
 @pytest.mark.asyncio
-async def test_get_subnets(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_get_subnets(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test getting all subnets."""
     mock_subnets = [
         DHCPSubnet(
             id=1,
             subnet=IPv4Network("192.168.1.0/24"),
-            pools=[
-                DHCPPool(pool="192.168.1.100-192.168.1.200"),
-            ],
-            option_data=[
-                DHCPOptionData(
-                    name="routers",
-                    data=IPv4Address("192.168.1.1"),
-                ),
-            ],
+            pools=[DHCPPool(pool="192.168.1.100-192.168.1.200")],
+            option_data=[DHCPOptionData(name="routers", data=IPv4Address("192.168.1.1"))],
         ),
         DHCPSubnet(
             id=2,
             subnet=IPv4Network("192.168.2.0/24"),
-            pools=[
-                DHCPPool(pool="192.168.2.100-192.168.2.200"),
-            ],
+            pools=[DHCPPool(pool="192.168.2.100-192.168.2.200")],
             option_data=None,
         ),
     ]
@@ -140,10 +101,7 @@ async def test_get_subnets(
 
 
 @pytest.mark.asyncio
-async def test_update_subnet(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_update_subnet(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test subnet update."""
     subnet_data = DHCPSubnetSchemaAddRequest(
         subnet=IPv4Network("192.168.1.0/24"),
@@ -163,10 +121,7 @@ async def test_update_subnet(
 
 
 @pytest.mark.asyncio
-async def test_create_lease(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_create_lease(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test lease creation."""
     lease_data = DHCPLeaseSchemaRequest(
         subnet_id=1,
@@ -188,23 +143,15 @@ async def test_create_lease(
 
 
 @pytest.mark.asyncio
-async def test_release_lease(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_release_lease(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test lease release."""
     await dhcp_adapter.release_lease(IPv4Address("192.168.1.100"))
 
-    dhcp_manager.release_lease.assert_called_once_with(
-        IPv4Address("192.168.1.100"),
-    )
+    dhcp_manager.release_lease.assert_called_once_with(IPv4Address("192.168.1.100"))
 
 
 @pytest.mark.asyncio
-async def test_list_active_leases(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_list_active_leases(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test listing active leases."""
     mock_leases = [
         DHCPLease(
@@ -237,10 +184,7 @@ async def test_list_active_leases(
 
 
 @pytest.mark.asyncio
-async def test_find_lease_found(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_find_lease_found(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test finding lease when found."""
     mock_lease = DHCPLease(
         subnet_id=1,
@@ -262,10 +206,7 @@ async def test_find_lease_found(
 
 
 @pytest.mark.asyncio
-async def test_find_lease_not_found(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_find_lease_not_found(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test finding lease when not found."""
     dhcp_manager.find_lease.return_value = None
 
@@ -275,16 +216,10 @@ async def test_find_lease_not_found(
 
 
 @pytest.mark.asyncio
-async def test_add_reservation(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_add_reservation(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test adding reservation."""
     reservation_data = DHCPReservationSchemaRequest(
-        subnet_id=1,
-        ip_address=IPv4Address("192.168.1.50"),
-        mac_address="00:11:22:33:44:55",
-        hostname="server-01",
+        subnet_id=1, ip_address=IPv4Address("192.168.1.50"), mac_address="00:11:22:33:44:55", hostname="server-01"
     )
 
     await dhcp_adapter.add_reservation(reservation_data)
@@ -299,42 +234,22 @@ async def test_add_reservation(
 
 
 @pytest.mark.asyncio
-async def test_delete_reservation(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_delete_reservation(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test deleting reservation."""
-    await dhcp_adapter.delete_reservation(
-        "00:11:22:33:44:55",
-        IPv4Address("192.168.1.50"),
-        1,
-    )
+    await dhcp_adapter.delete_reservation("00:11:22:33:44:55", IPv4Address("192.168.1.50"), 1)
 
-    dhcp_manager.delete_reservation.assert_called_once_with(
-        "00:11:22:33:44:55",
-        IPv4Address("192.168.1.50"),
-        1,
-    )
+    dhcp_manager.delete_reservation.assert_called_once_with("00:11:22:33:44:55", IPv4Address("192.168.1.50"), 1)
 
 
 @pytest.mark.asyncio
-async def test_get_reservations(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_get_reservations(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test getting reservations."""
     mock_reservations = [
         DHCPReservation(
-            subnet_id=1,
-            ip_address=IPv4Address("192.168.1.50"),
-            mac_address="00:11:22:33:44:55",
-            hostname="server-01",
+            subnet_id=1, ip_address=IPv4Address("192.168.1.50"), mac_address="00:11:22:33:44:55", hostname="server-01"
         ),
         DHCPReservation(
-            subnet_id=1,
-            ip_address=IPv4Address("192.168.1.51"),
-            mac_address="00:11:22:33:44:56",
-            hostname="server-02",
+            subnet_id=1, ip_address=IPv4Address("192.168.1.51"), mac_address="00:11:22:33:44:56", hostname="server-02"
         ),
     ]
     dhcp_manager.get_reservations.return_value = mock_reservations
@@ -349,16 +264,10 @@ async def test_get_reservations(
 
 
 @pytest.mark.asyncio
-async def test_lease_to_reservation(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_lease_to_reservation(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test lease to reservation transformation."""
     data = DHCPReservationSchemaRequest(
-        subnet_id=1,
-        ip_address=IPv4Address("192.168.1.50"),
-        mac_address="00:11:22:33:44:55",
-        hostname="server-01",
+        subnet_id=1, ip_address=IPv4Address("192.168.1.50"), mac_address="00:11:22:33:44:55", hostname="server-01"
     )
 
     await dhcp_adapter.lease_to_reservation([data])
@@ -373,16 +282,10 @@ async def test_lease_to_reservation(
 
 
 @pytest.mark.asyncio
-async def test_update_reservations(
-    dhcp_adapter: DHCPAdapter,
-    dhcp_manager: Mock,
-) -> None:
+async def test_update_reservations(dhcp_adapter: DHCPAdapter, dhcp_manager: Mock) -> None:
     """Test updating reservation."""
     data = DHCPReservationSchemaRequest(
-        subnet_id=1,
-        ip_address=IPv4Address("192.168.1.50"),
-        mac_address="00:11:22:33:44:55",
-        hostname="server-01",
+        subnet_id=1, ip_address=IPv4Address("192.168.1.50"), mac_address="00:11:22:33:44:55", hostname="server-01"
     )
 
     await dhcp_adapter.update_reservation(data)

@@ -25,14 +25,11 @@ depends_on: None | list[str] = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_api_permissions(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _add_api_permissions(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        query = (
-            select(Role)
-            .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
-        )  # fmt: skip
+        query = select(Role).filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         role = await session.scalar(query)
 
         if role:
@@ -40,17 +37,11 @@ def upgrade(container: AsyncContainer) -> None:
             await session.commit()
 
     op.add_column(
-        "Roles",
-        Column(
-            "permissions",
-            AuthorizationRulesType(),
-            nullable=False,
-            server_default=text("'\\x00'::bytea"),
-        ),
+        "Roles", Column("permissions", AuthorizationRulesType(), nullable=False, server_default=text("'\\x00'::bytea"))
     )
     op.run_async(_add_api_permissions)
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.drop_column("Roles", "permissions")

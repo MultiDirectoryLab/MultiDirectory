@@ -14,10 +14,7 @@ from ldap_protocol.ldap_codes import LDAPCodes
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_modify_dn_without_level_change(
-    http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_api_modify_dn_without_level_change(http_client: AsyncClient, session: AsyncSession) -> None:
     """Test API for updating DN.
 
     Change parent while up object level in LDAP tree.
@@ -38,10 +35,7 @@ async def test_api_modify_dn_without_level_change(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert (
-        data["search_result"][0]["object_name"]
-        == "ou=testModifyDn1,dc=md,dc=test"
-    )
+    assert data["search_result"][0]["object_name"] == "ou=testModifyDn1,dc=md,dc=test"
     session.expire_all()
     response = await http_client.put(
         "/entry/update/dn",
@@ -61,7 +55,7 @@ async def test_api_modify_dn_without_level_change(
         "entry/search",
         json={
             # NOTE level is 6
-            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,ou=testModifyDn3,dc=md,dc=test",  # noqa: E501
+            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,ou=testModifyDn3,dc=md,dc=test",
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -76,17 +70,14 @@ async def test_api_modify_dn_without_level_change(
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert (
         data["search_result"][0]["object_name"]
-        == "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,ou=testModifyDn3,dc=md,dc=test"  # noqa: E501
+        == "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,ou=testModifyDn3,dc=md,dc=test"
     )
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_modify_dn_with_level_down(
-    http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_api_modify_dn_with_level_down(http_client: AsyncClient, session: AsyncSession) -> None:
     """Test API for updating DN.
 
     Change parent while lowering object level in LDAP tree.
@@ -94,7 +85,7 @@ async def test_api_modify_dn_with_level_down(
     response = await http_client.post(
         "entry/search",
         json={
-            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",  # noqa: E501
+            "base_object": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -107,10 +98,7 @@ async def test_api_modify_dn_with_level_down(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert (
-        data["search_result"][0]["object_name"]
-        == "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test"
-    )
+    assert data["search_result"][0]["object_name"] == "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test"
 
     session.expire_all()
 
@@ -118,7 +106,7 @@ async def test_api_modify_dn_with_level_down(
         "/entry/update/dn",
         json={
             # NOTE level is 5
-            "entry": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",  # noqa: E501
+            "entry": "cn=testGroup1,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",
             "newrdn": "cn=testGroup1",
             "deleteoldrdn": True,
             "new_superior": "ou=testModifyDn1,dc=md,dc=test",
@@ -145,19 +133,13 @@ async def test_api_modify_dn_with_level_down(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert (
-        data["search_result"][0]["object_name"]
-        == "cn=testGroup1,ou=testModifyDn1,dc=md,dc=test"
-    )
+    assert data["search_result"][0]["object_name"] == "cn=testGroup1,ou=testModifyDn1,dc=md,dc=test"
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_modify_dn_with_level_up(
-    http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_api_modify_dn_with_level_up(http_client: AsyncClient, session: AsyncSession) -> None:
     """Test API for updating DN.
 
     Change parent while up object level in LDAP tree.
@@ -178,10 +160,7 @@ async def test_api_modify_dn_with_level_up(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert (
-        data["search_result"][0]["object_name"]
-        == "cn=testGroup2,ou=testModifyDn1,dc=md,dc=test"
-    )
+    assert data["search_result"][0]["object_name"] == "cn=testGroup2,ou=testModifyDn1,dc=md,dc=test"
 
     session.expire_all()
 
@@ -203,7 +182,7 @@ async def test_api_modify_dn_with_level_up(
         "entry/search",
         json={
             # NOTE level is 5
-            "base_object": "cn=testGroup2,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",  # noqa: E501
+            "base_object": "cn=testGroup2,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test",
             "scope": 0,
             "deref_aliases": 0,
             "size_limit": 1000,
@@ -216,19 +195,13 @@ async def test_api_modify_dn_with_level_up(
     data = response.json()
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
-    assert (
-        data["search_result"][0]["object_name"]
-        == "cn=testGroup2,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test"
-    )
+    assert data["search_result"][0]["object_name"] == "cn=testGroup2,ou=testModifyDn2,ou=testModifyDn1,dc=md,dc=test"
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_update_dn(
-    http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_api_correct_update_dn(http_client: AsyncClient, session: AsyncSession) -> None:
     """Test API for update DN."""
     old_user_dn = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     newrdn_user = "cn=new_test2"
@@ -269,12 +242,7 @@ async def test_api_correct_update_dn(
 
     response = await http_client.put(
         "/entry/update/dn",
-        json={
-            "entry": old_user_dn,
-            "newrdn": newrdn_user,
-            "deleteoldrdn": True,
-            "new_superior": new_superior_group,
-        },
+        json={"entry": old_user_dn, "newrdn": newrdn_user, "deleteoldrdn": True, "new_superior": new_superior_group},
     )
 
     data = response.json()
@@ -311,7 +279,7 @@ async def test_api_correct_update_dn(
             "entry": old_group_dn,
             "newrdn": newrdn_group,
             "deleteoldrdn": True,
-            "new_superior": new_superior_group,  # NOTE: new_superior equal old_superior  # noqa: E501
+            "new_superior": new_superior_group,  # NOTE: new_superior equal old_superior
         },
     )
 
@@ -349,10 +317,7 @@ async def test_api_correct_update_dn(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_update_dn_with_parent(
-    http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_api_update_dn_with_parent(http_client: AsyncClient, session: AsyncSession) -> None:
     """Test API for update DN."""
     old_user_dn = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     new_user_dn = "cn=new_test2,cn=Users,dc=md,dc=test"
@@ -388,12 +353,7 @@ async def test_api_update_dn_with_parent(
 
     response = await http_client.put(
         "/entry/update/dn",
-        json={
-            "entry": old_user_dn,
-            "newrdn": newrdn_user,
-            "deleteoldrdn": True,
-            "new_superior": new_superior,
-        },
+        json={"entry": old_user_dn, "newrdn": newrdn_user, "deleteoldrdn": True, "new_superior": new_superior},
     )
 
     data = response.json()
@@ -451,9 +411,7 @@ async def test_api_update_dn_non_auth_user(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_update_dn_non_exist_superior(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_update_dn_non_exist_superior(http_client: AsyncClient) -> None:
     """Test API update dn with non-existen new_superior."""
     response = await http_client.put(
         "/entry/update/dn",
@@ -475,9 +433,7 @@ async def test_api_update_dn_non_exist_superior(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("add_system_administrator")
-async def test_api_cant_update_system_directory(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_cant_update_system_directory(http_client: AsyncClient) -> None:
     """Test API for update DN of system directory."""
     response = await http_client.put(
         "/entry/update/dn",
@@ -523,12 +479,7 @@ async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
     """Test API update dn with invalid entry."""
     response = await http_client.put(
         "/entry/update/dn",
-        json={
-            "entry": "cn=,",
-            "newrdn": "cn=new_test",
-            "deleteoldrdn": True,
-            "new_superior": "dc=md,dc=test",
-        },
+        json={"entry": "cn=,", "newrdn": "cn=new_test", "deleteoldrdn": True, "new_superior": "dc=md,dc=test"},
     )
 
     data = response.json()
@@ -540,18 +491,11 @@ async def test_api_update_dn_invalid_entry(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_update_dn_invalid_new_superior(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_update_dn_invalid_new_superior(http_client: AsyncClient) -> None:
     """Test API update dn with invalid new_superior."""
     response = await http_client.put(
         "/entry/update/dn",
-        json={
-            "entry": "cn=test,dc=md,dc=test",
-            "newrdn": "cn=new_test",
-            "deleteoldrdn": True,
-            "new_superior": "dc!=,",
-        },
+        json={"entry": "cn=test,dc=md,dc=test", "newrdn": "cn=new_test", "deleteoldrdn": True, "new_superior": "dc!=,"},
     )
 
     data = response.json()
@@ -602,9 +546,7 @@ async def test_api_modify_dn_many(http_client: AsyncClient) -> None:
     )
 
     data = response.json()
-    assert all(
-        result.get("resultCode") == LDAPCodes.SUCCESS for result in data
-    )
+    assert all(result.get("resultCode") == LDAPCodes.SUCCESS for result in data)
 
 
 @pytest.mark.asyncio

@@ -39,17 +39,12 @@ class DNSUseCase(AbstractService):
         self._dns_settings = dns_settings
         self._dns_gateway = dns_gateway
 
-    async def setup(
-        self,
-        dns_settings: DNSSettingsDTO | None,
-    ) -> None:
+    async def setup(self, dns_settings: DNSSettingsDTO | None) -> None:
         """Set up DNS server and DNS manager."""
         state = await self._dns_gateway.get_state()
 
         if state == DNSManagerState.SELFHOSTED:
-            await self._dns_manager.setup(
-                self._dns_settings,
-            )
+            await self._dns_manager.setup(self._dns_settings)
         elif state == DNSManagerState.HOSTED:
             if dns_settings is None:
                 raise DNSSetupError()
@@ -60,11 +55,7 @@ class DNSUseCase(AbstractService):
         else:
             raise DNSSetupError()
 
-    async def create_record(
-        self,
-        zone_id: str,
-        record: DNSRRSetDTO,
-    ) -> None:
+    async def create_record(self, zone_id: str, record: DNSRRSetDTO) -> None:
         """Create DNS record."""
         await self._dns_manager.create_record(zone_id, record)
 
@@ -127,15 +118,10 @@ class DNSUseCase(AbstractService):
             raise last_error
 
     async def check_forward_server(
-        self,
-        dns_server_ip: IPv4Address | IPv6Address,
-        host_dns_servers: list[str],
+        self, dns_server_ip: IPv4Address | IPv6Address, host_dns_servers: list[str]
     ) -> DNSForwardServerStatus:
         """Check DNS forward server."""
-        return await self._dns_manager.check_forward_dns_server(
-            dns_server_ip,
-            host_dns_servers,
-        )
+        return await self._dns_manager.check_forward_dns_server(dns_server_ip, host_dns_servers)
 
     async def get_status(self) -> dict[str, str | None]:
         """Get DNS status."""
@@ -151,17 +137,10 @@ class DNSUseCase(AbstractService):
         """Set DNS manager state."""
         await self._dns_gateway.set_state(state)
 
-    async def check_forward_zone(
-        self,
-        data: list[IPv4Address | IPv6Address],
-    ) -> list[DNSForwardServerStatus]:
+    async def check_forward_zone(self, data: list[IPv4Address | IPv6Address]) -> list[DNSForwardServerStatus]:
         """Check DNS forward zone for availability."""
         return [
-            await self.check_forward_server(
-                dns_server_ip,
-                self._settings.HOST_DNS_SERVERS,
-            )
-            for dns_server_ip in data
+            await self.check_forward_server(dns_server_ip, self._settings.HOST_DNS_SERVERS) for dns_server_ip in data
         ]
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
@@ -178,7 +157,7 @@ class DNSUseCase(AbstractService):
         create_forward_zone.__name__: AuthorizationRules.DNS_CREATE_FWD_ZONE,
         update_master_zone.__name__: AuthorizationRules.DNS_UPDATE_MASTER_ZONE,
         update_forward_zone.__name__: AuthorizationRules.DNS_UPDATE_FWD_ZONE,
-        delete_master_zones.__name__: AuthorizationRules.DNS_DELETE_MASTER_ZONES,  # noqa: E501
+        delete_master_zones.__name__: AuthorizationRules.DNS_DELETE_MASTER_ZONES,
         delete_forward_zones.__name__: AuthorizationRules.DNS_DELETE_FWD_ZONES,
-        check_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,  # noqa: E501
+        check_forward_zone.__name__: AuthorizationRules.DNS_CHECK_DNS_FORWARD_ZONE,
     }

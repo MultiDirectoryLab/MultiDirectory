@@ -17,9 +17,7 @@ from ldap_protocol.ldap_requests.modify import Operation
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify_user_accountexpires(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_correct_modify_user_accountexpires(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     entry_dn = "cn=test,dc=md,dc=test"
     new_value = "133632677730000000"
@@ -29,13 +27,7 @@ async def test_api_correct_modify_user_accountexpires(
         json={
             "object": entry_dn,
             "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "accountExpires",
-                        "vals": [new_value],
-                    },
-                },
+                {"operation": Operation.REPLACE, "modification": {"type": "accountExpires", "vals": [new_value]}}
             ],
         },
     )
@@ -75,10 +67,7 @@ async def test_api_correct_modify_user_accountexpires(
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify_user_samaccountname(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_api_correct_modify_user_samaccountname(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test API for modify object attribute."""
     entry_dn = "cn=test,dc=md,dc=test"
 
@@ -87,13 +76,7 @@ async def test_api_correct_modify_user_samaccountname(
         json={
             "object": entry_dn,
             "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "sAMAccountName",
-                        "vals": ["NEW user name"],
-                    },
-                },
+                {"operation": Operation.REPLACE, "modification": {"type": "sAMAccountName", "vals": ["NEW user name"]}}
             ],
         },
     )
@@ -134,10 +117,7 @@ async def test_api_correct_modify_user_samaccountname(
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify_user_userprincipalname(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
-) -> None:
+async def test_api_correct_modify_user_userprincipalname(http_client: AsyncClient, kadmin: AbstractKadmin) -> None:
     """Test API for modify object attribute."""
     entry_dn = "cn=test,dc=md,dc=test"
 
@@ -148,11 +128,8 @@ async def test_api_correct_modify_user_userprincipalname(
             "changes": [
                 {
                     "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "userPrincipalName",
-                        "vals": ["newbiguser@md.test"],
-                    },
-                },
+                    "modification": {"type": "userPrincipalName", "vals": ["newbiguser@md.test"]},
+                }
             ],
         },
     )
@@ -194,8 +171,7 @@ async def test_api_correct_modify_user_userprincipalname(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 async def test_api_correct_modify_computer_samaccountname_replace(
-    http_client: AsyncClient,
-    kadmin: AbstractKadmin,
+    http_client: AsyncClient, kadmin: AbstractKadmin
 ) -> None:
     """Test API for modify computer sAMAccountName."""
     entry_dn = "cn=mycomputer,dc=md,dc=test"
@@ -204,13 +180,7 @@ async def test_api_correct_modify_computer_samaccountname_replace(
         json={
             "object": entry_dn,
             "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "sAMAccountName",
-                        "vals": ["maincomputer"],
-                    },
-                },
+                {"operation": Operation.REPLACE, "modification": {"type": "sAMAccountName", "vals": ["maincomputer"]}}
             ],
         },
     )
@@ -220,14 +190,8 @@ async def test_api_correct_modify_computer_samaccountname_replace(
     assert isinstance(data, dict)
     assert data.get("resultCode") == LDAPCodes.SUCCESS
     assert kadmin.rename_princ.call_count == 2  # type: ignore
-    assert kadmin.rename_princ.call_args_list[0].args == (  # type: ignore
-        "host/mycomputer",
-        "host/maincomputer",
-    )
-    assert kadmin.rename_princ.call_args_list[1].args == (  # type: ignore
-        "host/mycomputer.md.test",
-        "host/maincomputer.md.test",
-    )
+    assert kadmin.rename_princ.call_args_list[0].args == ("host/mycomputer", "host/maincomputer")  # type: ignore
+    assert kadmin.rename_princ.call_args_list[1].args == ("host/mycomputer.md.test", "host/maincomputer.md.test")  # type: ignore
 
     response = await http_client.post(
         "entry/search",
@@ -261,9 +225,7 @@ async def test_api_correct_modify_computer_samaccountname_replace(
 @pytest.mark.usefixtures("adding_test_computer")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_incorrect_modify_computer_samaccountname_add(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_incorrect_modify_computer_samaccountname_add(http_client: AsyncClient) -> None:
     """Test API for modify computer sAMAccountName."""
     entry_dn = "cn=mycomputer,dc=md,dc=test"
     response = await http_client.patch(
@@ -271,13 +233,7 @@ async def test_api_incorrect_modify_computer_samaccountname_add(
         json={
             "object": entry_dn,
             "changes": [
-                {
-                    "operation": Operation.ADD,
-                    "modification": {
-                        "type": "sAMAccountName",
-                        "vals": ["maincomputer"],
-                    },
-                },
+                {"operation": Operation.ADD, "modification": {"type": "sAMAccountName", "vals": ["maincomputer"]}}
             ],
         },
     )
@@ -302,25 +258,13 @@ async def test_api_modify_many(http_client: AsyncClient) -> None:
             {
                 "object": entry_dn,
                 "changes": [
-                    {
-                        "operation": Operation.REPLACE,
-                        "modification": {
-                            "type": "accountExpires",
-                            "vals": [new_value],
-                        },
-                    },
+                    {"operation": Operation.REPLACE, "modification": {"type": "accountExpires", "vals": [new_value]}}
                 ],
             },
             {
                 "object": entry_dn,
                 "changes": [
-                    {
-                        "operation": Operation.REPLACE,
-                        "modification": {
-                            "type": "testing_attr",
-                            "vals": ["test1"],
-                        },
-                    },
+                    {"operation": Operation.REPLACE, "modification": {"type": "testing_attr", "vals": ["test1"]}}
                 ],
             },
         ],
@@ -368,15 +312,7 @@ async def test_api_modify_with_incorrect_dn(http_client: AsyncClient) -> None:
         "/entry/update",
         json={
             "object": "cn!=test,dc=md,dc=test",
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "name",
-                        "vals": ["new_test"],
-                    },
-                },
-            ],
+            "changes": [{"operation": Operation.REPLACE, "modification": {"type": "name", "vals": ["new_test"]}}],
         },
     )
 
@@ -394,15 +330,7 @@ async def test_api_modify_non_exist_object(http_client: AsyncClient) -> None:
         "/entry/update",
         json={
             "object": "cn=test,dc=md,dc=test",
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "name",
-                        "vals": ["new_test"],
-                    },
-                },
-            ],
+            "changes": [{"operation": Operation.REPLACE, "modification": {"type": "name", "vals": ["new_test"]}}],
         },
     )
 
@@ -415,9 +343,7 @@ async def test_api_modify_non_exist_object(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_correct_modify_replace_memberof(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_correct_modify_replace_memberof(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     user = "cn=user1,cn=moscow,cn=russia,cn=Users,dc=md,dc=test"
     new_group = "cn=domain admins,cn=Groups,dc=md,dc=test"
@@ -425,15 +351,7 @@ async def test_api_correct_modify_replace_memberof(
         "/entry/update",
         json={
             "object": user,
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "memberOf",
-                        "vals": [new_group],
-                    },
-                },
-            ],
+            "changes": [{"operation": Operation.REPLACE, "modification": {"type": "memberOf", "vals": [new_group]}}],
         },
     )
     data = response.json()
@@ -470,9 +388,7 @@ async def test_api_correct_modify_replace_memberof(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_modify_add_loop_detect_member(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_modify_add_loop_detect_member(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -481,11 +397,8 @@ async def test_api_modify_add_loop_detect_member(
             "changes": [
                 {
                     "operation": Operation.ADD,
-                    "modification": {
-                        "type": "member",
-                        "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"],
-                    },
-                },
+                    "modification": {"type": "member", "vals": ["cn=domain admins,cn=Groups,dc=md,dc=test"]},
+                }
             ],
         },
     )
@@ -497,9 +410,7 @@ async def test_api_modify_add_loop_detect_member(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_modify_add_loop_detect_memberof(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_modify_add_loop_detect_memberof(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -508,11 +419,8 @@ async def test_api_modify_add_loop_detect_memberof(
             "changes": [
                 {
                     "operation": Operation.ADD,
-                    "modification": {
-                        "type": "memberOf",
-                        "vals": ["cn=developers,cn=Groups,dc=md,dc=test"],
-                    },
-                },
+                    "modification": {"type": "memberOf", "vals": ["cn=developers,cn=Groups,dc=md,dc=test"]},
+                }
             ],
         },
     )
@@ -524,9 +432,7 @@ async def test_api_modify_add_loop_detect_memberof(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_modify_replace_loop_detect_member(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_modify_replace_loop_detect_member(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -542,7 +448,7 @@ async def test_api_modify_replace_loop_detect_member(
                             "cn=domain admins,cn=Groups,dc=md,dc=test",
                         ],
                     },
-                },
+                }
             ],
         },
     )
@@ -554,9 +460,7 @@ async def test_api_modify_replace_loop_detect_member(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_modify_replace_loop_detect_memberof(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_modify_replace_loop_detect_memberof(http_client: AsyncClient) -> None:
     """Test API for modify object attribute."""
     response = await http_client.patch(
         "/entry/update",
@@ -572,7 +476,7 @@ async def test_api_modify_replace_loop_detect_memberof(
                             "cn=developers,cn=Groups,dc=md,dc=test",
                         ],
                     },
-                },
+                }
             ],
         },
     )
@@ -590,13 +494,7 @@ async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
         json={
             "object": "cn=user0,cn=Users,dc=md,dc=test",
             "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "userAccountControl",
-                        "vals": ["string"],
-                    },
-                },
+                {"operation": Operation.REPLACE, "modification": {"type": "userAccountControl", "vals": ["string"]}}
             ],
         },
     )
@@ -608,24 +506,14 @@ async def test_api_modify_incorrect_uac(http_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_qpi_modify_primary_object_classes(
-    http_client: AsyncClient,
-) -> None:
+async def test_qpi_modify_primary_object_classes(http_client: AsyncClient) -> None:
     """Test deleting primary object class."""
     entry_dn = "cn=user0,cn=Users,dc=md,dc=test"
     response = await http_client.patch(
         "/entry/update",
         json={
             "object": entry_dn,
-            "changes": [
-                {
-                    "operation": Operation.REPLACE,
-                    "modification": {
-                        "type": "objectClass",
-                        "vals": [],
-                    },
-                },
-            ],
+            "changes": [{"operation": Operation.REPLACE, "modification": {"type": "objectClass", "vals": []}}],
         },
     )
     data = response.json()
@@ -638,21 +526,12 @@ async def test_qpi_modify_primary_object_classes(
 @pytest.mark.usefixtures("adding_test_user")
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_api_set_primary_group(
-    http_client: AsyncClient,
-    session: AsyncSession,
-) -> None:
+async def test_api_set_primary_group(http_client: AsyncClient, session: AsyncSession) -> None:
     """Test API for setting primary group."""
     user_dn = "cn=test,dc=md,dc=test"
     group_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
 
-    response = await http_client.post(
-        "/entry/set_primary_group",
-        json={
-            "directory_dn": user_dn,
-            "group_dn": group_dn,
-        },
-    )
+    response = await http_client.post("/entry/set_primary_group", json={"directory_dn": user_dn, "group_dn": group_dn})
 
     assert response.status_code == 200
 

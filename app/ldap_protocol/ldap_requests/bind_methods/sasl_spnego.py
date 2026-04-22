@@ -44,12 +44,7 @@ class SaslSPNEGOAuthentication(SaslGSSAPIAuthentication):
 
     mechanism: ClassVar[SASLMethod] = SASLMethod.GSS_SPNEGO
 
-    async def step(
-        self,
-        session: AsyncSession,
-        ldap_session: LDAPSession,
-        settings: Settings,
-    ) -> BindResponse | None:
+    async def step(self, session: AsyncSession, ldap_session: LDAPSession, settings: Settings) -> BindResponse | None:
         """SPNEGO step.
 
         :param AsyncSession session: db session
@@ -68,10 +63,7 @@ class SaslSPNEGOAuthentication(SaslGSSAPIAuthentication):
         status = self._handle_ticket(server_ctx)
 
         if not server_ctx.complete:
-            return BindResponse(
-                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-                server_sasl_creds=self.server_sasl_creds,
-            )
+            return BindResponse(result_code=LDAPCodes.SASL_BIND_IN_PROGRESS, server_sasl_creds=self.server_sasl_creds)
 
         if status == GSSAPIAuthStatus.SEND_TO_CLIENT:
             self._ldap_session.gssapi_authenticated = True

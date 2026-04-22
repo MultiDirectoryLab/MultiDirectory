@@ -1,11 +1,7 @@
 """Network policies module."""
 
 from .dto import NetworkPolicyDTO, NetworkPolicyUpdateDTO, SwapPrioritiesDTO
-from .exceptions import (
-    LastActivePolicyError,
-    NetworkPolicyAlreadyExistsError,
-    NetworkPolicyNotFoundError,
-)
+from .exceptions import LastActivePolicyError, NetworkPolicyAlreadyExistsError, NetworkPolicyNotFoundError
 from .gateway import NetworkPolicyGateway
 from .use_cases import NetworkPolicyUseCase, NetworkPolicyValidatorUseCase
 from .validator_gateway import NetworkPolicyValidatorGateway

@@ -25,40 +25,13 @@ translator = DomainErrorTranslator(DomainCodes.PASSWORD_POLICY)
 
 
 error_map: ERROR_MAP_TYPE = {
-    PasswordPolicyBaseDnNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyNotFoundError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyDirIsNotUserError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyAlreadyExistsError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyCantChangeDefaultDomainError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyPriorityError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordPolicyAgeDaysError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    PasswordBanWordWrongFileExtensionError: rule(
-        status=status.HTTP_400_BAD_REQUEST,
-        translator=translator,
-    ),
-    AuthorizationError: rule(
-        status=status.HTTP_401_UNAUTHORIZED,
-        translator=translator,
-    ),
+    PasswordPolicyBaseDnNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordPolicyNotFoundError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordPolicyDirIsNotUserError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordPolicyAlreadyExistsError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordPolicyCantChangeDefaultDomainError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordPolicyPriorityError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordPolicyAgeDaysError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    PasswordBanWordWrongFileExtensionError: rule(status=status.HTTP_400_BAD_REQUEST, translator=translator),
+    AuthorizationError: rule(status=status.HTTP_401_UNAUTHORIZED, translator=translator),
 }

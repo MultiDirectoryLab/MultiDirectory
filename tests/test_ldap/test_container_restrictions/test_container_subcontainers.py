@@ -19,45 +19,15 @@ from tests.conftest import TestCreds
 @pytest.mark.parametrize(
     ("dn", "rdn_attr", "rdn_value", "object_classes"),
     [
-        (
-            "cn=testcontainer,cn=Users,dc=md,dc=test",
-            "cn",
-            "testcontainer",
-            ["container"],
-        ),
-        (
-            "ou=testou,cn=Users,dc=md,dc=test",
-            "ou",
-            "testou",
-            ["organizationalUnit"],
-        ),
-        (
-            "cn=testuser,cn=Users,dc=md,dc=test",
-            "cn",
-            "testuser",
-            ["user", "organizationalPerson"],
-        ),
-        (
-            "cn=testgroup,cn=Groups,dc=md,dc=test",
-            "cn",
-            "testgroup",
-            ["group", "posixGroup"],
-        ),
-        (
-            "cn=testcomputer,cn=Computers,dc=md,dc=test",
-            "cn",
-            "testcomputer",
-            ["computer", "organizationalPerson"],
-        ),
+        ("cn=testcontainer,cn=Users,dc=md,dc=test", "cn", "testcontainer", ["container"]),
+        ("ou=testou,cn=Users,dc=md,dc=test", "ou", "testou", ["organizationalUnit"]),
+        ("cn=testuser,cn=Users,dc=md,dc=test", "cn", "testuser", ["user", "organizationalPerson"]),
+        ("cn=testgroup,cn=Groups,dc=md,dc=test", "cn", "testgroup", ["group", "posixGroup"]),
+        ("cn=testcomputer,cn=Computers,dc=md,dc=test", "cn", "testcomputer", ["computer", "organizationalPerson"]),
     ],
 )
 async def test_entity_creation_in_container(
-    settings: Settings,
-    creds: TestCreds,
-    dn: str,
-    rdn_attr: str,
-    rdn_value: str,
-    object_classes: list[str],
+    settings: Settings, creds: TestCreds, dn: str, rdn_attr: str, rdn_value: str, object_classes: list[str]
 ) -> None:
     """Test entity creation restrictions inside Container using LDAP add."""
     with tempfile.NamedTemporaryFile("w") as file:

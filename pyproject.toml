@@ -107,15 +107,15 @@ omit = [
 
 [tool.ruff]
 target-version = "py312"
-line-length = 79
+line-length = 120
 output-format = "grouped"
 unsafe-fixes = true
 
 [tool.ruff.format]
 docstring-code-format = true
-docstring-code-line-length = 79
+docstring-code-line-length = 120
 line-ending = "lf"
-skip-magic-trailing-comma = false  # default: false
+skip-magic-trailing-comma = true  # default: false
 
 [tool.ruff.lint]
 select = [
@@ -152,7 +152,6 @@ select = [
     # "RUF",  # Ruff-specific rules TODO uncomment, ruff fix and fix error
     "RUF100", # Ruff100-specific rule TODO delete that and uncomment "RUF"-rule in line up.
     "SLF001",  # flake8-self: checks for access to private/protected attributes via self
-    "COM812",  # this is necessary. It checks for commas in the end of the line.
 ]
 
 # Gradually remove all values marked 'TODO' and fix errors.
@@ -181,6 +180,7 @@ ignore = [
     "D107", # ignore missing docstrings in __init__ methods
     "D101", # ignore missing docstrings in public classes
     "D103", # ignore missing docstrings in public functions
+    "COM812",  # this is necessary. It checks for commas in the end of the line.
 ]
 
 extend-select = []
@@ -195,7 +195,8 @@ ignore-variadic-names = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101"] # Ignore `Flake8-bandit S101` rule for the `tests/` directory.
-"alembic/*.py" = ["I001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
+"alembic/*.py" = ["I001", "ARG001"] # Ignore `Flake8-isort IO01` rule for the `alembic/` directory. It works incorrect in CI ruff test.
+"app/alembic/*.py" = ["ARG001"]
 
 [tool.ruff.lint.mccabe]
 # 15 Complexity level is too high, need to reduce this level or ignore it `# noqa: C901`.

@@ -98,11 +98,7 @@ class AuthManager(AbstractService):
         return attr
 
     async def login(
-        self,
-        form: LoginRequestDTO,
-        url: URL,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
+        self, form: LoginRequestDTO, url: URL, ip: IPv4Address | IPv6Address, user_agent: str
     ) -> LoginResponseDTO:
         """Log in a user.
 
@@ -116,24 +112,12 @@ class AuthManager(AbstractService):
         :raises MFARequiredError: if MFA is required
         :return: session key (str)
         """
-        user = await authenticate_user(
-            self._session,
-            form.username,
-            form.password,
-            self._password_utils,
-        )
+        user = await authenticate_user(self._session, form.username, form.password, self._password_utils)
         if not user:
             raise UnauthorizedError("Incorrect username or password")
 
-        perms = [
-            r.permissions
-            for group in user.groups
-            for r in group.roles
-            if r.permissions
-        ]
-        can_auth = (
-            AuthorizationRules.combine(perms) & AuthorizationRules.AUTH_LOGIN
-        )
+        perms = [r.permissions for group in user.groups for r in group.roles if r.permissions]
+        can_auth = AuthorizationRules.combine(perms) & AuthorizationRules.AUTH_LOGIN
         if not can_auth:
             raise LoginFailedError("User is not allowed to log in")
 
@@ -145,60 +129,24 @@ class AuthManager(AbstractService):
         if user.is_expired():
             raise LoginFailedError("User account is expired")
 
-        network_policy = (
-            await self._network_policy_validator.get_user_http_policy(
-                ip,
-                user,
-            )
-        )
+        network_policy = await self._network_policy_validator.get_user_http_policy(ip, user)
         if network_policy is None:
             raise LoginFailedError("User not part of network policy")
 
-        if self._mfa_api.is_initialized and network_policy.mfa_status in (
-            MFAFlags.ENABLED,
-            MFAFlags.WHITELIST,
-        ):
+        if self._mfa_api.is_initialized and network_policy.mfa_status in (MFAFlags.ENABLED, MFAFlags.WHITELIST):
             request_2fa = True
             if network_policy.mfa_status == MFAFlags.WHITELIST:
-                request_2fa = (
-                    await self._network_policy_validator.check_mfa_group(
-                        network_policy,
-                        user,
-                    )
-                )
+                request_2fa = await self._network_policy_validator.check_mfa_group(network_policy, user)
             if request_2fa:
-                (
-                    mfa_challenge_dto,
-                    session_key,
-                ) = await self._mfa_manager.two_factor_protocol(
-                    user=user,
-                    network_policy=network_policy,
-                    url=url,
-                    ip=ip,
-                    user_agent=user_agent,
+                (mfa_challenge_dto, session_key) = await self._mfa_manager.two_factor_protocol(
+                    user=user, network_policy=network_policy, url=url, ip=ip, user_agent=user_agent
                 )
-                return LoginResponseDTO(
-                    session_key=session_key,
-                    mfa_challenge=mfa_challenge_dto,
-                )
+                return LoginResponseDTO(session_key=session_key, mfa_challenge=mfa_challenge_dto)
 
-        session_key = await self._repository.create_session_key(
-            user,
-            ip,
-            user_agent,
-            self.key_ttl,
-        )
-        return LoginResponseDTO(
-            session_key=session_key,
-            mfa_challenge=None,
-        )
+        session_key = await self._repository.create_session_key(user, ip, user_agent, self.key_ttl)
+        return LoginResponseDTO(session_key=session_key, mfa_challenge=None)
 
-    async def _update_password(
-        self,
-        identity: str | User,
-        new_password: str,
-        include_krb: bool,
-    ) -> None:
+    async def _update_password(self, identity: str | User, new_password: str, include_krb: bool) -> None:
         """Change the user's password and update Kerberos.
 
         :param identity: str
@@ -209,106 +157,55 @@ class AuthManager(AbstractService):
         :raises KRBAPIChangePasswordError: if Kerberos password update failed
         :return: None.
         """
-        user = (
-            await get_user(self._session, identity)
-            if isinstance(identity, str)
-            else identity
-        )
+        user = await get_user(self._session, identity) if isinstance(identity, str) else identity
 
         if not user:
-            raise UserNotFoundError(
-                f"User {identity} not found in the database.",
-            )
+            raise UserNotFoundError(f"User {identity} not found in the database.")
 
-        if await self._password_use_cases.is_password_change_restricted(
-            user.directory_id,
-        ):
-            raise PermissionError(
-                f"User {identity} is not allowed to change the password.",
-            )
+        if await self._password_use_cases.is_password_change_restricted(user.directory_id):
+            raise PermissionError(f"User {identity} is not allowed to change the password.")
 
-        errors = await self._password_use_cases.check_password_violations(
-            new_password,
-            user,
-        )
+        errors = await self._password_use_cases.check_password_violations(new_password, user)
 
         if errors:
             raise PasswordPolicyError(errors)
 
         if include_krb:
-            await self._kadmin.create_or_update_principal_pw(
-                user.sam_account_name,
-                new_password,
-            )
+            await self._kadmin.create_or_update_principal_pw(user.sam_account_name, new_password)
 
-        user.password = self._password_utils.get_password_hash(
-            new_password,
-        )
+        user.password = self._password_utils.get_password_hash(new_password)
         await self._password_use_cases.post_save_password_actions(user)
         await self._session.commit()
 
         await self._repository.clear_user_sessions(identity)
 
-    async def sync_password_from_service(
-        self,
-        principal: str,
-        new_password: str,
-    ) -> None:
+    async def sync_password_from_service(self, principal: str, new_password: str) -> None:
         """Synchronize the password from the shadow api."""
-        await self._update_password(
-            principal,
-            new_password,
-            include_krb=False,
-        )
+        await self._update_password(principal, new_password, include_krb=False)
 
-    async def reset_password(
-        self,
-        identity: str,
-        new_password: str,
-        old_password: str | None,
-    ) -> None:
+    async def reset_password(self, identity: str, new_password: str, old_password: str | None) -> None:
         """Change the user's password and update Kerberos."""
         raise_not_verified = False
 
         current_user_schema = await self.get_current_user()
-        resolved_identity = await get_user(
-            self._session,
-            identity,
-        )
+        resolved_identity = await get_user(self._session, identity)
 
         if resolved_identity is None:
-            raise UserNotFoundError(
-                f"User {identity} not found in the database.",
-            )
+            raise UserNotFoundError(f"User {identity} not found in the database.")
 
         if current_user_schema.id == resolved_identity.id:
             if old_password is None:
-                raise AuthValidationError(
-                    "Old password must be provided "
-                    "when changing your own password.",
-                )
+                raise AuthValidationError("Old password must be provided when changing your own password.")
 
             if resolved_identity.password is None:
-                raise AuthValidationError(
-                    "Cannot change password for user without a set password.",
-                )
+                raise AuthValidationError("Cannot change password for user without a set password.")
 
-            raise_not_verified = (
-                self._password_utils.verify_password(
-                    old_password,
-                    resolved_identity.password,
-                )
-                is False
-            )
+            raise_not_verified = self._password_utils.verify_password(old_password, resolved_identity.password) is False
 
         if raise_not_verified:
             raise UnauthorizedError("Old password is incorrect.")
 
-        await self._update_password(
-            identity,
-            new_password,
-            include_krb=True,
-        )
+        await self._update_password(identity, new_password, include_krb=True)
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is needed.
@@ -341,5 +238,5 @@ class AuthManager(AbstractService):
         self._identity_provider.set_new_session_key(key)
 
     PERMISSIONS: ClassVar[dict[str, AuthorizationRules]] = {
-        reset_password.__name__: AuthorizationRules.AUTH_RESET_PASSWORD,
+        reset_password.__name__: AuthorizationRules.AUTH_RESET_PASSWORD
     }

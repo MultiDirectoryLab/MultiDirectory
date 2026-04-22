@@ -70,10 +70,7 @@ async def test_ldap_search(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_ldap_search_filter(
-    settings: Settings,
-    creds: TestCreds,
-) -> None:
+async def test_ldap_search_filter(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch with filter on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -109,11 +106,7 @@ async def test_ldap_search_filter(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("dataset", test_search_by_rule_anr_dataset)
-async def test_ldap_search_by_rule_anr(
-    dataset: dict,
-    settings: Settings,
-    creds: TestCreds,
-) -> None:
+async def test_ldap_search_by_rule_anr(dataset: dict, settings: Settings, creds: TestCreds) -> None:
     """Test LDAP search filter by rule "aNR"."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -130,7 +123,7 @@ async def test_ldap_search_by_rule_anr(
         f"{dataset['filter']}",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-    )  # fmt: skip
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")
@@ -141,9 +134,7 @@ async def test_ldap_search_by_rule_anr(
     if dataset["objects"]:
         for object_dn in dataset["objects"]:
             assert f"dn: {object_dn}" in data
-        assert len(dataset["objects"]) == len(
-            [d for d in data if d.startswith("dn:")],
-        )
+        assert len(dataset["objects"]) == len([d for d in data if d.startswith("dn:")])
     else:
         assert not any(d.startswith("dn:") for d in data)
 
@@ -152,11 +143,7 @@ async def test_ldap_search_by_rule_anr(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("dataset", test_search_by_rule_bit_and_dataset)
-async def test_ldap_search_by_rule_bit_and(
-    dataset: dict,
-    settings: Settings,
-    creds: TestCreds,
-) -> None:
+async def test_ldap_search_by_rule_bit_and(dataset: dict, settings: Settings, creds: TestCreds) -> None:
     """Test LDAP search filter by rule "BIT_AND"."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -170,13 +157,10 @@ async def test_ldap_search_by_rule_bit_and(
         creds.pw,
         "-b",
         "dc=md,dc=test",
-        "(&"
-        "(objectClass=user)"
-        f"{dataset['filter']}"
-        ")",
+        f"(&(objectClass=user){dataset['filter']})",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-    )  # fmt: skip
+    )
 
     raw_data, _ = await proc.communicate()
     data = raw_data.decode().split("\n")
@@ -187,9 +171,7 @@ async def test_ldap_search_by_rule_bit_and(
     if dataset["objects"]:
         for object_dn in dataset["objects"]:
             assert f"dn: {object_dn}" in data
-        assert len(dataset["objects"]) == len(
-            [d for d in data if d.startswith("dn:")],
-        )
+        assert len(dataset["objects"]) == len([d for d in data if d.startswith("dn:")])
     else:
         assert not any(d.startswith("dn:") for d in data)
 
@@ -198,11 +180,7 @@ async def test_ldap_search_by_rule_bit_and(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("dataset", test_search_by_rule_bit_or_dataset)
-async def test_ldap_search_by_rule_bit_or(
-    dataset: dict,
-    settings: Settings,
-    creds: TestCreds,
-) -> None:
+async def test_ldap_search_by_rule_bit_or(dataset: dict, settings: Settings, creds: TestCreds) -> None:
     """Test LDAP search filter by rule "BIT_OR"."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -230,9 +208,7 @@ async def test_ldap_search_by_rule_bit_or(
     if dataset["objects"]:
         for object_dn in dataset["objects"]:
             assert f"dn: {object_dn}" in data
-        assert len(dataset["objects"]) == len(
-            [d for d in data if d.startswith("dn:")],
-        )
+        assert len(dataset["objects"]) == len([d for d in data if d.startswith("dn:")])
     else:
         assert not any(d.startswith("dn:") for d in data)
 
@@ -241,11 +217,7 @@ async def test_ldap_search_by_rule_bit_or(
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("filter_", test_search_filter_account_expires_dataset)
-async def test_ldap_search_filter_account_expires(
-    filter_: str,
-    settings: Settings,
-    creds: TestCreds,
-) -> None:
+async def test_ldap_search_filter_account_expires(filter_: str, settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch with filter on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -271,10 +243,7 @@ async def test_ldap_search_filter_account_expires(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_ldap_search_filter_prefix(
-    settings: Settings,
-    creds: TestCreds,
-) -> None:
+async def test_ldap_search_filter_prefix(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch with filter on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -304,22 +273,13 @@ async def test_ldap_search_filter_prefix(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_bind_policy(
-    session: AsyncSession,
-    settings: Settings,
-    creds: TestCreds,
-    network_policy_validator: NetworkPolicyValidatorUseCase,
+    session: AsyncSession, settings: Settings, creds: TestCreds, network_policy_validator: NetworkPolicyValidatorUseCase
 ) -> None:
     """Bind with policy."""
-    policy = await network_policy_validator.get_by_protocol(
-        IPv4Address("127.0.0.1"),
-        ProtocolType.LDAP,
-    )
+    policy = await network_policy_validator.get_by_protocol(IPv4Address("127.0.0.1"), ProtocolType.LDAP)
     assert policy
 
-    group = await get_group(
-        dn="cn=domain admins,cn=Groups,dc=md,dc=test",
-        session=session,
-    )
+    group = await get_group(dn="cn=domain admins,cn=Groups,dc=md,dc=test", session=session)
     policy.groups.append(group)
     await session.commit()
 
@@ -347,30 +307,17 @@ async def test_bind_policy(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 async def test_bind_policy_missing_group(
-    session: AsyncSession,
-    settings: Settings,
-    creds: TestCreds,
-    network_policy_validator: NetworkPolicyValidatorUseCase,
+    session: AsyncSession, settings: Settings, creds: TestCreds, network_policy_validator: NetworkPolicyValidatorUseCase
 ) -> None:
     """Bind policy fail."""
-    policy = await network_policy_validator.get_by_protocol(
-        IPv4Address("127.0.0.1"),
-        ProtocolType.LDAP,
-    )
+    policy = await network_policy_validator.get_by_protocol(IPv4Address("127.0.0.1"), ProtocolType.LDAP)
 
     assert policy
 
-    user_query = (
-        select(User)
-        .filter_by(display_name="user0")
-        .options(selectinload(qa(User.groups)))
-    )
+    user_query = select(User).filter_by(display_name="user0").options(selectinload(qa(User.groups)))
     user = (await session.scalars(user_query)).one()
 
-    policy.groups = await get_groups(
-        ["cn=domain admins,cn=Groups,dc=md,dc=test"],
-        session,
-    )
+    policy.groups = await get_groups(["cn=domain admins,cn=Groups,dc=md,dc=test"], session)
     user.groups.clear()
     await session.commit()
 
@@ -426,10 +373,7 @@ async def test_ldap_bind(settings: Settings, creds: TestCreds) -> None:
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_bvalue_in_search_request(
-    ldap_bound_session: LDAPSession,
-    ctx_search: LDAPSearchRequestContext,
-) -> None:
+async def test_bvalue_in_search_request(ldap_bound_session: LDAPSession, ctx_search: LDAPSearchRequestContext) -> None:
     """Test SearchRequest with bytes data."""
     request = SearchRequest(
         base_object="cn=user0,cn=Users,dc=md,dc=test",
@@ -438,11 +382,7 @@ async def test_bvalue_in_search_request(
         size_limit=0,
         time_limit=0,
         types_only=False,
-        filter=ASN1Row(
-            class_id=128,
-            tag_id=TagNumbers.PRESENT,
-            value="objectClass",
-        ),
+        filter=ASN1Row(class_id=128, tag_id=TagNumbers.PRESENT, value="objectClass"),
         attributes=["*"],
     )
     ctx_search.ldap_session = ldap_bound_session
@@ -458,10 +398,7 @@ async def test_bvalue_in_search_request(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
 @pytest.mark.usefixtures("session")
-async def test_ldap_search_empty_request(
-    settings: Settings,
-    creds: TestCreds,
-) -> None:
+async def test_ldap_search_empty_request(settings: Settings, creds: TestCreds) -> None:
     """Test ldapsearch on server."""
     proc = await asyncio.create_subprocess_exec(
         "ldapsearch",
@@ -524,9 +461,7 @@ async def test_ldap_search_access_control_denied(
     dn_list = [d for d in data if d.startswith("dn:")]
 
     assert result == 0
-    assert dn_list == [
-        "dn: cn=user_non_admin,cn=Users,dc=md,dc=test",
-    ]
+    assert dn_list == ["dn: cn=user_non_admin,cn=Users,dc=md,dc=test"]
 
     await session.commit()
 
@@ -536,7 +471,7 @@ async def test_ldap_search_access_control_denied(
             creator_upn=None,
             is_system=False,
             groups=["cn=domain users,cn=Groups,dc=md,dc=test"],
-        ),
+        )
     )
 
     group_read_ace = AccessControlEntryDTO(
@@ -584,5 +519,5 @@ async def test_ldap_search_access_control_denied(
             "dn: cn=domain computers,cn=Groups,dc=md,dc=test",
             "dn: cn=domain users,cn=Groups,dc=md,dc=test",
             "dn: cn=user_non_admin,cn=Users,dc=md,dc=test",
-        ],
+        ]
     )

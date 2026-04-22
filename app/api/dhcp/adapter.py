@@ -19,39 +19,19 @@ from api.dhcp.schemas import (
     DHCPSubnetSchemaResponse,
 )
 from ldap_protocol.dhcp import AbstractDHCPManager
-from ldap_protocol.dhcp.dataclasses import (
-    DHCPLease,
-    DHCPOptionData,
-    DHCPPool,
-    DHCPReservation,
-    DHCPSubnet,
-)
+from ldap_protocol.dhcp.dataclasses import DHCPLease, DHCPOptionData, DHCPPool, DHCPReservation, DHCPSubnet
 
 
 class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
     """Adapter for DHCP management using KeaDHCPManager."""
 
-    async def create_subnet(
-        self,
-        subnet_data: DHCPSubnetSchemaAddRequest,
-    ) -> None:
+    async def create_subnet(self, subnet_data: DHCPSubnetSchemaAddRequest) -> None:
         """Create a new subnet."""
         option_data_dto = (
-            [
-                DHCPOptionData(
-                    name="routers",
-                    data=subnet_data.default_gateway,
-                ),
-            ]
-            if subnet_data.default_gateway
-            else []
+            [DHCPOptionData(name="routers", data=subnet_data.default_gateway)] if subnet_data.default_gateway else []
         )
 
-        pools_dto = [
-            DHCPPool(
-                pool=subnet_data.pool,
-            ),
-        ]
+        pools_dto = [DHCPPool(pool=subnet_data.pool)]
 
         subnets_dto = DHCPSubnet(
             subnet=subnet_data.subnet,
@@ -73,35 +53,18 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
                 subnet=subnet.subnet,
                 pool=[p.pool for p in subnet.pools] if subnet.pools else [],
                 valid_lifetime=subnet.valid_lifetime,
-                default_gateway=subnet.option_data[0].data
-                if subnet.option_data
-                else None,
+                default_gateway=subnet.option_data[0].data if subnet.option_data else None,
             )
             for subnet in await self._service.get_subnets()
         ]
 
-    async def update_subnet(
-        self,
-        subnet_id: int,
-        subnet_data: DHCPSubnetSchemaAddRequest,
-    ) -> None:
+    async def update_subnet(self, subnet_id: int, subnet_data: DHCPSubnetSchemaAddRequest) -> None:
         """Update a subnet."""
         option_data_dto = (
-            [
-                DHCPOptionData(
-                    name="routers",
-                    data=subnet_data.default_gateway,
-                ),
-            ]
-            if subnet_data.default_gateway
-            else []
+            [DHCPOptionData(name="routers", data=subnet_data.default_gateway)] if subnet_data.default_gateway else []
         )
 
-        pools_dto = [
-            DHCPPool(
-                pool=subnet_data.pool,
-            ),
-        ]
+        pools_dto = [DHCPPool(pool=subnet_data.pool)]
 
         subnets_dto = DHCPSubnet(
             id=subnet_id,
@@ -113,10 +76,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
 
         return await self._service.update_subnet(subnets_dto)
 
-    async def create_lease(
-        self,
-        lease_data: DHCPLeaseSchemaRequest,
-    ) -> None:
+    async def create_lease(self, lease_data: DHCPLeaseSchemaRequest) -> None:
         """Create a new lease."""
         return await self._service.create_lease(
             DHCPLease(
@@ -124,17 +84,14 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
                 ip_address=lease_data.ip_address,
                 mac_address=lease_data.mac_address,
                 hostname=lease_data.hostname,
-            ),
+            )
         )
 
     async def release_lease(self, ip_address: IPv4Address) -> None:
         """Delete a lease."""
         return await self._service.release_lease(ip_address)
 
-    async def list_active_leases(
-        self,
-        subnet_id: int,
-    ) -> list[DHCPLeaseSchemaResponse]:
+    async def list_active_leases(self, subnet_id: int) -> list[DHCPLeaseSchemaResponse]:
         """Get all leases."""
         return [
             DHCPLeaseSchemaResponse(
@@ -148,15 +105,10 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         ]
 
     async def find_lease(
-        self,
-        mac_address: str | None = None,
-        hostname: str | None = None,
+        self, mac_address: str | None = None, hostname: str | None = None
     ) -> DHCPLeaseSchemaResponse | None:
         """Find a lease by MAC address or hostname."""
-        lease = await self._service.find_lease(
-            mac_address=mac_address,
-            hostname=hostname,
-        )
+        lease = await self._service.find_lease(mac_address=mac_address, hostname=hostname)
         return (
             DHCPLeaseSchemaResponse(
                 subnet_id=lease.subnet_id,
@@ -170,8 +122,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
         )
 
     async def lease_to_reservation(
-        self,
-        data: list[DHCPReservationSchemaRequest],
+        self, data: list[DHCPReservationSchemaRequest]
     ) -> None | list[DHCPLeaseToReservationErrorResponse]:
         """Transform lease to reservation."""
         errors_info = await self._service.lease_to_reservation(
@@ -183,15 +134,13 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
                     hostname=reservation_data.hostname,
                 )
                 for reservation_data in data
-            ],
+            ]
         )
 
         return (
             [
                 DHCPLeaseToReservationErrorResponse(
-                    ip_address=error.ip_address,
-                    mac_address=error.mac_address,
-                    text=error.text,
+                    ip_address=error.ip_address, mac_address=error.mac_address, text=error.text
                 )
                 for error in errors_info
             ]
@@ -199,10 +148,7 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             else None
         )
 
-    async def add_reservation(
-        self,
-        reservation_data: DHCPReservationSchemaRequest,
-    ) -> None:
+    async def add_reservation(self, reservation_data: DHCPReservationSchemaRequest) -> None:
         """Add a new reservation."""
         return await self._service.add_reservation(
             DHCPReservation(
@@ -210,39 +156,24 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
                 ip_address=reservation_data.ip_address,
                 mac_address=reservation_data.mac_address,
                 hostname=reservation_data.hostname,
-            ),
+            )
         )
 
-    async def delete_reservation(
-        self,
-        mac_address: str,
-        ip_address: IPv4Address,
-        subnet_id: int,
-    ) -> None:
+    async def delete_reservation(self, mac_address: str, ip_address: IPv4Address, subnet_id: int) -> None:
         """Delete a reservation."""
-        return await self._service.delete_reservation(
-            mac_address,
-            ip_address,
-            subnet_id,
-        )
+        return await self._service.delete_reservation(mac_address, ip_address, subnet_id)
 
-    async def update_reservation(
-        self,
-        data: DHCPReservationSchemaRequest,
-    ) -> None:
+    async def update_reservation(self, data: DHCPReservationSchemaRequest) -> None:
         await self._service.update_reservation(
             DHCPReservation(
                 subnet_id=data.subnet_id,
                 ip_address=data.ip_address,
                 mac_address=data.mac_address,
                 hostname=data.hostname,
-            ),
+            )
         )
 
-    async def get_reservations(
-        self,
-        subnet_id: int,
-    ) -> list[DHCPReservationSchemaResponse]:
+    async def get_reservations(self, subnet_id: int) -> list[DHCPReservationSchemaResponse]:
         """Get all reservations."""
         return [
             DHCPReservationSchemaResponse(
@@ -254,15 +185,10 @@ class DHCPAdapter(BaseAdapter[AbstractDHCPManager]):
             for reservation in await self._service.get_reservations(subnet_id)
         ]
 
-    async def change_state(
-        self,
-        state_data: DHCPChangeStateSchemaRequest,
-    ) -> None:
+    async def change_state(self, state_data: DHCPChangeStateSchemaRequest) -> None:
         """Configure the DHCP server."""
         await self._service.change_state(state_data.dhcp_manager_state)
 
     async def get_state(self) -> DHCPStateSchemaResponse:
         """Get the current state of the DHCP server."""
-        return DHCPStateSchemaResponse(
-            dhcp_manager_state=await self._service.get_state(),
-        )
+        return DHCPStateSchemaResponse(dhcp_manager_state=await self._service.get_state())

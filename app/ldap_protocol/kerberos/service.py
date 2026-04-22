@@ -30,12 +30,7 @@ from password_utils import PasswordUtils
 
 from .base import AbstractKadmin
 from .client import KerberosMDAPIClient
-from .dtos import (
-    AddRequestsDTO,
-    KDCContextDTO,
-    KerberosAdminDnGroupDTO,
-    TaskStructDTO,
-)
+from .dtos import AddRequestsDTO, KDCContextDTO, KerberosAdminDnGroupDTO, TaskStructDTO
 from .exceptions import (
     KRBAPIAddPrincipalError,
     KRBAPIConnectionError,
@@ -49,12 +44,7 @@ from .exceptions import (
 )
 from .ldap_structure import KRBLDAPStructureManager
 from .template_render import KRBTemplateRenderer
-from .utils import (
-    KerberosState,
-    get_krb_server_state,
-    get_system_container_dn,
-    set_state,
-)
+from .utils import KerberosState, get_krb_server_state, get_system_container_dn, set_state
 
 
 class KerberosService(AbstractService):
@@ -92,11 +82,7 @@ class KerberosService(AbstractService):
         self._password_utils = password_utils
 
     async def setup_krb_catalogue(
-        self,
-        mail: str,
-        krbadmin_password: SecretStr,
-        ldap_session: LDAPSession,
-        ctx: LDAPAddRequestContext,
+        self, mail: str, krbadmin_password: SecretStr, ldap_session: LDAPSession, ctx: LDAPAddRequestContext
     ) -> None:
         """Create Kerberos structure in the LDAP directory.
 
@@ -113,22 +99,11 @@ class KerberosService(AbstractService):
         ctx.ldap_session = ldap_session
         base_dn, _ = await self._get_base_dn()
         dns = self._build_kerberos_admin_dns(base_dn)
-        add_requests = self._build_add_requests(
-            dns,
-            mail,
-            krbadmin_password,
-        )
+        add_requests = self._build_add_requests(dns, mail, krbadmin_password)
         try:
-            await self._ldap_manager.create_kerberos_structure(
-                add_requests.group,
-                add_requests.krb_user,
-                ctx,
-            )
+            await self._ldap_manager.create_kerberos_structure(add_requests.group, add_requests.krb_user, ctx)
         except Exception:
-            await self._ldap_manager.rollback_kerberos_structure(
-                dns.krbadmin_dn,
-                dns.krbadmin_group_dn,
-            )
+            await self._ldap_manager.rollback_kerberos_structure(dns.krbadmin_dn, dns.krbadmin_group_dn)
             await self._session.commit()
             raise
 
@@ -136,15 +111,10 @@ class KerberosService(AbstractService):
         """Get LDAP root DN and domain."""
         base_dn_list = await get_base_directories(self._session)
         if not base_dn_list:
-            raise KerberosBaseDnNotFoundError(
-                "No base DN found in the LDAP directory.",
-            )
+            raise KerberosBaseDnNotFoundError("No base DN found in the LDAP directory.")
         return base_dn_list[0].path_dn, base_dn_list[0].name
 
-    def _build_kerberos_admin_dns(
-        self,
-        base_dn: str,
-    ) -> KerberosAdminDnGroupDTO:
+    def _build_kerberos_admin_dns(self, base_dn: str) -> KerberosAdminDnGroupDTO:
         """Build DN strings for Kerberos admin, services, and group.
 
         :param str base_dn: Base DN.
@@ -155,16 +125,11 @@ class KerberosService(AbstractService):
         services_container = get_system_container_dn(base_dn)
         krbgroup = f"cn=krbadmin,cn=Groups,{base_dn}"
         return KerberosAdminDnGroupDTO(
-            krbadmin_dn=krbadmin,
-            services_container_dn=services_container,
-            krbadmin_group_dn=krbgroup,
+            krbadmin_dn=krbadmin, services_container_dn=services_container, krbadmin_group_dn=krbgroup
         )
 
     def _build_add_requests(
-        self,
-        dns: KerberosAdminDnGroupDTO,
-        mail: str,
-        krbadmin_password: SecretStr,
+        self, dns: KerberosAdminDnGroupDTO, mail: str, krbadmin_password: SecretStr
     ) -> AddRequestsDTO:
         """Build AddRequest objects for group, services, and admin user.
 
@@ -212,26 +177,15 @@ class KerberosService(AbstractService):
                 "userPrincipalName": ["krbadmin"],
                 "displayName": ["Kerberos Administrator"],
                 "userAccountControl": [
-                    str(
-                        UserAccountControlFlag.NORMAL_ACCOUNT
-                        + UserAccountControlFlag.DONT_EXPIRE_PASSWORD,
-                    ),
+                    str(UserAccountControlFlag.NORMAL_ACCOUNT + UserAccountControlFlag.DONT_EXPIRE_PASSWORD)
                 ],
             },
             is_system=True,
         )
-        return AddRequestsDTO(
-            group=group,
-            krb_user=krb_user,
-        )
+        return AddRequestsDTO(group=group, krb_user=krb_user)
 
     async def setup_kdc(
-        self,
-        krbadmin_password: str,
-        admin_password: str,
-        stash_password: str,
-        user: UserSchema,
-        request: Request,
+        self, krbadmin_password: str, admin_password: str, stash_password: str, user: UserSchema, request: Request
     ) -> TaskStructDTO:
         """Set up KDC, generate configs, and return TaskStructDTO.
 
@@ -273,20 +227,13 @@ class KerberosService(AbstractService):
             KerberosDependencyError,
             KRBAPIConnectionError,
         ) as err:
-            await self._ldap_manager.rollback_kerberos_structure(
-                context.krbadmin,
-                context.krbgroup,
-            )
+            await self._ldap_manager.rollback_kerberos_structure(context.krbadmin, context.krbgroup)
             await self._kadmin.reset_setup()
             raise KerberosDependencyError(str(err))
         else:
             await set_state(self._session, KerberosState.READY)
             await self._session.commit()
-            return await self._schedule_principal_task(
-                request,
-                user,
-                admin_password,
-            )
+            return await self._schedule_principal_task(request, user, admin_password)
 
     async def _get_kdc_context(self) -> KDCContextDTO:
         """Build and return context for KDC setup/config rendering.
@@ -309,11 +256,7 @@ class KerberosService(AbstractService):
             sync_password_url=self._settings.KRB5_SYNC_PASSWORD_URL,
         )
 
-    async def _authenticate_admin(
-        self,
-        user: UserSchema,
-        password: str,
-    ) -> None:
+    async def _authenticate_admin(self, user: UserSchema, password: str) -> None:
         """Authenticate admin user for KDC setup.
 
         :param UserSchema user: User performing the setup.
@@ -321,20 +264,10 @@ class KerberosService(AbstractService):
         :raises KerberosDependencyError: If authentication fails.
         :return None: None.
         """
-        if not await authenticate_user(
-            self._session,
-            user.user_principal_name,
-            password,
-            self._password_utils,
-        ):
+        if not await authenticate_user(self._session, user.user_principal_name, password, self._password_utils):
             raise KerberosDependencyError("Incorrect password")
 
-    async def _schedule_principal_task(
-        self,
-        _request: Request,
-        user: UserSchema,
-        password: str,
-    ) -> TaskStructDTO:
+    async def _schedule_principal_task(self, _request: Request, user: UserSchema, password: str) -> TaskStructDTO:
         """Schedule background task for principal creation after KDC setup.
 
         :param Request request: FastAPI request (for DI container).
@@ -344,25 +277,13 @@ class KerberosService(AbstractService):
         """
         # refresh kadmin instance
         kadmin: AbstractKadmin = KerberosMDAPIClient(self._kadmin.client)
-        func = backoff.on_exception(
-            backoff.fibo,
-            Exception,
-            max_tries=10,
-            logger=None,
-            raise_on_giveup=False,
-        )(kadmin.add_principal)
-        args = (
-            user.user_principal_name.split("@")[0],
-            password,
+        func = backoff.on_exception(backoff.fibo, Exception, max_tries=10, logger=None, raise_on_giveup=False)(
+            kadmin.add_principal
         )
+        args = (user.user_principal_name.split("@")[0], password)
         return TaskStructDTO(func=func, args=args)
 
-    async def add_principal(
-        self,
-        principal_name: str,
-        password: str | None,
-        algorithms: list[str] | None,
-    ) -> None:
+    async def add_principal(self, principal_name: str, password: str | None, algorithms: list[str] | None) -> None:
         """Create principal in Kerberos with given name.
 
         :param str primary: Principal primary name.
@@ -371,22 +292,12 @@ class KerberosService(AbstractService):
         :return None: None.
         """
         try:
-            await self._kadmin.add_principal(
-                principal_name,
-                password,
-                algorithms,
-            )
+            await self._kadmin.add_principal(principal_name, password, algorithms)
         except KRBAPIAddPrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error adding principal: {exc}",
-            ) from exc
+            raise KerberosDependencyError(f"Error adding principal: {exc}") from exc
 
     async def modify_principal(
-        self,
-        principal_name: str,
-        new_name: str | None,
-        algorithms: list[str] | None,
-        password: str | None,
+        self, principal_name: str, new_name: str | None, algorithms: list[str] | None, password: str | None
     ) -> None:
         """Modify principal in Kerberos with given name.
 
@@ -398,16 +309,9 @@ class KerberosService(AbstractService):
         :return None: None.
         """
         try:
-            await self._kadmin.modify_princ(
-                principal_name,
-                new_name,
-                algorithms,
-                password,
-            )
+            await self._kadmin.modify_princ(principal_name, new_name, algorithms, password)
         except KRBAPIModifyPrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error renaming principal: {exc}",
-            ) from exc
+            raise KerberosDependencyError(f"Error renaming principal: {exc}") from exc
 
     async def delete_principal(self, principal_name: str) -> None:
         """Delete principal in Kerberos with given name.
@@ -419,15 +323,9 @@ class KerberosService(AbstractService):
         try:
             await self._kadmin.del_principal(principal_name)
         except KRBAPIDeletePrincipalError as exc:
-            raise KerberosDependencyError(
-                f"Error deleting principal: {exc}",
-            ) from exc
+            raise KerberosDependencyError(f"Error deleting principal: {exc}") from exc
 
-    async def ktadd(
-        self,
-        names: list[str],
-        is_rand_key: bool,
-    ) -> tuple[AsyncIterator[bytes], TaskStructDTO]:
+    async def ktadd(self, names: list[str], is_rand_key: bool) -> tuple[AsyncIterator[bytes], TaskStructDTO]:
         """Generate keytab and return (aiter_bytes, TaskStructDTO).
 
         :param list[str] names: List of principal names.

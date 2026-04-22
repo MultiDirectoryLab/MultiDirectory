@@ -58,11 +58,7 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def get_user_sessions(
-        self,
-        uid: int,
-        protocol: ProtocolType | None = None,
-    ) -> dict:
+    async def get_user_sessions(self, uid: int, protocol: ProtocolType | None = None) -> dict:
         """Get sessions by user id.
 
         :param int uid: user id
@@ -71,11 +67,7 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def get_ip_sessions(
-        self,
-        ip: str,
-        protocol: ProtocolType | None = None,
-    ) -> dict:
+    async def get_ip_sessions(self, ip: str, protocol: ProtocolType | None = None) -> dict:
         """Get sessions data by ip.
 
         :param str ip: ip
@@ -101,11 +93,7 @@ class SessionStorage(ABC):
 
     @staticmethod
     def _sign(session_id: str, settings: Settings) -> str:
-        return hmac.new(
-            settings.SECRET_KEY.encode(),
-            session_id.encode(),
-            hashlib.sha256,
-        ).hexdigest()
+        return hmac.new(settings.SECRET_KEY.encode(), session_id.encode(), hashlib.sha256).hexdigest()
 
     def get_user_agent_hash(self, user_agent: str) -> str:
         """Get user agent hash."""
@@ -137,12 +125,7 @@ class SessionStorage(ABC):
 
     @abstractmethod
     async def create_session(
-        self: Self,
-        uid: int,
-        settings: Settings,
-        ttl: int,
-        *,
-        extra_data: dict | None = None,
+        self: Self, uid: int, settings: Settings, ttl: int, *, extra_data: dict | None = None
     ) -> str:
         """Create session.
 
@@ -152,13 +135,7 @@ class SessionStorage(ABC):
         :return str: session id
         """
 
-    async def get_user_id(
-        self: Self,
-        settings: Settings,
-        session_key: str,
-        user_agent: str,
-        ip: str,
-    ) -> int:
+    async def get_user_id(self: Self, settings: Settings, session_key: str, user_agent: str, ip: str) -> int:
         """Get user from storage.
 
         :param Settings settings: app settings
@@ -199,10 +176,7 @@ class SessionStorage(ABC):
         return user_id
 
     def _generate_session_data(
-        self: Self,
-        uid: int,
-        settings: Settings,
-        extra_data: dict | None,
+        self: Self, uid: int, settings: Settings, extra_data: dict | None
     ) -> tuple[str, str, dict]:
         """Set data."""
         if extra_data is None:
@@ -224,12 +198,7 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def create_ldap_session(
-        self: Self,
-        uid: int,
-        key: str,
-        data: dict,
-    ) -> None:
+    async def create_ldap_session(self: Self, uid: int, key: str, data: dict) -> None:
         """Create ldap session.
 
         :param int uid: user id
@@ -246,11 +215,7 @@ class SessionStorage(ABC):
         """
 
     @abstractmethod
-    async def rekey_session_if_needed(
-        self,
-        session_id: str,
-        settings: Settings,
-    ) -> str | None:
+    async def rekey_session_if_needed(self, session_id: str, settings: Settings) -> str | None:
         """Rekey session if needed.
 
         :param str session_id: session id

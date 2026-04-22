@@ -18,8 +18,7 @@ from ldap_protocol.rid_manager.utils import from_qword, to_qword
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_rid_manager_allocate_pool(
-    rid_manager_use_case: RIDManagerUseCase,
-    rid_manager_gateway: RIDManagerGateway,
+    rid_manager_use_case: RIDManagerUseCase, rid_manager_gateway: RIDManagerGateway
 ) -> None:
     """Test RID Manager get domain controller."""
     available_pool = await rid_manager_gateway.get_rid_available_pool()
@@ -35,9 +34,7 @@ async def test_rid_manager_allocate_pool(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
-async def test_next_rid(
-    rid_set_use_case: RIDSetUseCase,
-) -> None:
+async def test_next_rid(rid_set_use_case: RIDSetUseCase) -> None:
     """Test RID Manager get domain controller."""
     next_rid = await rid_set_use_case.allocate_next_rid()
     new_next_rid = await rid_set_use_case.allocate_next_rid()
@@ -48,63 +45,34 @@ async def test_next_rid(
 @pytest.mark.usefixtures("session")
 @pytest.mark.usefixtures("setup_session")
 async def test_rid_set_reset_pool(
-    rid_set_use_case: RIDSetUseCase,
-    rid_manager_gateway: RIDManagerGateway,
-    rid_set_gateway: RIDSetGateway,
+    rid_set_use_case: RIDSetUseCase, rid_manager_gateway: RIDManagerGateway, rid_set_gateway: RIDSetGateway
 ) -> None:
     """Test RID Set pool reset."""
     rid_set_id = await rid_set_use_case.get_rid_set_id()
 
     available_pool_before = await rid_manager_gateway.get_rid_available_pool()
     lower_before, _ = from_qword(available_pool_before)
-    allocation_pool_before = await rid_set_gateway.get_rid_allocation_pool(
-        rid_set_id,
-    )
-    previous_pool_before = (
-        await rid_set_gateway.get_rid_previous_allocation_pool(rid_set_id)
-    )
+    allocation_pool_before = await rid_set_gateway.get_rid_allocation_pool(rid_set_id)
+    previous_pool_before = await rid_set_gateway.get_rid_previous_allocation_pool(rid_set_id)
 
     _, upper = from_qword(previous_pool_before)
     await rid_set_gateway.update_next_rid(rid_set_id, upper)
 
     current_next_rid = await rid_set_gateway.get_next_rid_value(rid_set_id)
-    assert (
-        rid_set_use_case.is_pool_exceeded(
-            current_next_rid,
-            previous_pool_before,
-        )
-        is True
-    )
+    assert rid_set_use_case.is_pool_exceeded(current_next_rid, previous_pool_before) is True
 
     await rid_set_use_case.allocate_next_rid()
     current_next_rid = await rid_set_gateway.get_next_rid_value(rid_set_id)
-    previous_pool_mid = await rid_set_gateway.get_rid_previous_allocation_pool(
-        rid_set_id,
-    )
-    assert (
-        rid_set_use_case.is_pool_exceeded(
-            current_next_rid,
-            previous_pool_mid,
-        )
-        is False
-    )
+    previous_pool_mid = await rid_set_gateway.get_rid_previous_allocation_pool(rid_set_id)
+    assert rid_set_use_case.is_pool_exceeded(current_next_rid, previous_pool_mid) is False
 
     available_pool_after = await rid_manager_gateway.get_rid_available_pool()
     lower_after, _ = from_qword(available_pool_after)
-    allocation_pool_after = await rid_set_gateway.get_rid_allocation_pool(
-        rid_set_id,
-    )
-    previous_pool_after = (
-        await rid_set_gateway.get_rid_previous_allocation_pool(
-            rid_set_id,
-        )
-    )
+    allocation_pool_after = await rid_set_gateway.get_rid_allocation_pool(rid_set_id)
+    previous_pool_after = await rid_set_gateway.get_rid_previous_allocation_pool(rid_set_id)
 
     assert lower_after == lower_before + RIDManagerUseCase.RID_BLOCK_SIZE
-    assert allocation_pool_after == to_qword(
-        lower_before,
-        lower_before + RIDManagerUseCase.RID_BLOCK_SIZE,
-    )
+    assert allocation_pool_after == to_qword(lower_before, lower_before + RIDManagerUseCase.RID_BLOCK_SIZE)
     assert previous_pool_after == allocation_pool_before
 
 
@@ -133,11 +101,7 @@ async def test_object_sid_add_updates_next_rid_and_prefix(
     sid_domain_attr = await object_sid_gateway.get(dc_id)
     assert sid_domain_attr.startswith("S-1-5-21-")
 
-    await object_sid_use_case.add(
-        directory_id=rid_set_id,
-        rid=512,
-        sid_prefix=SidPrefix.BUILT_IN_DOMAIN,
-    )
+    await object_sid_use_case.add(directory_id=rid_set_id, rid=512, sid_prefix=SidPrefix.BUILT_IN_DOMAIN)
     await session.flush()
     next_after_builtin = await rid_set_gateway.get_next_rid_value(rid_set_id)
     assert next_after_builtin == next_after

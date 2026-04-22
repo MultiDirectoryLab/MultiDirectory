@@ -23,16 +23,11 @@ class AbstractService(ABC):
         if not callable(attr) or name.startswith("_"):
             return attr
 
-        if getattr(self, "_perm_checker", None) and (
-            permission := self.PERMISSIONS.get(name)
-        ):
+        if getattr(self, "_perm_checker", None) and (permission := self.PERMISSIONS.get(name)):
             return self._perm_checker.wrap_use_case(permission, attr)
         return attr
 
-    def set_permissions_checker(
-        self,
-        perm_checker: AuthorizationProviderProtocol,
-    ) -> None:
+    def set_permissions_checker(self, perm_checker: AuthorizationProviderProtocol) -> None:
         """Set permissions checker.
 
         :param object perm_checker: permissions checker

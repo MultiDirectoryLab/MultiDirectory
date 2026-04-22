@@ -10,16 +10,11 @@ import pytest
 
 from enums import MFAFlags
 from ldap_protocol.policies.network import NetworkPolicyUseCase
-from ldap_protocol.policies.network.dto import (
-    NetworkPolicyDTO,
-    NetworkPolicyUpdateDTO,
-)
+from ldap_protocol.policies.network.dto import NetworkPolicyDTO, NetworkPolicyUpdateDTO
 
 
 @pytest.mark.asyncio
-async def test_create_policy(
-    network_policy_use_case: NetworkPolicyUseCase,
-) -> None:
+async def test_create_policy(network_policy_use_case: NetworkPolicyUseCase) -> None:
     """Test creating policy with empty groups and mfa_groups."""
     dto = NetworkPolicyDTO[None](
         id=None,
@@ -40,9 +35,7 @@ async def test_create_policy(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("setup_session")
-async def test_update_policy_to_empty_groups(
-    network_policy_use_case: NetworkPolicyUseCase,
-) -> None:
+async def test_update_policy_to_empty_groups(network_policy_use_case: NetworkPolicyUseCase) -> None:
     """Test updating policy from groups to empty."""
     dto = NetworkPolicyDTO[None](
         id=None,
@@ -59,11 +52,7 @@ async def test_update_policy_to_empty_groups(
     assert created.groups
     assert created.mfa_groups
 
-    update_dto = NetworkPolicyUpdateDTO(
-        id=created.id,
-        groups=[],
-        mfa_groups=[],
-    )
+    update_dto = NetworkPolicyUpdateDTO(id=created.id, groups=[], mfa_groups=[])
 
     updated = await network_policy_use_case.update(update_dto)
 

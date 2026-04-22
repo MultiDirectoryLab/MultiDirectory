@@ -15,10 +15,7 @@ from ldap_protocol.objects import PartialAttribute
 type _AttrNameType = str
 type _ValueType = str
 type _ValueValidatorType = Callable[[_ValueType], bool]
-type _CompiledValidatorsType = dict[
-    EntityTypeNames,
-    dict[_AttrNameType, _ValueValidatorType],
-]
+type _CompiledValidatorsType = dict[EntityTypeNames, dict[_AttrNameType, _ValueValidatorType]]
 
 
 class AttributeValueValidatorError(Exception): ...
@@ -26,10 +23,7 @@ class AttributeValueValidatorError(Exception): ...
 
 # NOTE: Not validate `distinguishedName`, `member` and `memberOf` attributes,
 # because it doesn't exist.
-_ENTITY_NAME_AND_ATTR_NAME_VALIDATION_MAP: dict[
-    tuple[EntityTypeNames, _AttrNameType],
-    tuple[str, ...],
-] = {
+_ENTITY_NAME_AND_ATTR_NAME_VALIDATION_MAP: dict[tuple[EntityTypeNames, _AttrNameType], tuple[str, ...]] = {
     (EntityTypeNames.ORGANIZATIONAL_UNIT, "name"): (
         "not_start_with_space",
         "not_start_with_hash",
@@ -121,34 +115,25 @@ class AttributeValueValidator:
     _compiled_validators: _CompiledValidatorsType
 
     def __init__(self) -> None:
-        self._compiled_validators: _CompiledValidatorsType = (
-            self.__compile_validators()
-        )
+        self._compiled_validators: _CompiledValidatorsType = self.__compile_validators()
 
     def __compile_validators(self) -> _CompiledValidatorsType:
         res: _CompiledValidatorsType = defaultdict(dict)
 
-        for (
-            key,
-            validator_names,
-        ) in _ENTITY_NAME_AND_ATTR_NAME_VALIDATION_MAP.items():
+        for key, validator_names in _ENTITY_NAME_AND_ATTR_NAME_VALIDATION_MAP.items():
             validators = [getattr(_ValValidators, n) for n in validator_names]
             res[key[0]][key[1]] = self.__create_combined_validator(validators)
 
         return res
 
-    def __create_combined_validator(
-        self,
-        funcs: list[_ValueValidatorType],
-    ) -> _ValueValidatorType:
+    def __create_combined_validator(self, funcs: list[_ValueValidatorType]) -> _ValueValidatorType:
         def combined(value: _ValueType) -> bool:
             return all(func(value) for func in funcs)
 
         return combined
 
     def _get_subset_validators(
-        self,
-        entity_type_name: EntityTypeNames | str,
+        self, entity_type_name: EntityTypeNames | str
     ) -> dict[_AttrNameType, _ValueValidatorType] | None:
         if entity_type_name in self._compiled_validators:
             entity_type_name = tcast("EntityTypeNames", entity_type_name)
@@ -156,19 +141,12 @@ class AttributeValueValidator:
             return None
         return self._compiled_validators.get(entity_type_name)
 
-    def _get_validator(
-        self,
-        entity_type_name: EntityTypeNames | str,
-        attr_name: str,
-    ) -> _ValueValidatorType | None:
+    def _get_validator(self, entity_type_name: EntityTypeNames | str, attr_name: str) -> _ValueValidatorType | None:
         subset_validators = self._get_subset_validators(entity_type_name)
         return subset_validators.get(attr_name) if subset_validators else None
 
     def is_value_valid(
-        self,
-        entity_type_name: EntityTypeNames | str,
-        attr_name: _AttrNameType,
-        attr_value: _ValueType,
+        self, entity_type_name: EntityTypeNames | str, attr_name: _AttrNameType, attr_value: _ValueType
     ) -> bool:
         validator = self._get_validator(entity_type_name, attr_name)
 
@@ -178,28 +156,17 @@ class AttributeValueValidator:
         return validator(attr_value)
 
     def is_partial_attribute_valid(
-        self,
-        entity_type_name: EntityTypeNames | str,
-        partial_attribute: PartialAttribute,
+        self, entity_type_name: EntityTypeNames | str, partial_attribute: PartialAttribute
     ) -> bool:
-        validator = self._get_validator(
-            entity_type_name,
-            partial_attribute.type,
-        )
+        validator = self._get_validator(entity_type_name, partial_attribute.type)
 
         if not validator:
             return True
 
-        for value in partial_attribute.vals:
-            if isinstance(value, str) and not validator(value):
-                return False
-
-        return True
+        return all(not (isinstance(value, str) and not validator(value)) for value in partial_attribute.vals)
 
     def is_directory_attributes_valid(
-        self,
-        entity_type_name: EntityTypeNames | str,
-        attributes: list[Attribute],
+        self, entity_type_name: EntityTypeNames | str, attributes: list[Attribute]
     ) -> bool:
         subset_validators = self._get_subset_validators(entity_type_name)
         if not subset_validators:
@@ -220,32 +187,21 @@ class AttributeValueValidator:
 
     def is_directory_valid(self, directory: Directory) -> bool:
         if not directory.entity_type:
-            raise AttributeValueValidatorError(
-                "Directory must have an entity type",
-            )
+            raise AttributeValueValidatorError("Directory must have an entity type")
 
         entity_type_name = directory.entity_type.name
 
-        if entity_type_name and not self.is_value_valid(
-            entity_type_name,
-            "name",
-            directory.name,
-        ):
+        if entity_type_name and not self.is_value_valid(entity_type_name, "name", directory.name):
             return False
 
         if entity_type_name == EntityTypeNames.USER:
             if not directory.user:
-                raise AttributeValueValidatorError(
-                    "User directory must have associated User",
-                )
+                raise AttributeValueValidatorError("User directory must have associated User")
 
             if not self.is_user_valid(directory.user):
                 return False
 
-        if not self.is_directory_attributes_valid(  # noqa: SIM103
-            entity_type_name,
-            directory.attributes,
-        ):
+        if not self.is_directory_attributes_valid(entity_type_name, directory.attributes):  # noqa: SIM103
             return False
 
         return True
@@ -253,18 +209,10 @@ class AttributeValueValidator:
     def is_user_valid(self, user: User) -> bool:
         user_entity_type_name = EntityTypeNames.USER
 
-        if not self.is_value_valid(
-            user_entity_type_name,
-            "sAMAccountName",
-            user.sam_account_name,
-        ):
+        if not self.is_value_valid(user_entity_type_name, "sAMAccountName", user.sam_account_name):
             return False
 
-        if not self.is_value_valid(  # noqa: SIM103
-            user_entity_type_name,
-            "userPrincipalName",
-            user.user_principal_name,
-        ):
+        if not self.is_value_valid(user_entity_type_name, "userPrincipalName", user.user_principal_name):  # noqa: SIM103
             return False
 
         return True

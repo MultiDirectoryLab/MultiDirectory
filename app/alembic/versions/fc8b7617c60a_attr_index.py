@@ -16,23 +16,13 @@ branch_labels: str | None = None
 depends_on: str | None = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Create index for Attribute name field."""
-    op.execute(
-        sa.text(
-            "CREATE INDEX idx_attributes_name_gin_trgm "
-            'ON "Attributes" USING GIN(name gin_trgm_ops);',
-        ),
-    )
-    op.execute(
-        sa.text(
-            "CREATE INDEX idx_attributes_lw_name_btree "
-            'ON "Attributes" USING BTREE(lower(name));',
-        ),
-    )
+    op.execute(sa.text('CREATE INDEX idx_attributes_name_gin_trgm ON "Attributes" USING GIN(name gin_trgm_ops);'))
+    op.execute(sa.text('CREATE INDEX idx_attributes_lw_name_btree ON "Attributes" USING BTREE(lower(name));'))
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Drop index for Attribute name field."""
     op.execute(sa.text("DROP INDEX idx_attributes_lw_name_btree"))
     op.execute(sa.text("DROP INDEX idx_attributes_name_gin_trgm"))

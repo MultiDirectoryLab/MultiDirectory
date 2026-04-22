@@ -79,11 +79,7 @@ def queryable_attr(value: _T) -> QueryableAttribute[_T]:
 
 
 @compiles(UniqueConstraint, "postgresql")
-def _compile_create_uc(
-    create: UniqueConstraint,
-    compiler: DDLCompiler,
-    **kw: dict,
-) -> str:
+def _compile_create_uc(create: UniqueConstraint, compiler: DDLCompiler, **kw: dict) -> str:
     stmt = compiler.visit_unique_constraint(create, **kw)
     postgresql_opts = create.dialect_options["postgresql"]
     if postgresql_opts.get("nulls_not_distinct"):
@@ -113,61 +109,23 @@ directory_table = Table(
     Column("id", Integer, primary_key=True),
     Column("is_system", Boolean, nullable=False, default=False),
     Column(
-        "parentId",
-        Integer,
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        index=True,
-        nullable=True,
-        key="parent_id",
+        "parentId", Integer, ForeignKey("Directory.id", ondelete="CASCADE"), index=True, nullable=True, key="parent_id"
     ),
-    Column(
-        "entity_type_id",
-        Integer,
-        ForeignKey("EntityTypes.id", ondelete="SET NULL"),
-        index=True,
-        nullable=True,
-    ),
+    Column("entity_type_id", Integer, ForeignKey("EntityTypes.id", ondelete="SET NULL"), index=True, nullable=True),
     Column("objectClass", String, nullable=False, key="object_class"),
     Column("name", String, nullable=False),
     Column("rdname", String(64), nullable=False),
-    Column(
-        "whenCreated",
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        key="created_at",
-    ),
-    Column(
-        "whenChanged",
-        DateTime(timezone=True),
-        onupdate=func.now(),
-        nullable=True,
-        key="updated_at",
-    ),
+    Column("whenCreated", DateTime(timezone=True), server_default=func.now(), nullable=False, key="created_at"),
+    Column("whenChanged", DateTime(timezone=True), onupdate=func.now(), nullable=True, key="updated_at"),
     Column("depth", Integer, nullable=True),
-    Column(
-        "objectGUID",
-        PG_UUID(as_uuid=True),
-        default=uuid.uuid4,
-        nullable=False,
-        key="object_guid",
-    ),
+    Column("objectGUID", PG_UUID(as_uuid=True), default=uuid.uuid4, nullable=False, key="object_guid"),
     Column("path", ARRAY(String), nullable=False, index=True),
-    UniqueConstraint(
-        "parent_id",
-        "name",
-        name="name_parent_uc",
-        postgresql_nulls_not_distinct=True,
-    ),
+    UniqueConstraint("parent_id", "name", name="name_parent_uc", postgresql_nulls_not_distinct=True),
     Index("idx_Directory_depth_hash", "depth", postgresql_using="hash"),
     Index("idx_entity_type_dir_id", "entity_type_id", postgresql_using="hash"),
     Index("ix_directory_objectGUID", "object_guid", postgresql_using="hash"),
     Index("lw_path", text("array_lowercase(path)"), postgresql_using="gin"),
-    Index(
-        "idx_directory_path_hash",
-        text("array_lowercase(path)"),
-        postgresql_using="hash",
-    ),
+    Index("idx_directory_path_hash", text("array_lowercase(path)"), postgresql_using="hash"),
     Index("idx_Directory_name_hash", "name", postgresql_using="hash"),
     Index("idx_Directory_name_gin_trgm", "name", postgresql_using="gin"),
 )
@@ -176,13 +134,7 @@ groups_table = Table(
     "Groups",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column(
-        "directoryId",
-        Integer,
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        nullable=False,
-        key="directory_id",
-    ),
+    Column("directoryId", Integer, ForeignKey("Directory.id", ondelete="CASCADE"), nullable=False, key="directory_id"),
     Index("idx_group_dir_id", "directory_id", postgresql_using="hash"),
 )
 
@@ -190,38 +142,15 @@ users_table = Table(
     "Users",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column(
-        "directoryId",
-        Integer,
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        nullable=False,
-        key="directory_id",
-    ),
-    Column(
-        "sAMAccountName",
-        String,
-        nullable=False,
-        unique=True,
-        key="sam_account_name",
-    ),
-    Column(
-        "userPrincipalName",
-        String,
-        nullable=False,
-        unique=True,
-        key="user_principal_name",
-    ),
+    Column("directoryId", Integer, ForeignKey("Directory.id", ondelete="CASCADE"), nullable=False, key="directory_id"),
+    Column("sAMAccountName", String, nullable=False, unique=True, key="sam_account_name"),
+    Column("userPrincipalName", String, nullable=False, unique=True, key="user_principal_name"),
     Column("mail", String(255), key="mail"),
     Column("displayName", String, nullable=True, key="display_name"),
     Column("password", String, nullable=True, key="password"),
     Column("lastLogon", DateTime(timezone=True), key="last_logon"),
     Column("accountExpires", DateTime(timezone=True), key="account_exp"),
-    Column(
-        "password_history",
-        ARRAY(String),
-        server_default="{}",
-        nullable=False,
-    ),
+    Column("password_history", ARRAY(String), server_default="{}", nullable=False),
     Index("idx_User_display_name_gin", "display_name", postgresql_using="gin"),
     Index("idx_User_san_gin", "sam_account_name", postgresql_using="gin"),
     Index("idx_User_upn_gin", "user_principal_name", postgresql_using="gin"),
@@ -231,86 +160,36 @@ users_table = Table(
 directory_memberships_table = Table(
     "DirectoryMemberships",
     metadata,
-    Column(
-        "group_id",
-        Integer,
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "directory_id",
-        Integer,
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
+    Column("group_id", Integer, ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True),
+    Column("directory_id", Integer, ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True),
 )
 
 policy_memberships_table = Table(
     "PolicyMemberships",
     metadata,
-    Column(
-        "group_id",
-        Integer,
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "policy_id",
-        Integer,
-        ForeignKey("Policies.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
+    Column("group_id", Integer, ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True),
+    Column("policy_id", Integer, ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True),
 )
 
 policy_mfa_memberships_table = Table(
     "PolicyMFAMemberships",
     metadata,
-    Column(
-        "group_id",
-        Integer,
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "policy_id",
-        Integer,
-        ForeignKey("Policies.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
+    Column("group_id", Integer, ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True),
+    Column("policy_id", Integer, ForeignKey("Policies.id", ondelete="CASCADE"), primary_key=True),
 )
 
 group_role_memberships_table = Table(
     "GroupRoleMemberships",
     metadata,
-    Column(
-        "group_id",
-        Integer,
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "role_id",
-        Integer,
-        ForeignKey("Roles.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
+    Column("group_id", Integer, ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", Integer, ForeignKey("Roles.id", ondelete="CASCADE"), primary_key=True),
 )
 
 group_password_policy_memberships_table = Table(
     "GroupPasswordPolicyMemberships",
     metadata,
-    Column(
-        "group_id",
-        Integer,
-        ForeignKey("Groups.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "password_policy_id",
-        Integer,
-        ForeignKey("PasswordPolicies.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
+    Column("group_id", Integer, ForeignKey("Groups.id", ondelete="CASCADE"), primary_key=True),
+    Column("password_policy_id", Integer, ForeignKey("PasswordPolicies.id", ondelete="CASCADE"), primary_key=True),
 )
 
 entity_types_table = Table(
@@ -321,16 +200,8 @@ entity_types_table = Table(
     Column("object_class_names", ARRAY(String), index=True),
     Column("is_system", Boolean, nullable=False),
     Index("idx_entity_types_name_gin_trgm", "name", postgresql_using="gin"),
-    Index(
-        "ix_Entity_Type_object_class_names",
-        "object_class_names",
-        unique=True,
-    ),
-    Index(
-        "lw_object_class_names",
-        text("array_lowercase(object_class_names)"),
-        postgresql_using="gin",
-    ),
+    Index("ix_Entity_Type_object_class_names", "object_class_names", unique=True),
+    Index("lw_object_class_names", text("array_lowercase(object_class_names)"), postgresql_using="gin"),
 )
 
 attribute_types_table = Table(
@@ -354,12 +225,7 @@ object_classes_table = Table(
     Column("id", Integer, primary_key=True),
     Column("oid", String(255), nullable=False, unique=True),
     Column("name", String(255), nullable=False, unique=True),
-    Column(
-        "superior_name",
-        String(255),
-        ForeignKey("ObjectClasses.name", ondelete="SET NULL"),
-        nullable=True,
-    ),
+    Column("superior_name", String(255), ForeignKey("ObjectClasses.name", ondelete="SET NULL"), nullable=True),
     Column("kind", Enum(KindType, name="objectclasskinds"), nullable=False),
     Column("is_system", Boolean, nullable=False),
     Index("idx_object_classes_name_gin_trgm", "name", postgresql_using="gin"),
@@ -369,71 +235,30 @@ object_classes_table = Table(
 object_class_attr_must_table = Table(
     "ObjectClassAttributeTypeMustMemberships",
     metadata,
-    Column(
-        "attribute_type_name",
-        String(255),
-        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "object_class_name",
-        String(255),
-        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    UniqueConstraint(
-        "attribute_type_name",
-        "object_class_name",
-        name="object_class_must_attribute_type_uc",
-    ),
+    Column("attribute_type_name", String(255), ForeignKey("AttributeTypes.name", ondelete="CASCADE"), primary_key=True),
+    Column("object_class_name", String(255), ForeignKey("ObjectClasses.name", ondelete="CASCADE"), primary_key=True),
+    UniqueConstraint("attribute_type_name", "object_class_name", name="object_class_must_attribute_type_uc"),
 )
 
 object_class_attr_may_table = Table(
     "ObjectClassAttributeTypeMayMemberships",
     metadata,
-    Column(
-        "attribute_type_name",
-        String(255),
-        ForeignKey("AttributeTypes.name", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "object_class_name",
-        String(255),
-        ForeignKey("ObjectClasses.name", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    UniqueConstraint(
-        "attribute_type_name",
-        "object_class_name",
-        name="object_class_may_attribute_type_uc",
-    ),
+    Column("attribute_type_name", String(255), ForeignKey("AttributeTypes.name", ondelete="CASCADE"), primary_key=True),
+    Column("object_class_name", String(255), ForeignKey("ObjectClasses.name", ondelete="CASCADE"), primary_key=True),
+    UniqueConstraint("attribute_type_name", "object_class_name", name="object_class_may_attribute_type_uc"),
 )
 
 attributes_table = Table(
     "Attributes",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column(
-        "directoryId",
-        Integer,
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        nullable=False,
-        key="directory_id",
-    ),
+    Column("directoryId", Integer, ForeignKey("Directory.id", ondelete="CASCADE"), nullable=False, key="directory_id"),
     Column("name", String, nullable=False, index=True),
     Column("value", String),
     Column("bvalue", LargeBinary),
-    CheckConstraint(
-        "(value IS NULL) <> (bvalue IS NULL)",
-        name="constraint_value_xor_bvalue",
-    ),
+    CheckConstraint("(value IS NULL) <> (bvalue IS NULL)", name="constraint_value_xor_bvalue"),
     Index("idx_attributes_name_gin_trgm", "name", postgresql_using="gin"),
-    Index(
-        "idx_attributes_lw_name_btree",
-        text("lower(name::text)"),
-        postgresql_using="btree",
-    ),
+    Index("idx_attributes_lw_name_btree", text("lower(name::text)"), postgresql_using="btree"),
     Index(
         "idx_composite_attributes_directory_id_name",
         "directory_id",
@@ -441,12 +266,7 @@ attributes_table = Table(
         postgresql_using="btree",
     ),
     Index("idx_attributes_value", "value", postgresql_using="gin"),
-    Index(
-        "idx_attributes_name_value_trgm",
-        "name",
-        "value",
-        postgresql_using="gin",
-    ),
+    Index("idx_attributes_name_value_trgm", "name", "value", postgresql_using="gin"),
 )
 
 password_policies_table = Table(
@@ -475,12 +295,7 @@ password_policies_table = Table(
     Column("lockout_duration_sec", Integer, nullable=False),
     Column("fail_delay_sec", Integer, nullable=False),
     Index("idx_password_policies_name", "name", postgresql_using="hash"),
-    UniqueConstraint(
-        "priority",
-        name="PasswordPolicies_priority_uc",
-        deferrable=True,
-        initially="DEFERRED",
-    ),
+    UniqueConstraint("priority", name="PasswordPolicies_priority_uc", deferrable=True, initially="DEFERRED"),
 )
 
 roles_table = Table(
@@ -490,43 +305,22 @@ roles_table = Table(
     Column("name", String(255), nullable=False, unique=True),
     Column("creator_upn", String, nullable=True),
     Column("is_system", Boolean, nullable=False),
-    Column(
-        "whenCreated",
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        key="created_at",
-    ),
-    Column(
-        "permissions",
-        AuthorizationRulesType,
-        nullable=False,
-        server_default=text("'\\x00'::bytea"),
-    ),
+    Column("whenCreated", DateTime(timezone=True), server_default=func.now(), nullable=False, key="created_at"),
+    Column("permissions", AuthorizationRulesType, nullable=False, server_default=text("'\\x00'::bytea")),
 )
 
 access_control_entries_table = Table(
     "AccessControlEntries",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column(
-        "roleId",
-        Integer,
-        ForeignKey("Roles.id", ondelete="CASCADE"),
-        nullable=False,
-        key="role_id",
-    ),
+    Column("roleId", Integer, ForeignKey("Roles.id", ondelete="CASCADE"), nullable=False, key="role_id"),
     Column("ace_type", Enum(AceType), nullable=False),
     Column("depth", Integer, nullable=False),
     Column("scope", Enum(RoleScope), nullable=False),
     Column("path", String, nullable=False),
     Column("attribute_type_name", String, nullable=True),
     Column(
-        "entityTypeId",
-        Integer,
-        ForeignKey("EntityTypes.id", ondelete="CASCADE"),
-        nullable=True,
-        key="entity_type_id",
+        "entityTypeId", Integer, ForeignKey("EntityTypes.id", ondelete="CASCADE"), nullable=True, key="entity_type_id"
     ),
     Column("is_allow", Boolean, nullable=False),
     Index("idx_ace_entity_type_id", "entity_type_id", postgresql_using="hash"),
@@ -539,17 +333,9 @@ ace_directory_memberships_table = Table(
     "AccessControlEntryDirectoryMemberships",
     metadata,
     Column(
-        "access_control_entry_id",
-        Integer,
-        ForeignKey("AccessControlEntries.id", ondelete="CASCADE"),
-        primary_key=True,
+        "access_control_entry_id", Integer, ForeignKey("AccessControlEntries.id", ondelete="CASCADE"), primary_key=True
     ),
-    Column(
-        "directory_id",
-        Integer,
-        ForeignKey("Directory.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
+    Column("directory_id", Integer, ForeignKey("Directory.id", ondelete="CASCADE"), primary_key=True),
 )
 
 policies_table = Table(
@@ -561,40 +347,15 @@ policies_table = Table(
     Column("netmasks", ARRAY(CIDR), nullable=False, unique=True, index=True),
     Column("enabled", Boolean, server_default=true_, nullable=False),
     Column("priority", Integer, nullable=False),
-    Column(
-        "mfa_status",
-        Enum(MFAFlags),
-        server_default="DISABLED",
-        nullable=False,
-    ),
+    Column("mfa_status", Enum(MFAFlags), server_default="DISABLED", nullable=False),
     Column("is_ldap", Boolean, server_default=true_, nullable=False),
     Column("is_http", Boolean, server_default=true_, nullable=False),
     Column("is_kerberos", Boolean, server_default=true_, nullable=False),
-    Column(
-        "bypass_no_connection",
-        Boolean,
-        server_default=false_,
-        nullable=False,
-    ),
-    Column(
-        "bypass_service_failure",
-        Boolean,
-        server_default=false_,
-        nullable=False,
-    ),
+    Column("bypass_no_connection", Boolean, server_default=false_, nullable=False),
+    Column("bypass_service_failure", Boolean, server_default=false_, nullable=False),
     Column("ldap_session_ttl", Integer, server_default="-1", nullable=False),
-    Column(
-        "http_session_ttl",
-        Integer,
-        server_default="28800",
-        nullable=False,
-    ),
-    UniqueConstraint(
-        "priority",
-        name="priority_uc",
-        deferrable=True,
-        initially="DEFERRED",
-    ),
+    Column("http_session_ttl", Integer, server_default="28800", nullable=False),
+    UniqueConstraint("priority", name="priority_uc", deferrable=True, initially="DEFERRED"),
 )
 
 audit_policies_table = Table(
@@ -623,18 +384,9 @@ audit_policy_triggers_table = Table(
         nullable=False,
     ),
     Index(
-        "idx_trigger_search",
-        "operation_code",
-        "is_operation_success",
-        "is_ldap",
-        "is_http",
-        postgresql_using="btree",
+        "idx_trigger_search", "operation_code", "is_operation_success", "is_ldap", "is_http", postgresql_using="btree"
     ),
-    Index(
-        "idx_audit_policy_id_fk",
-        "audit_policy_id",
-        postgresql_using="hash",
-    ),
+    Index("idx_audit_policy_id_fk", "audit_policy_id", postgresql_using="hash"),
 )
 
 audit_destinations_table = Table(
@@ -654,10 +406,7 @@ password_ban_word_table = Table(
     metadata,
     Column("word", String(255), primary_key=True),
     Index(
-        "idx_password_ban_words_word_gin_trgm",
-        "word",
-        postgresql_ops={"word": "gin_trgm_ops"},
-        postgresql_using="gin",
+        "idx_password_ban_words_word_gin_trgm", "word", postgresql_ops={"word": "gin_trgm_ops"}, postgresql_using="gin"
     ),
 )
 
@@ -676,10 +425,7 @@ dedicated_servers_table = Table(
     Column("bind_type", String(255), nullable=False),
 )
 
-mapper_registry.map_imperatively(
-    CatalogueSetting,
-    settings_table,
-)
+mapper_registry.map_imperatively(CatalogueSetting, settings_table)
 
 mapper_registry.map_imperatively(
     EntityType,
@@ -693,7 +439,7 @@ mapper_registry.map_imperatively(
             cascade="all,delete-orphan",
             uselist=True,
             foreign_keys=directory_table.c.entity_type_id,
-        ),
+        )
     },
 )
 
@@ -707,9 +453,9 @@ mapper_registry.map_imperatively(
             back_populates="password_policies",
             passive_deletes=True,
             lazy="raise",
-        ),
+        )
     },
-)  # fmt: skip
+)
 
 mapper_registry.map_imperatively(
     Directory,
@@ -725,42 +471,21 @@ mapper_registry.map_imperatively(
             uselist=False,
             overlaps="directories",
         ),
-        "entity_type": relationship(
-            EntityType,
-            back_populates="directories",
-            lazy="raise",
-            uselist=False,
-        ),
+        "entity_type": relationship(EntityType, back_populates="directories", lazy="raise", uselist=False),
         "attributes": relationship(
-            Attribute,
-            back_populates="directory",
-            cascade="all, delete-orphan",
-            passive_deletes=True,
-            lazy="raise",
+            Attribute, back_populates="directory", cascade="all, delete-orphan", passive_deletes=True, lazy="raise"
         ),
         "group": relationship(
-            Group,
-            uselist=False,
-            back_populates="directory",
-            lazy="raise",
-            cascade="all",
-            passive_deletes=True,
+            Group, uselist=False, back_populates="directory", lazy="raise", cascade="all", passive_deletes=True
         ),
         "user": relationship(
-            User,
-            uselist=False,
-            back_populates="directory",
-            lazy="raise",
-            cascade="all",
-            passive_deletes=True,
+            User, uselist=False, back_populates="directory", lazy="raise", cascade="all", passive_deletes=True
         ),
         "groups": relationship(
             Group,
             secondary=directory_memberships_table,
-            primaryjoin=directory_table.c.id
-            == directory_memberships_table.c.directory_id,
-            secondaryjoin=directory_memberships_table.c.group_id
-            == groups_table.c.id,
+            primaryjoin=directory_table.c.id == directory_memberships_table.c.directory_id,
+            secondaryjoin=directory_memberships_table.c.group_id == groups_table.c.id,
             back_populates="members",
             cascade="all",
             passive_deletes=True,
@@ -770,15 +495,11 @@ mapper_registry.map_imperatively(
         "access_control_entries": relationship(
             "AccessControlEntry",
             secondary=ace_directory_memberships_table,
-            primaryjoin=directory_table.c.id
-            == ace_directory_memberships_table.c.directory_id,
+            primaryjoin=directory_table.c.id == ace_directory_memberships_table.c.directory_id,
             secondaryjoin=ace_directory_memberships_table.c.access_control_entry_id
             == access_control_entries_table.c.id,
             back_populates="directories",
-            order_by=(
-                desc(access_control_entries_table.c.depth),
-                asc(access_control_entries_table.c.is_allow),
-            ),
+            order_by=(desc(access_control_entries_table.c.depth), asc(access_control_entries_table.c.is_allow)),
         ),
         "objectclass": synonym("object_class"),
         "objectguid": synonym("object_guid"),
@@ -791,11 +512,7 @@ mapper_registry.map_imperatively(
     Attribute,
     attributes_table,
     properties={
-        "directory": relationship(
-            Directory,
-            back_populates="attributes",
-            lazy="raise",
-        ),
+        "directory": relationship(Directory, back_populates="attributes", lazy="raise"),
         "directory_id": attributes_table.c.directory_id,
     },
 )
@@ -804,18 +521,12 @@ mapper_registry.map_imperatively(
     User,
     users_table,
     properties={
-        "directory": relationship(
-            Directory,
-            back_populates="user",
-            lazy="joined",
-        ),
+        "directory": relationship(Directory, back_populates="user", lazy="joined"),
         "groups": relationship(
             Group,
             secondary=directory_memberships_table,
-            primaryjoin=users_table.c.directory_id
-            == directory_memberships_table.c.directory_id,
-            secondaryjoin=directory_memberships_table.c.group_id
-            == groups_table.c.id,
+            primaryjoin=users_table.c.directory_id == directory_memberships_table.c.directory_id,
+            secondaryjoin=directory_memberships_table.c.group_id == groups_table.c.id,
             back_populates="users",
             passive_deletes=True,
             lazy="raise",
@@ -847,10 +558,8 @@ mapper_registry.map_imperatively(
         "parent_groups": relationship(
             Group,
             secondary=directory_memberships_table,
-            primaryjoin=groups_table.c.directory_id
-            == directory_memberships_table.c.directory_id,
-            secondaryjoin=directory_memberships_table.c.group_id
-            == groups_table.c.id,
+            primaryjoin=groups_table.c.directory_id == directory_memberships_table.c.directory_id,
+            secondaryjoin=directory_memberships_table.c.group_id == groups_table.c.id,
             passive_deletes=True,
             cascade="all",
             lazy="raise",
@@ -859,26 +568,22 @@ mapper_registry.map_imperatively(
         "policies": relationship(
             NetworkPolicy,
             secondary=policy_memberships_table,
-            primaryjoin=groups_table.c.id
-            == policy_memberships_table.c.group_id,
+            primaryjoin=groups_table.c.id == policy_memberships_table.c.group_id,
             back_populates="groups",
             lazy="raise",
         ),
         "mfa_policies": relationship(
             NetworkPolicy,
             secondary=policy_mfa_memberships_table,
-            primaryjoin=groups_table.c.id
-            == policy_mfa_memberships_table.c.group_id,
+            primaryjoin=groups_table.c.id == policy_mfa_memberships_table.c.group_id,
             back_populates="mfa_groups",
             lazy="raise",
         ),
         "users": relationship(
             User,
             secondary=directory_memberships_table,
-            primaryjoin=groups_table.c.id
-            == directory_memberships_table.c.group_id,
-            secondaryjoin=directory_memberships_table.c.directory_id
-            == users_table.c.directory_id,
+            primaryjoin=groups_table.c.id == directory_memberships_table.c.group_id,
+            secondaryjoin=directory_memberships_table.c.directory_id == users_table.c.directory_id,
             back_populates="groups",
             passive_deletes=True,
             cascade="all",
@@ -888,18 +593,13 @@ mapper_registry.map_imperatively(
         "roles": relationship(
             Role,
             secondary=group_role_memberships_table,
-            primaryjoin=groups_table.c.id
-            == group_role_memberships_table.c.group_id,
-            secondaryjoin=group_role_memberships_table.c.role_id
-            == roles_table.c.id,
+            primaryjoin=groups_table.c.id == group_role_memberships_table.c.group_id,
+            secondaryjoin=group_role_memberships_table.c.role_id == roles_table.c.id,
             back_populates="groups",
             lazy="raise",
         ),
         "password_policies": relationship(
-            PasswordPolicy,
-            secondary=group_password_policy_memberships_table,
-            back_populates="groups",
-            lazy="raise",
+            PasswordPolicy, secondary=group_password_policy_memberships_table, back_populates="groups", lazy="raise"
         ),
     },
 )
@@ -911,10 +611,8 @@ mapper_registry.map_imperatively(
         "groups": relationship(
             Group,
             secondary=group_role_memberships_table,
-            primaryjoin=group_role_memberships_table.c.role_id
-            == roles_table.c.id,
-            secondaryjoin=groups_table.c.id
-            == group_role_memberships_table.c.group_id,
+            primaryjoin=group_role_memberships_table.c.role_id == roles_table.c.id,
+            secondaryjoin=groups_table.c.id == group_role_memberships_table.c.group_id,
             back_populates="roles",
             passive_deletes=True,
             lazy="raise",
@@ -933,45 +631,23 @@ mapper_registry.map_imperatively(
     AccessControlEntry,
     access_control_entries_table,
     properties={
-        "role": relationship(
-            Role,
-            back_populates="access_control_entries",
-            lazy="raise",
-        ),
+        "role": relationship(Role, back_populates="access_control_entries", lazy="raise"),
         "entity_type": relationship(EntityType, lazy="raise", uselist=False),
         "directories": relationship(
-            Directory,
-            secondary=ace_directory_memberships_table,
-            back_populates="access_control_entries",
-            lazy="raise",
+            Directory, secondary=ace_directory_memberships_table, back_populates="access_control_entries", lazy="raise"
         ),
     },
 )
 
-mapper_registry.map_imperatively(
-    AttributeTypeLegacy,
-    attribute_types_table,
-)
+mapper_registry.map_imperatively(AttributeTypeLegacy, attribute_types_table)
 
 mapper_registry.map_imperatively(
     ObjectClassLegacy,
     object_classes_table,
     properties={
-        "superior": relationship(
-            ObjectClassLegacy,
-            remote_side=[object_classes_table.c.name],
-            lazy="raise",
-        ),
-        "attribute_types_must": relationship(
-            AttributeTypeLegacy,
-            secondary=object_class_attr_must_table,
-            lazy="raise",
-        ),
-        "attribute_types_may": relationship(
-            AttributeTypeLegacy,
-            secondary=object_class_attr_may_table,
-            lazy="raise",
-        ),
+        "superior": relationship(ObjectClassLegacy, remote_side=[object_classes_table.c.name], lazy="raise"),
+        "attribute_types_must": relationship(AttributeTypeLegacy, secondary=object_class_attr_must_table, lazy="raise"),
+        "attribute_types_may": relationship(AttributeTypeLegacy, secondary=object_class_attr_may_table, lazy="raise"),
     },
 )
 
@@ -982,16 +658,14 @@ mapper_registry.map_imperatively(
         "groups": relationship(
             Group,
             secondary=policy_memberships_table,
-            primaryjoin=policies_table.c.id
-            == policy_memberships_table.c.policy_id,
+            primaryjoin=policies_table.c.id == policy_memberships_table.c.policy_id,
             back_populates="policies",
             lazy="raise",
         ),
         "mfa_groups": relationship(
             Group,
             secondary=policy_mfa_memberships_table,
-            primaryjoin=policies_table.c.id
-            == policy_mfa_memberships_table.c.policy_id,
+            primaryjoin=policies_table.c.id == policy_mfa_memberships_table.c.policy_id,
             back_populates="mfa_policies",
             lazy="raise",
         ),
@@ -1008,27 +682,18 @@ mapper_registry.map_imperatively(
             cascade="all, delete-orphan",
             passive_deletes=True,
             lazy="raise",
-        ),
+        )
     },
 )
 
 mapper_registry.map_imperatively(
     AuditPolicyTrigger,
     audit_policy_triggers_table,
-    properties={
-        "audit_policy": relationship(
-            AuditPolicy,
-            back_populates="triggers",
-            lazy="raise",
-        ),
-    },
+    properties={"audit_policy": relationship(AuditPolicy, back_populates="triggers", lazy="raise")},
 )
 
 mapper_registry.map_imperatively(AuditDestination, audit_destinations_table)
 
 mapper_registry.map_imperatively(PasswordBanWord, password_ban_word_table)
 
-mapper_registry.map_imperatively(
-    DedicatedServer,
-    dedicated_servers_table,
-)
+mapper_registry.map_imperatively(DedicatedServer, dedicated_servers_table)

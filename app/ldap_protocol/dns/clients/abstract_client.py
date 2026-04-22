@@ -9,11 +9,7 @@ from abc import abstractmethod
 import httpx
 from fastapi import status
 
-from ldap_protocol.dns.dto import (
-    DNSForwardZoneDTO,
-    DNSMasterZoneDTO,
-    DNSRRSetDTO,
-)
+from ldap_protocol.dns.dto import DNSForwardZoneDTO, DNSMasterZoneDTO, DNSRRSetDTO
 from ldap_protocol.dns.exceptions import (
     DNSEntryNotFoundError,
     DNSNotImplementedError,
@@ -26,10 +22,7 @@ from ldap_protocol.dns.exceptions import (
 class AbstractDNSHTTPClient:
     """Abstract DNS client class."""
 
-    def __init__(
-        self,
-        http_client: httpx.AsyncClient,
-    ) -> None:
+    def __init__(self, http_client: httpx.AsyncClient) -> None:
         """Initialize the PowerDNS HTTP client."""
         self._http_client = http_client
 
@@ -41,13 +34,9 @@ class AbstractDNSHTTPClient:
             case status.HTTP_404_NOT_FOUND:
                 raise DNSEntryNotFoundError(response.text or "Not Found")
             case status.HTTP_422_UNPROCESSABLE_ENTITY:
-                raise DNSValidationError(
-                    response.text or "Unprocessable Entity",
-                )
+                raise DNSValidationError(response.text or "Unprocessable Entity")
             case status.HTTP_500_INTERNAL_SERVER_ERROR:
-                raise DNSUnavailableError(
-                    response.text or "Internal Server Error",
-                )
+                raise DNSUnavailableError(response.text or "Internal Server Error")
 
 
 class AbstractDNSMasterHTTPClient(AbstractDNSHTTPClient):

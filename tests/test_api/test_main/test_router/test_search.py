@@ -39,10 +39,7 @@ async def test_api_root_dse(http_client: AsyncClient) -> None:
 
     data = response.json()
 
-    attrs = sorted(
-        data["search_result"][0]["partial_attributes"],
-        key=lambda x: x["type"],
-    )
+    attrs = sorted(data["search_result"][0]["partial_attributes"], key=lambda x: x["type"])
 
     aquired_attrs = [attr["type"] for attr in attrs]
 
@@ -94,10 +91,7 @@ async def test_api_root_dse_return_one_attr(http_client: AsyncClient) -> None:
 
     data = response.json()
 
-    attrs = sorted(
-        data["search_result"][0]["partial_attributes"],
-        key=lambda x: x["type"],
-    )
+    attrs = sorted(data["search_result"][0]["partial_attributes"], key=lambda x: x["type"])
 
     aquired_attrs = {attr["type"] for attr in attrs}
     root_attrs = {"namingContexts"}
@@ -138,9 +132,7 @@ async def test_api_search(http_client: AsyncClient) -> None:
         "ou=testModifyDn3,dc=md,dc=test",
         "ou=test_bit_rules,dc=md,dc=test",
     }
-    assert sub_dirs == set(
-        obj["object_name"] for obj in response["search_result"]
-    )
+    assert sub_dirs == set(obj["object_name"] for obj in response["search_result"])
 
 
 @pytest.mark.asyncio
@@ -242,18 +234,13 @@ async def test_api_search_filter_objectguid(http_client: AsyncClient) -> None:
     )
     data = raw_response.json()
 
-    assert data["search_result"][0]["object_name"] == entry_dn, (
-        "User with required objectGUID not found"
-    )
+    assert data["search_result"][0]["object_name"] == entry_dn, "User with required objectGUID not found"
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("filter_", test_search_filter_account_expires_dataset)
-async def test_api_search_filter_account_expires(
-    filter_: str,
-    http_client: AsyncClient,
-) -> None:
+async def test_api_search_filter_account_expires(filter_: str, http_client: AsyncClient) -> None:
     """Test api search."""
     raw_response = await http_client.post(
         "entry/search",
@@ -342,14 +329,10 @@ async def test_api_search_recursive_memberof(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_search_recursive_member(
-    http_client: AsyncClient,
-) -> None:
+async def test_search_recursive_member(http_client: AsyncClient) -> None:
     """Test recursive member search for user0."""
     user = "cn=user0,cn=users,dc=md,dc=test"
-    expected_groups = [
-        "cn=domain admins,cn=Groups,dc=md,dc=test",
-    ]
+    expected_groups = ["cn=domain admins,cn=Groups,dc=md,dc=test"]
     response = await http_client.post(
         "entry/search",
         json={
@@ -374,9 +357,7 @@ async def test_search_recursive_member(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_search_recursive_member_for_many_roots(
-    http_client: AsyncClient,
-) -> None:
+async def test_search_recursive_member_for_many_roots(http_client: AsyncClient) -> None:
     """Test recursive member search with nested groups chain."""
 
     async def _create_group(dn: str, name: str) -> None:
@@ -388,10 +369,7 @@ async def test_search_recursive_member_for_many_roots(
                 "attributes": [
                     {"type": "name", "vals": [name]},
                     {"type": "cn", "vals": [name]},
-                    {
-                        "type": "objectClass",
-                        "vals": ["top", "posixGroup", "group"],
-                    },
+                    {"type": "objectClass", "vals": ["top", "posixGroup", "group"]},
                 ],
             },
         )
@@ -402,12 +380,7 @@ async def test_search_recursive_member_for_many_roots(
             "/entry/update",
             json={
                 "object": dn,
-                "changes": [
-                    {
-                        "operation": Operation.ADD,
-                        "modification": {"type": "member", "vals": [member]},
-                    },
-                ],
+                "changes": [{"operation": Operation.ADD, "modification": {"type": "member", "vals": [member]}}],
             },
         )
         assert response.json().get("resultCode") == LDAPCodes.SUCCESS
@@ -452,10 +425,7 @@ async def test_search_recursive_member_for_many_roots(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("dataset", test_search_by_rule_anr_dataset)
-async def test_api_search_by_rule_anr(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_api_search_by_rule_anr(dataset: dict, http_client: AsyncClient) -> None:
     """Test api search filter by rule "aNR"."""
     raw_response = await http_client.post(
         "entry/search",
@@ -481,10 +451,7 @@ async def test_api_search_by_rule_anr(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("dataset", test_search_by_rule_bit_and_dataset)
-async def test_api_search_by_rule_bit_and(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_api_search_by_rule_bit_and(dataset: dict, http_client: AsyncClient) -> None:
     """Test api search filter by rule "BIT_AND"."""
     response = await http_client.post(
         "entry/search",
@@ -514,10 +481,7 @@ async def test_api_search_by_rule_bit_and(
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
 @pytest.mark.parametrize("dataset", test_search_by_rule_bit_or_dataset)
-async def test_api_search_by_rule_bit_or(
-    dataset: dict,
-    http_client: AsyncClient,
-) -> None:
+async def test_api_search_by_rule_bit_or(dataset: dict, http_client: AsyncClient) -> None:
     """Test api search filter by rule "BIT_OR"."""
     response = await http_client.post(
         "entry/search",
@@ -574,9 +538,7 @@ async def test_api_bytes_to_hex(http_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_search_by_entity_type_name(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_search_by_entity_type_name(http_client: AsyncClient) -> None:
     """Test api search by entity type name."""
     entity_type_name = EntityTypeNames.USER
 
@@ -606,16 +568,12 @@ async def test_api_search_by_entity_type_name(
                 assert attr["vals"] == [entity_type_name]
                 break
         else:
-            pytest.fail(
-                f"Entity type name '{entity_type_name}' not found in attributes",  # noqa: E501
-            )
+            pytest.fail(f"Entity type name '{entity_type_name}' not found in attributes")
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_empty_search(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_empty_search(http_client: AsyncClient) -> None:
     """Test api empty search."""
     entity_type_name = EntityTypeNames.USER
     raw_response = await http_client.post(
@@ -641,15 +599,11 @@ async def test_api_empty_search(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_get_group_name_by_primary_group_id(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_get_group_name_by_primary_group_id(http_client: AsyncClient) -> None:
     """Test api get group path DN by primary group id."""
     primary_group_id = 512
     path_dn = "cn=domain admins,cn=Groups,dc=md,dc=test"
-    response = await http_client.get(
-        f"entry/group/primary/{primary_group_id}",
-    )
+    response = await http_client.get(f"entry/group/primary/{primary_group_id}")
 
     assert response.status_code == 200
     response = response.json()
@@ -659,13 +613,9 @@ async def test_api_get_group_name_by_primary_group_id(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("session")
-async def test_api_get_group_path_dn_by_primary_group_id_not_found(
-    http_client: AsyncClient,
-) -> None:
+async def test_api_get_group_path_dn_by_primary_group_id_not_found(http_client: AsyncClient) -> None:
     """Test api get group path DN by primary group id not found."""
     primary_group_id = 5135
-    response = await http_client.get(
-        f"entry/group/primary/{primary_group_id}",
-    )
+    response = await http_client.get(f"entry/group/primary/{primary_group_id}")
 
     assert response.status_code == 404

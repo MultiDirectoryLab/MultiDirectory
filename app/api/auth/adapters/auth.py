@@ -22,11 +22,7 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
     """Adapter for using IdentityManager with FastAPI."""
 
     async def login(
-        self,
-        form: OAuth2Form,
-        request: Request,
-        ip: IPv4Address | IPv6Address,
-        user_agent: str,
+        self, form: OAuth2Form, request: Request, ip: IPv4Address | IPv6Address, user_agent: str
     ) -> MFAChallengeResponse | None:
         """Log in a user and set session cookies.
 
@@ -41,31 +37,18 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         :return: MFAChallengeResponse | None
         """
         login_dto = await self._service.login(
-            form=LoginRequestDTO(
-                username=form.username,
-                password=form.password,
-            ),
+            form=LoginRequestDTO(username=form.username, password=form.password),
             url=request.url_for("callback_mfa"),
             ip=ip,
             user_agent=user_agent,
         )
         if login_dto.session_key is not None:
-            self._service.set_new_session_key(
-                login_dto.session_key,
-            )
+            self._service.set_new_session_key(login_dto.session_key)
         if login_dto.mfa_challenge is not None:
-            return MFAChallengeResponse(
-                status=login_dto.mfa_challenge.status,
-                message=login_dto.mfa_challenge.message,
-            )
+            return MFAChallengeResponse(status=login_dto.mfa_challenge.status, message=login_dto.mfa_challenge.message)
         return None
 
-    async def reset_password(
-        self,
-        identity: str,
-        new_password: str,
-        old_password: str | None,
-    ) -> None:
+    async def reset_password(self, identity: str, new_password: str, old_password: str | None) -> None:
         """Reset a user's password and update Kerberos principal.
 
         If the current user is changing their own password,
@@ -83,11 +66,7 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         :raises HTTPException: 424 if Kerberos password update failed
         :return: None
         """
-        await self._service.reset_password(
-            identity,
-            new_password,
-            old_password,
-        )
+        await self._service.reset_password(identity, new_password, old_password)
 
     async def check_setup_needed(self) -> bool:
         """Check if initial setup is required.
@@ -103,9 +82,7 @@ class AuthFastAPIAdapter(BaseAdapter[AuthManager]):
         :raises HTTPException: 423 if setup already performed
         :return: None
         """
-        await self._service.perform_first_setup(
-            _convert_request_to_dto(request),
-        )
+        await self._service.perform_first_setup(_convert_request_to_dto(request))
 
     async def get_current_user(self) -> UserSchema:
         """Load the authenticated user using request-bound session data."""

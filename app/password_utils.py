@@ -16,16 +16,9 @@ class PasswordUtils(BaseModel):
     """Password Utils."""
 
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
-    __crypt_context = CryptContext(
-        schemes=["bcrypt"],
-        deprecated="auto",
-    )
+    __crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    def verify_password(
-        self,
-        plain_password: str,
-        hashed_password: str,
-    ) -> bool:
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify password.
 
         :param str plain_password: raw password
@@ -48,10 +41,6 @@ class PasswordUtils(BaseModel):
         tz = timezone.utc
 
         now_dt = datetime.now(tz=tz)
-        value_dt = (
-            ft_to_dt(int(win_filetime)).astimezone(tz)
-            if win_filetime
-            else now_dt
-        )
+        value_dt = ft_to_dt(int(win_filetime)).astimezone(tz) if win_filetime else now_dt
 
         return (now_dt - value_dt).days

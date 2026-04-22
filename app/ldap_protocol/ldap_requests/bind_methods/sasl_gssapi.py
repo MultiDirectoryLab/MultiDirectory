@@ -20,12 +20,7 @@ from ldap_protocol.ldap_responses import BindResponse
 from ldap_protocol.utils.queries import get_base_directories, get_user
 from password_utils import PasswordUtils
 
-from .base import (
-    LDAPBindErrors,
-    SaslAuthentication,
-    SASLMethod,
-    get_bad_response,
-)
+from .base import LDAPBindErrors, SaslAuthentication, SASLMethod, get_bad_response
 
 
 class GSSAPISL(IntEnum):
@@ -35,9 +30,7 @@ class GSSAPISL(IntEnum):
     INTEGRITY_PROTECTION = 2
     CONFIDENTIALITY = 4
 
-    SUPPORTED_SECURITY_LAYERS = (
-        NO_SECURITY | INTEGRITY_PROTECTION | CONFIDENTIALITY
-    )
+    SUPPORTED_SECURITY_LAYERS = NO_SECURITY | INTEGRITY_PROTECTION | CONFIDENTIALITY
 
 
 class GSSAPIAuthStatus(StrEnum):
@@ -80,11 +73,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
     ticket: bytes = b""
     _ldap_session: LDAPSession
 
-    def is_valid(
-        self,
-        user: User | None,  # noqa: ARG002
-        password_utils: PasswordUtils,  # noqa: ARG002
-    ) -> bool:
+    def is_valid(self, user: User | None, password_utils: PasswordUtils) -> bool:  # noqa: ARG002
         """Check if GSSAPI token is valid.
 
         :param User | None user: indb user
@@ -108,11 +97,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         """
         return cls(ticket=data[1].value if len(data) > 1 else b"")
 
-    async def _init_security_context(
-        self,
-        session: AsyncSession,
-        settings: Settings,
-    ) -> None:
+    async def _init_security_context(self, session: AsyncSession, settings: Settings) -> None:
         """Init security context.
 
         :param AsyncSession session: db session
@@ -121,25 +106,13 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         base_dn_list = await get_base_directories(session)
         base_dn = base_dn_list[0].name
 
-        server_name = gssapi.Name(
-            f"ldap/{base_dn}@{base_dn.upper()}",
-            gssapi.NameType.krb5_nt_principal_name,
-        )
+        server_name = gssapi.Name(f"ldap/{base_dn}@{base_dn.upper()}", gssapi.NameType.krb5_nt_principal_name)
 
-        server_creds = gssapi.Credentials(
-            name=server_name,
-            usage="accept",
-            store={"keytab": settings.KRB5_LDAP_KEYTAB},
-        )
+        server_creds = gssapi.Credentials(name=server_name, usage="accept", store={"keytab": settings.KRB5_LDAP_KEYTAB})
 
-        self._ldap_session.gssapi_security_context = gssapi.SecurityContext(
-            creds=server_creds,
-        )
+        self._ldap_session.gssapi_security_context = gssapi.SecurityContext(creds=server_creds)
 
-    def _handle_ticket(
-        self,
-        server_ctx: gssapi.SecurityContext,
-    ) -> GSSAPIAuthStatus:
+    def _handle_ticket(self, server_ctx: gssapi.SecurityContext) -> GSSAPIAuthStatus:
         """Handle the ticket and make gssapi step.
 
         :param gssapi.SecurityContext server_ctx: GSSAPI security context
@@ -162,10 +135,7 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         supported = GSSAPISL.SUPPORTED_SECURITY_LAYERS
         return (client_layer & supported) == client_layer
 
-    def _handle_final_client_message(
-        self,
-        server_ctx: gssapi.SecurityContext,
-    ) -> GSSAPIAuthStatus:
+    def _handle_final_client_message(self, server_ctx: gssapi.SecurityContext) -> GSSAPIAuthStatus:
         """Handle final client message.
 
         :param gssapi.SecurityContext server_ctx: GSSAPI security context
@@ -175,26 +145,16 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         try:
             unwrap_message = server_ctx.unwrap(self.ticket)
             if len(unwrap_message.message) == 4:
-                client_security_layer = GSSAPISL(
-                    int.from_bytes(
-                        unwrap_message.message[:1],
-                    ),
-                )
+                client_security_layer = GSSAPISL(int.from_bytes(unwrap_message.message[:1]))
                 if self._validate_security_layer(client_security_layer):
                     self._ldap_session.gssapi_authenticated = True
-                    self._ldap_session.gssapi_security_layer = (
-                        client_security_layer
-                    )
+                    self._ldap_session.gssapi_security_layer = client_security_layer
                     return GSSAPIAuthStatus.COMPLETE
             return GSSAPIAuthStatus.ERROR
         except gssapi.exceptions.GSSError:
             return GSSAPIAuthStatus.ERROR
 
-    def _generate_final_message(
-        self,
-        server_ctx: gssapi.SecurityContext,
-        settings: Settings,
-    ) -> bytes:
+    def _generate_final_message(self, server_ctx: gssapi.SecurityContext, settings: Settings) -> bytes:
         """Generate final wrap message.
 
         :param gssapi.SecurityContext server_ctx: gssapi context
@@ -205,20 +165,12 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         if GSSAPISL.SUPPORTED_SECURITY_LAYERS == GSSAPISL.NO_SECURITY:
             max_size = 0  # type: ignore
 
-        message = (
-            GSSAPISL.SUPPORTED_SECURITY_LAYERS.to_bytes()
-            + max_size.to_bytes(length=3)
-        )
+        message = GSSAPISL.SUPPORTED_SECURITY_LAYERS.to_bytes() + max_size.to_bytes(length=3)
 
         wrap_message = server_ctx.wrap(message, encrypt=False)
         return wrap_message.message
 
-    async def step(
-        self,
-        session: AsyncSession,
-        ldap_session: LDAPSession,
-        settings: Settings,
-    ) -> BindResponse | None:
+    async def step(self, session: AsyncSession, ldap_session: LDAPSession, settings: Settings) -> BindResponse | None:
         """GSSAPI step.
 
         :param AsyncSession session: db session
@@ -235,14 +187,8 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
             return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
         if self.ticket == b"":
-            self.server_sasl_creds = self._generate_final_message(
-                server_ctx,
-                settings,
-            )
-            return BindResponse(
-                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-                server_sasl_creds=self.server_sasl_creds,
-            )
+            self.server_sasl_creds = self._generate_final_message(server_ctx, settings)
+            return BindResponse(result_code=LDAPCodes.SASL_BIND_IN_PROGRESS, server_sasl_creds=self.server_sasl_creds)
 
         if server_ctx.complete:
             status = self._handle_final_client_message(server_ctx)
@@ -254,22 +200,10 @@ class SaslGSSAPIAuthentication(SaslAuthentication):
         status = self._handle_ticket(server_ctx)
 
         if status == GSSAPIAuthStatus.SEND_TO_CLIENT:
-            return BindResponse(
-                result_code=LDAPCodes.SASL_BIND_IN_PROGRESS,
-                server_sasl_creds=self.server_sasl_creds,
-            )
+            return BindResponse(result_code=LDAPCodes.SASL_BIND_IN_PROGRESS, server_sasl_creds=self.server_sasl_creds)
         return get_bad_response(LDAPBindErrors.LOGON_FAILURE)
 
-    async def get_user(  # type: ignore
-        self,
-        session: AsyncSession,
-        username: str,  # NOTE: unused argument
-    ) -> User | None:
-        """Get user.
-
-        :param gssapi.SecurityContext ctx: gssapi context
-        :param AsyncSession session: db session
-        """
+    async def get_user(self, session: AsyncSession, username: str) -> User | None:  # type: ignore
         ctx = self._ldap_session.gssapi_security_context
         if not ctx:
             return None

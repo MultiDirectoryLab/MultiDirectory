@@ -15,14 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from entities import Directory
 from extra.alembic_utils import temporary_stub_column
-from ldap_protocol.ldap_schema.attribute_value_validator import (
-    AttributeValueValidator,
-)
-from ldap_protocol.utils.queries import (
-    create_group,
-    get_base_directories,
-    get_search_path,
-)
+from ldap_protocol.ldap_schema.attribute_value_validator import AttributeValueValidator
+from ldap_protocol.utils.queries import create_group, get_base_directories, get_search_path
 from repo.pg.tables import queryable_attr as qa
 
 # revision identifiers, used by Alembic.
@@ -37,25 +31,17 @@ depends_on: None | str = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _create_readonly_grp_and_plcy(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _create_readonly_grp_and_plcy(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
-            attribute_value_validator = await cnt.get(
-                AttributeValueValidator,
-            )
+            attribute_value_validator = await cnt.get(AttributeValueValidator)
 
         base_dn_list = await get_base_directories(session)
         if not base_dn_list:
             return
 
         try:
-            group_dir_query = select(
-                exists(Directory).where(
-                    qa(Directory.name) == "readonly domain controllers",
-                ),
-            )
+            group_dir_query = select(exists(Directory).where(qa(Directory.name) == "readonly domain controllers"))
             group_dir = (await session.scalars(group_dir_query)).one()
 
             if not group_dir:
@@ -80,9 +66,7 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _delete_readonly_grp_and_plcy(
-        connection: AsyncConnection,  # noqa: ARG001
-    ) -> None:
+    async def _delete_readonly_grp_and_plcy(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
@@ -90,15 +74,9 @@ def downgrade(container: AsyncContainer) -> None:
         if not base_dn_list:
             return
 
-        group_dn = (
-            "cn=readonly domain controllers,cn=groups,"
-            + base_dn_list[0].path_dn
-        )
+        group_dn = "cn=readonly domain controllers,cn=groups," + base_dn_list[0].path_dn
 
-        await session.execute(
-            delete(Directory)
-            .filter_by(path=get_search_path(group_dn)),
-        )  # fmt: skip
+        await session.execute(delete(Directory).filter_by(path=get_search_path(group_dn)))
 
         await session.commit()
 

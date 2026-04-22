@@ -15,31 +15,18 @@ from typing import Callable, Protocol
 
 from ldap_filter import Filter
 from sqlalchemy import BigInteger, and_, cast, func, not_, or_, select
-from sqlalchemy.sql.elements import (
-    BinaryExpression,
-    ColumnElement,
-    UnaryExpression,
-)
+from sqlalchemy.sql.elements import BinaryExpression, ColumnElement, UnaryExpression
 from sqlalchemy.sql.expression import false as sql_false
 
 from entities import Attribute, Directory, EntityType, Group, User
 from enums import EntityTypeNames
 from ldap_protocol.utils.helpers import ft_to_dt
 from ldap_protocol.utils.queries import get_path_filter, get_search_path
-from repo.pg.tables import (
-    directory_table,
-    groups_table,
-    queryable_attr as qa,
-    users_table,
-)
+from repo.pg.tables import directory_table, groups_table, queryable_attr as qa, users_table
 
 from .asn1parser import ASN1Row, TagNumbers
 from .objects import LDAPMatchingRule
-from .utils.cte import (
-    find_members_recursive_cte,
-    find_root_group_recursive_cte,
-    get_filter_from_path,
-)
+from .utils.cte import find_members_recursive_cte, find_root_group_recursive_cte, get_filter_from_path
 
 _MEMBERS_ATTRS = {
     "member",
@@ -59,34 +46,20 @@ class FilterInterpreterProtocol(Protocol):
     attributes: set[str]
 
     @abstractmethod
-    def cast_to_sql(
-        self,
-        expr: ASN1Row | Filter,
-    ) -> UnaryExpression | ColumnElement:
+    def cast_to_sql(self, expr: ASN1Row | Filter) -> UnaryExpression | ColumnElement:
         """Cast filter expression to SQLAlchemy conditions."""
         ...
 
     @abstractmethod
-    def _cast_item(
-        self,
-        item: ASN1Row | Filter,
-    ) -> UnaryExpression | ColumnElement:
+    def _cast_item(self, item: ASN1Row | Filter) -> UnaryExpression | ColumnElement:
         """Cast a single item to SQLAlchemy condition."""
         ...
 
-    def _get_filter_condition(
-        self,
-        attr: str,
-        condition: BinaryExpression | None = None,
-    ) -> ColumnElement:
+    def _get_filter_condition(self, attr: str, condition: BinaryExpression | None = None) -> ColumnElement:
         if condition is None:
-            f = qa(Directory).attributes.any(
-                qa(Attribute.name).ilike(attr),
-            )
+            f = qa(Directory).attributes.any(qa(Attribute.name).ilike(attr))
         else:
-            f = qa(Directory).attributes.any(
-                and_(qa(Attribute.name).ilike(attr), condition),
-            )
+            f = qa(Directory).attributes.any(and_(qa(Attribute.name).ilike(attr), condition))
 
         return f
 
@@ -118,19 +91,14 @@ class FilterInterpreterProtocol(Protocol):
                         .where(
                             qa(Attribute.name) == "aNR",
                             qa(Attribute.value) == "True",
-                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
-                        ),
+                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
+                        )
                     ),
                     func.lower(Attribute.value) == vl,
-                ),
-            )  # fmt: skip
+                )
+            )
 
-            attributes_expr.append(
-                and_(
-                    qa(Attribute.name) == "cn",
-                    func.lower(Attribute.value) == vl,
-                ),
-            )  # fmt: skip
+            attributes_expr.append(and_(qa(Attribute.name) == "cn", func.lower(Attribute.value) == vl))
 
             dir_user_expr.extend(
                 [
@@ -138,8 +106,8 @@ class FilterInterpreterProtocol(Protocol):
                     qa(User.mail) == vl,
                     qa(User.samaccountname) == vl,
                     qa(User.displayname) == vl,
-                ],
-            )  # fmt: skip
+                ]
+            )
         else:
             vl = f"{normalized}%"
             attributes_expr.append(
@@ -151,19 +119,14 @@ class FilterInterpreterProtocol(Protocol):
                         .where(
                             qa(Attribute.name) == "aNR",
                             qa(Attribute.value) == "True",
-                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,  # noqa: E501
-                        ),
+                            qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
+                        )
                     ),
                     qa(Attribute.value).ilike(vl),
-                ),
-            )  # fmt: skip
+                )
+            )
 
-            attributes_expr.append(
-                and_(
-                    qa(Attribute.name) == "cn",
-                    qa(Attribute.value).ilike(vl),
-                ),
-            )  # fmt: skip
+            attributes_expr.append(and_(qa(Attribute.name) == "cn", qa(Attribute.value).ilike(vl)))
 
             dir_user_expr.extend(
                 [
@@ -171,44 +134,27 @@ class FilterInterpreterProtocol(Protocol):
                     qa(User.mail).ilike(vl),
                     qa(User.samaccountname).ilike(vl),
                     qa(User.displayname).ilike(vl),
-                ],
-            )  # fmt: skip
+                ]
+            )
 
         if is_space_contains:
             # NOTE: algorithm 6.c.i
             fn, sn = normalized.replace("=", "").split(" ")[:2]
 
             givenname_fn = qa(Directory).attributes.any(
-                and_(
-                    func.lower(Attribute.name) == "givenname",
-                    qa(Attribute.value).ilike(f"{fn}%"),
-                ),
+                and_(func.lower(Attribute.name) == "givenname", qa(Attribute.value).ilike(f"{fn}%"))
             )
             surname_sn = qa(Directory).attributes.any(
-                and_(
-                    func.lower(Attribute.name) == "surname",
-                    qa(Attribute.value).ilike(f"{sn}%"),
-                ),
+                and_(func.lower(Attribute.name) == "surname", qa(Attribute.value).ilike(f"{sn}%"))
             )
             givenname_sn = qa(Directory).attributes.any(
-                and_(
-                    func.lower(Attribute.name) == "givenname",
-                    qa(Attribute.value).ilike(f"{sn}%"),
-                ),
+                and_(func.lower(Attribute.name) == "givenname", qa(Attribute.value).ilike(f"{sn}%"))
             )
             surname_fn = qa(Directory).attributes.any(
-                and_(
-                    func.lower(Attribute.name) == "surname",
-                    qa(Attribute.value).ilike(f"{fn}%"),
-                ),
+                and_(func.lower(Attribute.name) == "surname", qa(Attribute.value).ilike(f"{fn}%"))
             )
 
-            attributes_expr.append(
-                or_(
-                    and_(givenname_fn, surname_sn),
-                    and_(givenname_sn, surname_fn),
-                ),
-            )
+            attributes_expr.append(or_(and_(givenname_fn, surname_sn), and_(givenname_sn, surname_fn)))
 
         # NOTE: algorithm 6.c.iii.i
         attributes_expr.append(
@@ -222,23 +168,15 @@ class FilterInterpreterProtocol(Protocol):
                         qa(Attribute.name) == "aNR",
                         qa(Attribute.value) == "True",
                         qa(EntityType.name) == EntityTypeNames.ATTRIBUTE_TYPE,
-                    ),
+                    )
                 ),
                 qa(Attribute.value) == normalized.replace("=", ""),
-            ),
+            )
         )
 
-        return and_(
-            or_(
-                qa(Directory).attributes.any(or_(*attributes_expr)),
-                or_(*dir_user_expr),
-            ),
-        )  # fmt: skip
+        return and_(or_(qa(Directory).attributes.any(or_(*attributes_expr)), or_(*dir_user_expr)))
 
-    def _get_bit_filter_function(
-        self,
-        oid: str,
-    ) -> Callable[[str, int], UnaryExpression]:
+    def _get_bit_filter_function(self, oid: str) -> Callable[[str, int], UnaryExpression]:
         """Retrieve the appropriate filter function based on the attribute."""
         if oid == LDAPMatchingRule.LDAP_MATCHING_RULE_BIT_AND:
             return self._filter_bit_and
@@ -247,11 +185,7 @@ class FilterInterpreterProtocol(Protocol):
 
         raise ValueError("Incorrect attribute specified")
 
-    def _filter_bit_and(
-        self,
-        attr_name: str,
-        bit_mask: int,
-    ) -> UnaryExpression:
+    def _filter_bit_and(self, attr_name: str, bit_mask: int) -> UnaryExpression:
         """Equivalent to a bitwise "AND" operation.
 
         Docs:
@@ -268,9 +202,9 @@ class FilterInterpreterProtocol(Protocol):
         return qa(Directory).attributes.any(
             and_(
                 func.lower(Attribute.name) == attr_name.lower(),
-                cast(Attribute.value, BigInteger).op("&")(bit_mask) == bit_mask,  # noqa: E501
-            ),
-        )  # fmt: skip
+                cast(Attribute.value, BigInteger).op("&")(bit_mask) == bit_mask,
+            )
+        )
 
     def _filter_bit_or(self, attr_name: str, bit_mask: int) -> UnaryExpression:
         """Equivalent to a bitwise "OR" operation.
@@ -288,15 +222,11 @@ class FilterInterpreterProtocol(Protocol):
         """
         return qa(Directory).attributes.any(
             and_(
-                func.lower(Attribute.name) == attr_name.lower(),
-                cast(Attribute.value, BigInteger).op("&")(bit_mask) > 0,
-            ),
+                func.lower(Attribute.name) == attr_name.lower(), cast(Attribute.value, BigInteger).op("&")(bit_mask) > 0
+            )
         )
 
-    def _get_member_filter_function(
-        self,
-        column: str,
-    ) -> Callable[[str], UnaryExpression]:
+    def _get_member_filter_function(self, column: str) -> Callable[[str], UnaryExpression]:
         """Retrieve the appropriate filter function based on the attribute."""
         if len(column.split(":")) == 1:
             attribute = column
@@ -326,10 +256,7 @@ class FilterInterpreterProtocol(Protocol):
     def _filter_memberof(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the memberOF attribute."""
         group_id_subquery = (
-            select(groups_table.c.id)
-            .join(qa(Group.directory))
-            .where(get_filter_from_path(dn))
-            .scalar_subquery()
+            select(groups_table.c.id).join(qa(Group.directory)).where(get_filter_from_path(dn)).scalar_subquery()
         )
 
         return qa(Directory.id).in_(
@@ -338,34 +265,23 @@ class FilterInterpreterProtocol(Protocol):
                 .join(qa(Directory.groups))
                 .where(groups_table.c.id == group_id_subquery)
                 .distinct(qa(Directory.id))
-            ),
+            )
         )  # type: ignore
 
     def _recursive_filter_member(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the member attribute (recursive)."""
         cte = find_root_group_recursive_cte([dn])
 
-        source_directory_id = (
-            select(directory_table.c.id)
-            .where(get_filter_from_path(dn))
-            .scalar_subquery()
-        )
+        source_directory_id = select(directory_table.c.id).where(get_filter_from_path(dn)).scalar_subquery()
 
         return qa(Directory.id).in_(
-            select(cte.c.directory_id)
-            .where(
-                cte.c.directory_id != source_directory_id,
-            )
-            .distinct(),
+            select(cte.c.directory_id).where(cte.c.directory_id != source_directory_id).distinct()
         )  # type: ignore
 
     def _filter_member(self, dn: str) -> UnaryExpression:
         """Retrieve query conditions with the member attribute."""
         user_id_subquery = (
-            select(users_table.c.id)
-            .join(qa(User.directory))
-            .where(get_filter_from_path(dn))
-            .scalar_subquery()
+            select(users_table.c.id).join(qa(User.directory)).where(get_filter_from_path(dn)).scalar_subquery()
         )
 
         return qa(Directory.id).in_(
@@ -374,7 +290,7 @@ class FilterInterpreterProtocol(Protocol):
                 .join(qa(Group.users))
                 .where(users_table.c.id == user_id_subquery)
                 .distinct(groups_table.c.directory_id)
-            ),
+            )
         )  # type: ignore
 
 
@@ -425,11 +341,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             ):
                 return self._bit_filter(item)
 
-            elif (
-                len(item.value) == 3
-                and isinstance(item.value[_ATTR_POS].value, bytes)
-                and attr in _MEMBERS_ATTRS
-            ):  # fmt: skip
+            elif len(item.value) == 3 and isinstance(item.value[_ATTR_POS].value, bytes) and attr in _MEMBERS_ATTRS:
                 return self._ldap_filter_by_attribute(*item.value)  # NOTE: oid
 
             else:
@@ -470,9 +382,7 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
             return func.lower(EntityType.name) == right.lower()
         else:
             if is_substring:
-                cond = qa(Attribute.value).ilike(
-                    self._get_substring(right),
-                )
+                cond = qa(Attribute.value).ilike(self._get_substring(right))
             else:
                 if isinstance(right.value, str):
                     cond = qa(Attribute.value).ilike(right.value)
@@ -483,22 +393,11 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
 
     def _bit_filter(self, item: ASN1Row) -> UnaryExpression:
         filter_func = self._get_bit_filter_function(item.value[0].value)
-        return filter_func(
-            item.value[_ATTR_POS].value.decode("utf-8"),
-            int(item.value[_VALUE_POS].value),
-        )
+        return filter_func(item.value[_ATTR_POS].value.decode("utf-8"), int(item.value[_VALUE_POS].value))
 
-    def _ldap_filter_by_attribute(
-        self,
-        oid: ASN1Row | None,
-        attr: ASN1Row,
-        search_value: ASN1Row,
-    ) -> UnaryExpression:
+    def _ldap_filter_by_attribute(self, oid: ASN1Row | None, attr: ASN1Row, search_value: ASN1Row) -> UnaryExpression:
         """Retrieve query conditions based on the specified LDAP attribute."""
-        if oid is None:
-            attribute = attr.value.lower()
-        else:
-            attribute = f"{attr.value.decode('utf-8').lower()}:{oid.value}:"
+        attribute = attr.value.lower() if oid is None else f"{attr.value.decode('utf-8').lower()}:{oid.value}:"
 
         self.attributes.add(attribute)
 
@@ -515,25 +414,16 @@ class LDAPFilterInterpreter(FilterInterpreterProtocol):
         index = expr.tag_id
         return [f"{value}%", f"%{value}%", f"%{value}"][index]
 
-    def _from_filter(
-        self,
-        model: type,
-        item: ASN1Row,
-        attr: str,
-        right: ASN1Row,
-    ) -> UnaryExpression:
+    def _from_filter(self, model: type, item: ASN1Row, attr: str, right: ASN1Row) -> UnaryExpression:
         is_substring = item.tag_id == TagNumbers.SUBSTRING
         col = getattr(model, attr)
 
         if is_substring:
             return col.ilike(self._get_substring(right))
 
-        op_method = {
-            TagNumbers.EQUALITY_MATCH: eq,
-            TagNumbers.GE: ge,
-            TagNumbers.LE: le,
-            TagNumbers.APPROX_MATCH: ne,
-        }[item.tag_id]  # type: ignore
+        op_method = {TagNumbers.EQUALITY_MATCH: eq, TagNumbers.GE: ge, TagNumbers.LE: le, TagNumbers.APPROX_MATCH: ne}[
+            item.tag_id  # type: ignore
+        ]
 
         value: str | datetime
         if attr == "objectguid":
@@ -603,9 +493,7 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
             return func.lower(EntityType.name) == item.val.lower()
         else:
             if is_substring:
-                cond = qa(Attribute.value).ilike(
-                    item.val.replace("*", "%"),
-                )
+                cond = qa(Attribute.value).ilike(item.val.replace("*", "%"))
             else:
                 cond = qa(Attribute.value).ilike(item.val)
 
@@ -615,12 +503,7 @@ class StringFilterInterpreter(FilterInterpreterProtocol):
         filter_func = self._get_bit_filter_function(item.attr.split(":")[1])
         return filter_func(item.attr.split(":")[0], int(item.val))
 
-    def _from_str_filter(
-        self,
-        model: type,
-        is_substring: bool,
-        item: Filter,
-    ) -> UnaryExpression:
+    def _from_str_filter(self, model: type, is_substring: bool, item: Filter) -> UnaryExpression:
         col = getattr(model, item.attr)
 
         if is_substring:

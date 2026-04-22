@@ -9,13 +9,7 @@ from typing import Any, AsyncGenerator, AsyncIterator, Callable, Literal
 from unittest.mock import Mock
 
 import pytest_asyncio
-from dishka import (
-    AsyncContainer,
-    Provider,
-    Scope,
-    make_async_container,
-    provide,
-)
+from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
 
 from abstract_service import AbstractService
 from authorization_provider_protocol import AuthorizationProviderProtocol
@@ -36,14 +30,9 @@ class TestLocalProvider(Provider):
     audit_destination_dao = provide(AuditService, scope=Scope.REQUEST)
 
     @provide(scope=Scope.REQUEST)
-    async def abstract_dhcp_manager(
-        self,
-    ) -> AsyncIterator[AbstractDHCPManager]:
+    async def abstract_dhcp_manager(self) -> AsyncIterator[AbstractDHCPManager]:
         """Provide a mock DHCP manager."""
-        manager = StubDHCPManager(
-            kea_dhcp_repository=Mock(),
-            dhcp_manager_repository=Mock(),
-        )
+        manager = StubDHCPManager(kea_dhcp_repository=Mock(), dhcp_manager_repository=Mock())
         yield manager
 
 
@@ -51,10 +40,7 @@ class TestLocalProvider(Provider):
 async def container(settings: Settings) -> AsyncIterator[AsyncContainer]:
     """Fixture to provide the test container."""
     container = make_async_container(
-        TestProvider(),
-        TestLocalProvider(),
-        context={Settings: settings},
-        start_scope=Scope.RUNTIME,
+        TestProvider(), TestLocalProvider(), context={Settings: settings}, start_scope=Scope.RUNTIME
     )
     yield container
     await container.close()
@@ -76,46 +62,32 @@ def get_params(method: Callable) -> tuple[list, dict]:
     """Get params for test method."""
     sig = inspect.signature(method)
     params = [p for p in sig.parameters.values() if p.name != "self"]
-    args = [
-        create_mock_arg(p.annotation)
-        for p in params
-        if p.default == inspect.Parameter.empty
-    ]
-    kwargs = {
-        p.name: create_mock_arg(p.annotation)
-        for p in params
-        if p.default != inspect.Parameter.empty
-    }
+    args = [create_mock_arg(p.annotation) for p in params if p.default == inspect.Parameter.empty]
+    kwargs = {p.name: create_mock_arg(p.annotation) for p in params if p.default != inspect.Parameter.empty}
 
     return (args, kwargs)
 
 
 async def get_test_instance_generator(
-    container: AsyncContainer,
-    request_params: dict,
-    api_permissions_checker: AuthorizationProviderProtocol,
+    container: AsyncContainer, request_params: dict, api_permissions_checker: AuthorizationProviderProtocol
 ) -> AsyncGenerator[AbstractService, None]:
     """Make service instance for tests."""
     subclasses = AbstractService.__subclasses__()
     for cls in subclasses:
-        async with container(
-            scope=Scope.REQUEST,
-            context=request_params,
-        ) as cont:
+        async with container(scope=Scope.REQUEST, context=request_params) as cont:
             cls_instance = await cont.get(cls)
 
         yield setup_instance(cls_instance, api_permissions_checker)
 
 
 def setup_instance(
-    cls_instance: AbstractService,
-    api_permissions_checker: AuthorizationProviderProtocol,
+    cls_instance: AbstractService, api_permissions_checker: AuthorizationProviderProtocol
 ) -> AbstractService:
     """Set up service instance for tests."""
     cls_instance.set_permissions_checker(api_permissions_checker)
     if isinstance(cls_instance, AuthManager):
-        cls_instance._monitor.wrap_login = lambda x: x  # type: ignore # noqa: SLF001
-        cls_instance._monitor.wrap_reset_password = lambda x: x  # type: ignore # noqa: SLF001
-        cls_instance._monitor.wrap_change_password = lambda x: x  # type: ignore # noqa: SLF001
+        cls_instance._monitor.wrap_login = lambda x: x  # type: ignore  # noqa: SLF001
+        cls_instance._monitor.wrap_reset_password = lambda x: x  # type: ignore  # noqa: SLF001
+        cls_instance._monitor.wrap_change_password = lambda x: x  # type: ignore  # noqa: SLF001
 
     return cls_instance

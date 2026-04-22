@@ -8,9 +8,7 @@ from abc import ABC, abstractmethod
 
 from enums import AuditDestinationServiceType
 from ldap_protocol.policies.audit.dataclasses import AuditDestinationDTO
-from ldap_protocol.policies.audit.events.dataclasses import (
-    NormalizedAuditEvent,
-)
+from ldap_protocol.policies.audit.events.dataclasses import NormalizedAuditEvent
 
 
 class AuditDestinationSenderABC(ABC):

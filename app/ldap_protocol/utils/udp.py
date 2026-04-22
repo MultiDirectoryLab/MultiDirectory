@@ -68,11 +68,7 @@ class _SocketProtocol(asyncio.DatagramProtocol):
 class UDPSocket:
     """UDP Socket."""
 
-    def __init__(
-        self,
-        transport: asyncio.DatagramTransport,
-        protocol: _SocketProtocol,
-    ) -> None:
+    def __init__(self, transport: asyncio.DatagramTransport, protocol: _SocketProtocol) -> None:
         """Init transport."""
         self._transport = transport
         self._protocol = protocol

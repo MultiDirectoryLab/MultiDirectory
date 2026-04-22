@@ -17,29 +17,17 @@ branch_labels: None | str = None
 depends_on: None | str = None
 
 
-def upgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
     op.add_column(
-        "Policies",
-        sa.Column(
-            "bypass_no_connection",
-            sa.Boolean(),
-            server_default=sa.text("false"),
-            nullable=False,
-        ),
+        "Policies", sa.Column("bypass_no_connection", sa.Boolean(), server_default=sa.text("false"), nullable=False)
     )
     op.add_column(
-        "Policies",
-        sa.Column(
-            "bypass_service_failure",
-            sa.Boolean(),
-            server_default=sa.text("false"),
-            nullable=False,
-        ),
+        "Policies", sa.Column("bypass_service_failure", sa.Boolean(), server_default=sa.text("false"), nullable=False)
     )
 
 
-def downgrade(container: AsyncContainer) -> None:  # noqa: ARG001
+def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
     op.drop_column("Policies", "bypass_service_failure")
     op.drop_column("Policies", "bypass_no_connection")

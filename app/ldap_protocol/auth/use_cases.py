@@ -22,33 +22,16 @@ from constants import (
 from enums import EntityTypeNames, SamAccountTypeCodes, SecurityPrincipalRid
 from ldap_protocol.auth.dto import SetupDTO
 from ldap_protocol.auth.setup_gateway import SetupGateway
-from ldap_protocol.identity.exceptions import (
-    AlreadyConfiguredError,
-    ForbiddenError,
-)
-from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import (  # noqa: E501
-    AttributeTypeUseCaseLegacy,
-)
-from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import (  # noqa: E501
-    ObjectClassUseCaseLegacy,
-)
-from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import (
-    AttributeTypeUseCase,
-)
-from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import (
-    EntityTypeUseCase,
-)
-from ldap_protocol.ldap_schema.object_class.object_class_use_case import (
-    ObjectClassUseCase,
-)
+from ldap_protocol.identity.exceptions import AlreadyConfiguredError, ForbiddenError
+from ldap_protocol.ldap_schema._legacy.attribute_type.attribute_type_use_case import AttributeTypeUseCaseLegacy
+from ldap_protocol.ldap_schema._legacy.object_class.object_class_use_case import ObjectClassUseCaseLegacy
+from ldap_protocol.ldap_schema.attribute_type.attribute_type_use_case import AttributeTypeUseCase
+from ldap_protocol.ldap_schema.entity_type.entity_type_use_case import EntityTypeUseCase
+from ldap_protocol.ldap_schema.object_class.object_class_use_case import ObjectClassUseCase
 from ldap_protocol.objects import UserAccountControlFlag
 from ldap_protocol.policies.audit.audit_use_case import AuditUseCase
 from ldap_protocol.policies.password import PasswordPolicyUseCases
-from ldap_protocol.rid_manager import (
-    ObjectSIDUseCase,
-    RIDManagerSetupUseCase,
-    RIDManagerUseCase,
-)
+from ldap_protocol.rid_manager import ObjectSIDUseCase, RIDManagerSetupUseCase, RIDManagerUseCase
 from ldap_protocol.roles.role_use_case import RoleUseCase
 from ldap_protocol.utils.helpers import create_integer_hash, ft_now
 
@@ -126,9 +109,7 @@ class SetupUseCase:
             "name": DOMAIN_CONTROLLERS_OU_NAME,
             "entity_type_name": EntityTypeNames.ORGANIZATIONAL_UNIT,
             "object_class": "organizationalUnit",
-            "attributes": {
-                "objectClass": ["top", "container"],
-            },
+            "attributes": {"objectClass": ["top", "container"]},
             "children": [
                 {
                     "name": self._settings.HOST_MACHINE_SHORT_NAME,
@@ -136,20 +117,12 @@ class SetupUseCase:
                     "object_class": "computer",
                     "attributes": {
                         "objectClass": ["top"],
-                        "userAccountControl": [
-                            str(
-                                UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value,
-                            ),
-                        ],
-                        "sAMAccountType": [
-                            str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT),
-                        ],
-                        "sAMAccountName": [
-                            self._settings.HOST_MACHINE_SHORT_NAME,
-                        ],
+                        "userAccountControl": [str(UserAccountControlFlag.SERVER_TRUST_ACCOUNT.value)],
+                        "sAMAccountType": [str(SamAccountTypeCodes.SAM_MACHINE_ACCOUNT)],
+                        "sAMAccountName": [self._settings.HOST_MACHINE_SHORT_NAME],
                         "ipHostNumber": [self._settings.DEFAULT_NAMESERVER],
                     },
-                },
+                }
             ],
         }
 
@@ -193,12 +166,10 @@ class SetupUseCase:
                         "userAccountControl": ["512"],
                         "primaryGroupID": ["512"],
                         "givenName": [dto.username],
-                        "sAMAccountType": [
-                            str(SamAccountTypeCodes.SAM_USER_OBJECT),
-                        ],
+                        "sAMAccountType": [str(SamAccountTypeCodes.SAM_USER_OBJECT)],
                     },
                     "objectSid": SecurityPrincipalRid.ADMINISTRATOR,
-                },
+                }
             ],
         }
 
@@ -211,14 +182,8 @@ class SetupUseCase:
         """
         try:
             domain = await self._setup_gateway.create_base_domain(dto.domain)
-            await self._rid_manager_setup_use_case.create_domain_identifier(
-                domain.id,
-            )
-            await self._setup_gateway.setup_enviroment(
-                data=data,
-                is_system=True,
-                domain=domain,
-            )
+            await self._rid_manager_setup_use_case.create_domain_identifier(domain.id)
+            await self._setup_gateway.setup_enviroment(data=data, is_system=True, domain=domain)
 
             attrs = await self._attribute_type_use_case_legacy.get_all()
             for attr in attrs:
@@ -226,26 +191,13 @@ class SetupUseCase:
 
             obj_classes = await self._object_class_use_case_legacy.get_all()
             for obj_class in obj_classes:
-                obj_class.attribute_types_may = [
-                    _.name  # type: ignore
-                    for _ in obj_class.attribute_types_may
-                ]
-                obj_class.attribute_types_must = [
-                    _.name  # type: ignore
-                    for _ in obj_class.attribute_types_must
-                ]
+                obj_class.attribute_types_may = [_.name for _ in obj_class.attribute_types_may]  # type: ignore
+                obj_class.attribute_types_must = [_.name for _ in obj_class.attribute_types_must]  # type: ignore
                 await self._object_class_use_case.create(obj_class)  # type: ignore
 
             await self._password_use_cases.create_default_domain_policy()
 
-            errors = await (
-                self
-                ._password_use_cases
-                .check_password_violations(
-                    password=dto.password,
-                    user=None,
-                )
-            )  # fmt: skip
+            errors = await self._password_use_cases.check_password_violations(password=dto.password, user=None)
             if errors:
                 raise ForbiddenError(errors)
 
@@ -257,6 +209,4 @@ class SetupUseCase:
             await self._session.commit()
         except IntegrityError:
             await self._session.rollback()
-            raise AlreadyConfiguredError(
-                "Setup already performed (locked)",
-            )
+            raise AlreadyConfiguredError("Setup already performed (locked)")

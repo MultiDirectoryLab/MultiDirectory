@@ -24,14 +24,11 @@ depends_on: None | list[str] = None
 def upgrade(container: AsyncContainer) -> None:
     """Upgrade."""
 
-    async def _add_api_permission(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _add_api_permission(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        query = (
-            select(Role)
-            .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
-        )  # fmt: skip
+        query = select(Role).filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         role = await session.scalar(query)
 
         if role:
@@ -43,14 +40,11 @@ def upgrade(container: AsyncContainer) -> None:
 def downgrade(container: AsyncContainer) -> None:
     """Downgrade."""
 
-    async def _remove_api_permission(connection: AsyncConnection) -> None:  # noqa: ARG001
+    async def _remove_api_permission(connection: AsyncConnection) -> None:
         async with container(scope=Scope.REQUEST) as cnt:
             session = await cnt.get(AsyncSession)
 
-        query = (
-            select(Role)
-            .filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
-        )  # fmt: skip
+        query = select(Role).filter_by(name=RoleConstants.DOMAIN_ADMINS_ROLE_NAME)
         role = await session.scalar(query)
 
         if role:

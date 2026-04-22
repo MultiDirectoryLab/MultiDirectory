@@ -10,19 +10,11 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Settings
-from ldap_protocol.kerberos import (
-    AbstractKadmin,
-    KerberosState,
-    get_krb_server_state,
-)
+from ldap_protocol.kerberos import AbstractKadmin, KerberosState, get_krb_server_state
 from ldap_protocol.utils.queries import get_base_directories
 
 
-async def check_ldap_principal(
-    kadmin: AbstractKadmin,
-    session: AsyncSession,
-    settings: Settings,
-) -> None:
+async def check_ldap_principal(kadmin: AbstractKadmin, session: AsyncSession, settings: Settings) -> None:
     """Check ldap principal and keytab existence.
 
     :param AbstractKadmin kadmin: kadmin
@@ -51,7 +43,4 @@ async def check_ldap_principal(
     status = await kadmin.get_status(wait_for_positive=True)
 
     if status:
-        await kadmin.ldap_principal_setup(
-            ldap_principal_name,
-            settings.KRB5_LDAP_KEYTAB,
-        )
+        await kadmin.ldap_principal_setup(ldap_principal_name, settings.KRB5_LDAP_KEYTAB)

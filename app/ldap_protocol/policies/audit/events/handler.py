@@ -54,26 +54,16 @@ class AuditEventHandler:
         self.session = session
         self.normalized_class = normalized_class
 
-    def _check_modify_event(
-        self,
-        trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
-    ) -> bool:
+    def _check_modify_event(self, trigger: AuditPolicyTrigger, event: RawAuditEvent) -> bool:
         """Check if modify event matches trigger conditions."""
-        if (
-            trigger.object_class
-            not in event.context["after_attrs"]["objectclass"]
-        ):
+        if trigger.object_class not in event.context["after_attrs"]["objectclass"]:
             return False
 
         if trigger.additional_info is None:
             return True
 
         for change in event.request["changes"]:
-            if (
-                change["modification"]["type"].lower()
-                in trigger.additional_info["change_attributes"]
-            ):
+            if change["modification"]["type"].lower() in trigger.additional_info["change_attributes"]:
                 break
         else:
             return False
@@ -87,9 +77,7 @@ class AuditEventHandler:
             raise ValueError
 
         if change_attribute in {"useraccountcontrol", "pwdlastset"}:
-            first_value = int(
-                event.context["after_attrs"][change_attribute][0],
-            )
+            first_value = int(event.context["after_attrs"][change_attribute][0])
             second_value = trigger.additional_info["value"]
         elif change_attribute in {"member", "memberof"}:
             first_value = event.context["before_attrs"][change_attribute]
@@ -114,40 +102,21 @@ class AuditEventHandler:
 
         return not sasl_bind_in_progress
 
-    def _is_match_object_class(
-        self,
-        trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
-    ) -> bool:
+    def _is_match_object_class(self, trigger: AuditPolicyTrigger, event: RawAuditEvent) -> bool:
         """Check if event object class matches trigger object class."""
-        return (
-            trigger.object_class
-            in event.context["before_attrs"]["objectclass"]
-        )
+        return trigger.object_class in event.context["before_attrs"]["objectclass"]
 
-    def _is_match_ldap_oid(
-        self,
-        trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
-    ) -> bool:
+    def _is_match_ldap_oid(self, trigger: AuditPolicyTrigger, event: RawAuditEvent) -> bool:
         """Check if event OID matches trigger OID."""
         if trigger.additional_info is None:
-            raise ValueError(
-                "Extended operation trigger must have additional_info",
-            )
+            raise ValueError("Extended operation trigger must have additional_info")
 
         if "oid" not in trigger.additional_info:
-            raise ValueError(
-                "Trigger must have additional_info with 'oid'",
-            )
+            raise ValueError("Trigger must have additional_info with 'oid'")
 
         return trigger.additional_info["oid"] == event.request["request_name"]
 
-    def is_match_trigger(
-        self,
-        trigger: AuditPolicyTrigger,
-        event: RawAuditEvent,
-    ) -> bool:
+    def is_match_trigger(self, trigger: AuditPolicyTrigger, event: RawAuditEvent) -> bool:
         """Determine if event matches trigger conditions."""
         if event.request_code == OperationEvent.CHANGE_PASSWORD:
             return True
@@ -167,10 +136,7 @@ class AuditEventHandler:
             elif event.request_code == OperationEvent.MODIFY:
                 return self._check_modify_event(trigger, event)
 
-            elif event.request_code in [
-                OperationEvent.ADD,
-                OperationEvent.DELETE,
-            ]:
+            elif event.request_code in [OperationEvent.ADD, OperationEvent.DELETE]:
                 return self._is_match_object_class(trigger, event)
 
             elif event.request_code == OperationEvent.EXTENDED:
@@ -181,10 +147,7 @@ class AuditEventHandler:
         else:
             raise ValueError("Unsupported event")
 
-    async def get_event_by_data(
-        self,
-        event_data: RawAuditEvent,
-    ) -> list[AuditPolicyTrigger]:
+    async def get_event_by_data(self, event_data: RawAuditEvent) -> list[AuditPolicyTrigger]:
         """Find all policy triggers matching event data."""
         is_ldap = event_data.protocol == "TCP_LDAP"
         is_http = "API" in event_data.protocol
@@ -198,20 +161,13 @@ class AuditEventHandler:
             .where(
                 qa(AuditPolicy.is_enabled).is_(True),
                 qa(AuditPolicyTrigger.operation_code) == operation_code,
-                qa(AuditPolicyTrigger.is_operation_success).is_(
-                    event_data.is_event_successful,
-                ),
-                or_(
-                    qa(AuditPolicyTrigger.is_ldap).is_(is_ldap),
-                    qa(AuditPolicyTrigger.is_http).is_(is_http),
-                ),
+                qa(AuditPolicyTrigger.is_operation_success).is_(event_data.is_event_successful),
+                or_(qa(AuditPolicyTrigger.is_ldap).is_(is_ldap), qa(AuditPolicyTrigger.is_http).is_(is_http)),
             )
-            .options(selectinload(qa(AuditPolicyTrigger.audit_policy))),
+            .options(selectinload(qa(AuditPolicyTrigger.audit_policy)))
         )
         triggers = result.scalars().all()
-        logger.debug(
-            f"Suitable triggers: {[trigger.id for trigger in triggers]}",
-        )
+        logger.debug(f"Suitable triggers: {[trigger.id for trigger in triggers]}")
 
         for trigger in triggers:
             if self.is_match_trigger(trigger, event_data):
@@ -235,17 +191,10 @@ class AuditEventHandler:
                 return
 
             normalize_events: list[NormalizedAuditEvent] = [
-                AuditEventNormalizer(
-                    event,
-                    policy,
-                    self.normalized_class,
-                ).build()
-                for policy in events
+                AuditEventNormalizer(event, policy, self.normalized_class).build() for policy in events
             ]
 
-            logger.debug(
-                f"Normalized events: {[event for event in normalize_events]}",
-            )
+            logger.debug(f"Normalized events: {[event for event in normalize_events]}")
 
             await self.save_events(normalize_events)
         finally:
@@ -259,9 +208,7 @@ class AuditEventHandler:
         while True:
             try:
                 for event in await self.raw_audit_manager.read_events():
-                    await asyncio.gather(
-                        self.handle_event(event),
-                    )
+                    await asyncio.gather(self.handle_event(event))
             except ConnectionError:
                 await asyncio.sleep(1)
             except Exception as exc:

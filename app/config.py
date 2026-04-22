@@ -12,16 +12,7 @@ from typing import ClassVar, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jinja2
-from pydantic import (
-    BaseModel,
-    Field,
-    HttpUrl,
-    IPvAnyAddress,
-    PostgresDsn,
-    RedisDsn,
-    computed_field,
-    field_validator,
-)
+from pydantic import BaseModel, Field, HttpUrl, IPvAnyAddress, PostgresDsn, RedisDsn, computed_field, field_validator
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from enums import PostgresRWModeType
@@ -116,7 +107,7 @@ class Settings(BaseModel):
             f"{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}/"
-            f"{self.POSTGRES_DB}",
+            f"{self.POSTGRES_DB}"
         )
 
     @computed_field  # type: ignore
@@ -128,7 +119,7 @@ class Settings(BaseModel):
             f"{self.POSTGRES_REPLICA_USER}:"
             f"{self.POSTGRES_REPLICA_PASSWORD}@"
             f"{self.POSTGRES_REPLICA_HOST}/"
-            f"{self.POSTGRES_REPLICA_DB}",
+            f"{self.POSTGRES_REPLICA_DB}"
         )
 
     @cached_property
@@ -162,16 +153,11 @@ class Settings(BaseModel):
             future=True,
             echo=False,
             logging_name="replica",
-            connect_args={
-                "connect_timeout": self.POSTGRES_REPLICA_CONNECT_TIMEOUT,
-            },
+            connect_args={"connect_timeout": self.POSTGRES_REPLICA_CONNECT_TIMEOUT},
         )
 
     VENDOR_NAME: ClassVar[str] = "MultiFactor"
-    VENDOR_VERSION: str = Field(
-        default_factory=_get_vendor_version,
-        alias="VERSION",
-    )
+    VENDOR_VERSION: str = Field(default_factory=_get_vendor_version, alias="VERSION")
     # to get a string run: `openssl rand -hex 32`
     SECRET_KEY: str
     SESSION_KEY_EXPIRE_SECONDS: int = 60 * 60 * 8
@@ -193,9 +179,7 @@ class Settings(BaseModel):
     KRB5_SYNC_PASSWORD_URL: str = "http://shadow_api:8000/sync/password"  # noqa: S105
 
     TEMPLATES: ClassVar[jinja2.Environment] = jinja2.Environment(
-        loader=jinja2.FileSystemLoader("extra/templates"),
-        enable_async=True,
-        autoescape=True,
+        loader=jinja2.FileSystemLoader("extra/templates"), enable_async=True, autoescape=True
     )
 
     PDNS_AUTH_SERVER_HOST: str = "pdns_auth"

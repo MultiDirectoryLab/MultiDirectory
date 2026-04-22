@@ -18,11 +18,7 @@ class RIDManagerUseCase:
     # NOTE Domain Controller(with role Rid Master) attr
     # replace and change logic, when super DC is introduced
 
-    def __init__(
-        self,
-        gateway: RIDManagerGateway,
-        session: AsyncSession,
-    ) -> None:
+    def __init__(self, gateway: RIDManagerGateway, session: AsyncSession) -> None:
         """Initialize RID Manager use case."""
         self._gateway = gateway
         self._session = session

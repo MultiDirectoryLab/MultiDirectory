@@ -18,31 +18,19 @@ class AuthorizationRulesType(TypeDecorator):
     impl = LargeBinary
     cache_ok = True
 
-    def process_bind_param(
-        self,
-        value: AuthorizationRules | int | None,
-        dialect: Dialect,  # noqa: ARG002
-    ) -> None | bytes:
+    def process_bind_param(self, value: AuthorizationRules | int | None, dialect: Dialect) -> None | bytes:  # noqa: ARG002
         """Convert strings to AuthorizationRules enums when loading from DB."""
         if value is None:
             return None
 
-        raw = (
-            value.value
-            if isinstance(value, AuthorizationRules)
-            else int(value)
-        )
+        raw = value.value if isinstance(value, AuthorizationRules) else int(value)
 
         if raw == 0:
             return b"\x00"
         length = (raw.bit_length() + 7) // 8
         return raw.to_bytes(length, byteorder="little")
 
-    def process_result_value(
-        self,
-        value: None | bytes,
-        dialect: Dialect,  # noqa: ARG002
-    ) -> None | AuthorizationRules:
+    def process_result_value(self, value: None | bytes, dialect: Dialect) -> None | AuthorizationRules:  # noqa: ARG002
         """Convert enums to strings when saving to DB."""
         if not value:
             return None

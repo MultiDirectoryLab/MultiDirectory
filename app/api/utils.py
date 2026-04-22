@@ -12,11 +12,6 @@ from ldap_protocol.master_check_use_case import MasterCheckUseCase
 
 
 @inject
-async def require_master_db(
-    master_check_use_case: FromDishka[MasterCheckUseCase],
-) -> None:
+async def require_master_db(master_check_use_case: FromDishka[MasterCheckUseCase]) -> None:
     if not await master_check_use_case.check_master():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Master DB is not available",
-        )
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Master DB is not available")
