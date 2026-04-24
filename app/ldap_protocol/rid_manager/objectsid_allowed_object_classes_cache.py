@@ -7,8 +7,6 @@ License: https://github.com/MultiDirectoryLab/MultiDirectory/blob/main/LICENSE
 import json
 from typing import Awaitable, Callable
 
-from loguru import logger
-
 from ldap_protocol.rid_manager.types import ObjectSidCacheRedisClient
 
 
@@ -52,8 +50,6 @@ class ObjectSidAllowedObjectClassesCache:
     async def get_or_compute(self, compute: Callable[[], Awaitable[set[str]]]) -> set[str]:
         """Read from redis, or compute once under a lock."""
         if cached := await self.get():
-            logger.critical("ObjectSidAllowedObjectClassesCache: read from redis")
-            logger.critical(cached)
             return cached
 
         lock = self._redis.lock(
@@ -63,13 +59,9 @@ class ObjectSidAllowedObjectClassesCache:
         )
         async with lock:
             if cached2 := await self.get():
-                logger.critical("ObjectSidAllowedObjectClassesCache: read from redis")
-                logger.critical(cached2)
                 return cached2
 
             value = await compute()
-            logger.critical("ObjectSidAllowedObjectClassesCache: computed")
-            logger.critical(value)
             normalized = {v.lower() for v in value}
             await self.store(normalized)
             return normalized
