@@ -37,6 +37,7 @@ class ObjectSIDUseCase:
 
     async def get_available_object_classes(self) -> set[str]:
         """ObjectClasses that allow objectSid (mustContain/mayContain)."""
+
         async def compute() -> set[str]:
             names = await self._object_class_dao.get_object_class_names_include_attribute_type("objectSid")
             return {n.lower() for n in names}

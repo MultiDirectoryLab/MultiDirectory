@@ -397,6 +397,10 @@ class TestProvider(Provider):
         with suppress(RuntimeError):
             await client.aclose()
 
+    @provide(scope=Scope.APP)
+    def get_objectsid_cache_redis(self, client: SessionStorageClient) -> ObjectSidCacheRedisClient:
+        return ObjectSidCacheRedisClient(client)
+
     @provide(scope=Scope.REQUEST, provides=MasterGatewayProtocol)
     async def get_master_gateway(self, session: AsyncSession, settings: Settings) -> PGMasterGateway:
         return PGMasterGateway(session, settings)
@@ -587,6 +591,7 @@ class TestProvider(Provider):
     rid_manager_setup_gateway = provide(RIDManagerSetupGateway, scope=Scope.REQUEST)
     rid_manager_setup_use_case = provide(RIDManagerSetupUseCase, scope=Scope.REQUEST)
     object_sid_gateway = provide(ObjectSIDGateway, scope=Scope.REQUEST)
+    objectsid_allowed_object_classes_cache = provide(ObjectSidAllowedObjectClassesCache, scope=Scope.APP)
     object_sid_use_case = provide(ObjectSIDUseCase, scope=Scope.REQUEST)
     rid_set_gateway = provide(RIDSetGateway, scope=Scope.REQUEST)
     rid_set_use_case = provide(RIDSetUseCase, scope=Scope.REQUEST)
