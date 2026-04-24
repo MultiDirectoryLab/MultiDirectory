@@ -122,6 +122,7 @@ from ldap_protocol.policies.password.ban_word_repository import PasswordBanWordR
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases, UserPasswordHistoryUseCases
 from ldap_protocol.rid_manager import (
+    ObjectSidCacheRedisClient,
     ObjectSIDGateway,
     ObjectSIDUseCase,
     RIDManagerGateway,
@@ -131,6 +132,7 @@ from ldap_protocol.rid_manager import (
     RIDSetGateway,
     RIDSetUseCase,
 )
+from ldap_protocol.rid_manager.objectsid_allowed_object_classes_cache import ObjectSidAllowedObjectClassesCache
 from ldap_protocol.rid_manager.types import HostMachineShortName
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -316,6 +318,14 @@ class MainProvider(Provider):
         await client.aclose()
 
     @provide(scope=Scope.APP)
+    def get_objectsid_cache_redis(self, client: SessionStorageClient) -> ObjectSidCacheRedisClient:
+        """Typed redis client for objectSid-related caches.
+
+        Important: this does NOT create a new connection, just re-types the existing client.
+        """
+        return ObjectSidCacheRedisClient(client)
+
+    @provide(scope=Scope.APP)
     def get_session_storage(self, client: SessionStorageClient, settings: Settings) -> SessionStorage:
         """Get session storage."""
         return RedisSessionStorage(client, settings.SESSION_KEY_LENGTH, settings.SESSION_KEY_EXPIRE_SECONDS)
@@ -464,6 +474,7 @@ class MainProvider(Provider):
     rid_manager_use_case = provide(RIDManagerUseCase, scope=Scope.REQUEST)
     rid_manager_setup_use_case = provide(RIDManagerSetupUseCase, scope=Scope.REQUEST)
     object_sid_gateway = provide(ObjectSIDGateway, scope=Scope.REQUEST)
+    objectsid_allowed_object_classes_cache = provide(ObjectSidAllowedObjectClassesCache, scope=Scope.APP)
     object_sid_use_case = provide(ObjectSIDUseCase, scope=Scope.REQUEST)
     rid_set_gateway = provide(RIDSetGateway, scope=Scope.REQUEST)
     rid_set_use_case = provide(RIDSetUseCase, scope=Scope.REQUEST)

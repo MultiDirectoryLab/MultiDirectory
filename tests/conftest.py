@@ -113,6 +113,7 @@ from ldap_protocol.policies.password.ban_word_repository import PasswordBanWordR
 from ldap_protocol.policies.password.settings import PasswordValidatorSettings
 from ldap_protocol.policies.password.use_cases import PasswordBanWordUseCases, UserPasswordHistoryUseCases
 from ldap_protocol.rid_manager import (
+    ObjectSidCacheRedisClient,
     ObjectSIDGateway,
     ObjectSIDUseCase,
     RIDManagerGateway,
@@ -122,6 +123,7 @@ from ldap_protocol.rid_manager import (
     RIDSetGateway,
     RIDSetUseCase,
 )
+from ldap_protocol.rid_manager.objectsid_allowed_object_classes_cache import ObjectSidAllowedObjectClassesCache
 from ldap_protocol.rid_manager.types import HostMachineShortName
 from ldap_protocol.roles.access_manager import AccessManager
 from ldap_protocol.roles.ace_dao import AccessControlEntryDAO
@@ -791,8 +793,16 @@ async def setup_session(
         rid_set_gateway, entity_type_use_case, session, rid_manager_use_case, role_use_case
     )
     object_sid_gateway = ObjectSIDGateway(session)
+    redis_client = SessionStorageClient(redis.Redis.from_url(str(settings.SESSION_STORAGE_URL)))
+
+    objectsid_allowed_object_classes_cache = ObjectSidAllowedObjectClassesCache(ObjectSidCacheRedisClient(redis_client))
     object_sid_use_case = ObjectSIDUseCase(
-        object_sid_gateway, rid_set_use_case, session, rid_manager_use_case, object_class_dao
+        object_sid_gateway,
+        rid_set_use_case,
+        session,
+        rid_manager_use_case,
+        object_class_dao,
+        objectsid_allowed_object_classes_cache,
     )
     directory_create_use_case = DirectoryCreateUseCase(
         session=session,
@@ -1415,17 +1425,35 @@ async def object_sid_gateway(container: AsyncContainer) -> AsyncIterator[ObjectS
 
 
 @pytest_asyncio.fixture(scope="function")
+async def objectsid_allowed_object_classes_cache(
+    container: AsyncContainer, settings: Settings
+) -> AsyncIterator[ObjectSidAllowedObjectClassesCache]:
+    """Provide ObjectSidAllowedObjectClassesCache for tests that request it explicitly."""
+    async with container(scope=Scope.SESSION) as container:
+        redis_client = ObjectSidCacheRedisClient(redis.Redis.from_url(str(settings.SESSION_STORAGE_URL)))
+        yield ObjectSidAllowedObjectClassesCache(ObjectSidCacheRedisClient(redis_client))
+
+
+@pytest_asyncio.fixture(scope="function")
 async def object_sid_use_case(
     container: AsyncContainer,
     rid_manager_use_case: RIDManagerUseCase,
     rid_set_use_case: RIDSetUseCase,
     object_sid_gateway: ObjectSIDGateway,
+    objectsid_allowed_object_classes_cache: ObjectSidAllowedObjectClassesCache,
 ) -> AsyncIterator[ObjectSIDUseCase]:
     """Provide RIDManagerUseCase for tests that request it explicitly."""
     async with container(scope=Scope.SESSION) as container:
         session = await container.get(AsyncSession)
         object_class_dao = ObjectClassDAO(session)
-        yield ObjectSIDUseCase(object_sid_gateway, rid_set_use_case, session, rid_manager_use_case, object_class_dao)
+        yield ObjectSIDUseCase(
+            object_sid_gateway,
+            rid_set_use_case,
+            session,
+            rid_manager_use_case,
+            object_class_dao,
+            objectsid_allowed_object_classes_cache,
+        )
 
 
 def pytest_configure(config: pytest.Config) -> None:

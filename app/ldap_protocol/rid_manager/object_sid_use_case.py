@@ -10,9 +10,9 @@ from enums import SidPrefix
 from ldap_protocol.ldap_schema.object_class.object_class_dao import ObjectClassDAO
 from ldap_protocol.rid_manager.exceptions import RIDManagerObjectSIDNotFoundError
 from ldap_protocol.rid_manager.object_sid_gateway import ObjectSIDGateway
+from ldap_protocol.rid_manager.objectsid_allowed_object_classes_cache import ObjectSidAllowedObjectClassesCache
 from ldap_protocol.rid_manager.rid_manager_use_case import RIDManagerUseCase
 from ldap_protocol.rid_manager.rid_set_use_case import RIDSetUseCase
-from ldap_protocol.utils.async_cache import objectsid_allowed_object_classes_cache
 
 
 class ObjectSIDUseCase:
@@ -25,6 +25,7 @@ class ObjectSIDUseCase:
         session: AsyncSession,
         rid_manager_use_case: RIDManagerUseCase,
         object_class_dao: ObjectClassDAO,
+        objectsid_allowed_object_classes_cache: ObjectSidAllowedObjectClassesCache,
     ) -> None:
         """Initialize Object SID use case."""
         self._gateway = gateway
@@ -32,12 +33,15 @@ class ObjectSIDUseCase:
         self._session = session
         self._rid_manager_use_case = rid_manager_use_case
         self._object_class_dao = object_class_dao
+        self._objectsid_allowed_object_classes_cache = objectsid_allowed_object_classes_cache
 
-    @objectsid_allowed_object_classes_cache
     async def get_available_object_classes(self) -> set[str]:
         """ObjectClasses that allow objectSid (mustContain/mayContain)."""
-        names = await self._object_class_dao.get_object_class_names_include_attribute_type("objectSid")
-        return {n.lower() for n in names}
+        async def compute() -> set[str]:
+            names = await self._object_class_dao.get_object_class_names_include_attribute_type("objectSid")
+            return {n.lower() for n in names}
+
+        return await self._objectsid_allowed_object_classes_cache.get_or_compute(compute)
 
     async def is_objectsid_needed(self, object_class_names: set[str]) -> bool:
         """Check if objectSid is needed for objectClasses."""

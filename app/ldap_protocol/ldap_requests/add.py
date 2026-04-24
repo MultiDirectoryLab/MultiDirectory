@@ -168,9 +168,9 @@ class AddRequest(BaseRequest):
             ctx.session.add(new_dir)
 
             await ctx.session.flush()
-
-            await ctx.object_sid_use_case.ensure_objectsid(directory_id=new_dir.id)
-            await ctx.session.flush()
+            if await ctx.object_sid_use_case.is_objectsid_needed(self.object_class_names):
+                await ctx.object_sid_use_case.ensure_objectsid(directory_id=new_dir.id)
+                await ctx.session.flush()
         except IntegrityError:
             await ctx.session.rollback()
             yield AddResponse(result_code=LDAPCodes.ENTRY_ALREADY_EXISTS)
