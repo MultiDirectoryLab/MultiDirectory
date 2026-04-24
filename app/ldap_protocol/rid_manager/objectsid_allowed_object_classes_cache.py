@@ -22,14 +22,11 @@ class ObjectSidAllowedObjectClassesCache:
         self._redis = redis
 
     def _decode(self, raw: bytes | str) -> set[str] | None:
+        if isinstance(raw, bytes | bytearray):
+            raw = raw.decode("utf-8", errors="replace")
         try:
-            if isinstance(raw, bytes | bytearray):
-                raw = raw.decode("utf-8", errors="replace")
             decoded = json.loads(raw)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            return None
-
-        if not isinstance(decoded, list):
+        except json.JSONDecodeError:
             return None
 
         return {str(v).lower() for v in decoded}
