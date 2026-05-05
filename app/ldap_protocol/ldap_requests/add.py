@@ -55,6 +55,7 @@ class AddRequest(BaseRequest):
     AddRequest ::= [APPLICATION 8] SEQUENCE {
         entry           LDAPDN,
         attributes      AttributeList
+
     }
 
     AttributeList ::= SEQUENCE OF attribute Attribute
